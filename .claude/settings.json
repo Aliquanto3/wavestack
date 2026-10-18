@@ -13,7 +13,8 @@
       "Bash(uv run pytest *)",
       "Bash(uv run ruff check *)",
       "Bash(uv run ruff format --check *)",
-      "Bash(python .claude/cost-kit/controle_rapide.py)"
+      "Bash(python .claude/cost-kit/controle_rapide.py)",
+      "Bash(uv run python .claude/cost-kit/controle_rapide.py)"
     ],
     "deny": [
       "Read(./.venv/**)",
