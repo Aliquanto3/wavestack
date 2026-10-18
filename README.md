@@ -40,7 +40,7 @@ d'entreprise**, tapez d'abord `$env:UV_SYSTEM_CERTS = "1"` dans ce même termina
 autoriser les domaines de [Derrière un proxy d'entreprise](docs/installation.md#derrière-un-proxy-dentreprise) :
 
 ```powershell
-irm https://raw.githubusercontent.com/Aliquanto3/agentic-harness-training-demo/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Aliquanto3/wavestack/main/install.ps1 | iex
 ```
 
 Depuis un clone ou un zip décompressé, double-cliquez plutôt sur `install.bat` : il installe sur place.
@@ -56,8 +56,8 @@ installez `uv`, récupérez WaveStack, puis déposez le modèle Qwen (1,28 Go), 
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/Aliquanto3/agentic-harness-training-demo.git
-cd agentic-harness-training-demo
+git clone https://github.com/Aliquanto3/wavestack.git
+cd wavestack
 New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\WaveStack\models" | Out-Null
 $ProgressPreference = "SilentlyContinue"
 Invoke-WebRequest -UseBasicParsing "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf" -OutFile "$env:LOCALAPPDATA\WaveStack\models\Qwen3.5-2B-Q4_K_M.gguf"
