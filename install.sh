@@ -11,8 +11,8 @@ set -euo pipefail
 # Memes valeurs que README.md (une seule source de verite : voir tests/test_installers.py)
 QWEN_URL="https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf"
 QWEN_FILE="Qwen3.5-2B-Q4_K_M.gguf"
-REPO_URL="https://github.com/Aliquanto3/agentic-harness-training-demo.git"
-TARBALL_URL="https://github.com/Aliquanto3/agentic-harness-training-demo/archive/refs/heads/main.tar.gz"
+REPO_URL="https://github.com/Aliquanto3/wavestack.git"
+TARBALL_URL="https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.tar.gz"
 
 INSTALL_DIR="${WAVESTACK_INSTALL_DIR:-}"
 DATA_DIR="${WAVESTACK_DATA_DIR:-}"

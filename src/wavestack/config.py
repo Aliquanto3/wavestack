@@ -204,7 +204,7 @@ DEFAULT_TOOL_RESULT_MAX_TOKENS = 1200  # lot B (N3): `[tools] result_max_tokens`
 DEFAULT_REASONING_BUDGET = 768  # lot C (N4), lot J: `[reasoning] budget_tokens`
 MIN_REASONING_BUDGET = 128  # lot C: the floor, and what is always left to the answer
 # Lot D: `[net] contact`, the way to reach the demo's maintainers, sent in the User-Agent.
-DEFAULT_NET_CONTACT = "https://github.com/Aliquanto3/agentic-harness-training-demo"
+DEFAULT_NET_CONTACT = "https://github.com/Aliquanto3/wavestack"
 DEFAULT_EUR_PER_USD = 0.86  # FinOps: `[finops] eur_per_usd`
 DEFAULT_MAX_SESSION_USD = 5.0  # FinOps (CAP-4): `[finops] max_session_usd`
 # GreenOps: `[greenops] local_gco2e_per_kwh`, EcoLogits' France mix (life cycle).

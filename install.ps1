@@ -39,9 +39,9 @@ param(
     # Memes valeurs que README.md (une seule source de verite : voir tests/test_installers.py)
     $QwenUrl  = 'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf'
     $QwenFile = 'Qwen3.5-2B-Q4_K_M.gguf'
-    $RepoUrl  = 'https://github.com/Aliquanto3/agentic-harness-training-demo.git'
-    $ZipUrl   = 'https://github.com/Aliquanto3/agentic-harness-training-demo/archive/refs/heads/main.zip'
-    $ZipRoot  = 'agentic-harness-training-demo-main'
+    $RepoUrl  = 'https://github.com/Aliquanto3/wavestack.git'
+    $ZipUrl   = 'https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.zip'
+    $ZipRoot  = 'wavestack-main'
 
     # -- Dossier du projet : sur place si on est deja dans un clone ou un zip, sinon un
     #    dossier visible sous Documents (chemin reel, eventuellement redirige par OneDrive).

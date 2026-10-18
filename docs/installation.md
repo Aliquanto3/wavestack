@@ -105,7 +105,7 @@ place. Voir la [commande du README](../README.md#installation-sous-windows) ; so
 Linux, dans un terminal (avec `bash`, pas `sh`) :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Aliquanto3/agentic-harness-training-demo/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Aliquanto3/wavestack/main/install.sh | bash
 ```
 
 Surcharges utiles pour un cas particulier : `-InstallDir`/`-DataDir` (PowerShell) ou
