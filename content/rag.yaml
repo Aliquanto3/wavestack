@@ -49,29 +49,121 @@ rerank_placement_text: >-
 # Bouton de la sous-option quand le modèle de reranking manque ({size_mb} : taille en Mo).
 rerank_download_label_text: "Télécharger le modèle de reranking (≈ {size_mb} Mo)"
 
-# Les documents du corpus, chemins relatifs à content/.
+# Les documents du corpus, chemins relatifs à content/. `audience` : `all` ou `hr`.
+# `active: false` : exclu du découpage, de l'index et de l'empreinte du corpus (story 1).
+# `languages` : document monolingue, exempté du miroir i18n (son fichier est dans sa
+# langue d'origine, sous content/corpus/, sans copie sous i18n/).
 documents:
   - id: mots_de_passe
     title_text: Politique des mots de passe
     file: corpus/mots_de_passe.md
+    audience: all
   - id: teletravail
     title_text: Accord de télétravail
     file: corpus/teletravail.md
+    audience: all
   - id: classification
     title_text: Classification de l'information
     file: corpus/classification.md
+    audience: all
   - id: incidents
     title_text: Incidents de sécurité
     file: corpus/incidents.md
+    audience: all
   - id: donnees_personnelles
     title_text: Conservation des données personnelles
     file: corpus/donnees_personnelles.md
+    audience: all
   - id: ia_generative
     title_text: Usage de l'IA générative
     file: corpus/ia_generative.md
+    audience: all
   - id: deplacements
     title_text: Déplacements et notes de frais
     file: corpus/deplacements.md
+    audience: all
   - id: sauvegardes
     title_text: Sauvegardes
     file: corpus/sauvegardes.md
+    audience: all
+  - id: prestataires
+    title_text: Politique de sécurité des prestataires
+    file: corpus/prestataires.md
+    audience: all
+  - id: clauses_contrats
+    title_text: Clauses de sécurité des contrats
+    file: corpus/clauses_contrats.md
+    audience: all
+  - id: registre_sous_traitants
+    title_text: Registre des sous-traitants
+    file: corpus/registre_sous_traitants.md
+    audience: all
+  - id: gestion_crise
+    title_text: Procédure de gestion de crise
+    file: corpus/gestion_crise.md
+    audience: all
+  - id: astreinte
+    title_text: Annexe des contacts d'astreinte
+    file: corpus/astreinte.md
+    audience: all
+  - id: charte_messagerie_v1
+    title_text: Charte de messagerie, version 1 (2024)
+    file: corpus/charte_messagerie_v1.md
+    audience: all
+  - id: charte_messagerie_v2
+    title_text: Charte de messagerie, version 2 (2026)
+    file: corpus/charte_messagerie_v2.md
+    audience: all
+  - id: note_changement_messagerie
+    title_text: Note de changement de messagerie
+    file: corpus/note_changement_messagerie.md
+    audience: all
+  - id: rundschreiben_usb
+    title_text: "Rundschreiben zu USB-Speichermedien (document en allemand uniquement)"
+    file: corpus/rundschreiben_usb.md
+    audience: all
+    languages: [de]
+  - id: uk_visitor_badges
+    title_text: UK visitor badges (document en anglais uniquement)
+    file: corpus/uk_visitor_badges.md
+    audience: all
+    languages: [en]
+  - id: plan_continuite_lyon
+    title_text: Plan de continuité d'activité, site de Lyon (document en français uniquement)
+    file: corpus/plan_continuite_lyon.md
+    audience: all
+    languages: [fr]
+  - id: grille_remunerations
+    title_text: Grille des rémunérations
+    file: corpus/grille_remunerations.md
+    audience: hr
+  - id: dossier_disciplinaire
+    title_text: Procédure disciplinaire
+    file: corpus/dossier_disciplinaire.md
+    audience: hr
+  - id: entretiens_annuels
+    title_text: Procédure des entretiens annuels
+    file: corpus/entretiens_annuels.md
+    audience: hr
+  - id: acces_physique
+    title_text: Accès physique aux locaux
+    file: corpus/acces_physique.md
+    audience: all
+  - id: revue_habilitations
+    title_text: Revue des habilitations
+    file: corpus/revue_habilitations.md
+    audience: all
+  - id: formation_securite
+    title_text: Formation à la sécurité
+    file: corpus/formation_securite.md
+    audience: all
+  - id: faq_mots_de_passe
+    title_text: FAQ mots de passe (document piégé, inactif)
+    file: corpus/faq_mots_de_passe.md
+    audience: all
+    active: false
+  - id: projet_orion
+    title_text: Projet Orion (document sentinelle, inactif)
+    file: corpus/projet_orion.md
+    audience: all
+    active: false
