@@ -291,7 +291,8 @@ def test_the_first_import_is_counted_for_life_with_fake_modules(
     store = ended(first, "vector_store")
     facts = {f["label_text"]: f["value_text"] for f in store["facts"]}
     assert (
-        store["status"] == "ok" and f"Index {label} construit (187 vecteurs)" in store["output_text"]
+        store["status"] == "ok"
+        and f"Index {label} construit (187 vecteurs)" in store["output_text"]
     )
     assert facts["Import"].startswith("premier import") and "réservés à vie" in facts["Budget"]
     assert session._load_registry.holder(f"rag_lab.{option}") == label
