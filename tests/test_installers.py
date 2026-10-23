@@ -51,7 +51,8 @@ def test_install_bat_delegates_to_install_ps1() -> None:
 def test_install_sh_syntax() -> None:
     if not shutil.which("bash"):
         pytest.skip("bash indisponible sur ce poste")
-    subprocess.run(["bash", "-n", str(ROOT / "install.sh")], check=True)
+    # The resolved path: Windows looks in System32 (WSL bash) before PATH.
+    subprocess.run([shutil.which("bash"), "-n", str(ROOT / "install.sh")], check=True)
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="install.ps1 cible Windows")
@@ -132,7 +133,7 @@ def test_install_sh_dry_run_creates_nothing(tmp_path) -> None:
         "WAVESTACK_DRY_RUN": "1",
     }
     result = subprocess.run(
-        ["bash", (ROOT / "install.sh").as_posix()],
+        [shutil.which("bash"), (ROOT / "install.sh").as_posix()],
         capture_output=True,
         text=True,
         check=True,
