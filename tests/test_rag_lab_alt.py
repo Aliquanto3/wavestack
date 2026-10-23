@@ -139,10 +139,10 @@ def test_ranks_as_the_memory_search(index, option):  # noqa: F811
         assert store["status"] == "ok", store["error_text"]
         facts = {f["label_text"]: f["value_text"] for f in store["facts"]}
         if i == 0:
-            assert f"Index {label} construit (77 vecteurs)" in store["output_text"]
+            assert f"Index {label} construit (187 vecteurs)" in store["output_text"]
             assert facts["Import"].startswith("premier import : +")
         else:
-            assert f"Index {label} relu (77 vecteurs)" in store["output_text"]
+            assert f"Index {label} relu (187 vecteurs)" in store["output_text"]
             assert facts["Import"].startswith("déjà fait")
         searched = [ended(e, "vector_search")["items"] for e in (memory, events)]
         assert [(x["chunk_id"], x["score"]) for x in searched[0]] == [
@@ -291,7 +291,7 @@ def test_the_first_import_is_counted_for_life_with_fake_modules(
     store = ended(first, "vector_store")
     facts = {f["label_text"]: f["value_text"] for f in store["facts"]}
     assert (
-        store["status"] == "ok" and f"Index {label} construit (77 vecteurs)" in store["output_text"]
+        store["status"] == "ok" and f"Index {label} construit (187 vecteurs)" in store["output_text"]
     )
     assert facts["Import"].startswith("premier import") and "réservés à vie" in facts["Budget"]
     assert session._load_registry.holder(f"rag_lab.{option}") == label
@@ -300,7 +300,7 @@ def test_the_first_import_is_counted_for_life_with_fake_modules(
     second = run(session, QUESTION, b)
     store = ended(second, "vector_store")
     facts = {f["label_text"]: f["value_text"] for f in store["facts"]}
-    assert f"Index {label} relu (77 vecteurs)" in store["output_text"]
+    assert f"Index {label} relu (187 vecteurs)" in store["output_text"]
     assert facts["Import"].startswith("déjà fait")
     assert session._load_registry.holder(f"rag_lab.{option}") == label  # never released
 
