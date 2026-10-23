@@ -1,0 +1,240 @@
+# German translation of content/rag_questions.yaml (story 1): same ids, types, doc_ids and
+# history shape as the French file; only the texts (and the anchors of the translated
+# passages) change. Monolingual documents keep their one existing file's anchor untranslated.
+questions:
+  # ---------- factual ----------
+  - id: q_fact_pwd
+    type: factual
+    question_text: Wie viele Zeichen muss ein Passwort bei Exemplia mindestens haben?
+    expected_answer_text: Mindestens 14 Zeichen.
+    expected_passages:
+      - doc_id: mots_de_passe
+        anchor_text: mindestens 14 Zeichen
+
+  - id: q_fact_sauvegarde
+    type: factual
+    question_text: Welche Sicherungsregel wendet Exemplia auf seine Daten an?
+    expected_answer_text: Die 3-2-1-Regel - 3 Kopien, auf 2 verschiedenen Medien, davon 1 Kopie außerhalb des Standorts.
+    expected_passages:
+      - doc_id: sauvegardes
+        anchor_text: >-
+          mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon 1 Kopie
+          außerhalb des Hauptstandorts
+
+  - id: q_fact_badge
+    type: factual
+    question_text: Wie schnell wird das Abzeichen einer ausscheidenden Person deaktiviert?
+    expected_answer_text: Innerhalb von 24 Stunden nach ihrem Austritt.
+    expected_passages:
+      - doc_id: acces_physique
+        anchor_text: innerhalb von 24 Stunden nach ihrem Austritt deaktiviert
+
+  # ---------- multi_hop ----------
+  - id: q_multi_crise
+    type: multi_hop
+    question_text: Wen ruft man nachts bei einem größeren Vorfall an?
+    expected_answer_text: >-
+      Die Sicherheitsbereitschaft, unter der in ihrer Anlage genannten einheitlichen
+      Bereitschaftsnummer, vor einer Eskalation an den Informationssicherheitsbeauftragten.
+    expected_passages:
+      - doc_id: gestion_crise
+        anchor_text: >-
+          listet die Anlage mit den Bereitschaftskontakten die zu erreichenden Nummern je
+          nach Uhrzeit und betroffenem Bereich auf
+      - doc_id: astreinte
+        anchor_text: Die einheitliche Bereitschaftsnummer ist 06 07 08 09 10
+
+  - id: q_multi_prestataire
+    type: multi_hop
+    question_text: Innerhalb welcher Frist muss ein Dienstleister die Daten von Exemplia nach Vertragsende löschen?
+    expected_answer_text: Innerhalb der 30 Tage, die die Rückgabe- und Löschklausel vorgibt.
+    expected_passages:
+      - doc_id: prestataires
+        anchor_text: bestätigt dies schriftlich innerhalb der im Vertrag festgelegten Frist
+      - doc_id: clauses_contrats
+        anchor_text: löscht sie dann von allen seinen Systemen, einschließlich seiner Sicherungskopien, innerhalb von 30 Tagen
+
+  - id: q_multi_messagerie
+    type: multi_hop
+    question_text: Warum hat sich die maximale Größe einer E-Mail-Nachricht geändert?
+    expected_answer_text: >-
+      Exemplia hat am 1. Januar 2026 den E-Mail-Anbieter gewechselt; die maximale
+      Nachrichtengröße stieg von 10 MB auf 25 MB.
+    expected_passages:
+      - doc_id: note_changement_messagerie
+        anchor_text: steigt die maximale Größe einer Nachricht von 10 MB auf 25 MB
+      - doc_id: charte_messagerie_v2
+        anchor_text: dank des neuen Anbieters nun bis zu 25 MB groß sein
+
+  # ---------- global ----------
+  - id: q_global_securite
+    type: global
+    question_text: Was sind die wichtigsten Säulen der Informationssicherheit in der Dokumentation von Exemplia?
+    expected_answer_text: >-
+      Der Schutz von Passwörtern und Zugängen, die Klassifizierung von Informationen nach
+      Sensibilität und die schnelle Meldung von Sicherheitsvorfällen.
+    expected_passages:
+      - doc_id: mots_de_passe
+        anchor_text: >-
+          Die Zwei-Faktor-Authentifizierung ist Pflicht für E-Mail, Fernzugriff und alle
+          Online-Tools.
+      - doc_id: classification
+        anchor_text: >-
+          Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4
+          Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.
+      - doc_id: incidents
+        anchor_text: >-
+          Alle Mitarbeitenden, die einen Vorfall feststellen oder vermuten, melden ihn
+          innerhalb von 30 Minuten dem Reaktionsteam CERT-Ex.
+
+  - id: q_global_fournisseurs
+    type: global
+    question_text: Wie regelt Exemplia die Sicherheit seiner Dienstleister und Unterauftragnehmer?
+    expected_answer_text: >-
+      Durch eine Einstufung nach Risikostufe, vertragliche Sicherheitsklauseln und ein
+      aktuell gehaltenes Register der Unterauftragnehmer.
+    expected_passages:
+      - doc_id: prestataires
+        anchor_text: Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu
+      - doc_id: clauses_contrats
+        anchor_text: >-
+          Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des
+          Dienstleisters in jeden Vertrag einfügt
+      - doc_id: registre_sous_traitants
+        anchor_text: listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt
+
+  - id: q_global_rh
+    type: global
+    question_text: Welche Personalprozesse regeln die Beziehung zwischen Exemplia und seinen Mitarbeitenden?
+    expected_answer_text: Die Vergütungstabelle, das Disziplinarverfahren und das Jahresgespräch.
+    audience: hr
+    expected_passages:
+      - doc_id: grille_remunerations
+        anchor_text: Die Tabelle umfasst 5 Kategorien, von Kategorie A (Einstiegspositionen) bis Kategorie E (Geschäftsleitung)
+      - doc_id: dossier_disciplinaire
+        anchor_text: >-
+          einer mündlichen Ermahnung, einer schriftlichen Abmahnung in der Personalakte,
+          einer unbezahlten Suspendierung von 1 bis 5 Tagen oder einer Kündigung aus
+          wichtigem Grund
+      - doc_id: entretiens_annuels
+        anchor_text: Das Gespräch findet jedes Jahr im ersten Quartal statt, zwischen Januar und März
+
+  # ---------- no_answer ----------
+  - id: q_noanswer_parking
+    type: no_answer
+    question_text: Wie erstattet Exemplia Parkkosten?
+    expected_answer_text: Ich weiß es nicht - dieses Thema wird in der Dokumentation von Exemplia nicht behandelt.
+
+  - id: q_noanswer_mutuelle
+    type: no_answer
+    question_text: Welche Krankenzusatzversicherung bietet Exemplia seinen Mitarbeitenden an?
+    expected_answer_text: Ich weiß es nicht - dieses Thema wird in der Dokumentation von Exemplia nicht behandelt.
+
+  - id: q_noanswer_restauration
+    type: no_answer
+    question_text: Bezuschusst Exemplia das Mittagessen?
+    expected_answer_text: Ich weiß es nicht - dieses Thema wird in der Dokumentation von Exemplia nicht behandelt.
+
+  # ---------- temporal ----------
+  - id: q_temporal_taille
+    type: temporal
+    question_text: Wie groß darf ein E-Mail-Anhang bei Exemplia derzeit maximal sein?
+    expected_answer_text: 25 MB, seit Version 2 der Richtlinie, gültig seit Januar 2026.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: dank des neuen Anbieters nun bis zu 25 MB groß sein
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: darf mit ihren Anhängen 10 MB nicht überschreiten
+
+  - id: q_temporal_retention
+    type: temporal
+    question_text: Wie lange werden Nachrichten laut der aktuell gültigen Regel im Postfach aufbewahrt, bevor sie archiviert werden?
+    expected_answer_text: 3 Jahre, seit Version 2 der E-Mail-Richtlinie.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: >-
+          Nachrichten werden 3 Jahre im Postfach aufbewahrt, bevor sie archiviert werden,
+          gegenüber 1 Jahr in der vorherigen Version
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: werden 1 Jahr im Postfach aufbewahrt
+
+  - id: q_temporal_usage_perso
+    type: temporal
+    question_text: Wird eine gelegentliche private Nutzung des beruflichen Postfachs heute geduldet?
+    expected_answer_text: Ja, eine gelegentliche und angemessene private Nutzung wird seit Version 2 der Richtlinie geduldet.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: wird nun geduldet, zum Beispiel eine kurze private Nachricht
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: wird nicht geduldet
+
+  # ---------- cross_lingual ----------
+  - id: q_cross_usb
+    type: cross_lingual
+    question_text: Was erhält an der deutschen Zentrale von Exemplia eine Person, die einen USB-Stick benötigt?
+    expected_answer_text: Einen verschlüsselten USB-Stick (256 Bit), ausgegeben von der IT-Abteilung, auf Anfrage.
+    expected_passages:
+      - doc_id: rundschreiben_usb
+        anchor_text: >-
+          erhält auf Anfrage einen von der IT-Abteilung ausgegebenen, verschlüsselten
+          USB-Stick mit 256-Bit-Verschlüsselung
+
+  - id: q_cross_badges
+    type: cross_lingual
+    question_text: Wie lange wird das Besucherregister an der britischen Niederlassung aufbewahrt?
+    expected_answer_text: 90 Tage.
+    expected_passages:
+      - doc_id: uk_visitor_badges
+        anchor_text: kept for 90 days, in line with the data retention rules of the physical access policy
+
+  - id: q_cross_lyon
+    type: cross_lingual
+    question_text: Wie schnell wird der Ausweichstandort Villeurbanne aktiviert, wenn der Standort Lyon nicht mehr erreichbar ist?
+    expected_answer_text: Innerhalb von 4 Stunden nach der Entscheidung des Standortleiters.
+    expected_passages:
+      - doc_id: plan_continuite_lyon
+        anchor_text: >-
+          le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la
+          décision du directeur de site
+
+  # ---------- follow_up ----------
+  - id: q_followup_sous_traitants
+    type: follow_up
+    history:
+      - Welche Dienstleister stuft Exemplia als kritisch ein?
+    question_text: Und die Unterauftragnehmer, die sie einsetzen?
+    expected_answer_text: >-
+      Jeder von einem Dienstleister eingesetzte Unterauftragnehmer wird im Register der
+      Unterauftragnehmer erfasst, das die Dienstleister-Einheit führt.
+    expected_passages:
+      - doc_id: registre_sous_traitants
+        anchor_text: listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt
+
+  - id: q_followup_astreinte
+    type: follow_up
+    history:
+      - Wen ruft man nachts bei einem größeren Vorfall an?
+    question_text: Und wenn es sich um ein Serverproblem statt um einen Sicherheitsvorfall handelt?
+    expected_answer_text: >-
+      Die Infrastrukturbereitschaft, unter der Durchwahl 4100, dann eine Ersatznummer, wenn
+      innerhalb von 15 Minuten niemand antwortet.
+    expected_passages:
+      - doc_id: astreinte
+        anchor_text: Durchwahl 4100, dann 06 11 12 13 14, wenn innerhalb von 15 Minuten keine Antwort erfolgt
+
+  - id: q_followup_messagerie
+    type: follow_up
+    history:
+      - Wie groß darf ein E-Mail-Anhang bei Exemplia derzeit maximal sein?
+    question_text: Und warum kam es zu dieser Änderung?
+    expected_answer_text: >-
+      Weil Exemplia am 1. Januar 2026 nach einer 2025 durchgeführten Ausschreibung den
+      E-Mail-Anbieter gewechselt hat.
+    expected_passages:
+      - doc_id: note_changement_messagerie
+        anchor_text: >-
+          Exemplia hat am 1. Januar 2026 den E-Mail-Anbieter gewechselt, nach einer 2025
+          durchgeführten Ausschreibung

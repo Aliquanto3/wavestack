@@ -6696,9 +6696,7 @@ def s_rag(r: Run) -> None:
     )
 
 
-RERANK_QUESTION = (
-    "Quel plafond de remboursement s'applique à une nuit d'hôtel à Paris chez Exemplia ?"
-)
+RERANK_QUESTION = "Quel plafond de remboursement pour une nuit d'hôtel à Paris chez Exemplia ?"
 
 
 def _rerank_step(r: Run):
@@ -15674,10 +15672,10 @@ def _rag_lab_compare(r: Run) -> None:
     r.check(
         ended["payload"]["status"] == "ok"
         and page.locator("#rag-details .rag-lane").count() == 1
-        and "calculés (77 passages)" in embedding
+        and "calculés (187 passages)" in embedding  # story 1: larger corpus
         and len(context.get("items", [])) == 2
         and _result_card(r, "context").locator("tbody tr").count() == 2,
-        "une seule chaîne : l'Embedding calcule ses 77 passages, le prompt garde 2 extraits",
+        "une seule chaîne : l'Embedding calcule ses 187 passages, le prompt garde 2 extraits",
         embedding[:240],
     )
     folders = set(lab_dir.iterdir()) if lab_dir.is_dir() else set()

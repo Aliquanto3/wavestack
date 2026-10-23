@@ -25,9 +25,9 @@ explanation_text:
       Données : l'index et le modèle d'embedding restent sur le poste ; avec un modèle cloud,
       les extraits partent chez le fournisseur dans votre message.
   - >-
-    Le corpus de démonstration décrit Exemplia, une organisation imaginaire : huit textes
-    fictifs rédigés pour WaveStack (mots de passe, télétravail, notes de frais…). Les extraits
-    ne restent pas dans l'historique : chaque tour cherche à nouveau.
+    Le corpus de démonstration décrit Exemplia, une organisation imaginaire : une vingtaine de
+    textes fictifs rédigés pour WaveStack (mots de passe, télétravail, notes de frais…). Les
+    extraits ne restent pas dans l'historique : chaque tour cherche à nouveau.
   - >-
     Limite du RAG simple : la requête est votre message tel quel. Une question de relance
     (« Et à Lyon ? ») cherche sans le contexte des tours précédents, et trouve souvent mal ;

@@ -43,7 +43,7 @@ RERANK_FILE = "reranker/fake.gguf"
 RERANK_SIZE = 500
 URL = "https://huggingface.co/demo/resolve/main/reranker.gguf"
 # The fake embedding ranks « Déplacements » 6th for it; the fake reranker puts it first.
-HOTEL = "Quel plafond de remboursement s'applique à une nuit d'hôtel à Paris chez Exemplia ?"
+HOTEL = "Quel plafond de remboursement pour une nuit d'hôtel à Paris chez Exemplia ?"
 
 
 @pytest.fixture

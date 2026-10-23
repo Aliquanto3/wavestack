@@ -174,19 +174,22 @@ def test_chunking_merges_paragraphs_and_cuts_a_long_one_at_a_sentence_end():
     assert chunks[-2:] == ["x" * 40, "x" * 10]  # no sentence end: cut at the limit
 
 
-def test_corpus_is_eight_french_documents_of_250_to_450_words():
+def test_corpus_is_25_to_30_documents_of_150_to_450_words():
     content = load_rag_content()
-    assert len(content.documents) == 8
+    assert 25 <= len(content.documents) <= 30
     assert "fictifs" in content.notice_text
+    inactive = {d.id for d in content.documents if not d.active}
+    assert inactive == {"faq_mots_de_passe", "projet_orion"}  # story 1: trapped and sentinel
     for doc in content.documents:
-        text = (config.content_dir() / doc.file).read_text(encoding="utf-8")
-        assert "<!-- Texte fictif rédigé pour WaveStack." in text  # kept, never indexed
+        text = (config.content_dir() / doc.file).read_text(encoding="utf-8-sig")
+        assert "<!-- " in text  # kept, never indexed (a comment, French or translated)
         words = len(re.sub(r"<!--.*?-->", "", text, flags=re.S).split())
-        assert 250 <= words <= 450, doc.id
+        assert 150 <= words <= 450, doc.id
     chunks = chunk_corpus(content, 700)
     assert all(len(c.text) <= 700 for c in chunks)
     assert not any("Texte fictif" in c.text or "<!--" in c.text for c in chunks)
-    assert {c.doc_id for c in chunks} == {d.id for d in content.documents}
+    active = {d.id for d in content.documents if d.active}
+    assert {c.doc_id for c in chunks} == active
     first = [c for c in chunks if c.doc_id == "teletravail"]
     assert [c.position for c in first] == list(range(1, len(first) + 1))
 
