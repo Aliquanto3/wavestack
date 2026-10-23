@@ -1,0 +1,60 @@
+- id: "1"
+  title: Données de cache par appel
+  description: >-
+    CAP-1 : chaque appel, local ou cloud, porte ses tokens lus, écrits et non cachés, ou « non
+    déclaré », même sans prix ; contrat partagé par les stories 2 à 5.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Lever la condition « pricing » de cloud_base.py:1044. Nommer les champs une fois pour tout
+    le lot (catalog.py) et les annoncer dans le rapport. Tests avec faux moteur local, fausse
+    réponse Anthropic et fausse réponse compatible OpenAI.
+- id: "2"
+  title: Jauge du cache à côté de la barre de contexte
+  description: >-
+    CAP-2 : trois segments lu, écrit, non caché pour le dernier appel, et la cause quand le cache
+    n'a pas servi (PrefixNotReused).
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Placer la jauge dans .top-bar près de #gauge, sans casser les sélecteurs E2E existants de
+    la barre. E2E : deux questions d'affilée avec le faux moteur, puis changement du prompt
+    système.
+- id: "3"
+  title: Vider le cache
+  description: >-
+    CAP-4 : bouton qui vide la mémoire de contexte du modèle local ; l'appel suivant passe tout
+    en écriture avec la cause « cache vidé » ; grisé en cloud avec sa raison.
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Nouvelle valeur de PrefixCause. Vider sans recharger le modèle (moteur intégré et
+    llama-server). E2E sur le faux moteur.
+- id: "4"
+  title: Bilan consolidé par conversation et depuis le lancement
+  description: >-
+    CAP-3 : le Bilan de la séance gagne les tokens par case, l'anneau « où part l'argent », le
+    coût sans cache, le temps évité et le signal de cache perdu, en deux colonnes.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Étendre record_spend et ConsumptionUpdatedPayload, rendu dans bar.js. « Vider la
+    conversation » remet à zéro la seule colonne de la conversation. Test : totaux égaux à la
+    somme des appels.
+- id: "5"
+  title: Cache de prompt Claude, 5 min ou 1 h
+  description: >-
+    CAP-5 : réglage off, 5 min, 1 h (off par défaut) ; points de cache sur le préfixe stable ;
+    écriture facturée ×1,25 ou ×2 ; grisé sans clé Claude.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    System Anthropic en blocs avec cache_control (render.py:472) ; prix d'écriture 1 h déclaré
+    dans wavestack.toml ou dérivé ×2. Testé sur une fausse API, aucun appel réel.
+- id: "6"
+  title: Scénarios du cache et fiche
+  description: >-
+    CAP-6 : module du programme (lecture, préfixe cassé, expiration, Claude facultatif, lecture
+    d'un bilan d'agent-cost-kit) en fr, en, de, plus la fiche et la section du guide.
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Gestes écrits dans description_text (pas d'action scriptée). Durée du module entre 30 et
+    60 min. Mettre à jour docs/guide.md et la recette si un parcours change.
