@@ -94,7 +94,8 @@ def test_create_path_refuses_overwriting_a_directory_or_a_file_and_too_much_cont
     assert local_server.create_path(".", content="x").is_error  # the sandbox itself
     assert not local_server.create_path("a.txt", content="1").is_error
     assert local_server.create_path("a.txt", content="2").is_error
-    assert local_server.create_path("a.txt.", content="2").is_error  # same file on Windows
+    if sys.platform == "win32":  # "a.txt." names the same file only on Windows
+        assert local_server.create_path("a.txt.", content="2").is_error
     big = "x" * (local_server.MAX_CONTENT_BYTES + 1)
     assert local_server.create_path("big.txt", content=big).is_error
     assert (sandbox.sandbox_dir() / "a.txt").read_text(encoding="utf-8") == "1"

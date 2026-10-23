@@ -14,7 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        # shortcut: no macOS, the abetlen CPU index has no llama-cpp-python wheel for it
+        os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     env:
@@ -27,4 +28,6 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - if: runner.os == 'Windows'  # Git Bash, not the WSL bash.exe, for the install.sh tests
+        run: echo "C:\Program Files\Git\bin" >> $env:GITHUB_PATH
       - run: uv run pytest -q --tb=short
