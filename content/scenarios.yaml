@@ -185,7 +185,7 @@ scenarios:
     bricks: [short_memory, system_prompt, global_memory, tools, rag]
     rag_rerank: true
     prompts:
-      - Quel plafond de remboursement s'applique à une nuit d'hôtel à Paris chez Exemplia ?
+      - Quel plafond de remboursement pour une nuit d'hôtel à Paris chez Exemplia ?
       - Que faut-il faire en premier quand on perd son ordinateur portable chez Exemplia ?
 
   mcp_full:

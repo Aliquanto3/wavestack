@@ -141,3 +141,24 @@ def test_an_inactive_document_is_not_chunked():
     inactive = {doc.id for doc in content.documents if not doc.active}
     assert inactive == {"faq_mots_de_passe", "projet_orion"}
     assert not inactive & chunked_ids
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_a_monolingual_document_has_no_copy_and_is_chunked_as_is(lang):
+    """I/O matrix: `languages: [de]` keeps one file under `content/corpus/`, indexed as-is
+    in every language through `content_file`'s fallback; a copy under i18n/ fails here."""
+    content = load_rag_content(lang)
+    monolingual = [doc for doc in content.documents if doc.languages]
+    assert {doc.id for doc in monolingual} == {
+        "rundschreiben_usb",
+        "uk_visitor_badges",
+        "plan_continuite_lyon",
+    }
+    chunks = chunk_corpus(content, 700, lang)
+    for doc in monolingual:
+        for other in LANGS[1:]:
+            assert not (config.content_dir() / "i18n" / other / doc.file).exists(), doc.file
+        original = (config.content_dir() / doc.file).read_text(encoding="utf-8-sig")
+        assert config.content_file(doc.file, lang) == config.content_dir() / doc.file
+        doc_chunks = [c.text for c in chunks if c.doc_id == doc.id]
+        assert doc_chunks and all(text[:40] in original for text in doc_chunks)

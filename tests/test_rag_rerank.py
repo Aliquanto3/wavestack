@@ -43,7 +43,7 @@ RERANK_FILE = "reranker/fake.gguf"
 RERANK_SIZE = 500
 URL = "https://huggingface.co/demo/resolve/main/reranker.gguf"
 # The fake embedding ranks « Déplacements » 6th for it; the fake reranker puts it first.
-HOTEL = "Quel plafond de remboursement s'applique à une nuit d'hôtel à Paris chez Exemplia ?"
+HOTEL = "Quel plafond de remboursement pour une nuit d'hôtel à Paris chez Exemplia ?"
 
 
 @pytest.fixture
@@ -264,9 +264,7 @@ def test_reranking_turn_orders_the_candidates_and_keeps_the_first_three(index):
     assert [e["position"] for e in reranked] == list(range(1, 9))
     assert sorted(e["before"] for e in reranked) == list(range(1, 9))
     assert [e["score"] for e in reranked] == sorted((e["score"] for e in reranked), reverse=True)
-    # Story 1's larger corpus: none of these 8 candidates shares a query word, so the
-    # reranker's stable sort on a tie keeps the vector search's own order.
-    assert (reranked[0]["doc_id"], reranked[0]["before"]) == ("classification", 1)
+    assert (reranked[0]["doc_id"], reranked[0]["before"]) == ("deplacements", 6)  # moved up
     by_rank = {e["position"]: e for e in found}
     texts = {e["chunk_id"]: e["text"] for e in found}
     for e in reranked:
