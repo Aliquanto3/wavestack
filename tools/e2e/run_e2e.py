@@ -6696,9 +6696,7 @@ def s_rag(r: Run) -> None:
     )
 
 
-RERANK_QUESTION = (
-    "Quel plafond de remboursement s'applique à une nuit d'hôtel à Paris chez Exemplia ?"
-)
+RERANK_QUESTION = "Quel plafond de remboursement pour une nuit d'hôtel à Paris chez Exemplia ?"
 
 
 def _rerank_step(r: Run):
@@ -6954,16 +6952,14 @@ def s_rag_rerank(r: Run) -> None:
         f"{len(found)} / {len(after)}",
     )
     first = after[0] if after else {}
-    # Story 1's larger corpus: with the fake embedder, none of these 8 candidates shares a
-    # query word, so the reranker's stable sort on a tie keeps the vector search's own order.
     r.check(
-        first.get("doc_id") == "classification" and first.get("before") == 1,
-        "sans mot partagé (faux embedding) : le reranking garde l'ordre de la recherche",
+        first.get("doc_id") == "deplacements" and first.get("before", 1) > 3,
+        "le reranker remonte « Déplacements » en tête (hors des 3 premiers de l'embedding)",
         str([(e["doc_id"], e["before"], e["score"]) for e in after]),
     )
     body = json.dumps(r.fake_calls()[-1]["messages"], ensure_ascii=False)
     r.check(
-        "Extrait 1 — Classification de l'information" in body and body.count("Extrait ") == 3,
+        "Extrait 1 — Déplacements et notes de frais" in body and body.count("Extrait ") == 3,
         "seuls les 3 premiers après reranking partent dans le message (corps JSON)",
     )
 
@@ -6991,11 +6987,9 @@ def s_rag_rerank(r: Run) -> None:
     )
     move = step.locator(".rerank-after .rerank-move").first.inner_text()
     text = step.inner_text()
-    # Story 1's larger corpus: with the fake embedder, the first excerpt no longer moves
-    # (unchanged rank, marked "=") ; the before/after columns still show.
     r.check(
-        move == "=" and "Avant (embedding)" in text and "Après (reranker)" in text,
-        "le premier extrait après reranking garde son rang (sans mot partagé)",
+        move.startswith("↑") and "Avant (embedding)" in text and "Après (reranker)" in text,
+        "le premier extrait après reranking est marqué comme remonté",
         move,
     )
     step.locator(".rerank-after .rag-excerpt-head").first.click()

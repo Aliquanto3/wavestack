@@ -2,7 +2,7 @@
 title: 'Story 1 : corpus Exemplia enrichi et jeu de questions'
 type: 'feature'
 created: '2026-10-23'
-status: 'review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -120,9 +120,20 @@ Schéma d'une question (fr) :
 - 21 questions (3 × 7 types) en fr/en/de dans `content/rag_questions.yaml` ; chaque `anchor_text` vérifié par script contre le fichier réel de sa langue avant d'écrire le test ; parité `id`/`type`/doc_id` entre langues vérifiée.
 - Tokens `cl100k_base` du corpus actif (mesurés avec `uv run --extra compression`) : fr 9762, en 7099, de 10622 -- sous le plafond de 15000 ; en est sous la cible d'~12000 mais aucun ajustement n'a été demandé pour ça.
 - Index reconstruits avec `uv run python scripts/build_rag_index.py --lang {fr,en,de}` (modèle réel Granite Embedding, déjà présent sur le poste).
-- Têtes de résultats réalignées : `test_rag.py` (bornes 25-30 documents, 150-450 mots), `test_rag_lab.py`/`test_rag_rerank.py` (comptes d'extraits 73/187/50/74, et le reranking de la requête hôtel n'est plus significatif avec `FakeEmbedder` sur 27 documents -- aucun des 8 candidats ne partage de mot avec la question, documenté dans le test), `test_annex_language.py` (sha256 de l'index français, filtre `active` sur les ensembles de titres/doc_id).
+- Têtes de résultats réalignées : `test_rag.py` (bornes 25-30 documents, 150-450 mots), `test_rag_lab.py`/`test_rag_rerank.py` (comptes d'extraits 73/187/50/74, le reranking de la requête hôtel est rétabli en revue, voir Review Triage Log), `test_annex_language.py` (sha256 de l'index français, filtre `active` sur les ensembles de titres/doc_id).
 - `RagQuestion.audience` ajouté (facultatif, cité par `corpus-et-questions.md`) en plus du schéma des Design Notes, pour la question RH de type `global`.
 
 ## Spec Change Log
 
 ## Review Triage Log
+
+Revue unique (Opus, 2026-10-23), base be6124d à jour, aucun rebase.
+
+- medium · second avis 1 · corrigé · la ligne « document monolingue » de la matrice n'avait pas de test : `test_a_monolingual_document_has_no_copy_and_is_chunked_as_is` (fr, en, de) échoue si une copie existe sous `i18n/` et vérifie que le fichier d'origine est découpé tel quel.
+- medium · second avis 2 · corrigé · la démonstration du reranking avait été remplacée par « l'ordre ne change pas » (intention changée). Avec `FakeEmbedder` et 27 documents, la question de l'hôtel classait « Déplacements » 10e, hors des 8 candidats. Le prompt du scénario `rag_rerank` devient « Quel plafond de remboursement pour une nuit d'hôtel à Paris chez Exemplia ? » (même sens). « Déplacements » repasse 6e à l'embedding, puis 1er au reranking. Les assertions d'origine sont rétablies en pytest (`("deplacements", 6)`) et en E2E (avant > 3, flèche ↑, « Extrait 1 — Déplacements et notes de frais » dans le corps). Surcouches en et de inchangées : leur sens couvre les deux formulations.
+- low · second avis 3 · rejeté · « 25 documents (27 déclarés dans content/rag.yaml) » est exact : 27 documents sont bien déclarés, dont 2 inactifs.
+- low · second avis 4 · rejeté · le seul chargeur, `load_rag_questions`, passe toujours le contexte `doc_ids`. La validation sans contexte ne sert qu'aux tests de schéma.
+- low · second avis 5 · sans objet · l'assertion `("classification", 1)` disparaît avec le correctif 2.
+- info · revue · vérifié · réponses `no_answer` en « Je ne sais pas » / « I don't know » / « Ich weiß es nicht ». Renvois des deux chaînes multi-sauts présents dans le texte. v1 (janvier 2024) et v2 (1er janvier 2026) datées. Contenu fictif, mention « Texte fictif » présente. Thèmes sans réponse absents du corpus.
+- info · revue · noté · `test_annex_language.py::test_a_missing_index_of_the_language_offers_its_build` a échoué une fois dans un lot de 9 fichiers (4 min, poste chargé). Il passe seul et dans son fichier (30/30) : attente de construction sensible à la charge, sans lien avec la story.
+- Complexité : 0 constat (contenu et chargeurs lus une fois, aucune structure qui grossit).
