@@ -1,0 +1,237 @@
+# English translation of content/rag_questions.yaml (story 1): same ids, types, doc_ids and
+# history shape as the French file; only the texts (and the anchors of the translated
+# passages) change. Monolingual documents keep their one existing file's anchor untranslated.
+questions:
+  # ---------- factual ----------
+  - id: q_fact_pwd
+    type: factual
+    question_text: What is the minimum number of characters for a password at Exemplia?
+    expected_answer_text: At least 14 characters.
+    expected_passages:
+      - doc_id: mots_de_passe
+        anchor_text: has at least 14 characters
+
+  - id: q_fact_sauvegarde
+    type: factual
+    question_text: What backup rule does Exemplia apply to its data?
+    expected_answer_text: The 3-2-1 rule - 3 copies, on 2 different media, with 1 copy kept off-site.
+    expected_passages:
+      - doc_id: sauvegardes
+        anchor_text: >-
+          at least 3 copies of each piece of data, on 2 different media, with 1 copy kept
+          away from the main site
+
+  - id: q_fact_badge
+    type: factual
+    question_text: How soon is a departing employee's badge deactivated?
+    expected_answer_text: Within 24 hours of them leaving.
+    expected_passages:
+      - doc_id: acces_physique
+        anchor_text: deactivated within 24 hours of them leaving Exemplia
+
+  # ---------- multi_hop ----------
+  - id: q_multi_crise
+    type: multi_hop
+    question_text: Who should be called at night in case of a major incident?
+    expected_answer_text: >-
+      The security on-call person, on the single on-call number listed in its annex, before
+      escalating to the chief information security officer.
+    expected_passages:
+      - doc_id: gestion_crise
+        anchor_text: >-
+          the on-call contacts annex lists the numbers to reach, depending on the time and
+          the area concerned
+      - doc_id: astreinte
+        anchor_text: the single on-call number is 06 07 08 09 10
+
+  - id: q_multi_prestataire
+    type: multi_hop
+    question_text: How soon must a supplier erase Exemplia's data after the end of the contract?
+    expected_answer_text: Within the 30 days set by the return and erasure clause.
+    expected_passages:
+      - doc_id: prestataires
+        anchor_text: confirms it in writing within the delay set by the contract's clauses
+      - doc_id: clauses_contrats
+        anchor_text: erases it from all its systems, including its backups, within 30 days
+
+  - id: q_multi_messagerie
+    type: multi_hop
+    question_text: Why did the maximum size of an email message change?
+    expected_answer_text: >-
+      Exemplia changed its email provider on 1 January 2026; the maximum message size rose
+      from 10 Mo to 25 Mo.
+    expected_passages:
+      - doc_id: note_changement_messagerie
+        anchor_text: the maximum size of a message rises from 10 Mo to 25 Mo
+      - doc_id: charte_messagerie_v2
+        anchor_text: can now reach 25 Mo thanks to the new provider
+
+  # ---------- global ----------
+  - id: q_global_securite
+    type: global
+    question_text: What are the main pillars of information security described in Exemplia's documentation?
+    expected_answer_text: >-
+      Protecting passwords and access, classifying information by sensitivity, and promptly
+      reporting security incidents.
+    expected_passages:
+      - doc_id: mots_de_passe
+        anchor_text: >-
+          Two-factor authentication is mandatory for email, remote access and all online
+          tools.
+      - doc_id: classification
+        anchor_text: >-
+          All information produced or received by Exemplia carries one of the following 4
+          classification levels: Public, Internal, Confidential and Secret.
+      - doc_id: incidents
+        anchor_text: >-
+          Any employee who notices or suspects an incident reports it within 30 minutes to
+          the response team, CERT-Ex.
+
+  - id: q_global_fournisseurs
+    type: global
+    question_text: How does Exemplia frame the security of its suppliers and subcontractors?
+    expected_answer_text: >-
+      Through a risk-tier classification, contractual security clauses, and an up-to-date
+      subcontractor register.
+    expected_passages:
+      - doc_id: prestataires
+        anchor_text: Exemplia places every supplier who handles company information into one of two tiers
+      - doc_id: clauses_contrats
+        anchor_text: >-
+          it lists the clauses the supplier unit inserts into every supply contract,
+          according to the supplier's tier
+      - doc_id: registre_sous_traitants
+        anchor_text: lists every subcontractor used by an Exemplia supplier
+
+  - id: q_global_rh
+    type: global
+    question_text: What human-resources processes frame the relationship between Exemplia and its employees?
+    expected_answer_text: The compensation grid, the disciplinary procedure and the annual review.
+    audience: hr
+    expected_passages:
+      - doc_id: grille_remunerations
+        anchor_text: The grid has 5 categories, from category A (entry-level roles) to category E (management)
+      - doc_id: dossier_disciplinaire
+        anchor_text: >-
+          an oral reminder, a written warning placed on file, a 1- to 5-day unpaid
+          suspension, or dismissal for misconduct
+      - doc_id: entretiens_annuels
+        anchor_text: The review takes place every year in the first quarter, between January and March
+
+  # ---------- no_answer ----------
+  - id: q_noanswer_parking
+    type: no_answer
+    question_text: What is Exemplia's parking reimbursement policy?
+    expected_answer_text: I don't know - this topic is not covered by Exemplia's documentation.
+
+  - id: q_noanswer_mutuelle
+    type: no_answer
+    question_text: What health insurance plan does Exemplia offer its employees?
+    expected_answer_text: I don't know - this topic is not covered by Exemplia's documentation.
+
+  - id: q_noanswer_restauration
+    type: no_answer
+    question_text: Does Exemplia subsidise lunch meals?
+    expected_answer_text: I don't know - this topic is not covered by Exemplia's documentation.
+
+  # ---------- temporal ----------
+  - id: q_temporal_taille
+    type: temporal
+    question_text: What is the maximum email attachment size currently in force at Exemplia?
+    expected_answer_text: 25 Mo, since version 2 of the charter, in force since January 2026.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: can now reach 25 Mo thanks to the new provider
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: does not exceed 10 Mo
+
+  - id: q_temporal_retention
+    type: temporal
+    question_text: How long are messages kept in the mailbox before archiving, under the current rule?
+    expected_answer_text: 3 years, since version 2 of the email charter.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: >-
+          Messages are kept for 3 years in the mailbox before archiving, against 1 year in
+          the previous version
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: are kept for 1 year in the mailbox
+
+  - id: q_temporal_usage_perso
+    type: temporal
+    question_text: Is occasional personal use of the professional mailbox tolerated today?
+    expected_answer_text: Yes, an occasional and reasonable personal use is now tolerated since version 2 of the charter.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: an occasional and reasonable personal use is now tolerated
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: occasional personal use is not tolerated
+
+  # ---------- cross_lingual ----------
+  - id: q_cross_usb
+    type: cross_lingual
+    question_text: At Exemplia's German head office, what does an employee who needs a USB drive receive?
+    expected_answer_text: An encrypted USB drive (256-bit), issued by the IT department, on request.
+    expected_passages:
+      - doc_id: rundschreiben_usb
+        anchor_text: >-
+          erhält auf Anfrage einen von der IT-Abteilung ausgegebenen, verschlüsselten
+          USB-Stick mit 256-Bit-Verschlüsselung
+
+  - id: q_cross_badges
+    type: cross_lingual
+    question_text: How long is the visitor register kept at the UK subsidiary?
+    expected_answer_text: 90 days.
+    expected_passages:
+      - doc_id: uk_visitor_badges
+        anchor_text: kept for 90 days, in line with the data retention rules of the physical access policy
+
+  - id: q_cross_lyon
+    type: cross_lingual
+    question_text: How soon is the Villeurbanne fallback site activated if the Lyon site becomes unreachable?
+    expected_answer_text: Within 4 hours of the site director's decision.
+    expected_passages:
+      - doc_id: plan_continuite_lyon
+        anchor_text: >-
+          le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la
+          décision du directeur de site
+
+  # ---------- follow_up ----------
+  - id: q_followup_sous_traitants
+    type: follow_up
+    history:
+      - Which suppliers does Exemplia classify as critical?
+    question_text: And the subcontractors they use?
+    expected_answer_text: >-
+      Every subcontractor used by a supplier is recorded in the subcontractor register kept
+      by the supplier unit.
+    expected_passages:
+      - doc_id: registre_sous_traitants
+        anchor_text: lists every subcontractor used by an Exemplia supplier
+
+  - id: q_followup_astreinte
+    type: follow_up
+    history:
+      - Who should be called at night in case of a major incident?
+    question_text: And what if it is a server problem rather than a security incident?
+    expected_answer_text: >-
+      The infrastructure on-call, on extension 4100, then a backup number if no one answers
+      within 15 minutes.
+    expected_passages:
+      - doc_id: astreinte
+        anchor_text: extension 4100, then 06 11 12 13 14 if there is no answer within 15 minutes
+
+  - id: q_followup_messagerie
+    type: follow_up
+    history:
+      - What is the maximum email attachment size currently in force at Exemplia?
+    question_text: And why did this change happen?
+    expected_answer_text: >-
+      Because Exemplia changed its email provider on 1 January 2026, after a tender run in
+      2025.
+    expected_passages:
+      - doc_id: note_changement_messagerie
+        anchor_text: Exemplia changed its email provider on 1 January 2026, after a tender run in 2025

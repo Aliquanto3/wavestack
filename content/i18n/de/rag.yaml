@@ -41,24 +41,113 @@ documents:
   - id: mots_de_passe
     title_text: Passwortrichtlinie
     file: corpus/mots_de_passe.md
+    audience: all
   - id: teletravail
     title_text: Vereinbarung zur Telearbeit
     file: corpus/teletravail.md
+    audience: all
   - id: classification
     title_text: Klassifizierung von Informationen
     file: corpus/classification.md
+    audience: all
   - id: incidents
     title_text: Sicherheitsvorfälle
     file: corpus/incidents.md
+    audience: all
   - id: donnees_personnelles
     title_text: Aufbewahrung personenbezogener Daten
     file: corpus/donnees_personnelles.md
+    audience: all
   - id: ia_generative
     title_text: Nutzung generativer KI
     file: corpus/ia_generative.md
+    audience: all
   - id: deplacements
     title_text: Dienstreisen und Spesenabrechnungen
     file: corpus/deplacements.md
+    audience: all
   - id: sauvegardes
     title_text: Datensicherungen
     file: corpus/sauvegardes.md
+    audience: all
+  - id: prestataires
+    title_text: Sicherheitsrichtlinie für Dienstleister
+    file: corpus/prestataires.md
+    audience: all
+  - id: clauses_contrats
+    title_text: Sicherheitsklauseln der Verträge
+    file: corpus/clauses_contrats.md
+    audience: all
+  - id: registre_sous_traitants
+    title_text: Register der Unterauftragnehmer
+    file: corpus/registre_sous_traitants.md
+    audience: all
+  - id: gestion_crise
+    title_text: Krisenmanagementverfahren
+    file: corpus/gestion_crise.md
+    audience: all
+  - id: astreinte
+    title_text: Anlage der Bereitschaftskontakte
+    file: corpus/astreinte.md
+    audience: all
+  - id: charte_messagerie_v1
+    title_text: E-Mail-Richtlinie, Version 1 (2024)
+    file: corpus/charte_messagerie_v1.md
+    audience: all
+  - id: charte_messagerie_v2
+    title_text: E-Mail-Richtlinie, Version 2 (2026)
+    file: corpus/charte_messagerie_v2.md
+    audience: all
+  - id: note_changement_messagerie
+    title_text: Änderungsmitteilung zur Messaging-Umstellung
+    file: corpus/note_changement_messagerie.md
+    audience: all
+  - id: rundschreiben_usb
+    title_text: "Rundschreiben zu USB-Speichermedien"
+    file: corpus/rundschreiben_usb.md
+    audience: all
+    languages: [de]
+  - id: uk_visitor_badges
+    title_text: Besucherausweise der britischen Niederlassung (nur auf Englisch)
+    file: corpus/uk_visitor_badges.md
+    audience: all
+    languages: [en]
+  - id: plan_continuite_lyon
+    title_text: Kontinuitätsplan des Standorts Lyon (nur auf Französisch)
+    file: corpus/plan_continuite_lyon.md
+    audience: all
+    languages: [fr]
+  - id: grille_remunerations
+    title_text: Vergütungstabelle
+    file: corpus/grille_remunerations.md
+    audience: hr
+  - id: dossier_disciplinaire
+    title_text: Disziplinarverfahren
+    file: corpus/dossier_disciplinaire.md
+    audience: hr
+  - id: entretiens_annuels
+    title_text: Verfahren der Jahresgespräche
+    file: corpus/entretiens_annuels.md
+    audience: hr
+  - id: acces_physique
+    title_text: Physischer Zugang zu den Räumlichkeiten
+    file: corpus/acces_physique.md
+    audience: all
+  - id: revue_habilitations
+    title_text: Überprüfung der Berechtigungen
+    file: corpus/revue_habilitations.md
+    audience: all
+  - id: formation_securite
+    title_text: Sicherheitsschulung
+    file: corpus/formation_securite.md
+    audience: all
+  - id: faq_mots_de_passe
+    title_text: FAQ Passwörter (präpariertes Dokument, inaktiv)
+    file: corpus/faq_mots_de_passe.md
+    audience: all
+    active: false
+  - id: projet_orion
+    title_text: Projekt Orion (Sentinel-Dokument, inaktiv)
+    file: corpus/projet_orion.md
+    audience: all
+    active: false

@@ -39,7 +39,7 @@ from wavestack.mcp.servers import (
 )
 from wavestack.models.catalog import load_publishers
 from wavestack.rag import lab as rag_lab
-from wavestack.rag.corpus import load_rag_content
+from wavestack.rag.corpus import load_rag_content, load_rag_questions
 from wavestack.scenarios import load_scenarios
 from wavestack.session import app_session as app_session_module
 from wavestack.session import llm_lab
@@ -96,8 +96,15 @@ PEDAGOGICAL = (
     "models/publishers.yaml",
     *(f"demo_files/{f}" for f in DEMO_FILES),
 )
+# Story 1: a monolingual document (`languages` set in `rag.yaml`) has no translated copy;
+# it is exempted from the corpus mirror below.
+_MONOLINGUAL_FILES = {
+    Path(doc.file).name for doc in load_rag_content("fr").documents if doc.languages
+}
 # Languages (4/5): the workshops and the RAG corpus, translated under the same names.
-CORPUS = sorted(p.name for p in (CONTENT / "corpus").glob("*.md"))
+CORPUS = sorted(
+    p.name for p in (CONTENT / "corpus").glob("*.md") if p.name not in _MONOLINGUAL_FILES
+)
 # Story 6 (2026-09-30): the MCP workshop too.
 WORKSHOPS = ("llm_lab.yaml", "rag_lab.yaml", "mcp_lab.yaml", *(f"corpus/{c}" for c in CORPUS))
 _TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?")
@@ -355,6 +362,23 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert [p.model_dump(include=fixed) for p in tr.publishers] == [
             p.model_dump(include=fixed) for p in fr.publishers
         ]
+    elif rel == "rag_questions.yaml":  # story 1: same ids, types and doc_ids, texts translated
+        fr, tr = load_rag_questions("fr"), load_rag_questions(lang)
+
+        def shape(qs):
+            return [
+                (
+                    q.id,
+                    q.type,
+                    [p.doc_id for p in q.expected_passages],
+                    [p.doc_id for p in q.trap_passages],
+                )
+                for q in qs
+            ]
+
+        assert shape(tr) == shape(fr)
+        for fr_q, tr_q in zip(fr, tr, strict=True):
+            assert tr_q.question_text != fr_q.question_text
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()

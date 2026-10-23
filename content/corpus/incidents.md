@@ -8,7 +8,7 @@ Tout collaborateur qui constate ou soupçonne un incident le signale dans les 30
 
 En attendant la réponse de la CERT-Ex, le poste suspect est débranché du réseau, câble retiré et Wi-Fi coupé, mais il n'est pas éteint : la mémoire vive contient des traces utiles à l'enquête. Il ne faut ni supprimer le courriel suspect, ni tenter de nettoyer soi-même la machine.
 
-La CERT-Ex classe chaque incident selon 3 niveaux de gravité. Un incident de niveau 1 est traité dans la journée par l'équipe de support. Un incident de niveau 2 mobilise la CERT-Ex, qui informe le responsable de la sécurité des systèmes d'information dans l'heure. Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général.
+La CERT-Ex classe chaque incident selon 3 niveaux de gravité. Un incident de niveau 1 est traité dans la journée par l'équipe de support. Un incident de niveau 2 mobilise la CERT-Ex, qui informe le responsable de la sécurité des systèmes d'information dans l'heure. Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d'astreinte.
 
 Quand un incident touche des données personnelles, le délégué à la protection des données est prévenu sans délai : la notification à l'autorité de contrôle doit intervenir au plus tard 72 heures après la découverte de la violation.
 

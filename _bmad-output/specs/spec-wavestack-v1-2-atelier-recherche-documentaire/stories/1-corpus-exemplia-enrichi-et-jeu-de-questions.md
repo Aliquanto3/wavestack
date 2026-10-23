@@ -2,7 +2,7 @@
 title: 'Story 1 : corpus Exemplia enrichi et jeu de questions'
 type: 'feature'
 created: '2026-10-23'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -67,15 +67,15 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/wavestack/rag/corpus.py` -- champs `audience: Literal["all","hr"]`, `active: bool = True` et `languages: list[str] | None = None` ; filtre `active` dans `chunk_corpus`. Ajouter un modèle `RagQuestion` (`extra="forbid"`) et `load_rag_questions(lang)`, avec un validateur qui contrôle `doc_id` et les passages selon le type -- le contenu doit se valider au chargement.
-- [ ] `content/corpus/*.md`, `content/i18n/{en,de}/corpus/*.md` -- écrire les nouveaux documents (liste des Design Notes) et retoucher les renvois des existants -- CAP-1.
-- [ ] `content/rag.yaml` et ses deux surcouches -- déclarer les documents et leurs métadonnées.
-- [ ] `content/rag_questions.yaml` et ses deux surcouches -- au moins 21 questions -- CAP-2.
-- [ ] `tests/test_rag_questions.py` -- chaque extrait attendu, et chaque extrait piège, existe dans `content_file(doc.file, lang)` pour chaque langue ; au moins 3 questions par type ; parité des `id`, `type` et `doc_id` entre langues ; un `doc_id` inconnu est refusé ; un document inactif n'est pas découpé.
-- [ ] `tests/test_i18n.py`, `tests/test_rag.py` et les tests de têtes de résultats -- exemption des monolingues, bornes de 25 à 30 documents et de 150 à 450 mots, réalignement des têtes.
-- [ ] `data/rag_index*.sqlite` -- reconstruire les trois index.
-- [ ] `docs/guide.md:132` -- décrire le nouveau corpus en une phrase.
-- [ ] `.memlog.md` de la spec -- consigner les tokens mesurés par langue.
+- [x] `src/wavestack/rag/corpus.py` -- champs `audience: Literal["all","hr"]`, `active: bool = True` et `languages: list[str] | None = None` ; filtre `active` dans `chunk_corpus`. Ajouter un modèle `RagQuestion` (`extra="forbid"`) et `load_rag_questions(lang)`, avec un validateur qui contrôle `doc_id` et les passages selon le type -- le contenu doit se valider au chargement.
+- [x] `content/corpus/*.md`, `content/i18n/{en,de}/corpus/*.md` -- écrire les nouveaux documents (liste des Design Notes) et retoucher les renvois des existants -- CAP-1.
+- [x] `content/rag.yaml` et ses deux surcouches -- déclarer les documents et leurs métadonnées.
+- [x] `content/rag_questions.yaml` et ses deux surcouches -- au moins 21 questions -- CAP-2.
+- [x] `tests/test_rag_questions.py` -- chaque extrait attendu, et chaque extrait piège, existe dans `content_file(doc.file, lang)` pour chaque langue ; au moins 3 questions par type ; parité des `id`, `type` et `doc_id` entre langues ; un `doc_id` inconnu est refusé ; un document inactif n'est pas découpé.
+- [x] `tests/test_i18n.py`, `tests/test_rag.py` et les tests de têtes de résultats -- exemption des monolingues, bornes de 25 à 30 documents et de 150 à 450 mots, réalignement des têtes.
+- [x] `data/rag_index*.sqlite` -- reconstruire les trois index.
+- [x] `docs/guide.md:132` -- décrire le nouveau corpus en une phrase.
+- [x] `.memlog.md` de la spec -- consigner les tokens mesurés par langue.
 
 **Acceptance Criteria:**
 - Given le corpus livré, when on charge `rag.yaml` dans chaque langue, then il y a entre 25 et 30 documents, chacun avec son `audience`, et exactement deux documents inactifs.
@@ -114,6 +114,14 @@ Schéma d'une question (fr) :
 - `uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py --channel msedge --only <scénarios RAG>` -- expected : vert.
 
 ## Implementation Notes
+
+- 19 nouveaux documents (27 au total, 25 actifs, 2 inactifs : `faq_mots_de_passe` piégé, `projet_orion` sentinelle), 3 monolingues (`rundschreiben_usb` de, `uk_visitor_badges` en, `plan_continuite_lyon` fr) exemptés du miroir i18n via `languages`.
+- `incidents.md` (fr/en/de) retouché pour renvoyer explicitement à `gestion_crise`/`astreinte` (chaîne multi-sauts 1).
+- 21 questions (3 × 7 types) en fr/en/de dans `content/rag_questions.yaml` ; chaque `anchor_text` vérifié par script contre le fichier réel de sa langue avant d'écrire le test ; parité `id`/`type`/doc_id` entre langues vérifiée.
+- Tokens `cl100k_base` du corpus actif (mesurés avec `uv run --extra compression`) : fr 9762, en 7099, de 10622 -- sous le plafond de 15000 ; en est sous la cible d'~12000 mais aucun ajustement n'a été demandé pour ça.
+- Index reconstruits avec `uv run python scripts/build_rag_index.py --lang {fr,en,de}` (modèle réel Granite Embedding, déjà présent sur le poste).
+- Têtes de résultats réalignées : `test_rag.py` (bornes 25-30 documents, 150-450 mots), `test_rag_lab.py`/`test_rag_rerank.py` (comptes d'extraits 73/187/50/74, et le reranking de la requête hôtel n'est plus significatif avec `FakeEmbedder` sur 27 documents -- aucun des 8 candidats ne partage de mot avec la question, documenté dans le test), `test_annex_language.py` (sha256 de l'index français, filtre `active` sur les ensembles de titres/doc_id).
+- `RagQuestion.audience` ajouté (facultatif, cité par `corpus-et-questions.md`) en plus du schéma des Design Notes, pour la question RH de type `global`.
 
 ## Spec Change Log
 

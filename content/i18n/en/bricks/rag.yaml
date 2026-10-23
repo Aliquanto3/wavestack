@@ -25,7 +25,7 @@ explanation_text:
       Data: the index and the embedding model stay on the workstation; with a cloud model,
       the excerpts go to the provider in your message.
   - >-
-    The demonstration corpus describes Exemplia, an imaginary organisation: eight
+    The demonstration corpus describes Exemplia, an imaginary organisation: about twenty
     fictitious texts written for WaveStack (passwords, remote work, expense claims…). The
     excerpts do not stay in the history: each turn searches again.
   - >-

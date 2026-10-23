@@ -101,7 +101,7 @@ def test_the_shipped_chain_runs_each_stage(index):
     assert (first.actor, first.trigger) == ("harness", "user")
 
     chunking = ended(events, "chunking")
-    assert "29 extraits" in chunking["output_text"]
+    assert "73 extraits" in chunking["output_text"]  # story 1: 27 documents, 25 active
     search = ended(events, "vector_search")
     assert [i["rank"] for i in search["items"]] == list(range(1, 9))  # rerank_candidates
     assert all(i["before"] is None for i in search["items"])
@@ -581,11 +581,11 @@ def test_the_vectors_cache_is_read_again_and_rebuilt_when_the_size_changes(index
     stage(b, "context").params["top_k"] = 2
     first = run(session, QUESTION, b)
     embedding = ended(first, "embedding")
-    assert "calculés (77 passages)" in embedding["output_text"]
+    assert "calculés (187 passages)" in embedding["output_text"]  # story 1: larger corpus
     progress = [
         e for e in first if e.kind == "rag_lab_stage_progress" and e.payload["kind"] == "embedding"
     ]
-    assert progress and progress[-1].payload["done"] == progress[-1].payload["total"] == 77
+    assert progress and progress[-1].payload["done"] == progress[-1].payload["total"] == 187
     assert len(ended(first, "context")["items"]) == 2
     folders = list(config.rag_lab_dir().iterdir())
     assert len(folders) == 1
@@ -595,7 +595,7 @@ def test_the_vectors_cache_is_read_again_and_rebuilt_when_the_size_changes(index
     assert ended(second, "vector_search")["items"] == ended(first, "vector_search")["items"]
     stage(b, "chunking").params["chunk_max_chars"] = 1200
     third = run(session, QUESTION, b)
-    assert "calculés (16 passages)" in ended(third, "embedding")["output_text"]
+    assert "calculés (50 passages)" in ended(third, "embedding")["output_text"]  # story 1
     assert len(list(config.rag_lab_dir().iterdir())) == 2
 
 
@@ -606,7 +606,7 @@ def test_sqlite_vec_of_another_size_is_built_in_the_workshops_folder(index):
     stage(a, "chunking").params["chunk_max_chars"] = 300
     first = run(session, QUESTION, a)
     store = ended(first, "vector_store")
-    assert store["status"] == "ok" and "construit (77 vecteurs)" in store["output_text"]
+    assert store["status"] == "ok" and "construit (187 vecteurs)" in store["output_text"]
     second = run(session, QUESTION, a)
     assert "relu" in ended(second, "vector_store")["output_text"]
     assert index.stat().st_mtime_ns == before  # the brick's index is never written
@@ -701,7 +701,7 @@ def test_fastembed_unavailable_without_the_package_then_available(index, monkeyp
     stage(b, "embedding").option = "fastembed"
     events = run(session, QUESTION, b)
     embedding = ended(events, "embedding")
-    assert embedding["status"] == "ok" and "calculés (29 passages)" in embedding["output_text"]
+    assert embedding["status"] == "ok" and "calculés (73 passages)" in embedding["output_text"]
     assert FakeTextEmbedding.opened[-1]["local_files_only"] is True
     assert ended(events, "vector_store")["status"] == "ok"  # its own sqlite-vec index
     assert session._load_registry.holder("rag_lab.embedding") is None

@@ -92,7 +92,7 @@ def marked(tmp_path, monkeypatch) -> Path:
 
 
 def _french_titles() -> set[str]:
-    return {d.title_text for d in load_rag_content("fr").documents}
+    return {d.title_text for d in load_rag_content("fr").documents if d.active}
 
 
 def _build(path: Path, lang: str) -> rag_index.IndexMeta:
@@ -131,7 +131,7 @@ def test_each_loader_reads_its_language_not_the_setting(marked, lang):
     assert [d.file for d in content.documents] == [d.file for d in french.documents]
     assert content.documents[0].title_text == _expected(lang, french.documents[0].title_text)
     chunks = chunk_corpus(content, MAX_CHARS, lang)
-    assert {c.doc_id for c in chunks} == {d.id for d in content.documents}
+    assert {c.doc_id for c in chunks} == {d.id for d in content.documents if d.active}
     marked_chunks = [c for c in chunks if c.text.startswith("[")]
     assert (marked_chunks == []) == (lang == "fr")
     assert chunks[0].title_text == content.documents[0].title_text
@@ -381,7 +381,7 @@ def test_the_script_writes_the_index_of_its_language_only(marked, tmp_path, lang
 
     target = cfg.rag_index_path(lang)
     titles = {c.title_text for c in rag_index.read_chunks(target)}
-    assert titles == {d.title_text for d in load_rag_content(lang).documents}
+    assert titles == {d.title_text for d in load_rag_content(lang).documents if d.active}
     meta = rag_index.read_meta(target)
     chunks = chunk_corpus(load_rag_content(lang), MAX_CHARS, lang)
     assert meta.corpus_sha256 == rag_index.corpus_digest(chunks)
@@ -401,8 +401,9 @@ def test_the_script_defaults_to_french_whatever_the_setting(marked, tmp_path):
 
 # ---------- the shipped translations and indexes (commit 3) ----------
 
-# `data/rag_index.sqlite` as the story found it (baseline da6748d): never rebuilt.
-FRENCH_INDEX_SHA256 = "7a27518b66d0d265d4daa7e2639b9e91f8d8777412bbd9e4d15b39b8b79d4175"
+# `data/rag_index.sqlite` as the story found it (story 1's enriched corpus): never rebuilt
+# again without updating this constant.
+FRENCH_INDEX_SHA256 = "79fc3e1cc000aae5d418bd29302ac7d575068628e2000eacb4699837f402f270"
 EXCERPT = {"fr": "Extrait 1 — ", "en": "Excerpt 1 — ", "de": "Auszug 1 — "}
 QUESTIONS = {
     "en": "How many characters must a password have at least at Exemplia?",
@@ -437,7 +438,7 @@ def test_the_shipped_index_of_a_language_is_fresh_for_the_declared_model(lang):
     chunks = chunk_corpus(content, cfg.rag_chunk_max_chars, lang)
     assert meta.corpus_sha256 == rag_index.corpus_digest(chunks)
     titles = {c.title_text for c in rag_index.read_chunks(path)}
-    assert titles == {d.title_text for d in content.documents}
+    assert titles == {d.title_text for d in content.documents if d.active}
     assert not titles & _french_titles()
 
 

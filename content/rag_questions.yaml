@@ -1,0 +1,260 @@
+# Jeu de questions de démonstration du corpus Exemplia (story 1). Chaque question porte un
+# `id`, un `type` (factual | multi_hop | global | no_answer | temporal | cross_lingual |
+# follow_up), le texte de la question (et son historique pour `follow_up`), la réponse
+# attendue, les passages attendus (`doc_id` + `anchor_text`, une phrase tirée telle quelle
+# du document) et, pour les questions temporelles, les passages piège d'une version périmée.
+# Pas de sélecteur ni d'interface ici (story 4) ; pas d'annotation humaine (story 15).
+questions:
+  # ---------- factual ----------
+  - id: q_fact_pwd
+    type: factual
+    question_text: Combien de caractères doit compter au minimum un mot de passe chez Exemplia ?
+    expected_answer_text: 14 caractères au minimum.
+    expected_passages:
+      - doc_id: mots_de_passe
+        anchor_text: compte au minimum 14 caractères
+
+  - id: q_fact_sauvegarde
+    type: factual
+    question_text: Quelle règle de sauvegarde Exemplia applique-t-elle à ses données ?
+    expected_answer_text: La règle 3-2-1 - 3 copies, sur 2 supports différents, dont 1 copie hors site.
+    expected_passages:
+      - doc_id: sauvegardes
+        anchor_text: >-
+          au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 copie
+          conservée hors du site principal
+
+  - id: q_fact_badge
+    type: factual
+    question_text: En combien de temps le badge d'un collaborateur qui part est-il désactivé ?
+    expected_answer_text: Dans les 24 heures qui suivent son départ.
+    expected_passages:
+      - doc_id: acces_physique
+        anchor_text: désactivé dans les 24 heures qui suivent son départ
+
+  # ---------- multi_hop ----------
+  - id: q_multi_crise
+    type: multi_hop
+    question_text: Qui appeler la nuit en cas d'incident majeur ?
+    expected_answer_text: >-
+      L'astreinte sécurité, au numéro unique d'astreinte listé dans son annexe, avant
+      escalade au responsable de la sécurité des systèmes d'information.
+    expected_passages:
+      - doc_id: gestion_crise
+        anchor_text: >-
+          l'annexe des contacts d'astreinte liste les numéros à joindre selon l'heure et le
+          domaine concerné
+      - doc_id: astreinte
+        anchor_text: le numéro unique d'astreinte est le 06 07 08 09 10
+
+  - id: q_multi_prestataire
+    type: multi_hop
+    question_text: >-
+      Dans quel délai un prestataire doit-il effacer les données d'Exemplia après la fin du
+      contrat ?
+    expected_answer_text: Dans les 30 jours fixés par la clause de restitution et d'effacement.
+    expected_passages:
+      - doc_id: prestataires
+        anchor_text: le confirme par écrit dans un délai fixé par les clauses du contrat
+      - doc_id: clauses_contrats
+        anchor_text: les efface de tous ses systèmes, y compris ses sauvegardes, dans un délai de 30 jours
+
+  - id: q_multi_messagerie
+    type: multi_hop
+    question_text: Pourquoi la taille maximale d'un message de messagerie a-t-elle changé ?
+    expected_answer_text: >-
+      Exemplia a changé de fournisseur de messagerie le 1er janvier 2026 ; la taille maximale
+      d'un message est passée de 10 Mo à 25 Mo.
+    expected_passages:
+      - doc_id: note_changement_messagerie
+        anchor_text: la taille maximale d'un message passe de 10 Mo à 25 Mo
+      - doc_id: charte_messagerie_v2
+        anchor_text: peut désormais atteindre 25 Mo grâce au nouveau fournisseur
+
+  # ---------- global ----------
+  - id: q_global_securite
+    type: global
+    question_text: >-
+      Quels sont les grands piliers de la sécurité de l'information décrits dans la
+      documentation d'Exemplia ?
+    expected_answer_text: >-
+      La protection des mots de passe et des accès, la classification de l'information selon
+      sa sensibilité, et le signalement rapide des incidents de sécurité.
+    expected_passages:
+      - doc_id: mots_de_passe
+        anchor_text: >-
+          L'authentification à deux facteurs est obligatoire pour la messagerie, l'accès à
+          distance et tous les outils en ligne.
+      - doc_id: classification
+        anchor_text: >-
+          Toute information produite ou reçue par Exemplia porte l'un des 4 niveaux de
+          classification suivants : Public, Interne, Confidentiel et Secret.
+      - doc_id: incidents
+        anchor_text: >-
+          Tout collaborateur qui constate ou soupçonne un incident le signale dans les 30
+          minutes à la cellule de réponse, la CERT-Ex.
+
+  - id: q_global_fournisseurs
+    type: global
+    question_text: Comment Exemplia encadre-t-elle la sécurité de ses prestataires et sous-traitants ?
+    expected_answer_text: >-
+      Par un classement par niveau de risque, des clauses de sécurité contractuelles et un
+      registre des sous-traitants tenu à jour.
+    expected_passages:
+      - doc_id: prestataires
+        anchor_text: >-
+          Exemplia classe chaque prestataire qui traite des informations de l'entreprise dans
+          l'un de deux niveaux
+      - doc_id: clauses_contrats
+        anchor_text: >-
+          il liste les clauses que la cellule fournisseurs insère dans tout contrat de
+          prestation, selon le niveau du prestataire
+      - doc_id: registre_sous_traitants
+        anchor_text: liste chaque sous-traitant utilisé par un prestataire d'Exemplia
+
+  - id: q_global_rh
+    type: global
+    question_text: >-
+      Quels processus encadrent la relation entre Exemplia et ses collaborateurs côté
+      ressources humaines ?
+    expected_answer_text: La grille des rémunérations, la procédure disciplinaire et l'entretien annuel.
+    audience: hr
+    expected_passages:
+      - doc_id: grille_remunerations
+        anchor_text: La grille compte 5 catégories, de la catégorie A (postes d'entrée) à la catégorie E (direction)
+      - doc_id: dossier_disciplinaire
+        anchor_text: >-
+          un rappel oral, un avertissement écrit versé au dossier, une mise à pied de 1 à 5
+          jours sans salaire, ou un licenciement pour faute
+      - doc_id: entretiens_annuels
+        anchor_text: L'entretien a lieu chaque année au premier trimestre, entre janvier et mars
+
+  # ---------- no_answer ----------
+  - id: q_noanswer_parking
+    type: no_answer
+    question_text: Quelle est la politique de remboursement du stationnement chez Exemplia ?
+    expected_answer_text: Je ne sais pas - ce thème n'est pas couvert par la documentation d'Exemplia.
+
+  - id: q_noanswer_mutuelle
+    type: no_answer
+    question_text: Quelle mutuelle santé Exemplia propose-t-elle à ses collaborateurs ?
+    expected_answer_text: Je ne sais pas - ce thème n'est pas couvert par la documentation d'Exemplia.
+
+  - id: q_noanswer_restauration
+    type: no_answer
+    question_text: Exemplia propose-t-elle une subvention pour la restauration du midi ?
+    expected_answer_text: Je ne sais pas - ce thème n'est pas couvert par la documentation d'Exemplia.
+
+  # ---------- temporal ----------
+  - id: q_temporal_taille
+    type: temporal
+    question_text: >-
+      Quelle est la taille maximale d'une pièce jointe de messagerie actuellement en vigueur
+      chez Exemplia ?
+    expected_answer_text: 25 Mo, depuis la version 2 de la charte, en vigueur depuis janvier 2026.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: peut désormais atteindre 25 Mo grâce au nouveau fournisseur
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: ne dépasse pas 10 Mo
+
+  - id: q_temporal_retention
+    type: temporal
+    question_text: >-
+      Combien de temps les messages sont-ils conservés dans la boîte de messagerie avant
+      archivage, selon la règle en vigueur ?
+    expected_answer_text: 3 ans, depuis la version 2 de la charte de messagerie.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: >-
+          Les messages sont conservés 3 ans dans la boîte de messagerie avant archivage,
+          contre 1 an dans la version précédente
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: sont conservés 1 an dans la boîte de messagerie
+
+  - id: q_temporal_usage_perso
+    type: temporal
+    question_text: L'usage personnel occasionnel de la messagerie professionnelle est-il toléré aujourd'hui ?
+    expected_answer_text: Oui, un usage personnel occasionnel et raisonnable est toléré depuis la version 2 de la charte.
+    expected_passages:
+      - doc_id: charte_messagerie_v2
+        anchor_text: un usage personnel occasionnel et raisonnable est désormais toléré
+    trap_passages:
+      - doc_id: charte_messagerie_v1
+        anchor_text: un usage personnel occasionnel n'est pas toléré
+
+  # ---------- cross_lingual ----------
+  - id: q_cross_usb
+    type: cross_lingual
+    question_text: >-
+      À la direction allemande d'Exemplia, que reçoit un collaborateur qui a besoin d'une clé
+      USB ?
+    expected_answer_text: Une clé USB chiffrée (256 bits), fournie par la direction informatique, sur demande.
+    expected_passages:
+      - doc_id: rundschreiben_usb
+        anchor_text: >-
+          erhält auf Anfrage einen von der IT-Abteilung ausgegebenen, verschlüsselten
+          USB-Stick mit 256-Bit-Verschlüsselung
+
+  - id: q_cross_badges
+    type: cross_lingual
+    question_text: Combien de temps le registre des visiteurs est-il conservé à la filiale britannique ?
+    expected_answer_text: 90 jours.
+    expected_passages:
+      - doc_id: uk_visitor_badges
+        anchor_text: kept for 90 days, in line with the data retention rules of the physical access policy
+
+  - id: q_cross_lyon
+    type: cross_lingual
+    question_text: >-
+      En combien de temps le site de repli de Villeurbanne est-il activé si le site de Lyon
+      devient inaccessible ?
+    expected_answer_text: Dans les 4 heures qui suivent la décision du directeur de site.
+    expected_passages:
+      - doc_id: plan_continuite_lyon
+        anchor_text: >-
+          le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la
+          décision du directeur de site
+
+  # ---------- follow_up ----------
+  - id: q_followup_sous_traitants
+    type: follow_up
+    history:
+      - Quels prestataires Exemplia classe-t-elle comme critiques ?
+    question_text: Et les sous-traitants qu'ils utilisent ?
+    expected_answer_text: >-
+      Chaque sous-traitant utilisé par un prestataire est consigné dans le registre des
+      sous-traitants tenu par la cellule fournisseurs.
+    expected_passages:
+      - doc_id: registre_sous_traitants
+        anchor_text: liste chaque sous-traitant utilisé par un prestataire d'Exemplia
+
+  - id: q_followup_astreinte
+    type: follow_up
+    history:
+      - Qui appeler la nuit en cas d'incident majeur ?
+    question_text: Et si c'est un problème de serveur plutôt qu'un incident de sécurité ?
+    expected_answer_text: >-
+      L'astreinte infrastructure, au poste 4100, puis un numéro de secours si personne ne
+      répond en 15 minutes.
+    expected_passages:
+      - doc_id: astreinte
+        anchor_text: poste 4100, puis 06 11 12 13 14 si aucune réponse en 15 minutes
+
+  - id: q_followup_messagerie
+    type: follow_up
+    history:
+      - >-
+        Quelle est la taille maximale d'une pièce jointe de messagerie actuellement en
+        vigueur chez Exemplia ?
+    question_text: Et pourquoi ce changement a-t-il eu lieu ?
+    expected_answer_text: >-
+      Parce qu'Exemplia a changé de fournisseur de messagerie le 1er janvier 2026, après un
+      appel d'offres mené en 2025.
+    expected_passages:
+      - doc_id: note_changement_messagerie
+        anchor_text: >-
+          Exemplia a changé de fournisseur de messagerie le 1er janvier 2026, après un appel
+          d'offres mené en 2025

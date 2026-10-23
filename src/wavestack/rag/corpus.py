@@ -7,10 +7,10 @@ serves the index script and the tests.
 from __future__ import annotations
 
 import re
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from wavestack import config
 
@@ -27,6 +27,12 @@ class CorpusDocument(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     title_text: str = Field(min_length=1)
     file: str = Field(min_length=1)  # relative to `content/`
+    audience: Literal["all", "hr"] = "all"
+    active: bool = True
+    # A monolingual document (story 1): its file sits under `content/corpus/` in this
+    # language, with no copy under `content/i18n/{lang}/corpus/`; `config.content_file`'s
+    # fallback indexes it as-is in every language, and the i18n mirror test exempts it.
+    languages: list[str] | None = None
 
 
 class RagContent(BaseModel):
@@ -87,6 +93,69 @@ def load_rag_content(lang: str | None = None) -> RagContent:
     return RagContent.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
+QuestionType = Literal[
+    "factual", "multi_hop", "global", "no_answer", "temporal", "cross_lingual", "follow_up"
+]
+
+
+class RagPassage(BaseModel):
+    """A passage expected (or, for `trap_passages`, a decoy) in a document, by a sentence
+    taken as-is from its text: `tests/test_rag_questions.py` checks it is really there."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    doc_id: str = Field(min_length=1)
+    anchor_text: str = Field(min_length=1)
+
+
+class RagQuestion(BaseModel):
+    """`content/rag_questions.yaml` (story 1): a prepared question with its expected answer
+    and passages, for the demonstration corpus. No annotation yet (story 15 adds it)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(pattern=r"^[a-z0-9_]+$")
+    type: QuestionType
+    history: list[str] = Field(default_factory=list)  # previous turns, for `follow_up`
+    question_text: str = Field(min_length=1)
+    expected_answer_text: str = Field(min_length=1)
+    expected_passages: list[RagPassage] = Field(default_factory=list)
+    trap_passages: list[RagPassage] = Field(default_factory=list)  # `temporal`: the old version
+    audience: Literal["all", "hr"] | None = None  # when the question targets an HR document
+    annotation: str | None = None  # facultative (story 15 fills it; left empty here)
+
+    @model_validator(mode="after")
+    def _no_answer_has_no_expected_passage(self) -> RagQuestion:
+        if self.type == "no_answer" and self.expected_passages:
+            raise ValueError(f"{self.id}: a no_answer question has no expected_passages")
+        return self
+
+    @model_validator(mode="after")
+    def _known_doc_ids(self, info: ValidationInfo) -> RagQuestion:
+        context = info.context or {}
+        known: set[str] | None = context.get("doc_ids")
+        if known is not None:
+            for passage in (*self.expected_passages, *self.trap_passages):
+                if passage.doc_id not in known:
+                    raise ValueError(f"{self.id}: unknown doc_id {passage.doc_id!r}")
+        return self
+
+
+class RagQuestionSet(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    questions: list[RagQuestion] = Field(min_length=1)
+
+
+def load_rag_questions(lang: str | None = None) -> list[RagQuestion]:
+    """`content/rag_questions.yaml` (story 1): raises on a missing or invalid file, or on a
+    question whose `doc_id` is unknown in `rag.yaml` of the same language."""
+    path = config.content_file("rag_questions.yaml", lang)
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc_ids = {doc.id for doc in load_rag_content(lang).documents}
+    return RagQuestionSet.model_validate(raw, context={"doc_ids": doc_ids}).questions
+
+
 def _cut_long(paragraph: str, max_chars: int) -> list[str]:
     """A paragraph longer than `max_chars`, cut at a sentence's end, else at the limit."""
     pieces = []
@@ -135,6 +204,8 @@ def chunk_corpus(
     `content`'s (the caller reads `rag.yaml` in the same language)."""
     chunks: list[Chunk] = []
     for doc in content.documents:
+        if not doc.active:  # story 1: the trapped and sentinel documents, by default
+            continue
         path = config.content_file(doc.file, lang)
         text = _COMMENT.sub("", path.read_text(encoding="utf-8-sig"))
         for position, piece in enumerate(split_text(text, max_chars), start=1):

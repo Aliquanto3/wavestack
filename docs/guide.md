@@ -129,8 +129,10 @@ ajouter un scénario ou mettre à jour les instantanés, voir
 
 ## Brique RAG, corpus et index
 
-La brique RAG cherche dans huit textes fictifs (`content/corpus/`, l'organisation imaginaire
-« Exemplia ») avec un petit modèle d'embedding local, nommé dans la seule section
+La brique RAG cherche dans 27 textes fictifs (`content/corpus/`, l'organisation imaginaire
+« Exemplia », dont 2 inactifs par défaut et 3 monolingues, et un jeu de 21 questions préparées
+dans `content/rag_questions.yaml`, story 1) avec un petit modèle d'embedding local, nommé dans
+la seule section
 `[rag.embedding]` de `wavestack.toml` (Granite Embedding 107M multilingue, GGUF Q8_0, 121 Mo,
 verdict provisoire de la story 12). Les tailles sont en Mo décimaux (1 Mo = 1 000 000 octets),
 sur la carte comme ici.
