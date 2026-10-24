@@ -204,7 +204,7 @@ def _sh_dry_run(tmp_path, **extra: str) -> str:
         **extra,
     }
     result = subprocess.run(
-        ["bash", (ROOT / "install.sh").as_posix()],
+        [shutil.which("bash"), (ROOT / "install.sh").as_posix()],
         capture_output=True,
         text=True,
         check=True,
