@@ -145,3 +145,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:05 · 1.2-3 · dev · lancé (créneau libre, V1.3 et V1.4 restantes bloquées par des fusions) · e15cc3e
 - 2026-10-25 00:06 · 1.3-2 · CI · verte (Windows, Ubuntu) · c81b6d5
 - 2026-10-25 00:06 · 1.3-2 · fusion · #92 MERGED · 8b1245f
+- 2026-10-25 00:06 · 1.3-5 · CI · PR #93 rebasée sur main (avec 1.3-2), CI relancée · —
