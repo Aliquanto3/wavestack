@@ -120,3 +120,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:49 · 1.3-3 · dev · lancé (empilé sur 1.3-2) · c81b6d5
 - 2026-10-24 23:50 · 1.3-4 · dev · spec prête (cases partielles, anneau SVG, registre _spend_conv) · e229269
 - 2026-10-24 23:50 · 1.3-4 · review · relecture de la spec lancée · e229269
+- 2026-10-24 23:51 · 1.3-5 · second-avis · 0 high/medium, 5 low (dont un mock de config.cloud_key) · e802bd0
+- 2026-10-24 23:51 · 1.3-5 · review · lancé · e802bd0
