@@ -2,7 +2,7 @@
 title: 'MiniCPM5-2B, modèle local optionnel'
 type: 'feature'
 created: '2026-10-24'
-status: 'review'
+status: 'in-review'
 route: 'dispatch'
 baseline_commit: 'bde9e65c12ddb95a835f4e1e55a27bf3c9a7b7b5'
 review_loop_iteration: 0
@@ -71,15 +71,15 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `tests/fixtures/minicpm5_chat_template.jinja` -- copier le gabarit du GGUF officiel (texte de `tokenizer.chat_template`, téléchargeable par `https://huggingface.co/api/models/openbmb/MiniCPM5-2B-GGUF?expand%5B%5D=gguf`, champ `gguf.chat_template`) -- fixture de référence.
-- [ ] `src/wavestack/models/capabilities.py` -- branche MiniCPM5 et balises par lecteur -- reconnaissance et séparation des canaux.
-- [ ] `src/wavestack/tools/parser.py` -- lecteur `minicpm5` et balises par format ; mettre à jour la docstring du module -- lecture des appels.
-- [ ] `src/wavestack/session/app_session.py` -- balises du lecteur courant pour `ChannelSplitter` -- un appel MiniCPM5 va dans le canal `tool_call`.
-- [ ] `content/messages.yaml` + `content/i18n/en/messages.yaml` + `content/i18n/de/messages.yaml` -- trois messages -- erreurs lisibles dans les trois langues.
-- [ ] `src/wavestack/config.py`, `src/wavestack/session/diagnostic.py` -- constante `DEFAULT_MODEL_FILE` et préférence au démarrage (décision du 2026-10-24), docstring à jour -- Qwen3.5-2B reste le modèle chargé par défaut.
-- [ ] `install.ps1`, `install.sh` -- option de téléchargement de MiniCPM5 (1,5 Go), dans le même dossier `models/`, avec le même schéma idempotent et des messages propres au modèle ; aide (`.PARAMETER`, en-tête bash) à jour -- téléchargement optionnel.
-- [ ] `docs/installation.md`, `docs/modeles.md` -- option, URL, taille, licence, et le fait que Qwen3.5-2B reste le modèle recommandé -- documentation.
-- [ ] Tests : `tests/test_tools.py` (ou `tests/test_tool_parser_minicpm5.py`) pour chaque ligne de la matrice, plus un cycle complet calculatrice avec `FakeEngine(template=MINICPM5, architecture="llama")` ; capacités (famille, lecteur, arrêt, raisonnement) sur la fixture, en fichier et sans architecture (serveur) ; `tests/test_installers.py` (URL identique, option absente = pas de téléchargement, `DryRun`) ; `tests/test_model_catalog.py` (éditeur MiniCPM pour l'architecture `llama` + le nom `MiniCPM5`) ; `tests/test_cli_diagnostic.py` (Qwen3.5-2B et MiniCPM5 sans choix sauvegardé : Qwen chargé et non sauvegardé ; choix sauvegardé MiniCPM5 repris ; deux fichiers sans Qwen : blocage inchangé) ; un rendu de la fixture avec outils et appel passé, sans erreur de gabarit et avec `<function name="calculator">` dans le prompt.
+- [x] `tests/fixtures/minicpm5_chat_template.jinja` -- copier le gabarit du GGUF officiel (texte de `tokenizer.chat_template`, téléchargeable par `https://huggingface.co/api/models/openbmb/MiniCPM5-2B-GGUF?expand%5B%5D=gguf`, champ `gguf.chat_template`) -- fixture de référence.
+- [x] `src/wavestack/models/capabilities.py` -- branche MiniCPM5 et balises par lecteur -- reconnaissance et séparation des canaux.
+- [x] `src/wavestack/tools/parser.py` -- lecteur `minicpm5` et balises par format ; mettre à jour la docstring du module -- lecture des appels.
+- [x] `src/wavestack/session/app_session.py` -- balises du lecteur courant pour `ChannelSplitter` -- un appel MiniCPM5 va dans le canal `tool_call`.
+- [x] `content/messages.yaml` + `content/i18n/en/messages.yaml` + `content/i18n/de/messages.yaml` -- trois messages -- erreurs lisibles dans les trois langues.
+- [x] `src/wavestack/config.py`, `src/wavestack/session/diagnostic.py` -- constante `DEFAULT_MODEL_FILE` et préférence au démarrage (décision du 2026-10-24), docstring à jour -- Qwen3.5-2B reste le modèle chargé par défaut.
+- [x] `install.ps1`, `install.sh` -- option de téléchargement de MiniCPM5 (1,5 Go), dans le même dossier `models/`, avec le même schéma idempotent et des messages propres au modèle ; aide (`.PARAMETER`, en-tête bash) à jour -- téléchargement optionnel.
+- [x] `docs/installation.md`, `docs/modeles.md` -- option, URL, taille, licence, et le fait que Qwen3.5-2B reste le modèle recommandé -- documentation.
+- [x] Tests : `tests/test_tools.py` (ou `tests/test_tool_parser_minicpm5.py`) pour chaque ligne de la matrice, plus un cycle complet calculatrice avec `FakeEngine(template=MINICPM5, architecture="llama")` ; capacités (famille, lecteur, arrêt, raisonnement) sur la fixture, en fichier et sans architecture (serveur) ; `tests/test_installers.py` (URL identique, option absente = pas de téléchargement, `DryRun`) ; `tests/test_model_catalog.py` (éditeur MiniCPM pour l'architecture `llama` + le nom `MiniCPM5`) ; `tests/test_cli_diagnostic.py` (Qwen3.5-2B et MiniCPM5 sans choix sauvegardé : Qwen chargé et non sauvegardé ; choix sauvegardé MiniCPM5 repris ; deux fichiers sans Qwen : blocage inchangé) ; un rendu de la fixture avec outils et appel passé, sans erreur de gabarit et avec `<function name="calculator">` dans le prompt.
 
 **Acceptance Criteria:**
 - Given le gabarit MiniCPM5 avec l'architecture `llama`, when les capacités sont lues, then la famille est `minicpm5`, le lecteur `minicpm5`, l'arrêt `<|im_end|>`, et les briques Outils et Raisonnement sont disponibles.
