@@ -87,3 +87,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:31 · 1.4-3 · dev · fini ; documents inactifs exclus, search_documents décoché au lancement (default_enabled), E2E rag_agentic 20 OK · 73ecedf
 - 2026-10-24 23:31 · 1.4-3 · décision · à revoir : search_documents décoché par défaut, le scénario le fait cocher · 73ecedf
 - 2026-10-24 23:31 · 1.4-3 · second-avis · lancé · 73ecedf
+- 2026-10-24 23:31 · 1.3-2 · dev · lancé (empilé sur 1.3-1) · c03250c
