@@ -315,6 +315,9 @@ main:
     show_reasoning_title: "Shows or hides the model's reasoning in this view; LLM context always shows it."
     replay_last: "Replay the last prompt"
     clear: "Clear the conversation"
+    clear_cache: "Clear the cache"
+    clear_cache_cloud: "A cloud provider's cache cannot be purged: it expires on its side."
+    clear_cache_no_answer: "WaveStack does not answer: the cache was not cleared."
     tools_used: "Tools consulted during this turn:"
     tools_used_title: "See the “{tool}” step in Orchestration"
   composer:
@@ -561,6 +564,7 @@ main:
       llm: "LLM workshop"
       mcp_lab: "MCP workshop"
       rag_lab: "RAG workshop"
+      cache_cleared: "cache cleared"
     hook_decisions:
       allow: "let through"
       modify: "modified"

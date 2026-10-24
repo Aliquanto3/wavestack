@@ -1020,6 +1020,36 @@ def test_e2e_fake_llama_server_speaks_what_the_adapter_reads():
     engine.close()
 
 
+def test_e2e_fake_llama_server_forgets_its_prompt_when_the_slot_is_erased():
+    """V1.3 story 3: `clear_cache` posts `/slots/0?action=erase`; the next call evaluates all."""
+    import importlib.util
+    import sys
+
+    path = Path(__file__).resolve().parents[1] / "tools" / "e2e" / "fake_local_server.py"
+    spec = importlib.util.spec_from_file_location("fake_local_server", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["fake_local_server"] = module
+    spec.loader.exec_module(module)
+    client = TestClient(module.create_app("llama_server"))
+    seen: list[str] = []
+
+    def bridge(request: httpx.Request) -> httpx.Response:
+        seen.append(f"{request.method} {request.url.path}?{request.url.query.decode()}")
+        answer = client.request(request.method, request.url.path, content=request.content)
+        return httpx.Response(answer.status_code, content=answer.content)
+
+    engine = servers.LlamaServerEngine(LLAMA_URL, transport=httpx.MockTransport(bridge))
+    ids = engine.tokenize("<|im_start|>user\nBonjour<|im_end|>\n<|im_start|>assistant\n")
+    list(engine.complete(ids, [], 100, CancelToken()))
+    list(engine.complete(ids, [], 100, CancelToken()))
+    assert engine.last_evaluated == 0  # the prompt is in the server's memory
+    assert engine.clear_cache() is True
+    assert "POST /slots/0?action=erase" in seen
+    list(engine.complete(ids, [], 100, CancelToken()))
+    assert engine.last_evaluated == len(ids)
+    engine.close()
+
+
 # ---------- independent review of story 18 ----------
 
 TINY = Path(__file__).parent / "fixtures" / "tiny-llama.gguf"

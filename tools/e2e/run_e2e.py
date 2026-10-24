@@ -1016,6 +1016,42 @@ def _cache_gauge(r: Run) -> None:
             follow.click()
 
 
+def _cache_clear(r: Run) -> None:
+    """V1.3 story 3 (CAP-4), local text mode (the fake llama-server really forgets its prompt
+    when its slot is erased): a second question reads the cache; after « Vider le cache » the
+    next call writes everything, with the cause « cache vidé », and the gauge says so."""
+    page = r.page
+    button = page.locator("#clear-cache")
+    r.send("Avant le vidage")
+    seq = r.ev.mark()
+    r.send("Juste avant le vidage")
+    before = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    expect(button).to_be_enabled(timeout=5000)
+    seq = r.ev.mark()
+    button.click()
+    r.wait_idle()
+    ended = r.send("Après le vidage")
+    call = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    cleared = [e["payload"] for e in r.ev.since(seq, "prefix_not_reused")]
+    gauge = page.locator("#cache-gauge")
+    expect(gauge).to_have_attribute("data-cause", "cache_cleared", timeout=5000)
+    catalogue = _ui_catalogue("fr")
+    r.check(
+        before["cache_read_tokens"] > 0
+        and ended["payload"]["status"] == "completed"
+        and call["cache_read_tokens"] == 0
+        and call["cache_write_tokens"] == call["prompt_tokens"]
+        and len(cleared) == 1
+        and cleared[0]["cause"] == "cache_cleared"
+        and cleared[0]["common_tokens"] == 0
+        and catalogue["main.orch.prefix_causes.cache_cleared"]
+        in (gauge.get_attribute("title") or ""),
+        "vider le cache : l'appel suivant passe tout en écriture, cause « cache vidé », citée par "
+        "la jauge",
+        f"{before.get('cache_read_tokens')} · {call} · {cleared}",
+    )
+
+
 def _cache_not_reused(r: Run) -> None:
     """Lot 1 of 2026-10-04, in local text mode (the ids of the fake llama-server, AD-4): the
     system message changed between two turns (« Prompt système » switched), the next turn's
@@ -10141,6 +10177,7 @@ def s_local_server(r: Run) -> None:
     _braces_stay_text(r, "mode local")
     _cache_not_reused(r)
     _cache_gauge(r)
+    _cache_clear(r)
 
     # Story 32: a reasoning cut by the harness stays one call; the harness's note sits
     # between the reflection and the answer. The LLM nu, so that the reasoning's reserve

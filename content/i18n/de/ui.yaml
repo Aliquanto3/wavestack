@@ -315,6 +315,9 @@ main:
     show_reasoning_title: "Zeigt oder verbirgt den Denkprozess des Modells in dieser Ansicht; der LLM-Kontext zeigt ihn immer."
     replay_last: "Letzten Prompt wiederholen"
     clear: "Unterhaltung leeren"
+    clear_cache: "Cache leeren"
+    clear_cache_cloud: "Der Cache eines Cloud-Anbieters lässt sich nicht leeren: Er läuft auf dessen Seite ab."
+    clear_cache_no_answer: "WaveStack antwortet nicht: Der Cache wurde nicht geleert."
     tools_used: "In dieser Runde abgefragte Tools:"
     tools_used_title: "Schritt „{tool}“ in der Orchestrierung ansehen"
   composer:
@@ -561,6 +564,7 @@ main:
       llm: "LLM-Werkstatt"
       mcp_lab: "MCP-Werkstatt"
       rag_lab: "RAG-Werkstatt"
+      cache_cleared: "Cache geleert"
     hook_decisions:
       allow: "durchgelassen"
       modify: "geändert"

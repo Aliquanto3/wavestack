@@ -111,6 +111,7 @@ session:
       llm: "The LLM workshop occupied the engine's cache{why}."
       mcp_lab: "The MCP workshop occupied the engine's cache{why}."
       rag_lab: "The RAG workshop occupied the engine's cache for its generation{why}."
+      cache_cleared: "The engine's cache was cleared on request (« Clear the cache » button): the whole context is read again."
     evicted:
       stateless: ": this engine cannot save the state of the main context"
       failed: ": saving or restoring the state of the main context failed"
@@ -216,6 +217,9 @@ session:
     turn: "A turn is already in progress: wait for it to end or click “Stop”."
     no_model: "No model is loaded: finish the start-up diagnostics."
     nothing_to_replay: "No prompt to replay: send a message first."
+    cache_cloud: "A cloud provider's cache cannot be cleared: it expires on its side."
+    cache_unsupported: "This engine cannot clear its cache."
+    cache_failed: "The engine's cache could not be cleared: {cause}"
   # AD-19: a content file that cannot be read makes its brick unavailable.
   content:
     file_invalid: "The file {file} is missing or invalid: fix it, then restart WaveStack."

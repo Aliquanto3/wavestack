@@ -6286,6 +6286,32 @@ class AppSession:
         self._emit_architecture()
         self._refresh_preview()
 
+    def clear_cache(self) -> None:
+        """V1.3 story 3 (CAP-4), class (b): the local engine's context memory emptied, the
+        model and the conversation kept. The next call writes everything, cause
+        `cache_cleared`. Refused outside `idle` and in cloud (a provider's cache does not
+        purge)."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            if self._cloud is not None:
+                raise SendRefused(Message("session.refused.cache_cloud"))
+            engine = self._engine
+        clear = getattr(engine, "clear_cache", None)
+        if clear is None:
+            raise SendRefused(Message("session.refused.cache_unsupported"))
+        self._abandon_prefill()
+        try:
+            cleared = clear()
+        except Exception as exc:  # noqa: BLE001 - AD-16: a server without the slots API
+            raise SendRefused(Message("session.refused.cache_failed", cause=str(exc))) from exc
+        if not cleared:
+            raise SendRefused(Message("session.refused.cache_unsupported"))
+        with self._lock:
+            self._main_cache = []  # the engine holds nothing of the main context now
+            self._cache_evicted = None
+            self._cache_cause = "cache_cleared"
+
     # ---------- languages (1/5, AD-19) ----------
 
     def _conversation_started(self) -> bool:
@@ -8306,7 +8332,7 @@ class AppSession:
             cause = cause or "subagent"
         else:
             cached = self._main_cache
-            if cached is None or ids[: len(cached)] == cached:
+            if cached is None or (ids[: len(cached)] == cached and cause != "cache_cleared"):
                 return
         common = _common_prefix(cached, ids)
         cause = cause or self._diverging_cause(rendered, common)

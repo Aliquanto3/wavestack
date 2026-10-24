@@ -155,6 +155,14 @@ def create_app(flavor: str) -> Starlette:
 
         return StreamingResponse(stream(), media_type="text/event-stream")
 
+    async def slots(request: Request) -> JSONResponse:
+        # V1.3 story 3: `POST /slots/0?action=erase`, as the real llama-server: its prompt
+        # memory is emptied, so the next call evaluates everything.
+        await body_of(request)
+        erased = len(previous)
+        previous.clear()
+        return JSONResponse({"id_slot": 0, "n_erased": erased})
+
     async def tags(_: Request) -> JSONResponse:
         # Story 25: `details`, as a real Ollama, for the model table's publisher and size.
         details = {"family": "qwen3", "parameter_size": "0.6B"}
@@ -185,6 +193,7 @@ def create_app(flavor: str) -> Starlette:
             Route("/tokenize", tokenize_route, methods=["POST"]),
             Route("/detokenize", detokenize_route, methods=["POST"]),
             Route("/completion", completion, methods=["POST"]),
+            Route("/slots/{slot:int}", slots, methods=["POST"]),
         ]
     return Starlette(routes=[*routes, Route("/_e2e/requests", requests_log)])
 

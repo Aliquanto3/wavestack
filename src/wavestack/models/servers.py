@@ -446,6 +446,12 @@ class LlamaServerEngine:
         """The prompt tokens the server says it evaluated in the last call, if it said."""
         return self._last_evaluated
 
+    def clear_cache(self) -> bool:
+        """V1.3 story 3: the server's own slot erased (`POST /slots/0?action=erase`), the
+        server and its model untouched. A server without the slots API raises `ServerError`."""
+        _json(self._client, self.url, "POST", "/slots/0?action=erase")
+        return True
+
     @property
     def last_cache_reuse(self) -> tuple[int, float | None] | None:
         """Story 7 (CAP-7, « Mémoire de contexte »): `(cache_n, prompt_per_second)` from the

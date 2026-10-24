@@ -107,6 +107,11 @@ class FakeEngine:
         self.cache = list(snapshot.data)
         return True
 
+    def clear_cache(self) -> bool:
+        """V1.3 story 3: the memory emptied, the model kept."""
+        self.cache = []
+        return True
+
     def prefill(self, ids: Sequence[int], cancel: CancelToken) -> int | None:
         """As `LlamaCppEngine.prefill`: the cache cut to its common prefix with `ids`, then
         the rest by batches, each checked against `cancel` first."""
