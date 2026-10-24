@@ -166,3 +166,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:25 · 1.3-4 · review · rebasée sur #93, part 1 h branchée dans cost_ring ; E2E 30/30 · b53a301
 - 2026-10-25 00:25 · 1.3-4 · PR · ouverte, CI lancée · b53a301
 - 2026-10-25 00:26 · 1.3-3 · CI · main fusionnée dans la branche sans conflit, tests ciblés et E2E verts, poussée, CI relancée · 02d4662
+- 2026-10-25 00:28 · 1.2-3 · dev · fini, rebasé sur main ; E2E rag, rag_rerank, rag_lab 153 OK ; copie de travail dans le dossier de données · 6a1b3d3
+- 2026-10-25 00:28 · 1.2-3 · second-avis · lancé · 6a1b3d3
