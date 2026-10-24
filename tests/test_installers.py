@@ -219,9 +219,14 @@ def test_default_model_file_matches_the_installers() -> None:
     assert f'"{config.DEFAULT_MODEL_FILE}"' in (ROOT / "install.sh").read_text(encoding="utf-8")
 
 
+def _clean_env() -> dict[str, str]:
+    """os.environ without the WAVESTACK_* variables a developer may have set on the machine."""
+    return {k: v for k, v in os.environ.items() if not k.upper().startswith("WAVESTACK_")}
+
+
 def _sh(tmp_path, *, dry_run: bool = True, **extra: str) -> subprocess.CompletedProcess:
     env = {
-        **os.environ,
+        **_clean_env(),
         "WAVESTACK_INSTALL_DIR": (tmp_path / "project").as_posix(),
         "WAVESTACK_DATA_DIR": (tmp_path / "data").as_posix(),
         **({"WAVESTACK_DRY_RUN": "1"} if dry_run else {}),
@@ -253,7 +258,7 @@ def _ps(tmp_path, *option: str, **env_extra: str) -> subprocess.CompletedProcess
         ],
         capture_output=True,
         text=True,
-        env={**os.environ, **env_extra},
+        env={**_clean_env(), **env_extra},
         timeout=30,
     )
 
@@ -294,6 +299,13 @@ def test_install_sh_unknown_model_stops_before_anything(tmp_path, dry_run) -> No
 
 
 @needs_bash
+def test_install_sh_model_id_is_not_a_pattern(tmp_path) -> None:
+    result = _sh(tmp_path, WAVESTACK_MODELS="qwen3[.]5-0.8b")
+    assert result.returncode != 0
+    assert "inconnu" in result.stderr
+
+
+@needs_bash
 def test_install_sh_models_list_prints_the_table_and_stops(tmp_path) -> None:
     result = _sh(tmp_path, dry_run=False, WAVESTACK_MODELS="list")
     assert result.returncode == 0
@@ -311,8 +323,29 @@ def test_install_ps1_models_dry_run(tmp_path, option) -> None:
     result = _ps(tmp_path, "-DryRun", *option)
     assert result.returncode == 0, result.stderr
     assert ("MiniCPM5-2B-Q4_K_M.gguf" in result.stdout) is bool(option)
-    assert ("Qwen3.5-0.8B-Q4_K_M.gguf" in result.stdout) is (len(option) == 2)
+    assert ("Qwen3.5-0.8B-Q4_K_M.gguf" in result.stdout) is ("-Models" in option)
     assert not (tmp_path / "data").exists()
+
+
+@needs_windows
+def test_install_ps1_models_as_a_powershell_array(tmp_path) -> None:
+    # `.\install.ps1 -Models a,b` typed in a PowerShell session binds an array, not a string.
+    project, data = tmp_path / "project", tmp_path / "data"
+    command = (
+        f"& '{ROOT / 'install.ps1'}' -InstallDir '{project}' -DataDir '{data}' -DryRun "
+        "-Models qwen3.5-0.8b,minicpm5"
+    )
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+        capture_output=True,
+        text=True,
+        env=_clean_env(),
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "Qwen3.5-0.8B-Q4_K_M.gguf" in result.stdout
+    assert "MiniCPM5-2B-Q4_K_M.gguf" in result.stdout
+    assert not data.exists()
 
 
 @needs_windows

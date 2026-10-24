@@ -62,6 +62,20 @@ context: []
 
 ## Review Triage Log
 
+Revue du 2026-10-24 (Opus, branche à jour de `origin/main`). Le téléchargement réel de Qwen3.5-0.8B (empreinte, taille, idempotence, tour Outils) a été vérifié par l'orchestrateur.
+
+- **medium**, revue : `[string]$Models` fait échouer la forme documentée `.\install.ps1 -Models a,b` saisie dans une session PowerShell (ou `& ([scriptblock]::Create(...)) -Models a,b`) : la virgule donne un tableau, et la liaison au paramètre échoue (« Impossible de convertir la valeur en type System.String »). Les tests passaient par `-File`, qui transmet une chaîne. **Corrigé** : `[string[]]$Models`, rejoint par `,`, test `test_install_ps1_models_as_a_powershell_array` (rouge avant le correctif).
+- **low**, second avis 1 : `grep -qx` lit l'identifiant comme une expression régulière, et `WAVESTACK_MODELS='qwen3[.]5-0.8b'` passait la validation sans rien installer. **Corrigé** : `grep -Fxq`, test `test_install_sh_model_id_is_not_a_pattern` (rouge avant le correctif).
+- **low**, second avis 2 : `list` mêlé à d'autres identifiants affiche la table et ignore le reste. C'est un choix de conception cohérent avec la décision « affiche la table puis s'arrête », identique en ps1 et en sh. **Rejeté**.
+- **low**, second avis 3 : le sha256 n'est pas dans la table de la doc. La spec demande que les URL soient identiques partout, pas l'empreinte ; ps1 et sh sont comparés au test (`test_optional_model_row_is_complete`). **Consigné**.
+- **low**, second avis 4 : les tests d'empreinte isolent la fonction et ne couvrent pas le site d'appel. L'enchaînement téléchargement, vérification, renommage est en trois lignes visibles, et il a été vérifié en réel par l'orchestrateur. **Consigné**.
+- **low**, second avis 5 : `_sh` et `_ps` héritaient des `WAVESTACK_*` du poste, ce qui pouvait fausser les assertions « rien sans option ». **Corrigé** : `_clean_env()`.
+- **low**, second avis 6 : `is (len(option) == 2)` dépendait de la forme du paramétrage. **Corrigé** : `is ("-Models" in option)`.
+- **false**, second avis 7 : le test 0.8B réutilise la fixture du 2B. C'est voulu par la spec, et le gabarit est identique octet pour octet (vérifié le 2026-10-24). **Rejeté**.
+- **low**, revue : sans `sha256sum` ni `shasum`, `install.sh` s'arrête (code 127) en laissant le `.part`, qui sera écrasé au lancement suivant. Les deux outils sont présents sur les cibles Linux et macOS. **Consigné**.
+- **low**, revue : dans `install.sh`, `for id in $(...)` n'est pas entre guillemets, donc un identifiant `*` passe par l'expansion des noms de fichiers. L'installateur s'arrête quand même sur un identifiant inconnu, et le seul effet est un message d'erreur qui cite un nom de fichier. **Consigné**.
+- Complexité : 0 constat (aucune structure qui grossit pendant l'exécution).
+
 ## Verification
 
 **Commands:**

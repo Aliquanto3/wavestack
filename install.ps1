@@ -38,7 +38,7 @@ param(
     [string]$DataDir,
     [string]$UvInstallDir,
     [switch]$NoLaunch,
-    [string]$Models,
+    [string[]]$Models,
     [switch]$WithMiniCPM,
     [switch]$DryRun
 )
@@ -70,7 +70,9 @@ param(
     # -- Modeles facultatifs demandes : valides avant toute action (rien n'est cree si un
     #    identifiant est inconnu). `list` affiche la table et s'arrete.
     $requested = @()
-    $modelsArg = if ($Models) { $Models } else { $env:WAVESTACK_MODELS }
+    # [string[]] : `-Models a,b` saisi dans une session PowerShell arrive en tableau, sous -File en
+    # une chaine ; les deux formes sont rejointes puis coupees aux virgules.
+    $modelsArg = if ($Models) { $Models -join ',' } else { $env:WAVESTACK_MODELS }
     if ($modelsArg) {
         $requested += @($modelsArg -split ',' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
     }

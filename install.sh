@@ -69,7 +69,7 @@ case "$REQUESTED" in
         ;;
 esac
 for id in $(echo "$REQUESTED" | tr ',' ' '); do
-    if ! echo "$OPTIONAL_MODELS" | cut -d'|' -f1 | grep -qx -- "$id"; then
+    if ! echo "$OPTIONAL_MODELS" | cut -d'|' -f1 | grep -Fxq -- "$id"; then
         echo "Modele facultatif inconnu : '$id'. Identifiants valides : $VALID_IDS." >&2
         exit 1
     fi
