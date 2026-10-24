@@ -162,3 +162,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:23 · 1.3-5 · fusion · #93 MERGED · 5c677fb
 - 2026-10-25 00:23 · 1.3-4 · review · reprise : rebase sur main (avec #93) et branchement de la part 1 h dans cost_ring · f06671c
 - 2026-10-25 00:23 · 1.3-3 · CI · PR #94 rebasée sur main (avec #93), CI relancée · —
+- 2026-10-25 00:23 · 1.3-3 · CI · PR #94 en conflit avec main après #93 ; fusion de main dans la branche (sans réécriture) déléguée · 9e09b49
