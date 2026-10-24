@@ -282,6 +282,18 @@ class CallCost:
     source: str  # api | estimate
 
 
+# V1.3 story 5: Anthropic's rule, a write kept for 1 h costs twice the input price (5 min:
+# 1,25 times, declared by the entry, never derived: an absent price is the input price, CAP-4).
+CACHE_WRITE_1H_FACTOR = 2.0
+
+
+def write_1h_price(pricing: CloudPricing) -> float:
+    """V1.3 story 5: the price of a cache write kept for 1 h, in $/Mtok: the entry's
+    declared `cache_write_1h_usd_per_mtok`, else `CACHE_WRITE_1H_FACTOR` × the input price."""
+    declared = pricing.cache_write_1h_usd_per_mtok
+    return CACHE_WRITE_1H_FACTOR * pricing.input_usd_per_mtok if declared is None else declared
+
+
 def call_cost(
     pricing: CloudPricing,
     prompt_tokens: int,
@@ -290,22 +302,26 @@ def call_cost(
     *,
     cached_read: int = 0,
     cached_write: int = 0,
+    cached_write_1h: int = 0,
 ) -> CallCost:
     """Input: `prompt_tokens` (the whole input, cached tokens included) × the input price
     / 10⁶, except the `cached_read` tokens read from the provider's cache and the
     `cached_write` ones written to it, at their own prices when the entry declares them (the
-    input price otherwise, CAP-4); output: `output_tokens` (the reasoning tokens included,
+    input price otherwise, CAP-4), of which `cached_write_1h` (V1.3 story 5, a part of
+    `cached_write`) at the 1 h write price; output: `output_tokens` (the reasoning tokens included,
     even those Gemini leaves out of `completion_tokens`) × the output price / 10⁶."""
     price_in = pricing.input_usd_per_mtok
     read_price = pricing.cache_read_usd_per_mtok
     write_price = pricing.cache_write_usd_per_mtok
     cached_read = max(0, min(cached_read, prompt_tokens))
     cached_write = max(0, min(cached_write, prompt_tokens - cached_read))
+    cached_write_1h = max(0, min(cached_write_1h, cached_write))
     plain = prompt_tokens - cached_read - cached_write
     input_usd = (
         plain * price_in
         + cached_read * (price_in if read_price is None else read_price)
-        + cached_write * (price_in if write_price is None else write_price)
+        + (cached_write - cached_write_1h) * (price_in if write_price is None else write_price)
+        + cached_write_1h * write_1h_price(pricing)
     )
     return CallCost(
         input_usd / 1_000_000,
@@ -329,6 +345,7 @@ def cache_savings(
     cached_write: int,
     paid_input_usd: float,
     api: str = "openai_chat",
+    cached_write_1h: int = 0,
 ) -> dict[str, Any] | None:
     """CAP-7: the cache's own line in `model_call_ended` (absent when there is no cache on
     this call). `cache_full_usd`: the input at the plain price, with no cache at all.
@@ -344,9 +361,15 @@ def cache_savings(
     price_in = pricing.input_usd_per_mtok
     write_price = pricing.cache_write_usd_per_mtok
     full_usd = prompt_tokens * price_in / 1_000_000
-    write_usd = cached_write * (price_in if write_price is None else write_price) / 1_000_000
+    cached_write_1h = max(0, min(cached_write_1h, cached_write))
+    five_min = cached_write - cached_write_1h
+    write_usd = (
+        five_min * (price_in if write_price is None else write_price)
+        + cached_write_1h * write_1h_price(pricing)
+    ) / 1_000_000
+    # The 1 h part always has a price (declared or derived); the 5 min part needs its own.
     priced = (not cached_read or pricing.cache_read_usd_per_mtok is not None) and (
-        not cached_write or write_price is not None
+        not five_min or write_price is not None
     )
     return {
         "cache_full_usd": full_usd,
@@ -1076,6 +1099,9 @@ def run_call(
         payload |= cache_tokens(usage if produced else {}, prompt_tokens, source)
         if pricing is not None and produced:
             cached_read, cached_write = _cached_tokens(usage)
+            # The 1 h part is the response's (story 1), never the setting's: absent detail,
+            # the whole write counts at the 5 min price (the current API gives the detail).
+            cached_write_1h = payload["cache_write_1h_tokens"] or 0
             out.cost = call_cost(
                 pricing,
                 prompt_tokens,
@@ -1083,6 +1109,7 @@ def run_call(
                 source,
                 cached_read=cached_read,
                 cached_write=cached_write,
+                cached_write_1h=cached_write_1h,
             )
             payload |= {
                 "cost_in_usd": out.cost.input_usd,
@@ -1090,7 +1117,13 @@ def run_call(
                 "cost_source": source,
             }
             cache = cache_savings(
-                pricing, prompt_tokens, cached_read, cached_write, out.cost.input_usd, entry.api
+                pricing,
+                prompt_tokens,
+                cached_read,
+                cached_write,
+                out.cost.input_usd,
+                entry.api,
+                cached_write_1h,
             )
             if cache is not None:
                 payload |= cache

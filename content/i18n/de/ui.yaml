@@ -387,6 +387,12 @@ main:
     saved_help: "Die angewendete Wahl wird in settings.json gespeichert, das beim nächsten Start Vorrang vor [context] window aus wavestack.toml hat."
     size_legend: "Fenstergröße"
     apply: "Anwenden"
+    claude_cache_legend: "Prompt-Cache von Claude"
+    claude_cache_off: "Aus"
+    claude_cache_5m: "5 Minuten (Schreiben ×1,25)"
+    claude_cache_1h: "1 Stunde (Schreiben ×2)"
+    claude_cache_pending: "Cache wird eingestellt…"
+    claude_cache_refused: "Cache-Einstellung abgelehnt."
   ctx:
     modes:
       grouped: "Gruppiert"

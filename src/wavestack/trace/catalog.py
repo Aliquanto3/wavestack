@@ -355,6 +355,11 @@ class ContextWindowStatePayload(BaseModel):
     read_tps: float | None = None
     read_note_text: str
     locked_text: str | None = None
+    # V1.3 story 5: Claude's prompt cache setting (`off`, `5m`, `1h`), why it is greyed
+    # (no Claude key), and its one-line note.
+    claude_cache: Literal["off", "5m", "1h"] = "off"
+    claude_cache_locked_text: str | None = None
+    claude_cache_note_text: str | None = None
     choices: list[WindowChoicePayload]
 
 

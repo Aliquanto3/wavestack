@@ -169,6 +169,9 @@ class CloudPricing(_Strict):
     output_usd_per_mtok: float = Field(ge=0, allow_inf_nan=False)
     cache_read_usd_per_mtok: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     cache_write_usd_per_mtok: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    # V1.3 story 5: the price of a write kept for 1 h; absent, 2 × the input price (Anthropic's
+    # rule, `CACHE_WRITE_1H_FACTOR` in `cloud_base`).
+    cache_write_1h_usd_per_mtok: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     checked: date
 
 
@@ -737,6 +740,13 @@ class Config:
         except (TypeError, ValueError):
             return DEFAULT_EUR_PER_USD
         return min(2.0, max(0.5, rate)) if math.isfinite(rate) else DEFAULT_EUR_PER_USD
+
+    @property
+    def claude_cache(self) -> Literal["off", "5m", "1h"]:
+        """V1.3 story 5: `[cloud] claude_cache`, Claude's prompt cache setting: `off`
+        (default), `5m` or `1h`. Anything else (another text, a boolean, a number) is `off`."""
+        value = self.get("cloud", "claude_cache", default="off")
+        return value if value in ("5m", "1h") else "off"  # type: ignore[return-value]
 
     @property
     def max_session_usd(self) -> float:
