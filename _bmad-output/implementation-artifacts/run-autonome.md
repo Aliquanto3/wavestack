@@ -69,3 +69,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:17 · 1.4-1 · décision · à revoir : scénario de sécurité des skills tiers = hooks · f916b57
 - 2026-10-24 23:17 · 1.4-1 · second-avis · lancé · f916b57
 - 2026-10-24 23:18 · 1.4-3 · dev · lancé · 72cfdf0
+- 2026-10-24 23:21 · 1.3-1 · dev · fini ; contrat : cache_origin, cache_read_tokens, cache_write_tokens, cache_write_1h_tokens, cache_uncached_tokens (int | None) · ab89fb3
+- 2026-10-24 23:21 · 1.3-1 · second-avis · lancé · ab89fb3
