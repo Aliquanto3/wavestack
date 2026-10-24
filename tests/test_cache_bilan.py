@@ -181,7 +181,8 @@ def test_local_calls_of_the_fake_engine_sum_to_their_prompts():
             c["prompt_tokens"] for c in calls
         )
         assert column["local_read_calls"] == 1
-    assert spend["ring_calls"] == 0 and spend["unpriced_calls"] == 2
+    # a local call is free, not « sans prix déclaré »: no out-of-ring note
+    assert spend["ring_calls"] == 0 and spend["unpriced_calls"] == 0
 
 
 # ---------- the ring ----------
@@ -300,24 +301,36 @@ def test_clearing_or_resetting_restarts_only_the_conversation_column(how):
 def test_resetting_an_empty_conversation_emits_nothing():
     reset_spend()
     seen: list[dict] = []
-    reset_conversation_spend(0.86, seen.append)
+    assert reset_conversation_spend(0.86, seen.append) is False
     assert seen == []
 
 
-def test_the_scenario_change_restarts_the_conversation_column():
-    from wavestack import scenarios
+def test_resetting_a_filled_conversation_emits_the_empty_column_once():
+    reset_spend()
+    record_spend(CallCost(0.01, 0.02, "api"), 0.86, in_conversation=True)
+    launch = record_spend(CallCost(0.10, 0.20, "api"), 0.86)
+    assert launch["conversation"]["calls"] == 1  # not empty before the reset
+    seen: list[dict] = []
+    assert reset_conversation_spend(0.86, seen.append) is True
+    assert len(seen) == 1
+    assert seen[0]["conversation"] == SpendColumn().model_dump()
+    assert {k: v for k, v in seen[0].items() if k != "conversation"} == {
+        k: v for k, v in launch.items() if k != "conversation"
+    }
 
+
+def test_the_scenario_change_restarts_the_conversation_column():
     reset_spend()
     session = _local_session()
     try:
         _run(session, "Bonjour")
         assert session.consumption()["conversation"]["cache_calls"] == 1
-        session.reset()  # a scenario goes through the same `_reconfigure` as the reset
+        session.launch_scenario("system_prompt")
         session.join()
         spend = session.consumption()
     finally:
         session.close()
-    assert scenarios and spend["cache_calls"] == 1
+    assert spend["cache_calls"] == 1
     assert spend["conversation"]["cache_calls"] == 0
 
 

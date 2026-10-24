@@ -148,7 +148,7 @@ from wavestack.models.capabilities import (
     tool_call_tags,
 )
 from wavestack.models.cloud_api import create_cloud_engine
-from wavestack.models.cloud_base import reset_conversation_spend
+from wavestack.models.cloud_base import emit_spend, reset_conversation_spend
 from wavestack.models.embedding import Embedder
 from wavestack.models.engine import (
     DEFAULT_SAMPLING,
@@ -6340,18 +6340,21 @@ class AppSession:
             self._last = None  # nothing left to replay (story 9b)
             self._memory_snapshot = None  # N1: the next conversation reads the memory again
             self._cache_cause = "reset"
+            spend_reset = reset_conversation_spend(self.cfg.eur_per_usd)
         self._journal().emit("conversation_cleared", {})
-        self._reset_conversation_spend()
+        self._emit_spend_reset(spend_reset)
         self._emit_architecture()
         self._refresh_preview()
 
-    def _reset_conversation_spend(self) -> None:
-        """V1.3 CAP-3: the bilan's « Cette conversation » restarts with the conversation; the
-        session's column stays (only a relaunch resets it)."""
-        journal = self._journal()
-        reset_conversation_spend(
-            self.cfg.eur_per_usd, lambda spend: journal.emit("consumption_updated", spend)
-        )
+    def _emit_spend_reset(self, touched: bool) -> None:
+        """V1.3 CAP-3: the bilan's « Cette conversation » restarts with the conversation (reset
+        under `_lock` with `_history`, so a turn starting just after keeps its calls); the
+        session's column stays (only a relaunch resets it). Emitted when it held something."""
+        if touched:
+            journal = self._journal()
+            emit_spend(
+                self.cfg.eur_per_usd, lambda spend: journal.emit("consumption_updated", spend)
+            )
 
     # ---------- languages (1/5, AD-19) ----------
 
@@ -6663,9 +6666,10 @@ class AppSession:
                 apply()
                 after = set(self._mcp_enabled) if "mcp" in self._wanted else set()
                 self._active_scenario = scenario_id
+                spend_reset = reset_conversation_spend(self.cfg.eur_per_usd)
             journal = self._journal()
             journal.emit("conversation_cleared" if scenario_id else "harness_reset", {})
-            self._reset_conversation_spend()
+            self._emit_spend_reset(spend_reset)
             if scenario_id is None or restore_memory:  # FR-39; story 21, a module's start
                 self._restore_memory()
         self._emit_armed()

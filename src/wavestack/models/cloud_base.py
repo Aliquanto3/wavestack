@@ -543,7 +543,7 @@ def _add_cells(reg: dict[str, Any], cells: dict[str, Any] | None, priced: bool) 
         return
     origin = cells["cache_origin"]
     reg["cache_calls"] += 1
-    if not priced:
+    if not priced and origin != "local":  # a local call is free, not « sans prix déclaré »
         reg["unpriced_calls"] += 1
     for name in CACHE_CELLS:
         value = cells.get(f"cache_{name}_tokens")
@@ -700,16 +700,25 @@ def session_spend(eur_per_usd: float) -> dict[str, Any] | None:
 
 def reset_conversation_spend(
     eur_per_usd: float, emit: Callable[[dict[str, Any]], Any] | None = None
-) -> None:
+) -> bool:
     """V1.3 CAP-3: « Vider la conversation », « Réinitialiser » and a scenario reset the
     conversation's column, never the session's. When it held something, the new totals are
-    emitted (under the lock, like `record_spend`, to keep the order)."""
+    emitted (under the lock, like `record_spend`, to keep the order); returns whether it held
+    something. `app_session` resets under its own lock with no `emit` (a turn starting just
+    after must not lose its calls), then emits with `emit_spend`."""
     with _spend_lock:
         touched = _spend_conv != _EMPTY
         _spend_conv.clear()
         _spend_conv.update(_fresh())
         if touched and emit is not None:
             emit(_spend_payload(eur_per_usd))
+        return touched
+
+
+def emit_spend(eur_per_usd: float, emit: Callable[[dict[str, Any]], Any]) -> None:
+    """The current totals, emitted under the lock (same order as `record_spend`)."""
+    with _spend_lock:
+        emit(_spend_payload(eur_per_usd))
 
 
 def session_cap_error(entry: CloudModel, max_session_usd: float | None) -> ProviderError | None:

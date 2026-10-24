@@ -153,3 +153,17 @@ context:
   - Appels hors tour dans la seule colonne du lancement : choix confirmé, cohérent avec CAP-3. « Cette conversation » couvre ce que « Vider la conversation » efface.
 
 ## Review Triage Log
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 806554a)
+
+Base : origin/main 8b1245f, à jour (PR #93, story 5, encore ouverte).
+
+- Report, medium, second avis 1 : part 1 h de l'anneau. #93 non fusionnée : rien à brancher ici, conforme à la règle « la story fusionnée en second branche la ligne 1 h ». **Correctif exact pour la seconde fusion (#93)** : dans `ended()` (`cloud_base.py`, appel de `cost_ring` à côté de `call_cost`), passer `cached_write_1h=payload["cache_write_1h_tokens"] or 0` ; dans `cost_ring`, `write_1h = cached_write_1h * write_1h_price(pricing) / 1_000_000` (au lieu du prix d'écriture) ; ajouter le test « write 150 dont 50 à 1 h → `ring["write_1h"]` = 50 × prix 1 h, somme des postes = `cost.input_usd + cost.output_usd` ». Sans ce correctif, `call_cost` facture la part 1 h au prix 1 h, l'anneau la range en 5 min et `fresh` absorbe l'écart.
+- Rejeté, low, second avis 3 : faux positif du signal quand un tour ajoute plus que le premier prompt. Règle décidée à la revue de spec, bien écrite telle quelle (« Signal », écart à SPEC).
+- Important, low, second avis 4 : un appel local incrémentait `unpriced_calls` (« Hors anneau : N appels sans prix déclaré » sur toute conversation locale). Corrigé : un appel `cache_origin == "local"` est gratuit, pas « sans prix déclaré » ; le test du faux moteur local, qui figeait le défaut (`unpriced_calls == 2`), attend 0.
+- Important, low, second avis 5 : `_reset_conversation_spend()` hors de `self._lock`, après la garde `idle` : un tour démarré entre les deux perdait ses appels de la colonne. Corrigé : la colonne est vidée sous `self._lock`, avec `_history` (`reset_conversation_spend` sans `emit`, renvoie si elle contenait quelque chose), puis `emit_spend` émet hors du verrou de session, sous `_spend_lock` (ordre des émissions conservé, pas d'émission du journal sous `self._lock`).
+- Rejeté, second avis 10 : les cinq jetons `--color-segment-*` de l'anneau ont leurs variantes sombres (`[data-theme="dark"]` et `prefers-color-scheme: dark` de `tokens.css`).
+- Important, low, second avis 11 : remise à zéro. Ajout d'un test unitaire sur une colonne non vide (une seule émission, colonne vide, lancement identique) ; le test « changement de scénario » appelait en fait `reset()` : il lance maintenant `launch_scenario("system_prompt")`.
+- Complexité : 0 constat (cumul O(1) par appel, comparaison à `_EMPTY` de taille fixe).
