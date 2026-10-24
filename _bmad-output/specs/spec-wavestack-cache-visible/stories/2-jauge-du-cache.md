@@ -45,3 +45,19 @@ context:
 
 - Le cas cloud n'a pas d'E2E propre (« non déclaré par le fournisseur » est couvert par la logique de `cacheCellMissing`, sans test navigateur).
 - Appels de sous-agent exclus de la jauge (dernier appel du tour principal).
+
+## Revue
+
+### Passe 1 (2026-10-24, SHA revu eae59ca)
+
+Pas de rebase : la story 1 (PR #89) n'est pas encore dans `origin/main`.
+
+- Important, medium, second avis (1) : en local, le texte court disait « Cache : non déclaré » quand lu manquait. Corrigé : `short_not_measured` (« Cache : non mesuré ») pour `cache_origin: "local"`.
+- Important, medium, second avis (3) : aucun E2E ne vérifiait 1 366 et 1 280 px avec la jauge visible. Corrigé : `_cache_gauge` vérifie aux deux largeurs que la jauge est visible, que la barre du haut tient sur une ligne et que « Réinitialiser » reste dans la fenêtre (vert). Le seuil de 1 700 px est celui de la spec gelée, conservé.
+- Nit, low, second avis (5) : « non caché non déclaré par le fournisseur ». Corrigé : clé `pair` (« {name} : {value} », « {name}: {value} » en anglais et en allemand), utilisée aussi pour le titre, qui codait « : » à la française dans les trois langues.
+- Rejeté, medium, second avis (2) : écriture non déclarée côté fournisseur. L'infobulle dit « écrit : non déclaré par le fournisseur », jamais 0, et aucun segment d'écriture n'est dessiné. Story 1 inchangée.
+- Rejeté, low, second avis (4) : les appels de sous-agent passent par `applySubEnvelope`, qui retourne avant le `switch` principal ; la jauge ne lit que l'agent principal, comme le dit la section Reports.
+- Nit, low, second avis (6) : capture 23 régénérée par l'E2E `local_server`, commitée avec la jauge. Les autres captures qui la montrent désormais (22, 45…) seront réalignées par l'E2E de fin de lot.
+- Rejeté, low, second avis (7) : `context_window` (et `reasoning_dropped`, `model_switch`, `llm_screen`, `system_prompt`, `model_catalog`, qui utilisent le faux llama-server) passent avec le préfixe gardé.
+- Rejeté, low, second avis (8) : `PREFIX_CAUSES` n'est lu qu'au rendu, après l'évaluation du module, et seulement quand une jauge existe (même usage déjà en place pour l'Orchestration).
+- Complexité : 0 constat (la jauge ne garde que le dernier appel).

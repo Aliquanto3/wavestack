@@ -18,6 +18,7 @@ FILES = {
 KEYS = {
     "label", "read", "write", "write_1h", "uncached", "not_declared", "not_applicable",
     "not_measured", "local_note", "cause", "cause_unknown", "short", "short_none",
+    "short_not_measured", "pair",
 }  # fmt: skip
 
 
@@ -36,3 +37,4 @@ def test_cache_gauge_texts_exist(language: str) -> None:
     assert set(texts) == KEYS
     assert "{tokens}" in texts["read"] and "{tokens_1h}" in texts["write_1h"]
     assert "{cause}" in texts["cause"] and "{percent}" in texts["short"]
+    assert "{name}" in texts["pair"] and "{value}" in texts["pair"]

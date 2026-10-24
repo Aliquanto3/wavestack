@@ -2555,14 +2555,15 @@ function cacheGaugeDescription(p, cause) {
   ];
   const parts = cells.map(([cell, tokens]) => {
     const missing = cacheCellMissing(origin, cell, tokens);
-    if (missing) return `${t(`main.cache_gauge.${cell}`, { tokens: "" }).trim()} ${missing}`;
+    const name = t(`main.cache_gauge.${cell}`, { tokens: "" }).trim();
+    if (missing) return t("main.cache_gauge.pair", { name, value: missing });
     const hour = p.cache_write_1h_tokens;
     if (cell === "write" && hour !== null && hour !== undefined) {
       return t("main.cache_gauge.write_1h", { tokens, tokens_1h: hour });
     }
     return t(`main.cache_gauge.${cell}`, { tokens });
   });
-  const lines = [`${t("main.cache_gauge.label")} : ${parts.join(" · ")}`];
+  const lines = [t("main.cache_gauge.pair", { name: t("main.cache_gauge.label"), value: parts.join(" · ") })];
   if (cause) {
     const named = PREFIX_CAUSES[cause] ?? t("main.cache_gauge.cause_unknown", { cause });
     lines.push(t("main.cache_gauge.cause", { cause: named }));
@@ -2602,7 +2603,7 @@ function renderCacheGauge() {
   const known = typeof read === "number" && total > 0;
   document.getElementById("cache-gauge-text").textContent = known
     ? t("main.cache_gauge.short", { percent: Math.round((read / total) * 100) })
-    : t("main.cache_gauge.short_none");
+    : t(p.cache_origin === "local" ? "main.cache_gauge.short_not_measured" : "main.cache_gauge.short_none");
   const description = cacheGaugeDescription(p, entry.cause);
   root.title = description;
   root.setAttribute("aria-label", description);

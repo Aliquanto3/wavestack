@@ -968,6 +968,30 @@ def _cache_gauge(r: Run) -> None:
         "return b.scrollWidth <= b.clientWidth + 1; }"
     )
     r.check(fits, "jauge du cache : la barre du haut ne déborde pas")
+    # DESIGN.md: one line at 1 280 px; the gauge visible, no child of the bar overflows it.
+    for width, height in [(1366, 768), (1280, 720)]:
+        page.set_viewport_size({"width": width, "height": height})
+        time.sleep(0.5)
+        over = page.evaluate(
+            "() => { const bar = document.querySelector('.top-bar').getBoundingClientRect();"
+            " return [...document.querySelectorAll('.top-bar > *')]"
+            ".filter(e => e.offsetParent && getComputedStyle(e).position !== 'absolute')"
+            ".map(e => [e.id || e.className, e.getBoundingClientRect()])"
+            ".filter(([, b]) => b.right > bar.right + 1 || b.bottom > bar.bottom + 1)"
+            ".map(([n, b]) => `${n} (${Math.round(b.right)} > ${Math.round(bar.right)})`); }"
+        )
+        box = page.locator("#cache-gauge-bar").bounding_box() or {}
+        reset = page.locator("#reset-button").bounding_box() or {}
+        r.check(
+            not over
+            and box.get("width", 0) > 0
+            and reset.get("x", 1e9) + reset.get("width", 0) <= width + 1,
+            f"jauge du cache, {width} × {height} : visible, la barre du haut tient sur sa "
+            "largeur et « Réinitialiser » reste dans la fenêtre",
+            f"{over} · {box} · {reset}",
+        )
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    time.sleep(0.3)
     was = bool(r.bricks()["system_prompt"]["wanted"])
     r.set_brick("Prompt système", not was)
     try:

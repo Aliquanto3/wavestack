@@ -764,6 +764,8 @@ main:
     cause_unknown: "{cause}"
     short: "Cache : {percent} % lu"
     short_none: "Cache : non déclaré"
+    short_not_measured: "Cache : non mesuré"
+    pair: "{name} : {value}"
   cost:
     call_label: "Coût estimé : "
     text: "{label}entrée {input} · sortie {output}"

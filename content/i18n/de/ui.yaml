@@ -752,6 +752,8 @@ main:
     cause_unknown: "{cause}"
     short: "Cache: {percent} % gelesen"
     short_none: "Cache: nicht angegeben"
+    short_not_measured: "Cache: nicht gemessen"
+    pair: "{name}: {value}"
   cost:
     call_label: "Geschätzte Kosten: "
     text: "{label}Eingabe {input} · Ausgabe {output}"
