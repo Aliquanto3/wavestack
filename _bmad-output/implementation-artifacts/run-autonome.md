@@ -73,3 +73,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:21 · 1.3-1 · second-avis · lancé · ab89fb3
 - 2026-10-24 23:22 · 1.4-1 · second-avis · 1 medium (consigne d'échafaudage fausse : prompts de native_tools ne nomment pas l'outil), 5 low · f916b57
 - 2026-10-24 23:22 · 1.4-1 · review · lancé (avec E2E compression et subagent) · f916b57
+- 2026-10-24 23:24 · 1.3-1 · second-avis · 0 high/medium, 3 low ; orchestrateur : lecture OpenAI absente = None (CAP-1), traité comme important · ab89fb3
+- 2026-10-24 23:24 · 1.3-1 · review · lancé · ab89fb3
