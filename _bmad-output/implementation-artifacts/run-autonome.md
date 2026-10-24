@@ -71,3 +71,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:18 · 1.4-3 · dev · lancé · 72cfdf0
 - 2026-10-24 23:21 · 1.3-1 · dev · fini ; contrat : cache_origin, cache_read_tokens, cache_write_tokens, cache_write_1h_tokens, cache_uncached_tokens (int | None) · ab89fb3
 - 2026-10-24 23:21 · 1.3-1 · second-avis · lancé · ab89fb3
+- 2026-10-24 23:22 · 1.4-1 · second-avis · 1 medium (consigne d'échafaudage fausse : prompts de native_tools ne nomment pas l'outil), 5 low · f916b57
+- 2026-10-24 23:22 · 1.4-1 · review · lancé (avec E2E compression et subagent) · f916b57
