@@ -78,3 +78,7 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:27 · 1.3-1 · review · 1 medium corrigé (lecture non déclarée = None, pivots Anthropic et Responses), contrat mis à jour · c03250c
 - 2026-10-24 23:27 · 1.3-1 · décision · à revoir : réponse Anthropic sans champs de cache = rien déclaré (None) · c03250c
 - 2026-10-24 23:27 · 1.3-1 · PR · ouverte, CI lancée · c03250c
+- 2026-10-24 23:27 · 1.4-1 · review · 1 medium corrigé (échafaudage déplacé dans skills), E2E subagent 58/58, compression 43/43 · 1ccca2d
+- 2026-10-24 23:27 · 1.4-1 · décision · à revoir : consigne d'échafaudage portée par le scénario skills · 1ccca2d
+- 2026-10-24 23:27 · 1.4-1 · PR · ouverte, CI lancée · 1ccca2d
+- 2026-10-24 23:27 · 1.3-5 · dev · lancé (phase spec, empilé sur 1.3-1) · c03250c
