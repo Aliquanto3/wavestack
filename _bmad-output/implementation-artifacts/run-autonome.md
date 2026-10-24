@@ -168,3 +168,7 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:26 · 1.3-3 · CI · main fusionnée dans la branche sans conflit, tests ciblés et E2E verts, poussée, CI relancée · 02d4662
 - 2026-10-25 00:28 · 1.2-3 · dev · fini, rebasé sur main ; E2E rag, rag_rerank, rag_lab 153 OK ; copie de travail dans le dossier de données · 6a1b3d3
 - 2026-10-25 00:28 · 1.2-3 · second-avis · lancé · 6a1b3d3
+- 2026-10-25 00:33 · 1.4-3 · CI · verte (Windows, Ubuntu) après correctif du test · 4be2138
+- 2026-10-25 00:33 · 1.4-3 · CI · conflits avec main (#89, #92, #93) ; fusion de main dans la branche déléguée · 4be2138
+- 2026-10-25 00:33 · 1.2-3 · second-avis · 6 medium (Probe non arrêtée, tokens estimés non marqués, coûts périmés, génération en erreur, index livré sans coût, mise à jour sans effet sur les questions), 7 low · 6a1b3d3
+- 2026-10-25 00:33 · 1.2-3 · review · lancé (décision : la chaîne lit la copie de travail si raisonnable) · 6a1b3d3
