@@ -37,3 +37,11 @@ B ← A : B ajoute ses entrées d'installateur à la liste créée par A.
 
 - 2026-10-24 21:51 · run · décision · run autonome A puis B lancé · —
 - 2026-10-24 21:52 · A · dev · lancé · —
+- 2026-10-24 21:55 · A · dev · fini · f53f58f
+- 2026-10-24 21:55 · A · second-avis · lancé · f53f58f
+- 2026-10-24 21:56 · run · décision · benchmark en pause : tests locaux autorisés (suite complète en quatre quarts, une seule à la fois) · —
+- 2026-10-24 21:59 · A · second-avis · 7 low, 0 medium/high ; empreinte 0.8B confirmée par téléchargement réel et tour Outils réel (444) · f53f58f
+- 2026-10-24 21:59 · A · review · lancé · f53f58f
+- 2026-10-24 22:00 · 1.2.0 · recette · MiniCPM5-2B réel : téléchargement -Models minicpm5 (1 561 318 368 octets, empreinte OK), tour Outils réel, lecteur minicpm5, calculatrice 444 en 5,2 s · —
+- 2026-10-24 22:03 · A · review · 1 medium corrigé (-Models en session PowerShell), 3 low corrigés · b6380a8
+- 2026-10-24 22:03 · A · PR · #86 ouverte, CI lancée · b6380a8
