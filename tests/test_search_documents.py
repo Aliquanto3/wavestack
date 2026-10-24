@@ -14,6 +14,7 @@ from wavestack.tools.native import (
     NATIVE_TOOLS,
     corpus_files,
     read_file,
+    resolve_demo_path,
     search_documents,
 )
 from wavestack.tools.parser import ToolCall
@@ -60,7 +61,7 @@ def test_the_search_follows_the_language_of_the_session():
 
 
 def test_a_query_without_a_word_or_without_a_result_is_refused():
-    for query in ("", "de la"):
+    for query in ("", "de la", "Quelles sont les"):
         with pytest.raises(ToolError):
             search_documents(query)
     with pytest.raises(ToolError):
@@ -133,3 +134,20 @@ def test_search_then_read_on_the_fake_engine():
     assert "corpus/astreinte.md:" in results[0]["text"]
     assert results[1]["text"] == read_file("corpus/astreinte.md").strip()
     assert events["turn_ended"][0]["status"] == "completed"
+
+
+def test_the_corpus_prefix_resolves_the_same_whatever_its_case_and_the_os():
+    # Review: `CORPUS/…` must not depend on a case-insensitive filesystem (CI on Linux).
+    assert resolve_demo_path("CORPUS/mots_de_passe.md") == resolve_demo_path(
+        "corpus/mots_de_passe.md"
+    )
+    assert resolve_demo_path(r"Corpus\astreinte.md") == resolve_demo_path("corpus/astreinte.md")
+
+
+def test_the_fictitious_notice_is_neither_read_nor_searched_but_keeps_the_numbering():
+    text = read_file("corpus/mots_de_passe.md")
+    assert "<!--" not in text and "Texte fictif" not in text
+    assert "imaginaire" not in search_documents("organisation imaginaire Exemplia")
+    first = _result_lines(search_documents("Coffrix"))[0]
+    name, number, _ = first.split(":", 2)
+    assert "Coffrix" in read_file(name).splitlines()[int(number) - 1]

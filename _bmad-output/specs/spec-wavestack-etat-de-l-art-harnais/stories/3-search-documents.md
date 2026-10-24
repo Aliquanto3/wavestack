@@ -49,3 +49,15 @@ lire sur faux moteur), E2E `rag_agentic` sur le faux moteur.
 - Dans la fenêtre de 4 096 tokens, chercher puis lire un document entier est serré avec le moteur local
   (la lecture du document est bornée par `tool_result_max_tokens`) : à mesurer en recette avec le vrai modèle.
 - Graphe d'architecture : `tools.search_documents` n'a pas de nœud fichier propre pour le corpus.
+
+## Revue
+
+### Passe 1 (2026-10-24, SHA revu 73ecedf)
+
+- Important, high, second avis : `read_file("CORPUS/…")` résolu par `content/CORPUS/…`, accepté sous Windows (FS insensible à la casse), refusé sous Linux. Corrigé : `resolve_demo_path` réécrit le préfixe en `corpus/` ; test indépendant de l'OS.
+- Nit, medium (requalifié), second avis : `languages` ignoré par `corpus_files`. Rejeté : même règle que `chunk_corpus` (V1.2 story 1), CAP-4 compare le RAG et la recherche agentique sur le même corpus ; un document monolingue remonte dans toutes les langues, comme dans le RAG.
+- Nit, low, second avis : mots vides de 3 lettres et plus (« les », « des », « the », « und ») appariés en sous-chaîne sur presque toutes les lignes. Corrigé : petite liste de mots vides fr/en/de.
+- Nit, low, second avis : E2E `rag_agentic`, `modules[2]…prompts[1]` en dur. Corrigé : scénario retrouvé par identifiant dans le module RAG.
+- Nit, low, second avis : `read_file` renvoyait la notice HTML « texte fictif » masquée par `chunk_corpus` (et ~40 tokens de plus dans 4 096). Corrigé : `_corpus_text` partagé par `read_file` et `search_documents`, commentaires retirés, lignes gardées pour la numérotation ; lecture en `utf-8-sig` comme le RAG.
+- Second avis 6 et 7 : pas de défaut, confirmé (`default_enabled` honoré par `_apply_launch_config`, scénario qui coche via `tools`).
+- Complexité : 0 constat (le corpus est relu à chaque appel, 25 petits fichiers, borné).

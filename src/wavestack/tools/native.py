@@ -118,8 +118,10 @@ def resolve_demo_path(path: str) -> Path | None:
     `corpus/` is resolved from `content/`, the others from the demonstration folder."""
     if PurePath(path).anchor:
         return None
-    root = config.content_dir() if _under_corpus(path) else demo_dir()
-    return (root / path).resolve()
+    if _under_corpus(path):  # `CORPUS/…` names `corpus/…` on every OS, whatever its case
+        rest = PurePosixPath(path.replace("\\", "/")).parts[1:]
+        return config.content_dir().joinpath(CORPUS, *rest).resolve()
+    return (demo_dir() / path).resolve()
 
 
 def demo_relative(path: str) -> PurePosixPath | None:
@@ -160,7 +162,7 @@ def read_file(path: str, lang: str = config.DEFAULT_LANGUAGE) -> str:
     if rel.parts and rel.parts[0] == CORPUS:
         docs = corpus_files()
         if rel.as_posix() in docs:
-            return config.content_file(rel, lang).read_text(encoding="utf-8")
+            return _corpus_text(rel.as_posix(), lang)
         if rel == PurePosixPath(CORPUS):
             return msg("tools.read_file.listing", lang, files="\n".join(docs))
         raise ToolError("tools.read_file.missing", path=path, files=", ".join(docs))
@@ -179,6 +181,21 @@ MAX_RESULTS = 5  # lines returned: a result stays small in a 4 096-token window
 MAX_LINE = 120  # characters kept of a line
 MIN_TERM = 3  # shorter words (« de », « la ») are not searched
 _COMMENT = re.compile(r"<!--.*?-->", re.S)
+# Frequent words of three letters or more (folded): matched as substrings, they would
+# bring up nearly every line.
+_STOPWORDS = frozenset(
+    "les des une est dans pour par sur avec qui que quoi quel quelle quels quelles sont aux "
+    "ces ses son leur leurs pas plus comment the and are for with what which how who does "
+    "der die das und ist ein eine mit von wie was wer fur den dem".split()
+)
+
+
+def _corpus_text(name: str, lang: str) -> str:
+    """A corpus document in `lang`, its HTML comments (the « texte fictif » notice) dropped
+    as `chunk_corpus` drops them, their line breaks kept: `search_documents` numbers the
+    lines `read_file` returns."""
+    text = config.content_file(name, lang).read_text(encoding="utf-8-sig")
+    return _COMMENT.sub(lambda m: "\n" * m.group().count("\n"), text)
 
 
 def _fold(text: str) -> str:
@@ -192,15 +209,12 @@ def search_documents(query: str, lang: str = config.DEFAULT_LANGUAGE) -> str:
     reads them) holding the words of `query`, as `corpus/<doc>.md:<line>: <text>`: the
     lines with the most words first, in document order, at most `MAX_RESULTS`."""
     words = re.findall(r"\w+", _fold(query))
-    terms = list(dict.fromkeys(t for t in words if len(t) >= MIN_TERM))
+    terms = list(dict.fromkeys(t for t in words if len(t) >= MIN_TERM and t not in _STOPWORDS))
     if not terms:
         raise ToolError("tools.search_documents.empty", min=MIN_TERM)
     hits: list[tuple[int, str, int, str]] = []  # (words found, file, line number, text)
     for name in corpus_files():
-        text = config.content_file(name, lang).read_text(encoding="utf-8")
-        # An HTML comment is never read as content, but keeps its lines for the numbering.
-        text = _COMMENT.sub(lambda m: re.sub(r"[^\n]", " ", m.group()), text)
-        for number, line in enumerate(text.splitlines(), start=1):
+        for number, line in enumerate(_corpus_text(name, lang).splitlines(), start=1):
             folded = _fold(line)
             found = sum(term in folded for term in terms)
             if found:

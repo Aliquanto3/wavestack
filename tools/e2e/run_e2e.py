@@ -15971,7 +15971,7 @@ def s_rag_agentic(r: Run) -> None:
     off = next(o for o in r.bricks()["tools"]["options"] if o["id"] == "search_documents")
     r.check(not off["enabled"], "search_documents décoché au lancement", str(off))
     r.set_option("Outils", "Recherche dans les documents", True)
-    prompt = r.state()["scenario_changed"]["program"]["modules"][2]["scenarios"][2]["prompts"][1]
+    prompt = next(s for s in module["scenarios"] if s["id"] == "rag_agentic")["prompts"][1]
     seq = r.ev.mark()
     ended = r.send(prompt)
     tools = [e["payload"]["tool"] for e in r.ev.since(seq, "tool_started")]
