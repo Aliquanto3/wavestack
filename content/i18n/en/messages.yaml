@@ -532,6 +532,12 @@ session:
     generation_active: "The workshop's active model: {model}"
     generation_no_model: "No model loaded in the workshop: the Generation step will be skipped. Load a model, then run the chain again."
     generation_stops: "The RAG workshop's generation stops; WaveStack remains usable."
+    update_too_long: "Text too long: {max} characters at most."
+    update_bad_id: "Invalid identifier: lowercase letters, digits and _ only."
+    update_id_taken: "The identifier {doc} already exists in the corpus."
+    update_empty: "The title and the text cannot be empty."
+    update_unknown_operation: "Unknown operation: {op}."
+    update_unknown_doc: "The document {doc} is not in the corpus's work copy."
     noun:
       embedding: embedding model
       reranking: reranking model
@@ -1074,6 +1080,26 @@ rag_lab:
     input: "The ranking of the previous step: {extracts}."
     empty: "No excerpt: the model would only receive the question."
     kept: "{kept} of {total}"
+  costs:
+    build_unknown: "Build cost not recorded for this precomputed content: rebuild it to measure it."
+    generation_unpriced: "Cost in dollars not priced: the model has no declared price."
+  update:
+    op:
+      add: "Adding the document {doc}"
+      modify: "Modifying the document {doc}"
+      delete: "Deleting the document {doc}"
+    empty_corpus: "The work copy no longer holds any document: nothing to index."
+    chunking_output: "Passages: {before} before, {after} after ({new} to recompute, {gone} removed)."
+    fact_new: "New or modified passages"
+    fact_gone: "Passages removed"
+    fact_prepared: "Passages of the shipped corpus embedded first (outside the update's cost)"
+    fact_embedded: "Passages embedded by the update"
+    embedding_input: "{after} passages after the operation; unchanged vectors are reused."
+    embedding_output: "{new} passages embedded out of {after}; the other vectors are the shipped corpus's."
+    embedding_none: "No passage to embed: this operation needs no embedding computation."
+    store_input: "{vectors} passages to reindex."
+    store_output: "Index rebuilt whole (option {option}): the workshop does not update an index vector by vector."
+    lexical_output: "BM25 index rebuilt whole: {terms} terms, {occurrences} occurrences."
   generation:
     question_only: "the question alone (no context built)"
     with_context: "the built context ({extracts}), then the question"

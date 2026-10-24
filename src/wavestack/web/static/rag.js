@@ -47,6 +47,10 @@ const store = {
   promptOpen: false, // lot 5c-3: the generation's prompt unfolded, kept across the renders
   download: null, // lot 5c-4: the download this page launched, { target, kind }, until `idle`
   downloadNotices: {}, // lot 5c-4: its outcome, said in its stage, by kind: { text, error }
+  costs: { build: null, query: null }, // V1.2 story 3: the last run's sums by time
+  update: null, // the last update run: { runId, label, ended, summary }
+  workCopy: null, // the corpus's work copy (where it lives, what it changes, its documents)
+  copyOp: null, // the operation whose form is open: add, modify or delete
 };
 
 // ---------- small helpers ----------
@@ -1303,6 +1307,10 @@ function applyEnvelope(envelope) {
   // Story 9 (CAP-3, CAP-7, CAP-9): the bar's « Dépense » and « Journal », live, in O(1).
   feedBar(envelope);
   const p = envelope.payload;
+  if (isUpdateEvent(envelope)) {
+    applyUpdateEnvelope(envelope);
+    return;
+  }
   switch (envelope.kind) {
     case "session_state": {
       const was = store.session.state;
@@ -1366,6 +1374,7 @@ function applyEnvelope(envelope) {
       if (store.run && store.run.runId === p.run_id) {
         store.run.ended = p;
         store.land = true;
+        keepRunCosts(p.cost_summary);
       }
       break;
     default:
@@ -1373,6 +1382,7 @@ function applyEnvelope(envelope) {
   }
   if (store.replaying) return; // `last_run` read again: drawn once, at its end
   renderRun();
+  renderCosts();
   renderBusy();
 }
 
@@ -1525,6 +1535,177 @@ function renderRun() {
   renderLegend();
 }
 
+// ---------- V1.2 story 3 (CAP-8): the costs in three times and the work copy ----------
+
+const isUpdateEvent = (envelope) => String(envelope.payload?.run_id ?? "").startsWith("upd");
+
+// An update run's events (`upd{n}`): its label while it runs, its `update` sum when it ends.
+function applyUpdateEnvelope(envelope) {
+  const p = envelope.payload;
+  if (envelope.kind === "rag_lab_run_started") {
+    store.update = { runId: p.run_id, label: p.question, ended: null, summary: null };
+  } else if (envelope.kind === "rag_lab_run_ended" && store.update?.runId === p.run_id) {
+    store.update.ended = p;
+    store.update.summary = (p.cost_summary ?? []).find((s) => s.phase === "update") ?? null;
+    if (!store.replaying) reloadCopy();
+  } else {
+    return;
+  }
+  if (!store.replaying) renderCosts();
+}
+
+// A run's build and query sums, kept for the cards (a run without a figure keeps the older).
+function keepRunCosts(summary) {
+  for (const phase of ["build", "query"]) {
+    const found = (summary ?? []).find((s) => s.phase === phase);
+    if (found) store.costs[phase] = found;
+  }
+}
+
+const fmtSig = (x) => numberFormat().format(Number(x.toPrecision(3)));
+const fmtRange = (low, high) => (low === high || high === null ? fmtSig(low) : `${fmtSig(low)}–${fmtSig(high)}`);
+
+function costRow(card, label, value) {
+  const row = el("div", "rag-cost-row");
+  row.append(el("dt", "", label), el("dd", "number", value));
+  card.append(row);
+}
+
+function costFigures(summary) {
+  const dl = el("dl", "rag-cost-figures");
+  const none = text("costs.not_measured_text");
+  costRow(dl, text("costs.tokens_text"), typeof summary.tokens === "number" ? fmtInt(summary.tokens) : none);
+  costRow(dl, text("costs.duration_text"), typeof summary.duration_ms === "number" ? `${fmtInt(summary.duration_ms)} ms` : none);
+  const usd = summary.usd === null ? none : summary.usd === 0 ? `0 $ (${text("costs.local_free_text")})` : `${fmtSig(summary.usd)} $`;
+  costRow(dl, text("costs.usd_text"), usd);
+  const wh = summary.energy_wh_min === null ? none : `${fmtRange(summary.energy_wh_min, summary.energy_wh_max)} Wh`;
+  costRow(dl, text("costs.energy_text"), wh);
+  const g = summary.gco2e_min === null ? none : `${fmtRange(summary.gco2e_min, summary.gco2e_max)} g`;
+  costRow(dl, text("costs.gco2e_text"), g);
+  return dl;
+}
+
+function costCard(phase) {
+  const card = el("article", `rag-cost-card is-${phase}`);
+  card.dataset.phase = phase;
+  card.append(el("h4", "rag-cost-title", text(`costs.${phase}_text`)), el("p", "rag-note", text(`costs.${phase}_help_text`)));
+  const summary = phase === "update" ? store.update?.summary : store.costs[phase];
+  if (!summary) {
+    const running = phase === "update" && store.update && !store.update.ended;
+    card.append(el("p", "rag-note rag-cost-empty", running ? text("costs.update_running_text") : text(`costs.${phase}_empty_text`)));
+    return card;
+  }
+  if (phase === "update" && store.update?.label) card.append(el("p", "rag-cost-op", `${text("costs.update_of_text")} : ${store.update.label}`));
+  card.append(costFigures(summary));
+  if (summary.measured_at_build) card.append(el("span", "rag-cost-badge is-build", text("costs.measured_at_build_text")));
+  if (summary.partial) card.append(el("p", "rag-note rag-cost-partial", text("costs.partial_text")));
+  if (summary.note_text) card.append(el("p", "rag-note rag-cost-note", summary.note_text));
+  return card;
+}
+
+function renderCosts() {
+  const box = $("rag-cost-cards");
+  if (!box || !store.content) return;
+  box.replaceChildren(...["build", "update", "query"].map(costCard));
+}
+
+// The work copy of the corpus: where it lives, what it changes, the three buttons.
+function renderCopy() {
+  const info = $("rag-copy-info");
+  const copy = store.workCopy;
+  if (!info || !copy) return;
+  const changed = copy.added.length + copy.appended.length + copy.deleted.length;
+  info.textContent = `${text("costs.copy_help_text", { path: copy.path })} ${
+    changed
+      ? text("costs.copy_changed_text", { added: copy.added.length, modified: copy.appended.length, deleted: copy.deleted.length })
+      : text("costs.copy_clean_text")
+  }`;
+  const select = $("rag-copy-doc");
+  const kept = select.value;
+  select.replaceChildren(...copy.documents.map((d) => Object.assign(el("option", "", `${d.title_text} (${d.id})`), { value: d.id })));
+  if (copy.documents.some((d) => d.id === kept)) select.value = kept;
+  $("rag-copy-reset").hidden = copy.empty;
+  renderCopyControls();
+}
+
+function renderCopyControls() {
+  const blocked = Boolean(busyReason()) || store.pending;
+  for (const node of document.querySelectorAll("#rag-copy button[data-op], #rag-copy-apply, #rag-copy-reset")) node.disabled = blocked;
+}
+
+async function reloadCopy() {
+  try {
+    const response = await fetch("/api/rag_lab");
+    if (!response.ok) return;
+    store.workCopy = (await response.json()).work_copy;
+  } catch {
+    return;
+  }
+  renderCopy();
+}
+
+// « Ajouter » (id, title, text), « Modifier » (document, paragraph to append), « Supprimer ».
+function openCopyForm(operation) {
+  store.copyOp = operation;
+  const form = $("rag-copy-form");
+  form.hidden = false;
+  form.dataset.op = operation;
+  $("rag-copy-form-title").textContent = text(`costs.${operation}_doc_text`);
+  $("rag-copy-pick").hidden = operation === "add";
+  $("rag-copy-new").hidden = operation !== "add";
+  $("rag-copy-body-box").hidden = operation === "delete";
+  $("rag-copy-hint").hidden = operation !== "modify";
+  $("rag-copy-error").textContent = "";
+  (operation === "add" ? $("rag-copy-id") : $("rag-copy-doc")).focus();
+}
+
+function closeCopyForm() {
+  store.copyOp = null;
+  $("rag-copy-form").hidden = true;
+}
+
+async function applyCopyForm() {
+  const operation = store.copyOp;
+  if (!operation) return;
+  const error = $("rag-copy-error");
+  error.textContent = "";
+  const body = { operation, doc_id: operation === "add" ? $("rag-copy-id").value.trim() : $("rag-copy-doc").value, pipelines: store.pipelines };
+  if (operation === "add") body.title_text = $("rag-copy-title").value;
+  if (operation !== "delete") body.text = $("rag-copy-body").value;
+  store.pending = true;
+  renderBusy();
+  const answer = await post("/api/intentions/rag_lab_update", body);
+  store.pending = false;
+  renderBusy();
+  if (!answer.ok) {
+    error.textContent = refusalText(answer);
+    return;
+  }
+  for (const id of ["rag-copy-id", "rag-copy-title", "rag-copy-body"]) $(id).value = "";
+  closeCopyForm();
+}
+
+async function resetCopy() {
+  const answer = await post("/api/rag_lab/copy/reset", {});
+  if (!answer.ok) {
+    $("rag-copy-error").textContent = refusalText(answer);
+    return;
+  }
+  store.workCopy = answer.body.work_copy;
+  store.update = null;
+  renderCopy();
+  renderCosts();
+}
+
+function wireCopy() {
+  for (const button of document.querySelectorAll("#rag-copy button[data-op]")) {
+    button.addEventListener("click", () => openCopyForm(button.dataset.op));
+  }
+  $("rag-copy-apply").addEventListener("click", applyCopyForm);
+  $("rag-copy-cancel").addEventListener("click", closeCopyForm);
+  $("rag-copy-reset").addEventListener("click", resetCopy);
+}
+
 // ---------- state of the session: what may be asked now ----------
 
 function busyReason() {
@@ -1551,6 +1732,7 @@ function renderBusy() {
   run.title = blocked || "";
   // Lot 5c-4: « Arrêter » stops a download too (even one launched before a reload).
   $("rag-stop").disabled = !["rag_lab", "download"].includes(store.session.state);
+  renderCopyControls();
 }
 
 function renderContent() {
@@ -1683,7 +1865,11 @@ async function refresh() {
   store.run = null;
   store.replaying = true;
   try {
+    store.costs = { build: null, query: null };
+    store.update = null;
     for (const envelope of body.last_run) applyEnvelope(envelope);
+    for (const envelope of body.last_update ?? []) applyEnvelope(envelope);
+    store.workCopy = body.work_copy;
   } finally {
     store.replaying = false;
   }
@@ -1693,6 +1879,8 @@ async function refresh() {
   // « Dérouler »: the run's frames pushed again, straight to its landing frame (§6).
   redraw({ restart: true });
   renderResults();
+  renderCosts();
+  renderCopy();
   if (store.catalog) validateChains();
   renderBusy();
   return body;
@@ -1745,6 +1933,7 @@ async function main() {
   $("rag-run").addEventListener("click", runChain);
   $("rag-stop").addEventListener("click", stopRun);
   $("rag-reset-chain").addEventListener("click", resetChains);
+  wireCopy();
   for (const button of document.querySelectorAll("#rag-modes [data-mode]")) {
     button.addEventListener("click", () => setMode(button.dataset.mode));
   }

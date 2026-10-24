@@ -1429,6 +1429,43 @@ class RagLabItem(BaseModel):
     sources: list[RagLabSource] = []
 
 
+class RagLabCost(BaseModel):
+    """V1.2 story 3 (CAP-8): what one part of a stage cost, in one of the three times
+    (`phase`: `build`, `update` or `query`): tokens, duration, dollars and footprint (min and
+    max, the method's range). `measured_at_build`: read back from the record of the build,
+    not measured by this run. A figure `None` was not measured (`note_text` says why)."""
+
+    phase: Literal["build", "update", "query"]
+    kind: str
+    tokens: int | None = None
+    duration_ms: int | None = None
+    usd: float | None = None
+    energy_wh_min: float | None = None
+    energy_wh_max: float | None = None
+    gco2e_min: float | None = None
+    gco2e_max: float | None = None
+    impact_method: str | None = None
+    measured_at_build: bool = False
+    note_text: str | None = None
+
+
+class RagLabCostSummary(BaseModel):
+    """The sum of one phase's `RagLabCost`s (each figure: the sum of those known)."""
+
+    phase: Literal["build", "update", "query"]
+    parts: int = 0
+    tokens: int | None = None
+    duration_ms: int | None = None
+    usd: float | None = None
+    energy_wh_min: float | None = None
+    energy_wh_max: float | None = None
+    gco2e_min: float | None = None
+    gco2e_max: float | None = None
+    partial: bool = False  # a part has no footprint: the sums are lower bounds
+    measured_at_build: bool = False  # a part is the build's record, not this run's measure
+    note_text: str | None = None
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1455,12 +1492,16 @@ class RagLabStageEndedPayload(BaseModel):
     # B2 (2026-10-05): the part of the stage run apart (« index »: BM25's index, at BUILD;
     # its `kind` « lexical_index »), `None` for the stage itself.
     part: str | None = None
+    # V1.2 story 3 (CAP-8): what the stage cost, by time (build, update, query).
+    costs: list[RagLabCost] = []
 
 
 class RagLabRunEndedPayload(BaseModel):
     run_id: str
     status: Literal["ok", "error", "cancelled"]
     duration_ms: int
+    # V1.2 story 3 (CAP-8): the run's costs by time (an update run: `update` only).
+    cost_summary: list[RagLabCostSummary] = []
 
 
 # ---------- the MCP workshop, context `mcp_lab` (story 6 of 2026-09-30; lot 4, AD-27) ----------

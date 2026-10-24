@@ -14941,6 +14941,7 @@ def _rag_lab(r: Run, errors: list[str]) -> None:
     _rag_lab_alt(r)
     _rag_lab_hybrid(r)
     _rag_lab_presets(r)
+    _rag_lab_costs(r)
 
     # (6) Lot 5c-1: the main page's journal reads the workshop's events (one chain per run,
     # no lane): a summary per stage ended, its name read in `rag_lab_run_started`'s stages.
@@ -15725,6 +15726,108 @@ def _set_stage(r: Run, kind: str, option: str | None = None, **params: int) -> N
         field = _seq_row(r, kind).locator(f'input[data-param="{name}"]')
         field.fill(str(value))
         field.dispatch_event("change")
+
+
+def _rag_lab_costs(r: Run) -> None:
+    """V1.2 story 3 (CAP-8), in Composer on the shipped chain: a run fills the Construction
+    and Requête cards (tokens, durée, dollars, énergie, gCO₂e; « mesuré à la construction » on
+    the precomputed index), the two measurement scopes stay said; « Modifier un document »,
+    « Ajouter un document » and « Supprimer un document » measure an update on the work copy
+    (a file of the data folder, never the repository), « Revenir à l'état livré » deletes it."""
+    page = r.page
+    status_before = _git_status()
+    copy_file = r.stack.data_dir / "rag_lab" / "work_corpus" / "fr.json"
+    page.locator("#rag-reset-chain").click()
+    _rag_lab_run(r, compose=True)
+    cards = page.locator("#rag-cost-cards .rag-cost-card")
+    expect(cards).to_have_count(3, timeout=5000)
+    build, update, query = (
+        page.locator(f'#rag-cost-cards [data-phase="{p}"]') for p in ("build", "update", "query")
+    )
+    expect(query.locator(".rag-cost-row")).to_have_count(5, timeout=5000)
+    r.check(
+        build.locator(".rag-cost-badge").count() == 1
+        and "mesuré à la construction" in build.inner_text()
+        and build.locator(".rag-cost-row").count() == 5
+        and "0 $" in query.inner_text()
+        and "Deux périmètres de mesure" in page.locator("#rag-cost-perimeters").inner_text()
+        and "Mise à jour" in update.inner_text(),
+        "coûts : Construction (mesuré à la construction), Mise à jour, Requête (5 lignes)",
+        build.inner_text()[:200],
+    )
+    r.shot("60-atelier-rag-couts", full_page=True)
+
+    def measure(operation: str) -> dict[str, Any]:
+        seq = r.ev.mark()
+        page.locator(f'#rag-copy button[data-op="{operation}"]').click()
+        expect(page.locator("#rag-copy-form")).to_be_visible()
+        return {"seq": seq}
+
+    # Modifier: a paragraph appended to a document, measured on the copy.
+    seq = measure("modify")["seq"]
+    page.select_option("#rag-copy-doc", "teletravail")
+    page.fill("#rag-copy-body", "Une règle de plus sur le télétravail, mesurée par l'atelier.")
+    page.click("#rag-copy-apply")
+    ended = r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+    expect(page.locator("#rag-copy-form")).to_be_hidden(timeout=5000)
+    expect(update.locator(".rag-cost-row")).to_have_count(5, timeout=5000)
+    r.check(
+        ended["payload"]["run_id"].startswith("upd")
+        and ended["payload"]["cost_summary"][0]["phase"] == "update"
+        and "Modification du document teletravail" in update.inner_text()
+        and copy_file.is_file()
+        and "1 modifié" in page.locator("#rag-copy-info").inner_text()
+        and _git_status() == status_before,
+        "Modifier : mise à jour mesurée sur la copie de travail, dépôt intact",
+        f"{update.inner_text()[:160]} · {_git_status()[:100]}",
+    )
+    # Supprimer: nothing to embed, the indexes are rebuilt.
+    seq = measure("delete")["seq"]
+    page.select_option("#rag-copy-doc", "teletravail")
+    page.click("#rag-copy-apply")
+    r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+    expect(update.locator(".rag-cost-op")).to_contain_text(
+        "Suppression du document teletravail", timeout=5000
+    )
+    # Ajouter: a new document.
+    seq = measure("add")["seq"]
+    page.fill("#rag-copy-id", "doc_atelier")
+    page.fill("#rag-copy-title", "Document d'atelier")
+    page.fill("#rag-copy-body", "Un document neuf, ajouté à la copie de travail.")
+    page.click("#rag-copy-apply")
+    r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+    expect(update.locator(".rag-cost-op")).to_contain_text(
+        "Ajout du document doc_atelier", timeout=5000
+    )
+    # A refusal says why and changes nothing.
+    measure("add")
+    page.fill("#rag-copy-id", "teletravail")
+    page.fill("#rag-copy-title", "Titre")
+    page.fill("#rag-copy-body", "Texte")
+    page.click("#rag-copy-apply")
+    expect(page.locator("#rag-copy-error")).to_contain_text("existe déjà", timeout=5000)
+    page.click("#rag-copy-cancel")
+    # After a reload: the last update's card and the copy are still there.
+    _goto_rag_lab(r)
+    expect(page.locator('#rag-cost-cards [data-phase="update"] .rag-cost-op')).to_contain_text(
+        "doc_atelier", timeout=5000
+    )
+    r.check(
+        "1 ajouté" in page.locator("#rag-copy-info").inner_text()
+        and "1 supprimé" in page.locator("#rag-copy-info").inner_text(),
+        "après rechargement : carte Mise à jour et copie de travail relues",
+        page.locator("#rag-copy-info").inner_text()[:200],
+    )
+    # Revenir à l'état livré.
+    page.click("#rag-copy-reset")
+    expect(page.locator("#rag-copy-reset")).to_be_hidden(timeout=5000)
+    r.check(
+        not copy_file.exists()
+        and "identique au corpus livré" in page.locator("#rag-copy-info").inner_text()
+        and _git_status() == status_before,
+        "Revenir à l'état livré : la copie de travail est supprimée, le dépôt est intact",
+        page.locator("#rag-copy-info").inner_text()[:200],
+    )
 
 
 def _rag_lab_compare(r: Run) -> None:

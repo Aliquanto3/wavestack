@@ -537,6 +537,12 @@ session:
     generation_active: "Modèle actif de l'atelier : {model}"
     generation_no_model: "Aucun modèle chargé dans l'atelier : l'étape Generation sera sautée. Chargez un modèle, puis relancez la chaîne."
     generation_stops: "La génération de l'Atelier RAG s'arrête ; WaveStack reste utilisable."
+    update_too_long: "Texte trop long : {max} caractères au plus."
+    update_bad_id: "Identifiant invalide : lettres minuscules, chiffres et _ seulement."
+    update_id_taken: "L'identifiant {doc} existe déjà dans le corpus."
+    update_empty: "Le titre et le texte ne peuvent pas être vides."
+    update_unknown_operation: "Opération inconnue : {op}."
+    update_unknown_doc: "Le document {doc} n'est pas dans la copie de travail du corpus."
     noun:
       embedding: modèle d'embedding
       reranking: modèle de reranking
@@ -1091,6 +1097,26 @@ rag_lab:
     input: "Le classement de l'étape précédente : {extracts}."
     empty: "Aucun extrait : le modèle ne recevrait que la question."
     kept: "{kept} sur {total}"
+  costs:
+    build_unknown: "Coût de construction non enregistré pour ce contenu précalculé : reconstruisez-le pour le mesurer."
+    generation_unpriced: "Coût en dollars non chiffré : le modèle n'a pas de tarif déclaré."
+  update:
+    op:
+      add: "Ajout du document {doc}"
+      modify: "Modification du document {doc}"
+      delete: "Suppression du document {doc}"
+    empty_corpus: "La copie de travail ne contient plus aucun document : rien à indexer."
+    chunking_output: "Passages : {before} avant, {after} après ({new} à recalculer, {gone} retirés)."
+    fact_new: "Passages nouveaux ou modifiés"
+    fact_gone: "Passages retirés"
+    fact_prepared: "Passages du corpus livré vectorisés d'abord (hors coût de la mise à jour)"
+    fact_embedded: "Passages vectorisés par la mise à jour"
+    embedding_input: "{after} passages après l'opération ; les vecteurs inchangés sont réutilisés."
+    embedding_output: "{new} passages vectorisés sur {after} ; les autres vecteurs sont ceux du corpus livré."
+    embedding_none: "Aucun passage à vectoriser : cette opération ne demande aucun calcul d'embedding."
+    store_input: "{vectors} passages à réindexer."
+    store_output: "Index reconstruit en entier (option {option}) : l'atelier ne met pas un index à jour vecteur par vecteur."
+    lexical_output: "Index BM25 reconstruit en entier : {terms} termes, {occurrences} occurrences."
   generation:
     question_only: "la question seule (aucun contexte construit)"
     with_context: "le contexte construit ({extracts}), puis la question"

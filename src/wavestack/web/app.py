@@ -299,6 +299,18 @@ class RagLabRunIntention(BaseModel):
         return value
 
 
+class RagLabUpdateIntention(BaseModel):
+    """V1.2 story 3 (CAP-8): one operation on a document of the work copy of the corpus,
+    measured for the chain (the shipped one when absent). `modify` appends `text` to the
+    document; `add` takes a new `doc_id`, a title and a text; `delete` only the `doc_id`."""
+
+    operation: Literal["add", "modify", "delete"]
+    doc_id: str = Field(min_length=1, max_length=64)
+    title_text: str = Field(default="", max_length=200)
+    text: str = Field(default="", max_length=20_000)
+    pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+
+
 class RagLabValidateRequest(BaseModel):
     """Story 30, increment 4: the chain the page is editing, checked without running it
     (lot 5c-1: a list of one)."""
@@ -642,6 +654,38 @@ def create_app(
         try:
             chain = intention.pipelines[0] if intention.pipelines else None
             return {"run_id": app_session.run_rag_lab(intention.question, chain)}
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/intentions/rag_lab_update")
+    def rag_lab_update(intention: RagLabUpdateIntention) -> dict[str, str]:
+        """V1.2 story 3 (CAP-8), class (b): accepted in `idle` only; the operation is applied
+        to the work copy of the corpus (never `content/`) and its cost measured, as a run
+        under the id `upd{n}`. Refused (unknown document, taken id, empty text): 409."""
+        try:
+            chain = intention.pipelines[0] if intention.pipelines else None
+            return {
+                "run_id": app_session.update_rag_lab(
+                    intention.operation,
+                    intention.doc_id,
+                    intention.title_text,
+                    intention.text,
+                    chain,
+                )
+            }
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/copy/reset")
+    def rag_lab_copy_reset() -> dict[str, object]:
+        """V1.2 story 3: back to the shipped corpus, the work copy deleted; 409 while a run
+        goes on."""
+        try:
+            return shown({"work_copy": app_session.reset_rag_lab_copy()})
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)

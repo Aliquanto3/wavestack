@@ -23,19 +23,21 @@ import time
 import unicodedata
 from array import array
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from wavestack import config
+from wavestack import config, greenops
+from wavestack.greenops import Measure, Probe, StageCost
 from wavestack.messages import KeyedError, Lazy, Message, join, msg, number, render
 from wavestack.models.embedding import Embedder
 from wavestack.models.load_registry import LoadRegistry
 from wavestack.models.reranker import RerankCancelled, Reranker
 from wavestack.rag import index as rag_index
+from wavestack.rag import workcopy
 from wavestack.rag.corpus import Chunk, RagContent, chunk_corpus
 from wavestack.rag.index import exception_text
 from wavestack.rag.retriever import SqliteVecRetriever
@@ -254,6 +256,49 @@ class PhaseText(_Strict):
     help_text: str = Field(min_length=1)
 
 
+class CostTexts(_Strict):
+    """V1.2 story 3 (CAP-8): the page's texts of the costs in three times and the work copy."""
+
+    title_text: str = Field(min_length=1)
+    hint_text: str = Field(min_length=1)
+    perimeters_text: str = Field(min_length=1)
+    build_text: str = Field(min_length=1)
+    build_help_text: str = Field(min_length=1)
+    update_text: str = Field(min_length=1)
+    update_help_text: str = Field(min_length=1)
+    query_text: str = Field(min_length=1)
+    query_help_text: str = Field(min_length=1)
+    tokens_text: str = Field(min_length=1)
+    duration_text: str = Field(min_length=1)
+    usd_text: str = Field(min_length=1)
+    gco2e_text: str = Field(min_length=1)
+    energy_text: str = Field(min_length=1)
+    measured_at_build_text: str = Field(min_length=1)
+    not_measured_text: str = Field(min_length=1)
+    partial_text: str = Field(min_length=1)
+    local_free_text: str = Field(min_length=1)
+    build_empty_text: str = Field(min_length=1)
+    query_empty_text: str = Field(min_length=1)
+    update_empty_text: str = Field(min_length=1)
+    update_running_text: str = Field(min_length=1)
+    copy_title_text: str = Field(min_length=1)
+    copy_help_text: str = Field(min_length=1)
+    copy_clean_text: str = Field(min_length=1)
+    copy_changed_text: str = Field(min_length=1)
+    add_doc_text: str = Field(min_length=1)
+    modify_doc_text: str = Field(min_length=1)
+    delete_doc_text: str = Field(min_length=1)
+    reset_copy_text: str = Field(min_length=1)
+    doc_label_text: str = Field(min_length=1)
+    id_label_text: str = Field(min_length=1)
+    doc_title_label_text: str = Field(min_length=1)
+    doc_body_label_text: str = Field(min_length=1)
+    modify_hint_text: str = Field(min_length=1)
+    apply_text: str = Field(min_length=1)
+    cancel_text: str = Field(min_length=1)
+    update_of_text: str = Field(min_length=1)
+
+
 class RagLabContent(_Strict):
     """`content/rag_lab.yaml`: every French text of the page, a text per kind of stage, per
     option and per setting."""
@@ -325,6 +370,7 @@ class RagLabContent(_Strict):
     remove_text: str = Field(min_length=1)
     reset_chain_text: str = Field(min_length=1)
     unavailable_text: str = Field(min_length=1)
+    costs: CostTexts
     status: StatusTexts
     columns: ColumnTexts
     stages: dict[str, StageText]
@@ -967,6 +1013,53 @@ def read_truncated(folder: Path) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
+BUILD_COSTS_FILE = "build_costs.json"
+
+
+def brick_costs_path(index: Path) -> Path:
+    """V1.2 story 3: where the cost of a shipped index's build is kept, next to it
+    (`rag_index.sqlite` -> `rag_index.cost.json`), written by `scripts/build_rag_index.py`."""
+    return index.with_suffix(".cost.json")
+
+
+def _costs_file(source: Path) -> Path:
+    return source if source.suffix == ".json" else source / BUILD_COSTS_FILE
+
+
+def read_build_costs(source: Path) -> dict[str, Any]:
+    """The costs recorded when a content was built (`source`: the cache's folder or a
+    sidecar file), by part (`embedding`, `vector_store:faiss`...); `{}` when none."""
+    try:
+        data = json.loads(_costs_file(source).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def write_build_cost(source: Path, key: str, cost: StageCost, *, reset: bool = False) -> None:
+    """Records one built part's cost (`reset`: the other parts are those of an older build,
+    forgotten). Never raises: a cost not kept is a cost shown as unknown."""
+    target = _costs_file(source)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        data = {} if reset else read_build_costs(target)
+        data[key] = cost.record()
+        _replace(target, json.dumps(data, ensure_ascii=False).encode("utf-8"))
+    except OSError:
+        pass
+
+
+def recorded_cost(source: Path, key: str, kind: str) -> StageCost:
+    """A part built earlier, its cost read back and marked `measured_at_build`; when the
+    record is absent, a cost without figures that says so."""
+    cost = StageCost.from_record("build", kind, read_build_costs(source).get(key))
+    if cost is not None:
+        return cost
+    return StageCost(
+        "build", kind, measured_at_build=True, note_text=Message("rag_lab.costs.build_unknown")
+    )
+
+
 TIE_DIGITS = 6  # two scores equal to this many decimals are a tie, whatever the float noise
 TIE_MARGIN = 16  # the extra neighbours an index is asked for, to settle ties the same way
 
@@ -1317,6 +1410,11 @@ class Generated:
     answer_text: str = ""
     output_tokens: int = 0
     error_text: str | None = None
+    # V1.2 story 3 (CAP-8): the call's own duration, its dollars (`None`: not priced, 0 for a
+    # local model) and its footprint, as the model call measured them.
+    duration_ms: int | None = None
+    cost_usd: float | None = None
+    impact: greenops.Impact | None = None
 
 
 @dataclass
@@ -1346,6 +1444,10 @@ class LabDeps:
     # Lot 5c-3: the active model's generation, or `StageSkipped` (no model loaded); `None`:
     # the stage is skipped.
     generator: Callable[[GenerationAsk], Generated] | None = None
+    # V1.2 story 3 (CAP-8): a local tracker around the embedding, the reranking and the
+    # indexing (`None`: no footprint), and the tokens of a text (an estimate).
+    meter: Callable[[], Measure] | None = None
+    estimate_tokens: Callable[[str], int] = lambda text: config.estimate_tokens(text, 4.0)
 
 
 @dataclass
@@ -1385,6 +1487,22 @@ class _Result:
     warning_text: str | None = None
     # Lot 5c-3: the generation's prompt, rendered as sent.
     prompt_text: str | None = None
+    # V1.2 story 3: what the stage cost, by time; `None`: the stage's duration, in its time.
+    costs: list[StageCost] | None = None
+
+
+# V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
+COST_PHASE = {
+    "chunking": "build",
+    "vector_store": "build",
+    "lexical_index": "build",
+    "vector_search": "query",
+    "lexical_search": "query",
+    "fusion": "query",
+    "rerank": "query",
+    "context": "query",
+}
+UPDATE_RUN_PREFIX = "upd"  # the id of an update run (`upd1`): its events are not the last run
 
 
 @dataclass
@@ -1428,6 +1546,7 @@ class LabRun:
         self.deps = deps
         self.chain: _Chain | None = None
         self.ended = False  # `rag_lab_run_ended` emitted
+        self.costs: list[StageCost] = []  # V1.2 story 3: every part's cost, by time
 
     # -- events --
 
@@ -1504,6 +1623,13 @@ class LabRun:
             self.end(status, _ms(time.monotonic() - started))
         return status
 
+    SUMMARY_PHASES: tuple[str, ...] = ("build", "query")
+
+    def cost_summary(self, phases: Sequence[str]) -> list[dict[str, Any]]:
+        """V1.2 story 3: the costs of the phases that have a part, summed."""
+        sums = [greenops.summarize(self.costs, p, self._lang) for p in phases]
+        return [x for x in sums if x["parts"]]
+
     def end(self, status: str, duration_ms: int) -> None:
         """`rag_lab_run_ended`, once: the page never stays « en cours »."""
         if self.ended:
@@ -1511,7 +1637,11 @@ class LabRun:
         self.ended = True
         self._emit(
             "rag_lab_run_ended",
-            {"status": status, "duration_ms": duration_ms},
+            {
+                "status": status,
+                "duration_ms": duration_ms,
+                "cost_summary": self.cost_summary(self.SUMMARY_PHASES),
+            },
             self.run_id,
             "rag_lab",
         )
@@ -1647,10 +1777,15 @@ class LabRun:
                     sign=sign,
                     mo=mo_text(abs(delta), self._lang),
                 )
+        costs = result.costs
+        if costs is None and status == "ok" and base["kind"] in COST_PHASE:
+            costs = [StageCost(COST_PHASE[base["kind"]], base["kind"], duration_ms=duration_ms)]
+        self.costs += costs or []
         self._emit(
             "rag_lab_stage_ended",
             base
             | {
+                "costs": [c.payload(self._lang) for c in costs or []],
                 "status": status,
                 "input_text": result.input_text,
                 "output_text": result.output_text,
@@ -1805,9 +1940,13 @@ class LabRun:
             (text("fact.dimensions"), self._int(embedder.dims)),
         ]
         truncated: int | None = None  # the passages the model cut, when it says so
+        costs: list[StageCost] = []
         if self._uses_brick_index(chain):
             if self.deps.brick_index_error is None:
                 passages = text("embedding.brick_passages", passages=passages_n)
+                costs.append(
+                    recorded_cost(brick_costs_path(self.deps.brick_index), "embedding", "embedding")
+                )
             else:
                 passages = text("embedding.brick_unusable")
         else:
@@ -1818,6 +1957,7 @@ class LabRun:
             vectors = read_vectors(folder, chain.chunks, embedder.dims)
             if vectors is not None:
                 passages = text("embedding.cached", vectors=vectors_n, key=chain.key)
+                costs.append(recorded_cost(folder, "embedding", "embedding"))
                 facts.append((text("fact.passages"), text("embedding.cached_fact", n=n)))
                 truncated = read_truncated(folder)
             else:
@@ -1825,18 +1965,26 @@ class LabRun:
                 total = len(chain.chunks)
                 started = time.monotonic()
                 truncated = 0 if getattr(embedder, "max_tokens", None) else None
-                for at in range(0, total, EMBED_BATCH):
-                    self._check()
-                    batch = chain.chunks[at : at + EMBED_BATCH]
-                    vectors += embedder.embed_passages([rag_index.passage_text(c) for c in batch])
-                    # Lot 5c-1: the passages of this batch the model cut at `max_tokens`.
-                    cut = getattr(embedder, "last_truncated", None)
-                    known = truncated is not None and isinstance(cut, int)
-                    truncated = truncated + cut if known else None
-                    progress(min(at + EMBED_BATCH, total), total)
+                probe = Probe(self.deps.meter)
+                try:
+                    for at in range(0, total, EMBED_BATCH):
+                        self._check()
+                        batch = chain.chunks[at : at + EMBED_BATCH]
+                        vectors += embedder.embed_passages(
+                            [rag_index.passage_text(c) for c in batch]
+                        )
+                        # Lot 5c-1: the passages of this batch the model cut at `max_tokens`.
+                        cut = getattr(embedder, "last_truncated", None)
+                        known = truncated is not None and isinstance(cut, int)
+                        truncated = truncated + cut if known else None
+                        progress(min(at + EMBED_BATCH, total), total)
+                finally:
+                    built = self._cost("build", "embedding", probe, self._tokens(chain.chunks))
                 if len(vectors) != total or any(len(v) != embedder.dims for v in vectors):
                     raise StageFailed(Message("rag_lab.embedding.wrong_dims", dims=embedder.dims))
                 write_vectors(folder, chain.chunks, vectors, identity, truncated)
+                write_build_cost(folder, "embedding", built, reset=True)
+                costs.append(built)
                 seconds = time.monotonic() - started
                 passages = text(
                     "embedding.computed",
@@ -1849,7 +1997,13 @@ class LabRun:
                 )
             chain.vectors = vectors
         warning = self._truncation(embedder, truncated, len(chain.chunks))
-        vector = embedder.embed_queries([self.question])[0]
+        probe = Probe(self.deps.meter)
+        try:
+            vector = embedder.embed_queries([self.question])[0]
+        finally:
+            costs.append(
+                self._cost("query", "embedding", probe, self.deps.estimate_tokens(self.question))
+            )
         if not any(vector):
             raise StageFailed(Message("rag_lab.embedding.null_vector"))
         chain.embedder = embedder
@@ -1869,7 +2023,17 @@ class LabRun:
             facts=facts,
             borrowed=lent.borrowed,
             warning_text=warning,
+            costs=costs,
         )
+
+    def _cost(self, phase: str, kind: str, probe: Probe, tokens: int | None = None) -> StageCost:
+        """V1.2 story 3: the part's cost, its probe stopped: its duration, its footprint, and
+        0 dollars (a local model bills nothing)."""
+        duration, impact = probe.stop()
+        return StageCost(phase, kind, tokens, duration, 0.0, impact)
+
+    def _tokens(self, chunks: Sequence[Chunk]) -> int:
+        return sum(self.deps.estimate_tokens(rag_index.passage_text(c)) for c in chunks)
 
     def _truncation(self, embedder: Embedder, truncated: int | None, total: int) -> str | None:
         """Lot 5c-1: « 3 chunks sur 29 dépassent 512 tokens, tronqués », a warning (never an
@@ -1903,6 +2067,7 @@ class LabRun:
             meta = rag_index.read_meta(path)
             chain.store = _SqliteStore(path, chain.embedder)
             return _Result(
+                costs=[],  # built with the vectors: the Embedding's record has it all
                 input_text=text(
                     "vector_store.brick_input",
                     vectors=self._count(meta.chunks, "vector"),
@@ -1924,9 +2089,14 @@ class LabRun:
         )
         input_text = text("vector_store.input", vectors=vectors_text)
         if stage.option == "memory":
-            chain.store = MemoryStore(chain.chunks, chain.vectors)
+            probe = Probe(self.deps.meter)
+            try:
+                chain.store = MemoryStore(chain.chunks, chain.vectors)
+            finally:
+                cost = self._cost("build", "vector_store", probe)
             size = n * dims * 4
             return _Result(
+                costs=[cost],
                 input_text=input_text,
                 output_text=text("vector_store.memory_output", size=size_text(size, self._lang)),
                 facts=[(vectors_fact, count(n)), (metric_fact, text("vector_store.cosine_dot"))],
@@ -1945,19 +2115,27 @@ class LabRun:
                 and meta.chunk_max_chars == chain.chunk_max_chars
                 and meta.corpus_sha256 == rag_index.corpus_digest(chain.chunks)
             )
+            costs_at = self.deps.lab_dir / chain.key
+            cost = recorded_cost(costs_at, "vector_store:sqlite_vec", "vector_store")
             if not fits:
                 self._check()
-                rag_index.write_index(
-                    path,
-                    chain.chunks,
-                    chain.vectors,
-                    model_id=chain.embedder.model_id,
-                    dims=dims,
-                    chunk_max_chars=chain.chunk_max_chars,
-                )
+                probe = Probe(self.deps.meter)
+                try:
+                    rag_index.write_index(
+                        path,
+                        chain.chunks,
+                        chain.vectors,
+                        model_id=chain.embedder.model_id,
+                        dims=dims,
+                        chunk_max_chars=chain.chunk_max_chars,
+                    )
+                finally:
+                    cost = self._cost("build", "vector_store", probe)
+                write_build_cost(costs_at, "vector_store:sqlite_vec", cost)
                 built = text("vector_store.built", vectors=self._count(n, "vector"))
             chain.store = _SqliteStore(path, chain.embedder)
             return _Result(
+                costs=[cost],
                 input_text=input_text,
                 output_text=text("vector_store.sqlite_output", state=built, key=chain.key),
                 facts=[
@@ -1971,19 +2149,30 @@ class LabRun:
             imported = self.deps.importer(stage.option)
             self._check()
             folder = self.deps.lab_dir / chain.key
-            if stage.option == "faiss":
-                store: Any = FaissStore(imported.module, folder, chain.vectors)
-                kind = text("vector_store.faiss_kind")
-            else:
-                store = LanceStore(imported.module, folder, chain.vectors)
-                kind = text("vector_store.lancedb_kind")
+            key = f"vector_store:{stage.option}"
+            probe = Probe(self.deps.meter)
+            try:
+                if stage.option == "faiss":
+                    store: Any = FaissStore(imported.module, folder, chain.vectors)
+                    kind = text("vector_store.faiss_kind")
+                else:
+                    store = LanceStore(imported.module, folder, chain.vectors)
+                    kind = text("vector_store.lancedb_kind")
+            finally:
+                measured = self._cost("build", "vector_store", probe)
             chain.store = store
+            if store.built:
+                cost = measured
+                write_build_cost(folder, key, cost)
+            else:
+                cost = recorded_cost(folder, key, "vector_store")
             vectors_n = self._count(n, "vector")
             state = text(
                 "vector_store.built" if store.built else "vector_store.reread_count",
                 vectors=vectors_n,
             )
             return _Result(
+                costs=[cost],
                 input_text=input_text,
                 output_text=text(
                     "vector_store.library_output",
@@ -2040,6 +2229,7 @@ class LabRun:
         lent = self.deps.reranker(stage.option)
         reranker: Reranker = lent.model
         passages = [f"{c.title_text}\n{c.text}" for c in candidates]
+        probe = Probe(self.deps.meter)
         try:
             raw = reranker.score(self.question, passages, self.deps.cancelled, progress)
         except RerankCancelled:
@@ -2053,6 +2243,9 @@ class LabRun:
                 ),
                 soft=True,
             ) from exc
+        finally:
+            tokens = sum(self.deps.estimate_tokens(f"{self.question}\n{p}") for p in passages)
+            rerank_cost = self._cost("query", "rerank", probe, tokens)
         if len(raw) != len(candidates):
             scores_n, candidates_n = len(raw), len(candidates)
             raise StageFailed(
@@ -2127,6 +2320,7 @@ class LabRun:
             items=items,
             borrowed=lent.borrowed,
             warning_text=self._pairs_cut(reranker, cut, len(candidates)),
+            costs=[rerank_cost],
         )
 
     def _score_reading(self, reranker: Reranker) -> list[tuple[str, str]]:
@@ -2161,11 +2355,18 @@ class LabRun:
         if not chain.chunks:
             raise StageFailed(Message("rag_lab.lexical_search.no_chunks"))
         passages = [rag_index.passage_text(c) for c in chain.chunks]
-        built = chain.lexical = lexical_index(passages, self.deps.lang)
+        probe = Probe(self.deps.meter)
+        try:
+            built = chain.lexical = lexical_index(passages, self.deps.lang)
+        finally:
+            index_cost = self._cost("build", "lexical_index", probe)
+        # The tokens BM25 indexed: its terms' occurrences, the tokenizer's own count.
+        index_cost = replace(index_cost, tokens=built.occurrences)
         text, count = self._text, self._int
         # BM25 normalises by this mean: one decimal, as it reads it.
         mean = number(built.mean if built.occurrences else 0, self._lang, 1)
         return _Result(
+            costs=[index_cost],
             input_text=text(
                 "lexical_index.input", extracts=self._count(len(chain.chunks), "extract")
             ),
@@ -2407,11 +2608,299 @@ class LabRun:
             raise StageFailed(
                 got.error_text or Message("rag_lab.generation.model_error"), result=result
             )
+        result.costs = [
+            StageCost(
+                "query",
+                "generation",
+                got.prompt_tokens + got.output_tokens,
+                got.duration_ms,
+                got.cost_usd,
+                got.impact,
+                note_text=None
+                if got.cost_usd is not None or got.impact is not None
+                else Message("rag_lab.costs.generation_unpriced"),
+            )
+        ]
         if not got.answer_text.strip():
             result.output_text = text("generation.empty")
         if got.status == "limit":
             result.warning_text = text("generation.cut", max=count(got.reserve))
         return result
+
+
+class UpdateRun(LabRun):
+    """V1.2 story 3 (CAP-8): the cost of an update of the corpus, measured on the work copy
+    (`workcopy`), for the chain's own components. One operation (add, modify, delete one
+    document) is applied to the copy; then only what a real update would redo is run and
+    measured, as the `update` time: the passages that changed are chunked and embedded (the
+    other vectors are those of the shipped corpus, from the cache or computed first, outside
+    the cost), the vector store and BM25's index are rebuilt whole (the workshop's stores do
+    not take one vector at a time). Emits the same events as a run, under the id `upd{n}`:
+    `rag_lab_run_started`, a stage pair per part, `rag_lab_run_ended` with the `update` sum."""
+
+    SUMMARY_PHASES = ("update",)
+
+    def __init__(
+        self,
+        run_id: str,
+        label_text: str,
+        pipeline: Pipeline,
+        deps: LabDeps,
+        before: workcopy.WorkCopy,
+        after: workcopy.WorkCopy,
+    ) -> None:
+        super().__init__(run_id, label_text, pipeline, deps)
+        self.before, self.after = before, after
+        self.state: dict[str, Any] = {}
+
+    def _label_of(self, stage: Stage, kind: str) -> str:
+        if kind == "lexical_index":
+            return self.deps.texts.steps["lexical_index"].label_text
+        return self._label(stage)
+
+    def _ref(self, stage: Stage, kind: str) -> dict[str, Any]:
+        return {
+            "stage_id": stage.id,
+            "kind": kind,
+            "option": stage.option,
+            "label_text": self._label_of(stage, kind),
+            "option_label_text": self.deps.catalog.option_label(stage.kind, stage.option),
+            "params": stage.params,
+        }
+
+    def _parts(self) -> list[tuple[Stage, str, Callable[[Stage], _Result]]]:
+        pipeline = self.pipeline
+        chunking = pipeline.find("chunking")
+        embedding = pipeline.find("embedding")
+        store = pipeline.find("vector_store")
+        lexical = pipeline.find("lexical_search")
+        assert chunking and embedding and store  # `check_pipeline` keeps the fixed head
+        parts = [
+            (chunking, "chunking", self._update_chunking),
+            (embedding, "embedding", self._update_embedding),
+            (store, "vector_store", self._update_store),
+        ]
+        if lexical is not None:
+            parts.append((lexical, "lexical_index", self._update_lexical))
+        return parts
+
+    def run(self) -> str:
+        started = time.monotonic()
+        parts = self._parts()
+        self._emit(
+            "rag_lab_run_started",
+            {
+                "question": self.question,
+                "stages": [self._ref(stage, kind) for stage, kind, _ in parts],
+                "phase_label": self._text(
+                    "run.phase", running=self.deps.texts.running_text, question=self.question[:80]
+                ),
+            },
+            self.run_id,
+            "rag_lab",
+        )
+        status = "ok"
+        try:
+            for index, (stage, kind, fn) in enumerate(parts, start=1):
+                status = self._part(index, stage, kind, fn, status)
+        except Exception:  # noqa: BLE001 - the run ends in error, `run_ended` all the same
+            status = "error"
+        finally:
+            self.end(status, _ms(time.monotonic() - started))
+        return status
+
+    def _part(
+        self,
+        index: int,
+        stage: Stage,
+        kind: str,
+        fn: Callable[[Stage], _Result],
+        previous: str,
+    ) -> str:
+        step_id, component = self._step(index), f"rag_lab.{kind}"
+        base = {"stage_id": stage.id, "kind": kind, "option": stage.option}
+        if previous != "ok":
+            self._ended(step_id, component, base, "skipped", _Result(costs=[]), None, 0, None)
+            return previous
+        if self.deps.cancelled():
+            self._ended(step_id, component, base, "cancelled", _Result(costs=[]), None, 0, None)
+            return "cancelled"
+        self._emit(
+            "rag_lab_stage_started",
+            base | {"phase_label": self._text("stage.running", stage=self._label_of(stage, kind))},
+            step_id,
+            component,
+        )
+        rss_before = self.deps.rss()
+        started = time.monotonic()
+        status, error_text, result = "ok", None, _Result(costs=[])
+        try:
+            result = fn(stage)
+        except LabCancelled:
+            status, error_text = "cancelled", self._text("stage.stopped")
+        except StageFailed as failed:
+            status, error_text = "error", failed.render(self._lang)
+            result = failed.result or result
+        except Exception as exc:  # noqa: BLE001 - AD-16: a stage's failure, never a crash
+            status = "error"
+            error_text = self._text(
+                "stage.failed", error=type(exc).__name__, cause=exception_text(exc, self._lang)
+            )
+        duration = _ms(time.monotonic() - started)
+        if status == "ok" and result.costs is None:
+            result.costs = [StageCost("update", kind, duration_ms=duration)]
+        self._ended(step_id, component, base, status, result, error_text, duration, rss_before)
+        return status
+
+    # -- the parts --
+
+    @staticmethod
+    def _key(chunk: Chunk) -> tuple[str, str, str]:
+        return (chunk.doc_id, chunk.title_text, chunk.text)
+
+    def _update_chunking(self, stage: Stage) -> _Result:
+        size = param(stage, "chunk_max_chars", self.deps.catalog)
+        content, lang = self.deps.content, self.deps.lang
+        before = workcopy.chunks(content, size, lang, self.before)
+        after = workcopy.chunks(content, size, lang, self.after)
+        if not after:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        old = {self._key(c) for c in before}
+        now = {self._key(c) for c in after}
+        new = [c for c in after if self._key(c) not in old]
+        gone = [c for c in before if self._key(c) not in now]
+        self.state |= {"size": size, "before": before, "after": after, "new": new}
+        count = self._int
+        return _Result(
+            input_text=self.question,
+            output_text=self._text(
+                "update.chunking_output",
+                before=count(len(before)),
+                after=count(len(after)),
+                new=count(len(new)),
+                gone=count(len(gone)),
+            ),
+            facts=[
+                (self._text("update.fact_new"), count(len(new))),
+                (self._text("update.fact_gone"), count(len(gone))),
+            ],
+        )
+
+    def _vectors_of(self, embedder: Embedder, chunks: Sequence[Chunk]) -> list[list[float]]:
+        out: list[list[float]] = []
+        for at in range(0, len(chunks), EMBED_BATCH):
+            self._check()
+            batch = chunks[at : at + EMBED_BATCH]
+            out += embedder.embed_passages([rag_index.passage_text(c) for c in batch])
+        if len(out) != len(chunks) or any(len(v) != embedder.dims for v in out):
+            raise StageFailed(Message("rag_lab.embedding.wrong_dims", dims=embedder.dims))
+        return out
+
+    def _update_embedding(self, stage: Stage) -> _Result:
+        lent = self.deps.embedder(stage.option)
+        embedder: Embedder = lent.model
+        state, count = self.state, self._int
+        before, after, new = state["before"], state["after"], state["new"]
+        identity = self.deps.identity(stage.option)
+        key = cache_key(identity, state["size"], rag_index.corpus_digest(before))
+        folder = self.deps.lab_dir / key
+        facts = [(self._text("fact.model"), lent.label_text)]
+        vectors = read_vectors(folder, before, embedder.dims)
+        if vectors is None:  # the shipped corpus first, outside the update's cost
+            probe = Probe(self.deps.meter)
+            try:
+                vectors = self._vectors_of(embedder, before)
+            finally:
+                built = self._cost("build", "embedding", probe, self._tokens(before))
+            write_vectors(folder, before, vectors, identity, None)
+            write_build_cost(folder, "embedding", built, reset=True)
+            facts.append((self._text("update.fact_prepared"), count(len(before))))
+        known = {self._key(c): v for c, v in zip(before, vectors, strict=True)}
+        probe = Probe(self.deps.meter)
+        try:
+            computed = self._vectors_of(embedder, new) if new else []
+        finally:
+            cost = self._cost("update", "embedding", probe, self._tokens(new))
+        fresh = {self._key(c): v for c, v in zip(new, computed, strict=True)}
+        state["vectors"] = [known.get(self._key(c)) or fresh[self._key(c)] for c in after]
+        state["embedder"] = embedder
+        facts.append((self._text("update.fact_embedded"), count(len(new))))
+        text = (
+            self._text("update.embedding_output", new=count(len(new)), after=count(len(after)))
+            if new
+            else self._text("update.embedding_none")
+        )
+        return _Result(
+            input_text=self._text("update.embedding_input", after=count(len(after))),
+            output_text=text,
+            facts=facts,
+            borrowed=lent.borrowed,
+            costs=[cost],
+        )
+
+    def _update_store(self, stage: Stage) -> _Result:
+        state = self.state
+        after, vectors, embedder = state["after"], state["vectors"], state["embedder"]
+        scratch = self.deps.lab_dir / "work_corpus" / f"{self.deps.lang}-update"
+        _delete(scratch)
+        probe = Probe(self.deps.meter)
+        store: Any = None
+        try:
+            if stage.option == "memory":
+                store = MemoryStore(after, vectors)
+            elif stage.option == "sqlite_vec":
+                scratch.mkdir(parents=True, exist_ok=True)
+                rag_index.write_index(
+                    scratch / INDEX_FILE,
+                    after,
+                    vectors,
+                    model_id=embedder.model_id,
+                    dims=embedder.dims,
+                    chunk_max_chars=state["size"],
+                )
+            elif stage.option in LIBRARIES:
+                imported = self.deps.importer(stage.option)
+                cls = FaissStore if stage.option == "faiss" else LanceStore
+                store = cls(imported.module, scratch, vectors)
+            else:
+                raise StageFailed(Message("rag_lab.vector_store.unknown", option=stage.option))
+        finally:
+            cost = self._cost("update", "vector_store", probe)
+            if store is not None:
+                try:
+                    store.close()
+                except Exception:  # noqa: BLE001 - a store closed badly is forgotten
+                    pass
+            try:
+                _delete(scratch)
+            except StageFailed:
+                pass  # a held scratch folder is removed by the next update
+        return _Result(
+            input_text=self._text("update.store_input", vectors=self._int(len(after))),
+            output_text=self._text("update.store_output", option=stage.option),
+            facts=[(self._text("fact.vectors"), self._int(len(after)))],
+            costs=[cost],
+        )
+
+    def _update_lexical(self, stage: Stage) -> _Result:
+        after = self.state["after"]
+        passages = [rag_index.passage_text(c) for c in after]
+        probe = Probe(self.deps.meter)
+        try:
+            built = lexical_index(passages, self.deps.lang)
+        finally:
+            cost = self._cost("update", "lexical_index", probe)
+        count = self._int
+        return _Result(
+            input_text=self._text("update.store_input", vectors=count(len(after))),
+            output_text=self._text(
+                "update.lexical_output",
+                terms=count(built.vocabulary),
+                occurrences=count(built.occurrences),
+            ),
+            facts=[(self._text("lexical_index.terms"), count(built.vocabulary))],
+            costs=[replace(cost, tokens=built.occurrences)],
+        )
 
 
 def _ms(seconds: float) -> int:
@@ -2552,6 +3041,29 @@ def last_run(envelopes: Sequence[Any]) -> list[dict[str, Any]]:
             i
             for i in range(len(envelopes) - 1, -1, -1)
             if envelopes[i].kind == "rag_lab_run_started"
+            and not str(envelopes[i].payload.get("run_id", "")).startswith(UPDATE_RUN_PREFIX)
+        ),
+        None,
+    )
+    if start is None:
+        return []
+    run_id = envelopes[start].payload.get("run_id")
+    return [
+        e.model_dump(mode="json")
+        for e in envelopes[start:]
+        if e.kind.startswith("rag_lab_") and e.payload.get("run_id") == run_id
+    ]
+
+
+def last_update(envelopes: Sequence[Any]) -> list[dict[str, Any]]:
+    """V1.2 story 3: the envelopes of the last update run (`upd{n}`) in `envelopes`, from its
+    `rag_lab_run_started` on, so that the page shows its cost again after a reload."""
+    start = next(
+        (
+            i
+            for i in range(len(envelopes) - 1, -1, -1)
+            if envelopes[i].kind == "rag_lab_run_started"
+            and str(envelopes[i].payload.get("run_id", "")).startswith(UPDATE_RUN_PREFIX)
         ),
         None,
     )

@@ -750,4 +750,31 @@ n'arrête jamais un tour : l'appel n'a pas d'empreinte, avec la raison.
 de la séance dans le panneau du bouton **Dépense** de la barre de navigation
 (« 🍃 0,12 g CO₂e »), la phrase entière dans l'infobulle. Comme la dépense, ce total compte les
 tours, le sous-agent, « Tester » et l'Atelier LLM, et seul un relancement le remet à zéro.
-L'embedding et le reranker du RAG ne sont pas comptés.
+Le total de la séance ne compte pas l'embedding, le reranking ni l'indexation de l'Atelier
+RAG : ils s'affichent dans les trois cartes de coûts de l'atelier (ci-dessous), à côté de la
+génération.
+
+**Coûts en trois temps (Atelier RAG).** Sous la séquence, trois cartes donnent, pour la chaîne
+affichée, les tokens, la durée, les dollars et les gCO₂e (avec l'énergie) de :
+- la **construction** : découper, vectoriser (embedding) et indexer (base vectorielle, index
+  BM25) tout le corpus, une fois ;
+- la **mise à jour** : ajouter, modifier ou supprimer un document, puis remettre l'index à jour ;
+- la **requête** : vectoriser la question, chercher, reclasser (reranking), générer.
+
+L'embedding, le reranking et l'indexation sont des modèles et des calculs locaux : 0 $ (rien
+n'est facturé), l'énergie vient de CodeCarbon (extra `greenops`, sinon « non mesuré ») et les
+tokens sont estimés par les caractères, hors la génération. Un contenu **précalculé** (l'index
+livré dans `data/`, les vecteurs d'un cache de l'atelier) n'est pas recalculé à chaque exécution :
+la carte montre alors le coût **mesuré à la construction**, marqué comme tel, relu dans le
+fichier `rag_index.cost.json` voisin de l'index (écrit par `scripts/build_rag_index.py` et par
+« Construire l'index ») ou dans le dossier du cache. Sans ce fichier, le coût est dit non
+enregistré, jamais inventé. Une somme dont une partie n'a pas d'empreinte est dite partielle.
+
+**Ajouter, Modifier, Supprimer un document.** Les trois boutons agissent sur une **copie de
+travail** du corpus, `rag_lab/work_corpus/<langue>.json` dans le dossier de données, jamais sur
+`content/` du dépôt. « Modifier » ajoute le texte saisi au document comme dernier paragraphe.
+Seuls les passages nouveaux ou modifiés sont vectorisés ; l'index vectoriel et l'index BM25 sont
+reconstruits en entier (les index de l'atelier ne se mettent pas à jour vecteur par vecteur).
+Les exécutions de la chaîne continuent de lire le corpus livré. « Revenir à l'état livré »
+supprime la copie. Les deux périmètres de mesure (local : l'électricité consommée seulement ;
+cloud : le cycle de vie d'EcoLogits) restent signalés sous les cartes.
