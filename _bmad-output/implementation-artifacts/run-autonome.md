@@ -178,3 +178,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:44 · 1.2-3 · décision · à revoir : la chaîne lit la copie de travail quand elle diffère du livré (Never de la spec de story levé) ; Modifier = ajout d'un paragraphe · 0f79d92
 - 2026-10-25 00:44 · 1.2-3 · attente humaine · reconstruire les 3 index réels (build_rag_index.py --lang fr|en|de) pour leurs fichiers de coût · 0f79d92
 - 2026-10-25 00:44 · 1.2-3 · PR · ouverte, CI lancée · 0f79d92
+- 2026-10-25 00:44 · 1.2-4 · dev · lancé (empilé sur 1.2-3, même page) · 0f79d92
