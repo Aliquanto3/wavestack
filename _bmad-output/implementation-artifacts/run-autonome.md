@@ -1,63 +1,57 @@
-# Run autonome : SLM supplémentaires (specs A et B)
+# Run autonome de nuit : V1.3, V1.4 puis V1.2
 
-Lancé le 2026-10-24 à la demande d'Anaël. Plan et raisons des choix : [plan-slm-supplementaires.md](plan-slm-supplementaires.md).
+Lancé le 2026-10-24 à la demande d'Anaël, après le run SLM A/B (archivé dans [run-autonome-slm-2026-10-24.md](run-autonome-slm-2026-10-24.md)). Orchestration : session principale Opus 5.5.
 
 ## Périmètre
 
 | Périmètre | Epics | Note |
 |---|---|---|
-| Dans le run | Specs SLM A à B | A : [spec-slm-a-modeles-facultatifs-installateurs.md](spec-slm-a-modeles-facultatifs-installateurs.md) ; B : [spec-slm-b-appels-json-tool-call.md](spec-slm-b-appels-json-tool-call.md) |
-| Hors run | Spec SLM C | Gemma 4, en attente du benchmark de SLM |
+| Dans le run | V1.3, V1.4, V1.2 | priorité stricte par lot ; V1.2 : PR #79 (story 1) puis stories 2 à 21 |
+| Hors run | V2, SLM C | spec V2 en brouillon ; SLM C en attente du benchmark |
 
-Au plus 1 stories en développement à la fois
+Specs : `_bmad-output/specs/spec-wavestack-cache-visible/` (V1.3), `spec-wavestack-etat-de-l-art-harnais/` (V1.4), `spec-wavestack-v1-2-atelier-recherche-documentaire/` (V1.2).
 
-## Sprint 1 — SLM supplémentaires
+Au plus 2 stories en développement à la fois
+
+## Sprint 1 — V1.3 cache visible
 
 | Vague | Stories en parallèle | Après |
 |---|---|---|
-| V0 | A | — |
-| V1 | B ★ | B ← A |
+| V0 | 1.3-1 ★ | — |
+| V1 | 1.3-2 · 1.3-5 | 1.3-2 ← 1.3-1 ; 1.3-5 ← 1.3-1 |
+| V2 | 1.3-3 · 1.3-4 | 1.3-3 ← 1.3-2 ; 1.3-4 ← 1.3-1 |
+| V3 | 1.3-6 | 1.3-6 ← 1.3-2 ; 1.3-6 ← 1.3-3 ; 1.3-6 ← 1.3-4 |
 
-B ← A : B ajoute ses entrées d'installateur à la liste créée par A.
+## Sprint 2 — V1.4 état de l'art des harnais
+
+| Vague | Stories en parallèle | Après |
+|---|---|---|
+| V0 | 1.4-1 · 1.4-3 | 1.4-3 ← 1.2-1 (PR #79) |
+| V1 | 1.4-2 | 1.4-2 ← 1.4-1 |
+| V2 | 1.4-4 ★ | 1.4-4 ← 1.4-2 ; 1.4-4 ← 1.3-3 |
+
+## Sprint 3 — V1.2 atelier recherche documentaire
+
+| Vague | Stories en parallèle | Après |
+|---|---|---|
+| V0 | 1.2-1 | PR #79 : rebase, CI, fusion (revue déjà faite) |
+| V1 | stories 2 à 21 | vagues fixées à l'entrée du sprint d'après stories.yaml de la V1.2 |
 
 ## Règles du run
 
-- Par story : `dev-story` (Sonnet), puis `second-avis` (Haiku), puis `reviewer` (Opus, avec la liste du second avis), puis PR, CI verte et fusion. Une seule passe de revue.
-- Poste de développement : un benchmark de SLM y tourne. On n'y lance ni modèle réel, ni suite complète : seulement ruff (contrôle rapide) et des tests ciblés. La CI de la PR (Windows, Ubuntu) sert de suite complète et de porte de fusion.
-- `gh run watch <id> --interval 60`. Après `gh pr merge`, vérifier l'état `MERGED` avant de journaliser.
-- Ce fichier vit sur la branche `chore/etat-run`, hors des PR de story.
-- Attente humaine en fin de run : essais réels sur le PC cible (Qwen3.5-0.8B, Granite 4.0 1B et 350M, brique Outils, « Combien font 12 × 37 ? »).
+- Par story : `dev-story` (Sonnet ; Opus pour 1.4-4), `second-avis` (Haiku), `reviewer` (Opus, avec la liste du second avis, rebasé sur `origin/main`), PR, CI verte, fusion, vérification `MERGED`, journal.
+- Points de contrôle (décision d'Anaël du 2026-10-24) : `done_checkpoint` levés. `spec_checkpoint` : `dev-story` écrit la spec de story et s'arrête ; `reviewer` la relit contre SPEC.md, maquettes et brownfield.md, tranche les points ouverts ; `dev-story` reprend. Chaque choix fait à la place d'Anaël : ligne `décision · à revoir`.
+- Local : contrôle rapide et tests ciblés seulement ; la CI de la PR (Windows, Ubuntu) sert de suite complète.
+- `gh run watch <id> --interval 60` ; worktrees `../wavestack-<lot>-s<n>`, `git worktree prune` avant chaque lancement, suppression en fin de run.
+- Ce fichier vit sur `chore/etat-run`, hors des PR de story.
+- Arrêt seulement pour une ressource ou une décision d'Anaël (modèle réel, clé cloud, accès Jev, annotation, PC cible) : notification, `attente humaine`, on avance ailleurs.
+- Fin de lot : PR de version (SemVer mineure suivante), tag annoté, release GitHub.
 
 ## Décisions
 
-- 2026-10-24 : exclure les SLM dont la licence ou l'exécution laisse un doute (voir le plan).
-- 2026-10-24 : spec A, vérification sha256 des modèles facultatifs après téléchargement, et `-Models list`.
+- 2026-10-24 : ordre V1.3, V1.4, V1.2 ; points de contrôle levés pour la nuit, revus au matin (Anaël).
 
 ## Journal
 
-- 2026-10-24 21:51 · run · décision · run autonome A puis B lancé · —
-- 2026-10-24 21:52 · A · dev · lancé · —
-- 2026-10-24 21:55 · A · dev · fini · f53f58f
-- 2026-10-24 21:55 · A · second-avis · lancé · f53f58f
-- 2026-10-24 21:56 · run · décision · benchmark en pause : tests locaux autorisés (suite complète en quatre quarts, une seule à la fois) · —
-- 2026-10-24 21:59 · A · second-avis · 7 low, 0 medium/high ; empreinte 0.8B confirmée par téléchargement réel et tour Outils réel (444) · f53f58f
-- 2026-10-24 21:59 · A · review · lancé · f53f58f
-- 2026-10-24 22:00 · 1.2.0 · recette · MiniCPM5-2B réel : téléchargement -Models minicpm5 (1 561 318 368 octets, empreinte OK), tour Outils réel, lecteur minicpm5, calculatrice 444 en 5,2 s · —
-- 2026-10-24 22:03 · A · review · 1 medium corrigé (-Models en session PowerShell), 3 low corrigés · b6380a8
-- 2026-10-24 22:03 · A · PR · #86 ouverte, CI lancée · b6380a8
-- 2026-10-24 22:22 · A · CI · rouge : Get-FileHash introuvable (powershell 5.1 lancé depuis pwsh) ; corrigé par SHA256 de .NET · 382834c
-- 2026-10-24 22:35 · A · CI · verte (Windows, Ubuntu) · 382834c
-- 2026-10-24 22:35 · A · fusion · #86 MERGED · 82e05ef
-- 2026-10-24 22:35 · B · dev · lancé · ae6dba7
-- 2026-10-24 22:40 · B · dev · fini ; essais réels Granite 1B (12,9 s) et 350M (4,6 s) : hermes, calculatrice 444 · 42e80dc
-- 2026-10-24 22:40 · B · second-avis · lancé · 42e80dc
-- 2026-10-24 22:47 · B · second-avis · 2 high (règle large : outils offerts à SmolLM3, Falcon-H1, EXAONE, Hunyuan), 3 medium, 3 low · 42e80dc
-- 2026-10-24 22:47 · B · décision · Anaël : règle d'aller-retour (outils seulement si l'appel passé rendu par le gabarit est relu par hermes) · 00d67e9
-- 2026-10-24 22:47 · B · review · lancé, avec la correction · 00d67e9
-- 2026-10-24 22:55 · B · review · 8 constats corrigés (règle d'aller-retour, [|endofturn|], taille 0,2 Go…), 1 report (SmolLM3 servi par llama-server) · 3216834
-- 2026-10-24 22:55 · B · recette · Granite 1B et 350M réels après revue : hermes, calculatrice 444 (3,1 s et 0,8 s) · 3216834
-- 2026-10-24 22:55 · B · report · SmolLM3 servi par llama-server reçoit hermes par la branche qwen3 (deferred-work.md) · 4cca5dc
-- 2026-10-24 22:55 · B · PR · #88 ouverte, CI lancée · 4cca5dc
-- 2026-10-24 23:10 · B · CI · verte (Windows, Ubuntu) · 4cca5dc
-- 2026-10-24 23:10 · B · fusion · #88 MERGED · 971f7c3
-- 2026-10-24 23:10 · run · fin · A et B fusionnées ; recette réelle faite sur le poste de dev (Qwen3.5-0.8B, MiniCPM5-2B, Granite 4.0 1B et 350M) ; recette PC cible à faire par Anaël · 971f7c3
+- 2026-10-24 23:10 · run · décision · run de nuit V1.3, V1.4, V1.2 lancé ; PR #87 (spec V1.4) MERGED 8174efc · —
+- 2026-10-24 23:10 · 1.2-1 · CI · PR #79 rebasée sur main, CI lancée · 13453c9
