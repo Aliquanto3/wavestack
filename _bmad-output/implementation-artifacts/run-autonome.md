@@ -68,3 +68,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:17 · 1.4-1 · dev · fini ; E2E disciplines 52 OK (PYTHONUTF8=1 requis sous Windows) ; skills tiers dans hooks, échafaudage dans native_tools · f916b57
 - 2026-10-24 23:17 · 1.4-1 · décision · à revoir : scénario de sécurité des skills tiers = hooks · f916b57
 - 2026-10-24 23:17 · 1.4-1 · second-avis · lancé · f916b57
+- 2026-10-24 23:18 · 1.4-3 · dev · lancé · 72cfdf0
