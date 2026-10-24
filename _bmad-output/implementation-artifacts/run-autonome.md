@@ -132,3 +132,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:56 · 1.3-3 · dev · fini ; E2E local_server 53 OK, cause cache_cleared · 95c0450
 - 2026-10-24 23:56 · 1.3-3 · second-avis · lancé · 95c0450
 - 2026-10-24 23:56 · 1.3-4 · dev · phase 2 (code) lancée · fb60884
+- 2026-10-24 23:57 · 1.3-5 · review · 1 medium corrigé (dégrisage à la saisie de clé), mock remplacé ; E2E claude_cache et context_window 55 OK · 3a11e05
+- 2026-10-24 23:57 · 1.3-5 · report · story 6 : dire que changer mémoire, skills ou prompt réécrit tout le cache · 3a11e05
+- 2026-10-24 23:57 · 1.3-5 · PR · ouverte, CI lancée · 3a11e05
