@@ -123,6 +123,7 @@ session:
       llm: "L'Atelier LLM a occupé le cache du moteur{why}."
       mcp_lab: "L'Atelier MCP a occupé le cache du moteur{why}."
       rag_lab: "L'Atelier RAG a occupé le cache du moteur pour sa génération{why}."
+      cache_cleared: "Le cache du moteur a été vidé à la demande (bouton « Vider le cache ») : tout le contexte est relu."
     evicted:
       stateless: " : ce moteur ne sait pas sauvegarder l'état du contexte principal"
       failed: " : la sauvegarde ou la restauration de l'état du contexte principal a échoué"
@@ -229,6 +230,9 @@ session:
     turn: "Un tour est déjà en cours : attendez sa fin ou cliquez sur « Arrêter »."
     no_model: "Aucun modèle n'est chargé : terminez le diagnostic de démarrage."
     nothing_to_replay: "Aucun prompt à rejouer : envoyez d'abord un message."
+    cache_cloud: "Le cache d'un fournisseur cloud ne se vide pas : il expire de son côté."
+    cache_unsupported: "Ce moteur ne permet pas de vider son cache."
+    cache_failed: "Le cache du moteur n'a pas pu être vidé : {cause}"
   # AD-19: a content file that cannot be read makes its brick unavailable.
   content:
     file_invalid: "Le fichier {file} est absent ou invalide : corrigez-le puis relancez WaveStack."

@@ -2462,6 +2462,20 @@ async function clearConversation() {
   render();
 }
 
+async function clearCache() {
+  store.composerError = null;
+  try {
+    const response = await postIntention("/api/intentions/clear_cache", {});
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      store.composerError = typeof body.detail === "string" ? body.detail : t("common.action_refused");
+    }
+  } catch {
+    store.composerError = t("main.chat.clear_cache_no_answer");
+  }
+  render();
+}
+
 async function replayLast() {
   store.composerError = null;
   try {
@@ -3573,6 +3587,11 @@ function renderComposer() {
   const clear = document.getElementById("clear-conversation");
   clear.disabled = state?.state !== "idle"; // class (b)
   clear.title = clear.disabled ? state?.reason_text || t("common.unavailable_outside_turn") : "";
+  // V1.3 story 3 (CAP-4): a provider's cache does not purge, so the button is grey in cloud.
+  const clearCacheButton = document.getElementById("clear-cache");
+  const inCloud = store.activeModel?.hosting === "network";
+  clearCacheButton.disabled = clear.disabled || inCloud;
+  clearCacheButton.title = clear.disabled ? clear.title : inCloud ? t("main.chat.clear_cache_cloud") : "";
   const replay = document.getElementById("replay-last");
   replay.disabled = clear.disabled || shownTurns().length === 0; // class (b), story 9b
   replay.title = clear.disabled ? clear.title : replay.disabled ? t("main.chat.nothing_to_replay") : "";
@@ -7642,6 +7661,7 @@ async function boot() {
   document.getElementById("composer").addEventListener("submit", sendMessage);
   document.getElementById("composer-stop").addEventListener("click", stopTurn);
   document.getElementById("clear-conversation").addEventListener("click", clearConversation);
+  document.getElementById("clear-cache").addEventListener("click", clearCache);
   document.getElementById("replay-last").addEventListener("click", replayLast);
   document.getElementById("scenario-picker").addEventListener("change", launchScenario);
   setupScenarioInfo();

@@ -327,6 +327,9 @@ main:
     show_reasoning_title: "Montre ou masque le raisonnement du modèle dans cette vue ; Contexte LLM le montre toujours."
     replay_last: "Rejouer le dernier prompt"
     clear: "Vider la conversation"
+    clear_cache: "Vider le cache"
+    clear_cache_cloud: "Le cache d'un fournisseur cloud ne se purge pas : il expire de son côté."
+    clear_cache_no_answer: "WaveStack ne répond pas : le cache n'a pas été vidé."
     tools_used: "Outils consultés pendant ce tour :"
     tools_used_title: "Voir l'étape « {tool} » dans Orchestration"
   composer:
@@ -579,6 +582,7 @@ main:
       llm: "Atelier LLM"
       mcp_lab: "Atelier MCP"
       rag_lab: "Atelier RAG"
+      cache_cleared: "cache vidé"
     hook_decisions:
       allow: "laissé passer"
       modify: "modifié"
