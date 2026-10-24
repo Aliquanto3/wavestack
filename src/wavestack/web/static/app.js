@@ -66,6 +66,8 @@ const store = {
   // Gauge source: the most recent of `context_preview` / `context_rendered` (AD-9), and the
   // call it measures (the envelope's `call_id`, `null` for a preview; story 34).
   gauge: null, // { payload, preview, callId }
+  cacheGauge: null, // V1.3 story 2: { payload: the last call's model_call_ended, cause }
+  cachePrefix: null, // the last prefix_not_reused, kept for the call it precedes
   turns: [], // one projection per turn, filled only from its events
   // `conversation_cleared`: index of the first turn still shown (Vue humain, Contexte LLM,
   // Orchestration), and the seq of the clearing, to hide the MCP connections seen before it.
@@ -488,6 +490,9 @@ function applyEnvelope(envelope) {
       if (turn && p.channel !== "tool_call") turn[p.channel] += p.text;
       break;
     case "model_call_ended":
+      // V1.3 story 2: the cache gauge reads this call's cells and the cause that preceded it.
+      store.cacheGauge = { payload: p, cause: store.cachePrefix ? store.cachePrefix.cause : null };
+      store.cachePrefix = null;
       // AD-2: the `*_ended` payload is authoritative and replaces the deltas.
       if (turn) {
         Object.assign(turn, { callEnded: p, text: p.text, reasoning: p.reasoning });
@@ -655,6 +660,7 @@ function applyEnvelope(envelope) {
     case "tool_call_malformed":
     case "prefix_not_reused":
     case "reasoning_dropped": // native providers 3/5 (CAP-5): the provider threw a reasoning away
+      if (envelope.kind === "prefix_not_reused") store.cachePrefix = p; // V1.3 story 2: the next call's cache cause
       if (turn) turn.steps.push({ type: envelope.kind, payload: p });
       break;
     case "limit_reached":
@@ -1110,6 +1116,7 @@ function render() {
   renderMenu();
   renderPaneVisibility();
   renderGauge();
+  renderCacheGauge();
   renderWindowPicker();
   renderModelIndicator();
   renderChat();
@@ -2526,6 +2533,82 @@ function renderGauge() {
   figures.textContent = text;
   figures.title = text; // story 33: cut on a narrow window, whole in the tooltip
   root.title = t("main.gauge.title", { window: p.window, reserve: p.reserve, usable: p.usable });
+}
+
+// V1.3 story 2 (CAP-2): the last call's cache beside the context bar. Formatting only (AD-1):
+// the widths are the received token counts, a `null` cell is never drawn nor said as 0.
+// `cache_origin` tells what a `null` means: provider, « not declared »; local, « not
+// applicable » for the uncached part, « not measured » for the others. A cause comes from
+// `prefix_not_reused.cause` (every `PrefixCause` has its text; an unknown value is shown as is).
+function cacheCellMissing(origin, cell, tokens) {
+  if (tokens !== null && tokens !== undefined) return null;
+  if (origin === "provider") return t("main.cache_gauge.not_declared");
+  return t(cell === "uncached" ? "main.cache_gauge.not_applicable" : "main.cache_gauge.not_measured");
+}
+
+function cacheGaugeDescription(p, cause) {
+  const origin = p.cache_origin;
+  const cells = [
+    ["read", p.cache_read_tokens],
+    ["write", p.cache_write_tokens],
+    ["uncached", p.cache_uncached_tokens],
+  ];
+  const parts = cells.map(([cell, tokens]) => {
+    const missing = cacheCellMissing(origin, cell, tokens);
+    const name = t(`main.cache_gauge.${cell}`, { tokens: "" }).trim();
+    if (missing) return t("main.cache_gauge.pair", { name, value: missing });
+    const hour = p.cache_write_1h_tokens;
+    if (cell === "write" && hour !== null && hour !== undefined) {
+      return t("main.cache_gauge.write_1h", { tokens, tokens_1h: hour });
+    }
+    return t(`main.cache_gauge.${cell}`, { tokens });
+  });
+  const lines = [t("main.cache_gauge.pair", { name: t("main.cache_gauge.label"), value: parts.join(" · ") })];
+  if (cause) {
+    const named = PREFIX_CAUSES[cause] ?? t("main.cache_gauge.cause_unknown", { cause });
+    lines.push(t("main.cache_gauge.cause", { cause: named }));
+  }
+  if (origin === "local") lines.push(t("main.cache_gauge.local_note"));
+  return lines.join(". ");
+}
+
+function renderCacheGauge() {
+  const root = document.getElementById("cache-gauge");
+  const entry = store.cacheGauge;
+  const p = entry?.payload;
+  // Hidden until a call carries a measure (a trace from before the batch has no origin).
+  if (!p || !p.cache_origin) {
+    root.hidden = true;
+    return;
+  }
+  root.hidden = false;
+  const bar = document.getElementById("cache-gauge-bar");
+  bar.replaceChildren();
+  const cells = [
+    ["read", p.cache_read_tokens],
+    ["write", p.cache_write_tokens],
+    ["uncached", p.cache_uncached_tokens],
+  ];
+  let total = 0;
+  for (const [cell, tokens] of cells) {
+    if (typeof tokens !== "number" || tokens <= 0) continue;
+    total += tokens;
+    const seg = el("span", `cache-seg cache-seg-${cell}`);
+    seg.style.flexGrow = String(tokens);
+    seg.dataset.cell = cell;
+    bar.appendChild(seg);
+  }
+  if (total === 0) bar.appendChild(el("span", "cache-seg cache-seg-none"));
+  const read = p.cache_read_tokens;
+  const known = typeof read === "number" && total > 0;
+  document.getElementById("cache-gauge-text").textContent = known
+    ? t("main.cache_gauge.short", { percent: Math.round((read / total) * 100) })
+    : t(p.cache_origin === "local" ? "main.cache_gauge.short_not_measured" : "main.cache_gauge.short_none");
+  const description = cacheGaugeDescription(p, entry.cause);
+  root.title = description;
+  root.setAttribute("aria-label", description);
+  root.dataset.read = typeof read === "number" ? String(read) : "";
+  root.dataset.cause = entry.cause || "";
 }
 
 // Story 33: the disciplines present in the gauge, prompt, context, harness, then the neutral
