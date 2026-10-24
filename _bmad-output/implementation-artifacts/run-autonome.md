@@ -138,3 +138,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:00 · 1.3-3 · second-avis · 3 medium (course vidage/tour, vidage pendant préremplissage, slot 0 seul), 4 low · 95c0450
 - 2026-10-25 00:00 · 1.3-3 · review · lancé · 95c0450
 - 2026-10-25 00:00 · 1.4-3 · CI · rouge sur Ubuntu après rebase sur 1.4-1 ; 371 tests ciblés verts en local, journal attendu · 21515b7
+- 2026-10-25 00:00 · 1.4-3 · CI · échec Ubuntu = test_engine_candidates (probabilités, hors diff, instable présumé) ; job relancé · 21515b7
