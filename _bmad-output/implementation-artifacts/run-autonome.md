@@ -60,3 +60,8 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:12 · 1.4-1 · dev · lancé (créneau libre pendant la V1.3-1) · 72cfdf0
 - 2026-10-24 23:13 · 1.3-1 · dev · spec prête (phase 1) · dd32e23
 - 2026-10-24 23:13 · 1.3-1 · review · relecture de la spec lancée · dd32e23
+- 2026-10-24 23:15 · 1.3-1 · review · spec approuvée après 4 corrections importantes (lecture locale sans last_cache_reuse, collision cache_savings, règle d'écriture par pivot, tests listés) · 23e84c8
+- 2026-10-24 23:15 · 1.3-1 · décision · à revoir : non caché local = None « sans objet », distingué par cache_origin · 23e84c8
+- 2026-10-24 23:15 · 1.3-1 · décision · à revoir : champ cache_write_1h_tokens ajouté dès la story 1 (Anthropic ephemeral_1h) pour les stories 4 et 5 · 23e84c8
+- 2026-10-24 23:15 · 1.3-1 · décision · à revoir : cache_origin None seulement pour une trace antérieure ; usage estimé = provider, cases None · 23e84c8
+- 2026-10-24 23:15 · 1.3-1 · dev · phase 2 (code) lancée · 23e84c8
