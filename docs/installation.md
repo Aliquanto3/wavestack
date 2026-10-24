@@ -128,6 +128,8 @@ téléchargement ; `-Models list` (ou `WAVESTACK_MODELS=list`) affiche la table 
 |---|---|---|---|
 | `qwen3.5-0.8b` | `Qwen3.5-0.8B-Q4_K_M.gguf` | 0,5 Go | Apache-2.0 |
 | `minicpm5` | `MiniCPM5-2B-Q4_K_M.gguf` | 1,5 Go | Apache-2.0 |
+| `granite-4.0-350m` | `granite-4.0-350m-Q4_K_M.gguf` | 0,2 Go | Apache-2.0 |
+| `granite-4.0-1b` | `granite-4.0-1b-Q4_K_M.gguf` | 1,0 Go | Apache-2.0 |
 
 Exemples : `.\install.ps1 -Models qwen3.5-0.8b` ; `curl -fsSL <url de install.sh> |
 WAVESTACK_MODELS=qwen3.5-0.8b bash`. `-WithMiniCPM` et `WAVESTACK_WITH_MINICPM=1` restent des
@@ -229,6 +231,13 @@ dans `models/` et sans choix mémorisé, WaveStack charge Qwen3.5-2B, sans enreg
 Skills et sous-agents fonctionnent, avec une qualité plus faible. Les installateurs le
 téléchargent avec `-Models qwen3.5-0.8b` ou `WAVESTACK_MODELS=qwen3.5-0.8b` ; à la main, depuis la
 révision épinglée ([le fichier](https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf)).
+
+**Granite 4.0 Nano, modèles locaux facultatifs.** `granite-4.0-350m` (0,2 Go) et `granite-4.0-1b`
+(1,0 Go), d'IBM, licence Apache-2.0, en Q4_K_M. Ils écrivent leurs appels d'outils en JSON
+`<tool_call>` (lecteur `hermes`) et ne raisonnent pas. Installation par `-Models granite-4.0-1b` ou
+`WAVESTACK_MODELS=granite-4.0-1b` ; à la main, depuis la révision épinglée
+([350M](https://huggingface.co/ibm-granite/granite-4.0-350m-GGUF/resolve/b8208a86a58427e1739265318028eb5895b74bf2/granite-4.0-350m-Q4_K_M.gguf),
+[1B](https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf)).
 
 Sans modèle local, WaveStack fonctionne aussi avec un modèle cloud : collez une clé API au
 diagnostic (voir [Modèles cloud](modeles.md#modèles-cloud)).

@@ -8,7 +8,7 @@ unknown family falls back to what the GGUF says. A GGUF without
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial
 from typing import TYPE_CHECKING, Literal
 
 from wavestack.config import MAX_RESERVE
@@ -19,6 +19,27 @@ if TYPE_CHECKING:
     from wavestack.config import CloudModel
 
 _THINK_TAGS = ("<think>", "</think>")
+# End-of-turn markers a template writes (Granite, ChatML, EXAONE 4.0): the one written first
+# in the template is the model's stop sequence.
+_END_OF_TURN_MARKERS = ("<|end_of_text|>", "<|im_end|>", "[|endofturn|]")
+# Spec B, round-trip probe: a past call, its result, and a private marker for the question
+# (never in a real text), after which the probe reads the render.
+_PROBE_QUESTION = ""
+_PROBE_CALL = {"name": "calculator", "arguments": {"expression": "12*37"}}
+_PROBE_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "calculator",
+            "description": "Evaluate an arithmetic expression.",
+            "parameters": {
+                "type": "object",
+                "properties": {"expression": {"type": "string"}},
+                "required": ["expression"],
+            },
+        },
+    }
+]
 CLOUD_FAMILY = "openai_chat"  # a cloud model: capabilities declared, no template (AD-6)
 # AD-6: why a local model offers no tool call; the brick cards and the model table (story 25).
 # Languages (5/5): the texts of this module are `Message`s, French as a text, rendered by
@@ -44,7 +65,50 @@ class Capabilities:
     reasoning_always: bool = False
 
 
+@cache
+def hermes_round_trip(template: str) -> bool:
+    """Spec B, round-trip rule: `template` renders a past call (an `assistant` message with
+    `tool_calls`, then a `tool` message) that the `hermes` reader reads back, same name and
+    same arguments. Only the render after the question counts (a system prompt may show an
+    empty `<tool_call>` example). False when the call is absent (SmolLM3, Falcon-H1),
+    unreadable (Hunyuan: bare name and a markdown JSON block), or when the render fails."""
+    # Local imports: `tools.parser` imports this module (`tool_call_tags`).
+    from wavestack.context.render import render_template
+    from wavestack.tools.parser import parse_tool_calls
+
+    call = {"id": "call_0", "type": "function", "function": _PROBE_CALL}
+    messages = [
+        {"role": "user", "content": _PROBE_QUESTION},
+        {"role": "assistant", "content": "", "tool_calls": [call]},
+        {"role": "tool", "content": "444", "tool_call_id": "call_0", "name": "calculator"},
+    ]
+    try:
+        text = render_template(template, messages, tools=_PROBE_TOOLS)
+        at = text.rfind(_PROBE_QUESTION)
+        if at < 0:
+            return False
+        calls, bad = parse_tool_calls(text[at + len(_PROBE_QUESTION) :], "hermes", {})
+    except Exception:  # noqa: BLE001 - a template the probe does not suit: no reader
+        return False
+    expected = (_PROBE_CALL["name"], _PROBE_CALL["arguments"])
+    return bad is None and [(c.name, c.arguments) for c in calls] == [expected]
+
+
+def _end_of_turn(template: str) -> tuple[str, ...]:
+    """The end-of-turn marker `template` writes first, as a stop sequence; none if unknown."""
+    found = [(template.find(m), m) for m in _END_OF_TURN_MARKERS if m in template]
+    return (min(found)[1],) if found else ()
+
+
 def capabilities_for(meta: EngineMetadata) -> Capabilities:
+    """AD-6: the capabilities of a local model, from its architecture and chat template.
+
+    MiniCPM5 (`<function name="`) and Qwen3 (ChatML, by architecture or, without one, by
+    `<tool_call>` and Qwen3's reasoning) keep their reader. Any other template that announces
+    `<tool_call>` without `<function=` (Granite 4.0, Qwen2.5, Hermes, EXAONE 4.0) gets the
+    `hermes` reader only when it passes the round-trip probe (`hermes_round_trip`), and the
+    end-of-turn marker it writes as stop sequence. SmolLM3, Falcon-H1 and Hunyuan fail the
+    probe: no reader. Reasoning follows the generic rules."""
     arch = meta.architecture or ""
     template = meta.chat_template
     if is_pooled(meta.pooling_type):
@@ -106,6 +170,22 @@ def capabilities_for(meta: EngineMetadata) -> Capabilities:
             reasoning_variable=reasoning_variable,
             native_context=meta.native_context,
             reasoning_tags=_THINK_TAGS,
+            reasoning=reasoning_variable is not None,
+        )
+    if "<tool_call>" in template and "<function=" not in template and hermes_round_trip(template):
+        # Spec B: any other family whose template announces Hermes-style JSON calls and reads
+        # its own past call back (Granite 4.0, Qwen2.5, Hermes, EXAONE 4.0): the `hermes`
+        # reader, the stop marker its template writes, and reasoning by the generic rules.
+        # A template that fails the probe (SmolLM3, Falcon-H1, Hunyuan) falls through: no
+        # reader, as before.
+        return Capabilities(
+            family=arch or "unknown",
+            chat_template=template,
+            tool_call_parser="hermes",
+            stop_sequences=_end_of_turn(template),
+            reasoning_variable=reasoning_variable,
+            native_context=meta.native_context,
+            reasoning_tags=_THINK_TAGS if _THINK_TAGS[0] in template else None,
             reasoning=reasoning_variable is not None,
         )
     return Capabilities(

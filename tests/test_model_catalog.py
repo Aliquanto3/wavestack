@@ -456,6 +456,7 @@ def test_size_text():
         (["llama"], ["MiniCPM5-2B-Q4_K_M"], "minicpm"),  # MiniCPM5 declares `llama`
         ([], ["gemma-3-270m-it"], "gemma"),
         ([], ["granite-4.0-h-micro"], "granite"),
+        (["granite"], ["granite-4.0-1b"], "granite"),
         ([], ["Phi-4-mini-instruct"], "phi"),
         ([], ["ministral-8b-latest"], "mistral"),
         ([], ["magistral-small"], "mistral"),

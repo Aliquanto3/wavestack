@@ -193,6 +193,18 @@ OPTIONAL_MODELS = {
         "MiniCPM5-2B-Q4_K_M.gguf",
         "ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd",
     ),
+    "granite-4.0-350m": (
+        "https://huggingface.co/ibm-granite/granite-4.0-350m-GGUF/resolve/"
+        "b8208a86a58427e1739265318028eb5895b74bf2/granite-4.0-350m-Q4_K_M.gguf",
+        "granite-4.0-350m-Q4_K_M.gguf",
+        "771c588a49607f274a2bba3185733607ebe6f74b996ab90e2d6bee0d98bcec52",
+    ),
+    "granite-4.0-1b": (
+        "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/"
+        "b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf",
+        "granite-4.0-1b-Q4_K_M.gguf",
+        "22ec0f9cc99a90185312de3c882c84e7bd6789bdd050389844380a01a831d7f1",
+    ),
 }
 VALID_IDS = ", ".join(OPTIONAL_MODELS)
 

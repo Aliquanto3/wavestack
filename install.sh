@@ -17,7 +17,9 @@ QWEN_FILE="Qwen3.5-2B-Q4_K_M.gguf"
 # Modeles locaux facultatifs : une seule table, lue par WAVESTACK_MODELS. Une ligne par modele :
 # identifiant|fichier|taille|licence|sha256|url (revision epinglee).
 OPTIONAL_MODELS="qwen3.5-0.8b|Qwen3.5-0.8B-Q4_K_M.gguf|0,5 Go|Apache-2.0|bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517|https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf
-minicpm5|MiniCPM5-2B-Q4_K_M.gguf|1,5 Go|Apache-2.0|ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd|https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf"
+minicpm5|MiniCPM5-2B-Q4_K_M.gguf|1,5 Go|Apache-2.0|ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd|https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf
+granite-4.0-350m|granite-4.0-350m-Q4_K_M.gguf|0,2 Go|Apache-2.0|771c588a49607f274a2bba3185733607ebe6f74b996ab90e2d6bee0d98bcec52|https://huggingface.co/ibm-granite/granite-4.0-350m-GGUF/resolve/b8208a86a58427e1739265318028eb5895b74bf2/granite-4.0-350m-Q4_K_M.gguf
+granite-4.0-1b|granite-4.0-1b-Q4_K_M.gguf|1,0 Go|Apache-2.0|22ec0f9cc99a90185312de3c882c84e7bd6789bdd050389844380a01a831d7f1|https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf"
 REPO_URL="https://github.com/Aliquanto3/wavestack.git"
 TARBALL_URL="https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.tar.gz"
 
