@@ -347,8 +347,8 @@ def cost_ring(
     """V1.3 CAP-3: a priced call's cost by post, for the bilan's ring « où part l'argent ».
     Same bounded counts and same fallback prices as `call_cost`. `fresh` is the rest of the
     input (the uncached part at the input price, and the rounding), so that the posts sum to
-    `cost.input_usd + cost.output_usd`. Without the 1 h price (story 5, not here), the caller
-    passes no `cached_write_1h` and the whole write is the 5 min post."""
+    `cost.input_usd + cost.output_usd`. `cached_write_1h` is the same 1 h part `call_cost` was
+    given, at `write_1h_price`; absent, the whole write is the 5 min post."""
     price_in = pricing.input_usd_per_mtok
     read_price = pricing.cache_read_usd_per_mtok
     write_price = pricing.cache_write_usd_per_mtok
@@ -357,7 +357,7 @@ def cost_ring(
     cached_write_1h = max(0, min(cached_write_1h, cached_write))
     read = cached_read * (price_in if read_price is None else read_price) / 1_000_000
     write = (price_in if write_price is None else write_price) / 1_000_000
-    write_1h = cached_write_1h * write  # the 1 h price is the write price until story 5
+    write_1h = cached_write_1h * write_1h_price(pricing) / 1_000_000
     write_5m = (cached_write - cached_write_1h) * write
     return {
         "read": read,
@@ -1292,7 +1292,9 @@ def run_call(
                 "cost_out_usd": out.cost.output_usd,
                 "cost_source": source,
             }
-            ring = cost_ring(pricing, cached_read, cached_write, prompt_tokens, out.cost)
+            ring = cost_ring(
+                pricing, cached_read, cached_write, prompt_tokens, out.cost, cached_write_1h
+            )
             cache = cache_savings(
                 pricing,
                 prompt_tokens,

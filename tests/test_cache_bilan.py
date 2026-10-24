@@ -93,6 +93,7 @@ def test_the_totals_equal_the_sum_of_the_anthropic_calls():
     assert (one_hour["declared"], one_hour["undeclared"], one_hour["tokens"]) == (1, 2, 40)
     # the money: the ring is the cost, the cache saving is the sum of the calls'
     assert sum(spend["ring"].values()) == pytest.approx(spend["total_usd"])
+    assert spend["ring"]["write_1h"] > 0  # `ended()` passes the 1 h part to the ring (story 5)
     assert spend["ring_calls"] == 3
     assert spend["cache_saved_usd"] == pytest.approx(sum(c["cache_saved_usd"] for c in calls))
     assert spend["cache_priced_calls"] == 3
@@ -204,7 +205,15 @@ def test_the_ring_posts_sum_to_the_cost(model_id, cached_read, cached_write, pro
 
     pricing = config.load_config().cloud_model(model_id).pricing
     assert pricing is not None
-    cost = call_cost(pricing, prompt, 40, "api", cached_read=cached_read, cached_write=cached_write)
+    cost = call_cost(
+        pricing,
+        prompt,
+        40,
+        "api",
+        cached_read=cached_read,
+        cached_write=cached_write,
+        cached_write_1h=one_hour,
+    )
     ring = cost_ring(pricing, cached_read, cached_write, prompt, cost, one_hour)
     assert sum(ring.values()) == pytest.approx(cost.input_usd + cost.output_usd)
     assert ring["out"] == cost.output_usd and ring["fresh"] >= -1e-12
@@ -219,6 +228,19 @@ def test_the_ring_puts_the_whole_write_in_the_5_minute_post_without_a_1h_count()
     assert ring["write_1h"] == 0 and ring["write_5m"] == pytest.approx(
         150 * pricing.cache_write_usd_per_mtok / 1_000_000
     )
+
+
+def test_the_ring_prices_the_1h_part_at_the_1h_price():
+    from wavestack.models.cloud_base import call_cost, write_1h_price
+
+    pricing = config.load_config().cloud_model("claude_haiku").pricing
+    cost = call_cost(pricing, 1000, 10, "api", cached_read=0, cached_write=150, cached_write_1h=50)
+    ring = cost_ring(pricing, 0, 150, 1000, cost, 50)
+    assert write_1h_price(pricing) != pricing.cache_write_usd_per_mtok  # a distinct price
+    assert ring["write_1h"] == pytest.approx(50 * write_1h_price(pricing) / 1_000_000)
+    assert ring["write_5m"] == pytest.approx(100 * pricing.cache_write_usd_per_mtok / 1_000_000)
+    assert ring["fresh"] == pytest.approx(850 * pricing.input_usd_per_mtok / 1_000_000)
+    assert sum(ring.values()) == pytest.approx(cost.input_usd + cost.output_usd)
 
 
 # ---------- who counts where, and the resets ----------
