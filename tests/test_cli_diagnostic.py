@@ -575,6 +575,31 @@ def test_single_candidate_is_loaded_at_startup(monkeypatch, tmp_path):
     assert result.model_path == str(config.models_dir() / "a.gguf")
 
 
+def test_default_model_wins_without_a_saved_choice_and_is_not_saved(monkeypatch, tmp_path):
+    session, _ = _build(
+        monkeypatch, tmp_path, models=("MiniCPM5-2B-Q4_K_M.gguf", "qwen3.5-2b-q4_k_m.gguf")
+    )
+
+    result = session.check_model()
+
+    assert result.ready is True
+    assert result.model_path == str(config.models_dir() / "qwen3.5-2b-q4_k_m.gguf")
+    assert session.selected_model_path is None
+
+
+def test_saved_minicpm_is_kept_next_to_the_default_model(monkeypatch, tmp_path):
+    session, _ = _build(
+        monkeypatch,
+        tmp_path,
+        models=("MiniCPM5-2B-Q4_K_M.gguf", config.DEFAULT_MODEL_FILE),
+        saved="MiniCPM5-2B-Q4_K_M.gguf",
+    )
+
+    result = session.check_model()
+
+    assert result.model_path == str(config.models_dir() / "MiniCPM5-2B-Q4_K_M.gguf")
+
+
 def test_several_candidates_block_until_a_choice(monkeypatch, tmp_path):
     session, _ = _build(monkeypatch, tmp_path, models=("a.gguf", "b.gguf"))
     before = get_journal().last_seq()

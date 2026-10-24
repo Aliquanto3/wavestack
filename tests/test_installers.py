@@ -177,3 +177,73 @@ def test_install_ps1_stops_when_git_clone_fails(tmp_path) -> None:
     assert result.returncode != 0
     assert "git clone a echoue" in result.stdout + result.stderr
     assert not (tmp_path / "data").exists()
+
+
+MINICPM_URL = (
+    "https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/"
+    "2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf"
+)
+
+
+@pytest.mark.parametrize("name", ["install.ps1", "install.sh", "docs/installation.md"])
+def test_minicpm_url_is_the_same_everywhere(name: str) -> None:
+    assert MINICPM_URL in (ROOT / name).read_text(encoding="utf-8")
+
+
+def test_default_model_file_matches_the_installers() -> None:
+    assert f"'{config.DEFAULT_MODEL_FILE}'" in (ROOT / "install.ps1").read_text(encoding="utf-8")
+    assert f'"{config.DEFAULT_MODEL_FILE}"' in (ROOT / "install.sh").read_text(encoding="utf-8")
+
+
+def _sh_dry_run(tmp_path, **extra: str) -> str:
+    env = {
+        **os.environ,
+        "WAVESTACK_INSTALL_DIR": (tmp_path / "project").as_posix(),
+        "WAVESTACK_DATA_DIR": (tmp_path / "data").as_posix(),
+        "WAVESTACK_DRY_RUN": "1",
+        **extra,
+    }
+    result = subprocess.run(
+        [shutil.which("bash"), (ROOT / "install.sh").as_posix()],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+        timeout=30,
+    )
+    assert not (tmp_path / "data").exists()
+    return result.stdout
+
+
+def test_install_sh_minicpm_only_on_request(tmp_path) -> None:
+    if not shutil.which("bash"):
+        pytest.skip("bash indisponible sur ce poste")
+    assert "MiniCPM5" not in _sh_dry_run(tmp_path)
+    assert "MiniCPM5-2B-Q4_K_M.gguf" in _sh_dry_run(tmp_path, WAVESTACK_WITH_MINICPM="1")
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="install.ps1 cible Windows")
+@pytest.mark.parametrize("option", [[], ["-WithMiniCPM"]])
+def test_install_ps1_minicpm_dry_run(tmp_path, option) -> None:
+    result = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(ROOT / "install.ps1"),
+            "-InstallDir",
+            str(tmp_path / "project"),
+            "-DataDir",
+            str(tmp_path / "data"),
+            "-DryRun",
+            *option,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    assert ("MiniCPM5-2B-Q4_K_M.gguf" in result.stdout) is bool(option)
+    assert not (tmp_path / "data").exists()

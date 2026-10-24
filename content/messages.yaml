@@ -685,6 +685,9 @@ tools:
     no_name: "l'appel n'est pas un objet JSON avec un champ « name »"
     arguments_not_object: "le champ « arguments » n'est pas un objet JSON"
     never_closed: "la balise <tool_call> n'est jamais fermée"
+    minicpm5_function_tag: "la balise <function name=\"…\"> est absente ou mal fermée"
+    minicpm5_param_unclosed: "une balise <param name=\"…\"> n'est pas fermée par </param>"
+    minicpm5_never_closed: "la balise <function name=\"…\"> n'est jamais fermée par </function>"
     cut: "la sortie a été coupée à {limit} tokens au milieu de l'appel"
   calculator:
     power: "Puissance refusée : l'exposant {exponent} est trop grand pour la calculatrice (au plus {max}, et un résultat de taille raisonnable)."

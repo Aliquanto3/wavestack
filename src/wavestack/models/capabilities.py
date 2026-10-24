@@ -80,6 +80,23 @@ def capabilities_for(meta: EngineMetadata) -> Capabilities:
         and "<tool_call>" in template
         and ("enable_thinking" in template or "<think>" in template)
     )
+    # MiniCPM5 declares `llama` and has no `<tool_call>`: its template says it (`<function
+    # name="`), for a file as for a server, whatever the architecture.
+    if (
+        "<|im_start|>" in template
+        and '<function name="' in template
+        and '<param name="' in template
+    ):
+        return Capabilities(
+            family="minicpm5",
+            chat_template=template,
+            tool_call_parser="minicpm5",
+            stop_sequences=("<|im_end|>",),
+            reasoning_variable=reasoning_variable,
+            native_context=meta.native_context,
+            reasoning_tags=_THINK_TAGS,
+            reasoning=reasoning_variable is not None,
+        )
     if (arch.startswith("qwen3") or by_template) and "<|im_start|>" in template:
         return Capabilities(
             family="qwen3",
@@ -200,6 +217,13 @@ def tools_summary(caps: Capabilities | None) -> tuple[bool | None, str, str | No
 
 
 TOOL_CALL_TAGS = ("<tool_call>", "</tool_call>")  # shared by `qwen3_coder` and `hermes`
+# The tags of the other readers: MiniCPM5's `<function …>` is the call itself, no wrapper.
+_TOOL_CALL_TAGS_BY_PARSER = {"minicpm5": ('<function name="', "</function>")}
+
+
+def tool_call_tags(parser: str | None) -> tuple[str, str]:
+    """The tags that enclose a call for the reader `parser` (`TOOL_CALL_TAGS` by default)."""
+    return _TOOL_CALL_TAGS_BY_PARSER.get(parser or "", TOOL_CALL_TAGS)
 
 
 class ChannelSplitter:

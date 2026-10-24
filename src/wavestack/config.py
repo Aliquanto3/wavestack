@@ -193,6 +193,9 @@ def _is_loopback(host: str) -> bool:
         return False
 
 
+# The model loaded at startup when several files are usable and none was chosen (installers
+# download it by default; `tests/test_installers.py` keeps them equal).
+DEFAULT_MODEL_FILE = "Qwen3.5-2B-Q4_K_M.gguf"
 OUTPUT_RESERVE = 512  # AD-9: the output reserve of a model that does not reason
 MAX_RESERVE = 1536  # AD-9: the largest output reserve; `tpm // 2` must exceed it
 # Story 26 (AD-9): the windows the interface offers, the one list read by the intention and

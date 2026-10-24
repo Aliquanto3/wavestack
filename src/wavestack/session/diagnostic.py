@@ -6,8 +6,9 @@ the other states (`idle`, `turn`, ...); this module is not to be pre-built
 for them.
 
 Startup rule (story 1b): the saved `selected_model` if still usable; else the
-only usable file; with several, block until the user picks one. A model served by
-an already-running local server (story 18) is taken back when it was the saved
+only usable file; with several, the default model file (`config.DEFAULT_MODEL_FILE`, by file
+name, not saved as a choice) when it is one of them; else block until the user picks one. A
+model served by an already-running local server (story 18) is taken back when it was the saved
 choice and is still served, but never chosen by default: served models only block
 until the user picks one. Once a model is handed out for loading, a new choice is a
 hot switch (story 17, CAP-34): the application session loads it, and saves it after
@@ -587,6 +588,16 @@ class DiagnosticSession:
         if len(distinct) == 1:
             return self._hand_out(files[0], candidates, notice_text)
         if len(distinct) > 1:
+            default = next(
+                (
+                    c
+                    for c in files
+                    if Path(c.path).name.lower() == config.DEFAULT_MODEL_FILE.lower()
+                ),
+                None,
+            )
+            if default is not None:
+                return self._hand_out(default, candidates, notice_text)
             self._emit_check(
                 "model",
                 "warn",

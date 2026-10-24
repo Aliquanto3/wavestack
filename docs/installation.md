@@ -117,6 +117,11 @@ PowerShell se passent à `.\install.ps1` ou à `install.bat` depuis un clone (pa
 `& ([scriptblock]::Create((irm <url de install.ps1>))) -DryRun`. Côté bash, les variables se
 placent devant `bash` : `curl -fsSL <url de install.sh> | WAVESTACK_DRY_RUN=1 bash`.
 
+**MiniCPM5-2B, facultatif.** `-WithMiniCPM` (PowerShell) ou `WAVESTACK_WITH_MINICPM=1` (bash,
+et PowerShell sous `irm … | iex`) télécharge en plus `MiniCPM5-2B-Q4_K_M.gguf` (1,5 Go), à côté de
+Qwen3.5-2B, avec le même schéma idempotent. Sans l'option, rien ne change : seul Qwen3.5-2B est
+téléchargé. Voir [Le modèle local](#le-modèle-local).
+
 Si l'installeur échoue (politique du poste, proxy), suivez le pas à pas manuel ci-dessous.
 
 ## Windows
@@ -200,6 +205,13 @@ Un blob GGUF d'Ollama choisi comme un fichier peut être refusé par llama-cpp-p
 (fichier incompatible, raison expliquée, modèle précédent gardé) : préférez le fichier amont.
 Servi par Ollama lui-même, le même modèle fonctionne avec un Ollama récent (`qwen3.5:2b` au test
 du 2026-09-27), ou par llama-server (voir [Utiliser un serveur déjà lancé](modeles.md#utiliser-un-serveur-déjà-lancé-ollama-llama-server)).
+
+**MiniCPM5-2B, modèle local facultatif.** `MiniCPM5-2B-Q4_K_M.gguf` (OpenBMB, licence Apache-2.0,
+1,5 Go), entraîné à l'appel d'outils : il offre les briques Outils, MCP, Skills et sous-agents,
+comme Qwen3.5-2B. WaveStack le reconnaît à son gabarit de conversation. Les installateurs le
+téléchargent avec `-WithMiniCPM` ou `WAVESTACK_WITH_MINICPM=1` ; à la main, depuis la révision
+épinglée ([le fichier](https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf)). Qwen3.5-2B reste le modèle recommandé : avec les deux fichiers
+dans `models/` et sans choix mémorisé, WaveStack charge Qwen3.5-2B, sans enregistrer ce choix.
 
 Sans modèle local, WaveStack fonctionne aussi avec un modèle cloud : collez une clé API au
 diagnostic (voir [Modèles cloud](modeles.md#modèles-cloud)).

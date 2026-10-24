@@ -139,13 +139,13 @@ from wavestack.models import reranker as reranker_module
 from wavestack.models.candidates import distribution, draw_index, dropped_by
 from wavestack.models.capabilities import (
     NO_TOOL_PARSER_FR,
-    TOOL_CALL_TAGS,
     Capabilities,
     ChannelSplitter,
     capabilities_for,
     cloud_capabilities,
     reasoning_mode,
     reasoning_window_fr,
+    tool_call_tags,
 )
 from wavestack.models.cloud_api import create_cloud_engine
 from wavestack.models.embedding import Embedder
@@ -8504,7 +8504,7 @@ class AppSession:
         splitter = ChannelSplitter(
             tags,
             in_reasoning=bool(tags) and rendered.prompt.rstrip().endswith(tags[0]),
-            tool_tags=TOOL_CALL_TAGS if tools else None,
+            tool_tags=tool_call_tags(self._caps.tool_call_parser) if tools else None,
         )
         # Lot C (N4): a reasoning longer than the budget is closed by the harness, the rest
         # of the reserve going to the answer; only when the call reasons and the reserve

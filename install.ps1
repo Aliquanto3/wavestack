@@ -19,6 +19,11 @@
 .PARAMETER NoLaunch
     N'ouvre pas l'application a la fin (utile pour les tests).
 
+.PARAMETER WithMiniCPM
+    Telecharge aussi MiniCPM5-2B (1,5 Go, Apache-2.0), modele local facultatif a cote de
+    Qwen3.5-2B, qui reste le modele par defaut. Equivalent : WAVESTACK_WITH_MINICPM=1
+    (sous `irm | iex`, qui ne passe pas d'option).
+
 .PARAMETER DryRun
     Affiche les dossiers resolus sans rien installer, cloner, telecharger ni lancer.
 #>
@@ -28,6 +33,7 @@ param(
     [string]$DataDir,
     [string]$UvInstallDir,
     [switch]$NoLaunch,
+    [switch]$WithMiniCPM,
     [switch]$DryRun
 )
 
@@ -39,6 +45,8 @@ param(
     # Memes valeurs que README.md (une seule source de verite : voir tests/test_installers.py)
     $QwenUrl  = 'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf'
     $QwenFile = 'Qwen3.5-2B-Q4_K_M.gguf'
+    $MiniCPMUrl  = 'https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf'
+    $MiniCPMFile = 'MiniCPM5-2B-Q4_K_M.gguf'
     $RepoUrl  = 'https://github.com/Aliquanto3/wavestack.git'
     $ZipUrl   = 'https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.zip'
     $ZipRoot  = 'wavestack-main'
@@ -63,10 +71,13 @@ param(
     $CacheDir  = Join-Path $DataDir 'uv-cache'
     $ModelsDir = Join-Path $DataDir 'models'
     $ModelPath = Join-Path $ModelsDir $QwenFile
+    $MiniCPMPath = Join-Path $ModelsDir $MiniCPMFile
+    $WantMiniCPM = $WithMiniCPM -or ($env:WAVESTACK_WITH_MINICPM -eq '1')
 
     Write-Host "Projet      : $InstallDir"
     Write-Host "Donnees     : $DataDir"
     Write-Host "Modele Qwen : $ModelPath"
+    if ($WantMiniCPM) { Write-Host "Modele MiniCPM5 : $MiniCPMPath" }
 
     if ($DryRun) {
         Write-Host "(mode a blanc : aucune commande reseau ou d'installation executee)"
@@ -113,6 +124,18 @@ param(
         Move-Item -Force -LiteralPath "$ModelPath.part" $ModelPath
     } else {
         Write-Host 'Modele Qwen deja present, pas de nouveau telechargement.'
+    }
+
+    # -- Modele MiniCPM5 : seulement sur demande (-WithMiniCPM), telecharge si absent.
+    if ($WantMiniCPM) {
+        if (-not (Test-Path $MiniCPMPath)) {
+            Write-Host 'Telechargement du modele MiniCPM5 (1,5 Go)...'
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -UseBasicParsing $MiniCPMUrl -OutFile "$MiniCPMPath.part"
+            Move-Item -Force -LiteralPath "$MiniCPMPath.part" $MiniCPMPath
+        } else {
+            Write-Host 'Modele MiniCPM5 deja present, pas de nouveau telechargement.'
+        }
     }
 
     if (-not $NoLaunch) {

@@ -5,12 +5,16 @@
 #
 # Surcharges (dossiers d'installation, utiles aussi pour les tests) :
 #   WAVESTACK_INSTALL_DIR, WAVESTACK_DATA_DIR, WAVESTACK_UV_INSTALL_DIR,
-#   WAVESTACK_NO_LAUNCH=1 (n'ouvre pas l'application), WAVESTACK_DRY_RUN=1 (mode a blanc).
+#   WAVESTACK_NO_LAUNCH=1 (n'ouvre pas l'application), WAVESTACK_DRY_RUN=1 (mode a blanc),
+#   WAVESTACK_WITH_MINICPM=1 (telecharge aussi MiniCPM5-2B, 1,5 Go, modele facultatif ;
+#   Qwen reste le modele par defaut).
 set -euo pipefail
 
 # Memes valeurs que README.md (une seule source de verite : voir tests/test_installers.py)
 QWEN_URL="https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf"
 QWEN_FILE="Qwen3.5-2B-Q4_K_M.gguf"
+MINICPM_URL="https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf"
+MINICPM_FILE="MiniCPM5-2B-Q4_K_M.gguf"
 REPO_URL="https://github.com/Aliquanto3/wavestack.git"
 TARBALL_URL="https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.tar.gz"
 
@@ -19,6 +23,7 @@ DATA_DIR="${WAVESTACK_DATA_DIR:-}"
 UV_INSTALL_DIR_OVERRIDE="${WAVESTACK_UV_INSTALL_DIR:-}"
 NO_LAUNCH="${WAVESTACK_NO_LAUNCH:-}"
 DRY_RUN="${WAVESTACK_DRY_RUN:-}"
+WITH_MINICPM="${WAVESTACK_WITH_MINICPM:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
@@ -40,10 +45,14 @@ VENV_DIR="$DATA_DIR/venv"
 CACHE_DIR="$DATA_DIR/uv-cache"
 MODELS_DIR="$DATA_DIR/models"
 MODEL_PATH="$MODELS_DIR/$QWEN_FILE"
+MINICPM_PATH="$MODELS_DIR/$MINICPM_FILE"
 
 echo "Projet      : $INSTALL_DIR"
 echo "Donnees     : $DATA_DIR"
 echo "Modele Qwen : $MODEL_PATH"
+if [ "$WITH_MINICPM" = "1" ]; then
+    echo "Modele MiniCPM5 : $MINICPM_PATH"
+fi
 
 if [ -n "$DRY_RUN" ]; then
     echo "(mode a blanc : aucune commande reseau ou d'installation executee)"
@@ -84,6 +93,17 @@ if [ ! -f "$MODEL_PATH" ]; then
     mv -f "$MODEL_PATH.part" "$MODEL_PATH"
 else
     echo "Modele Qwen deja present, pas de nouveau telechargement."
+fi
+
+# -- Modele MiniCPM5 : seulement sur demande (WAVESTACK_WITH_MINICPM=1), telecharge si absent.
+if [ "$WITH_MINICPM" = "1" ]; then
+    if [ ! -f "$MINICPM_PATH" ]; then
+        echo "Telechargement du modele MiniCPM5 (1,5 Go)..."
+        curl -fL -o "$MINICPM_PATH.part" "$MINICPM_URL"
+        mv -f "$MINICPM_PATH.part" "$MINICPM_PATH"
+    else
+        echo "Modele MiniCPM5 deja present, pas de nouveau telechargement."
+    fi
 fi
 
 # -- Venv et caches sous le dossier de donnees, jamais sous Documents ; l'appli lit ses
