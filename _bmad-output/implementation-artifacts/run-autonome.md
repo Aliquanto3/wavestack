@@ -161,3 +161,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:23 · 1.3-5 · CI · verte (Windows, Ubuntu) · bdb5f81
 - 2026-10-25 00:23 · 1.3-5 · fusion · #93 MERGED · 5c677fb
 - 2026-10-25 00:23 · 1.3-4 · review · reprise : rebase sur main (avec #93) et branchement de la part 1 h dans cost_ring · f06671c
+- 2026-10-25 00:23 · 1.3-3 · CI · PR #94 rebasée sur main (avec #93), CI relancée · —
