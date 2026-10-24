@@ -158,3 +158,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:16 · 1.4-3 · CI · cause : premier jeton tiré = fin de génération (température 1, sans graine), probabiliste sous Ubuntu ; test rendu robuste (jusqu'à 30 tirages), poussé · 4be2138
 - 2026-10-25 00:18 · 1.3-4 · review · 3 low corrigés (appel local hors « sans prix », remise à zéro sous verrou, tests) ; E2E 30/30 ; branchement 1 h à faire après #93 · f06671c
 - 2026-10-25 00:18 · 1.3-4 · décision · à revoir : appel local exclu de « sans prix déclaré » (contre une ligne de la spec de story) · f06671c
+- 2026-10-25 00:23 · 1.3-5 · CI · verte (Windows, Ubuntu) · bdb5f81
+- 2026-10-25 00:23 · 1.3-5 · fusion · #93 MERGED · 5c677fb
+- 2026-10-25 00:23 · 1.3-4 · review · reprise : rebase sur main (avec #93) et branchement de la part 1 h dans cost_ring · f06671c
