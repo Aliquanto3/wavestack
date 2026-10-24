@@ -2,7 +2,7 @@
 title: 'MiniCPM5-2B, modèle local optionnel'
 type: 'feature'
 created: '2026-10-24'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 baseline_commit: 'bde9e65c12ddb95a835f4e1e55a27bf3c9a7b7b5'
 review_loop_iteration: 0
