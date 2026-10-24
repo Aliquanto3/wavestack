@@ -2556,7 +2556,10 @@ class AppSession:
     def use_api_key(self, model_id: str) -> bool:
         """Correction A (2026-10-05): after `set_api_key`, the active cloud model `model_id`
         sends the key `config.cloud_key` reads now, from its next request on, without being
-        reloaded (re-choosing it stays `already_active`). Returns whether it took one."""
+        reloaded (re-choosing it stays `already_active`). Returns whether it took one.
+        V1.3 story 5: the window panel's state is sent again first, a Claude key typed now
+        enabling the prompt cache setting (`/api/state` gives the last state sent)."""
+        self._emit_window_state()
         with self._lock:
             entry, engine = self._cloud, self._engine
         if entry is None or entry.id != model_id or not hasattr(engine, "use_key"):

@@ -7,6 +7,7 @@ import json
 from typing import Any
 
 import pytest
+from pydantic import SecretStr
 from test_anthropic_messages import (
     PLAIN_TEXT,
     Provider,
@@ -32,6 +33,7 @@ from wavestack.models.cloud_base import (
     write_1h_price,
 )
 from wavestack.session.app_session import SendRefused
+from wavestack.trace.journal import get_journal
 
 FIVE = {"type": "ephemeral"}
 HOUR = {"type": "ephemeral", "ttl": "1h"}
@@ -392,14 +394,29 @@ def test_the_panel_state_carries_the_setting_and_no_reason_with_a_key():
         session.close()
 
 
+def _last_window_state() -> dict[str, Any]:
+    events = get_journal().all_events()
+    return [e for e in events if e.kind == "context_window_state"][-1].payload
+
+
 def test_without_a_claude_key_the_setting_is_greyed_and_refused(monkeypatch):
     session = _session(Provider(PLAIN_TEXT))
     try:
-        monkeypatch.setattr(config, "cloud_key", lambda entry: None)
-        assert session._window_state()["claude_cache_locked_text"]
+        # No key at all: the keys file of the temporary data dir emptied, no variable.
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        config.api_keys_path().write_text("{}", encoding="utf-8")
+        session._emit_window_state()  # the panel's state as `/api/state` gives it
+        assert _last_window_state()["claude_cache_locked_text"]
         with pytest.raises(SendRefused):
             session.set_claude_cache("1h")
         assert session._claude_cache == "off"
+        # A key typed during the session enables the setting, without relaunching.
+        entry = _entry()
+        config.write_api_key(entry.id, entry.host, SecretStr("sk-test"))
+        session.use_api_key(entry.id)  # what `POST /api/intentions/set_api_key` calls
+        assert _last_window_state()["claude_cache_locked_text"] is None
+        session.set_claude_cache("1h")
+        assert session._claude_cache == "1h"
     finally:
         session.close()
 

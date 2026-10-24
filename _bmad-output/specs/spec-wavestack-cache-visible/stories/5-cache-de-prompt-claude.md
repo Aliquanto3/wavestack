@@ -129,3 +129,19 @@ context:
 - 2026-10-24, revue de spec (rôle d'Anaël, run de nuit) : point de cache ajouté sur le dernier message (préfixe fixe mesuré sous le seuil du fournisseur, historique en ajout seul), messages chaînes en blocs quand le cache est actif ; test de clé Claude cité (`config.cloud_key`) ; `cache_ttl` limité à `_render_chat` ; cohérence ×1,25 / ×2 précisée, avec un test des prix livrés ; exemple Fable inexistant retiré. Non retenu : repli sur le réglage envoyé quand le détail 1 h manque (l'API le donne ; contrat de la story 1 inchangé). Plafond : inchangé, cohérent avec CAP-5 et `[finops]`.
 
 ## Review Triage Log
+
+## Revue
+
+### Passe 1 (2026-10-24, SHA revu e802bd0)
+
+Base : origin/main e15cc3e, inchangée au `git fetch` (pas de rebase nécessaire).
+
+- **Important**, medium, reviewer : une clé Claude saisie en séance ne dégrisait pas le sélecteur. `/api/state` rend le dernier `context_window_state` émis, et `set_api_key` n'en émettait aucun. Corrigé : `use_api_key` (appelé par la route après chaque clé) réémet l'état du panneau. Test rouge sans le correctif, vert avec.
+- **Nit**, low, second avis 4 : le test « sans clé » remplaçait `config.cloud_key` par un monkeypatch (module interne). Corrigé : `api_keys.json` vidé dans le dossier de données temporaire et `ANTHROPIC_API_KEY` retirée, puis une vraie clé est saisie (dégrisage vérifié).
+- **Nit**, low, second avis 1 : écarté. Une chaîne vide reste une chaîne sans point, comme la spec le demande (« Une chaîne vide reste une chaîne, sans point »), déjà testé.
+- **Nit**, low, second avis 2 : reporté à la story 6. La mémoire globale, les skills chargés et le prompt système vivent dans `system` : les modifier en cours de séance réécrit tout le cache (préfixe Anthropic). C'est le comportement attendu, mais la spec ne le dit pas : la fiche de la story 6 doit le mentionner, voire en faire un geste de démonstration.
+- **Nit**, low, second avis 3 : écarté, déjà dans la spec (« Absente : toute l'écriture compte à 5 min… limite assumée ») et dans le code de `run_call`.
+- **Nit**, low, second avis 5 : écarté, déjà dans la spec (« aucune prime d'écriture n'est estimée d'avance ») et dans le commentaire de `[finops]`.
+- Vérifié : avec `off`, le corps de `_anthropic_messages` est identique octet pour octet à celui de main, sur une boucle d'outils avec réflexion, des `system` vides et un message vide (comparaison directe avec le traducteur d'origin/main). Le test `test_off_sends_the_body_as_before` fige déjà la forme exacte.
+- Complexité : 0 constat. `_claude_cache_locked` lit `api_keys.json` une fois par entrée à chaque émission de l'état du panneau, sur une liste courte et hors de la boucle de tour.
+- Tests : `test_claude_cache`, `test_anthropic_messages`, `test_cloud_cap`, `test_cache_per_call`, `test_cloud`, `test_context_window_setting` et `test_web_app` verts. E2E `claude_cache` et `context_window` : 55 vérifications réussies, 0 échec. Contrôle rapide vert.
