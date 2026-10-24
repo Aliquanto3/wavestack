@@ -57,3 +57,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:10 · 1.2-1 · CI · PR #79 rebasée sur main, CI lancée · 13453c9
 - 2026-10-24 23:11 · 1.2-1 · fusion · #79 MERGED · 72cfdf0
 - 2026-10-24 23:11 · 1.3-1 · dev · lancé (phase spec) · 72cfdf0
+- 2026-10-24 23:12 · 1.4-1 · dev · lancé (créneau libre pendant la V1.3-1) · 72cfdf0
