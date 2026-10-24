@@ -90,3 +90,7 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:31 · 1.3-2 · dev · lancé (empilé sur 1.3-1) · c03250c
 - 2026-10-24 23:34 · 1.4-3 · second-avis · 1 high (test casse-sensible rouge sous Ubuntu), 1 medium (languages ignoré, comme chunk_corpus), 6 low ; confinement sans défaut · 73ecedf
 - 2026-10-24 23:34 · 1.4-3 · review · lancé · 73ecedf
+- 2026-10-24 23:35 · 1.3-5 · review · spec approuvée ; préfixe stable mesuré ≈ 1 000 tokens, sous le seuil du fournisseur · e193a0f
+- 2026-10-24 23:35 · 1.3-5 · décision · à revoir : 3e point de cache sur le dernier message (sinon rien n'est mis en cache) ; la story 6 doit faire dépasser le seuil · e193a0f
+- 2026-10-24 23:35 · 1.3-5 · décision · à revoir : cache_control seulement pour le chat (_render_chat), pas les ateliers ni Tester ; clé via config.cloud_key · e193a0f
+- 2026-10-24 23:35 · 1.3-5 · dev · phase 2 (code) lancée · e193a0f
