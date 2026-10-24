@@ -451,8 +451,20 @@ class ModelCallEndedPayload(BaseModel):
     # (full − paid: negative when the write costs more than the read saves), summable by
     # session. `cache_priced`: False when a cached part has no declared price (net unknown).
     # `cache_source`: the provider's usage field(s) the cached tokens come from.
+    # V1.3 CAP-1 (contract of the batch, stories 2-5): the call's cache cells, on every measured
+    # call, priced or not. An integer (0 included) is a measure; `None` is never shown or summed
+    # as 0: with `cache_origin` "provider" it reads « not declared by the provider », with
+    # "local" it reads « not applicable » (`cache_uncached_tokens`: the engine keeps all it
+    # evaluates) or « not measured » (read, write). `cache_origin` is `None` only on a trace
+    # from before the batch. `cache_write_1h_tokens`: the part of the write kept 1 h (Claude),
+    # the rest being 5 min; `None` when the provider does not detail it.
+    # A provider's read not declared (no `cached_tokens`) leaves read and uncached `None`.
+    # When read and write are not `None`: read + write + (uncached or 0) == prompt_tokens.
+    cache_origin: Literal["local", "provider"] | None = None
     cache_read_tokens: int | None = None
     cache_write_tokens: int | None = None
+    cache_write_1h_tokens: int | None = None
+    cache_uncached_tokens: int | None = None
     cache_full_usd: float | None = None
     cache_write_usd: float | None = None
     cache_saved_usd: float | None = None

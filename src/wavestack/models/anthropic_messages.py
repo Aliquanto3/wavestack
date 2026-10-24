@@ -52,11 +52,22 @@ def pivot_usage(usage: dict[str, Any]) -> dict[str, Any]:
     written = _count(usage.get("cache_creation_input_tokens"))
     output = _count(usage.get("output_tokens"))
     prompt = plain + read + written
+    # V1.3 CAP-1: a cache count the response does not carry stays out of the pivot (not a 0).
+    details: dict[str, int] = {}
+    if "cache_read_input_tokens" in usage:
+        details["cached_tokens"] = read
+    if "cache_creation_input_tokens" in usage:
+        details["cache_write_tokens"] = written
+    creation = usage.get("cache_creation")
+    if isinstance(creation, dict) and "ephemeral_1h_input_tokens" in creation:
+        # V1.3 CAP-1: the write's 1 h part, when Anthropic details its durations.
+        one_hour = _count(creation["ephemeral_1h_input_tokens"])
+        details["cache_write_1h_tokens"] = min(one_hour, written)
     return {
         "prompt_tokens": prompt,
         "completion_tokens": output,
         "total_tokens": prompt + output,
-        "prompt_tokens_details": {"cached_tokens": read, "cache_write_tokens": written},
+        "prompt_tokens_details": details,
     }
 
 

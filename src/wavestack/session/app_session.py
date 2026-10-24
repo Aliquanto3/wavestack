@@ -8560,6 +8560,7 @@ class AppSession:
             # Story 5: the final answer stays out of the trace until its guardrails' check.
             hidden = withhold and not tool_calls
             kv_fields = self._kv_fields(kv_reuse, evaluations[0])
+            cache_cells = self._local_cache_cells(kv_reuse, evaluations[0], len(rendered.ids))
             journal.emit(
                 "model_call_ended",
                 {
@@ -8578,6 +8579,7 @@ class AppSession:
                     "evaluated_tokens": evaluated,
                 }
                 | kv_fields
+                | cache_cells
                 | impact.fields(self._language),
                 actor="model",
             )
@@ -8776,6 +8778,32 @@ class AppSession:
             except Exception:  # noqa: BLE001 - AD-16: the ids of the output instead
                 pass
         return list(prompt_ids) + self._engine.tokenize(produced + closure)
+
+    @staticmethod
+    def _local_cache_cells(
+        reuse: tuple[int, float | None] | None, evaluated: int | None, prompt_tokens: int
+    ) -> dict[str, Any]:
+        """V1.3 CAP-1: `model_call_ended`'s cache cells of a local call, from its first
+        generation, as its engine counts them: read = the server's `cache_n`, else the prompt
+        less what the engine evaluated; written = the rest. No « uncached » locally (the
+        engine keeps all it evaluates); none of them when the engine says nothing."""
+        cells: dict[str, Any] = {
+            "cache_origin": "local",
+            "cache_read_tokens": None,
+            "cache_write_tokens": None,
+            "cache_write_1h_tokens": None,
+            "cache_uncached_tokens": None,
+        }
+        if reuse is not None:
+            read: int | None = reuse[0]
+        elif evaluated is not None:
+            read = prompt_tokens - evaluated
+        else:
+            return cells
+        read = max(0, min(read, prompt_tokens))
+        cells["cache_read_tokens"] = read
+        cells["cache_write_tokens"] = prompt_tokens - read
+        return cells
 
     @staticmethod
     def _kv_fields(reuse: tuple[int, float | None] | None, evaluated: int | None) -> dict[str, Any]:

@@ -52,13 +52,15 @@ def pivot_usage(usage: dict[str, Any]) -> dict[str, Any]:
     out_details = usage.get("output_tokens_details")
     prompt = _count(usage.get("input_tokens"))
     output = _count(usage.get("output_tokens"))
-    cached = _count(details.get("cached_tokens")) if isinstance(details, dict) else 0
+    # V1.3 CAP-1: a read the response does not declare stays out of the pivot (not a 0).
+    declared = isinstance(details, dict) and "cached_tokens" in details
+    cached = {"cached_tokens": _count(details["cached_tokens"])} if declared else {}
     reasoning = _count(out_details.get("reasoning_tokens")) if isinstance(out_details, dict) else 0
     return {
         "prompt_tokens": prompt,
         "completion_tokens": output,
         "total_tokens": prompt + output,
-        "prompt_tokens_details": {"cached_tokens": cached},
+        "prompt_tokens_details": cached,
         "completion_tokens_details": {"reasoning_tokens": reasoning},
     }
 
