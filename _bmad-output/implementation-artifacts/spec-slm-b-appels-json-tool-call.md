@@ -2,7 +2,7 @@
 title: 'Granite 4.0 Nano (350M, 1B) : appels JSON <tool_call>'
 type: 'feature'
 created: '2026-10-24'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '82e05ef74b6c7effa9be437c70e5d59743c92844'
 review_loop_iteration: 0

@@ -1028,3 +1028,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-f-2026-10-05-atelier-llm-tirage-dans-l-exemple.md`
   summary: E2E de l'Atelier LLM — vérifier que « Tirer le token suivant » reste actif en mode exemple pendant une session occupée (par ex. pendant `_lab_generate(..., watch=True)` sur le cloud A).
   evidence: low ; revue F (verification-gap) : la route est testée occupée (pytest), la page seulement au repos.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-slm-b-appels-json-tool-call.md`
+  summary: Servi par llama-server (architecture absente), SmolLM3 passe par la branche `qwen3` de `capabilities_for` (`by_template`) et reçoit `hermes` alors que son gabarit n'affiche pas l'appel passé ; appliquer la règle d'aller-retour à cette branche.
+  evidence: Constaté par la revue du 2026-10-24 (Review Triage Log de la spec B). Antérieur à la story. Appliquer la sonde à la branche `qwen3` casse `tests/test_model_catalog.py::test_qwen_file`, dont le gabarit Qwen factice ne rend pas l'appel passé : il faut d'abord rendre cette fixture réaliste.
