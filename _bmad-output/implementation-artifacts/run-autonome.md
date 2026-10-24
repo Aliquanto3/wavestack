@@ -122,3 +122,7 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:50 · 1.3-4 · review · relecture de la spec lancée · e229269
 - 2026-10-24 23:51 · 1.3-5 · second-avis · 0 high/medium, 5 low (dont un mock de config.cloud_key) · e802bd0
 - 2026-10-24 23:51 · 1.3-5 · review · lancé · e802bd0
+- 2026-10-24 23:53 · 1.4-2 · review · spec approuvée après 2 high et 3 medium corrigés (libellés du papier, compte de scénarios, état des briques, grisé, légende) · a818d6b
+- 2026-10-24 23:53 · 1.4-2 · décision · à revoir : sous-agent = 3e exception AD-9 (compression + subagent dépasse 3 584 tokens en CI) · a818d6b
+- 2026-10-24 23:53 · 1.4-2 · décision · à revoir : harness_map a un prompt neutre (schéma min 1 prompt) ; carte servie par bricks_changed, sans route · a818d6b
+- 2026-10-24 23:53 · 1.4-2 · dev · phase 2 (code) lancée · a818d6b
