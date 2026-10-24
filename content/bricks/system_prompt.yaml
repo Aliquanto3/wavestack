@@ -8,3 +8,7 @@ explanation_text:
     rôle, ton, langue, règles à suivre. L'utilisateur ne la voit pas dans le fil,
     mais le modèle la relit à chaque appel.
   - "Modifiez-la pour voir la réponse changer à message égal."
+  - >-
+    Dans les agents de code, cette consigne vient souvent de fichiers de contexte
+    hiérarchiques (AGENTS.md, CLAUDE.md) : un fichier à la racine du projet, d'autres
+    dans les sous-dossiers, que le harnais assemble et place avant la conversation.

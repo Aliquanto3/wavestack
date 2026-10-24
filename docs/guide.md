@@ -50,8 +50,9 @@ Le menu **Affichage ▾**, à droite, règle le thème, la [langue](#langue) et 
 
 - **Panneau des briques** : chaque brique (raisonnement, prompt système, mémoires, outils, RAG,
   MCP, skills, hooks, garde-fous, sous-agent, compression) s'allume par son interrupteur, avec sa catégorie
-  (prompt, context ou harness engineering), son hébergement (local ou réseau) et son bouton
-  « ? ». « Afficher les actions forcées » révèle les boutons de secours qui déclenchent un outil
+  (prompt, context ou harness engineering : le raisonnement et les garde-fous relèvent du harnais),
+  son hébergement (local ou réseau) et son bouton « ? ». Le document `guide_harnais.md` (section 10)
+  explique l'emboîtement prompt ⊂ contexte ⊂ harnais, les guides et les capteurs. « Afficher les actions forcées » révèle les boutons de secours qui déclenchent un outil
   ou un skill quand un petit modèle ne le fait pas seul.
 - **① Vue humain** : la conversation, telle que la voit l'utilisateur, avec les prompts
   suggérés du scénario et « Rejouer le dernier prompt ».

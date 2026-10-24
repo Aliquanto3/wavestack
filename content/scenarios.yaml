@@ -132,7 +132,9 @@ scenarios:
     description_text: >-
       Les briques du module 1 restent actives, sauf le raisonnement (la mémoire globale
       revient à sa démonstration), et les outils locaux s'y ajoutent. Envoyez un prompt et suivez dans Orchestration le cycle d'appel : le
-      modèle demande l'outil, le harnais l'exécute et réinjecte son résultat.
+      modèle demande l'outil, le harnais l'exécute et réinjecte son résultat. Les prompts
+      nomment l'outil parce que le petit modèle en a besoin : c'est un échafaudage, qu'un
+      modèle plus fort n'exige pas (essayez avec un modèle cloud).
     bricks: [short_memory, system_prompt, global_memory, tools]
     restore_memory: true
     prompts:
@@ -281,7 +283,10 @@ scenarios:
       Envoyez le prompt, puis regardez la bande « Points d'accroche » du schéma : le
       garde-fou H1 bloque la lecture, c'est du code et non le modèle qui décide. Si le
       modèle n'appelle pas l'outil, forcez l'appel de read_file avec le préréglage
-      « Fichier sensible » (après « Afficher les actions forcées ») et rejouez.
+      « Fichier sensible » (après « Afficher les actions forcées ») et rejouez. Même logique
+      pour un skill ou un plugin tiers : un paquet à vérifier avant installation (source,
+      scripts, droits demandés), car un hook le contrôle à l'exécution mais ne remplace pas
+      cette vérification.
     bricks: [short_memory, system_prompt, tools, hooks]
     tools: [get_datetime, read_file]
     hooks: [h1, h2]

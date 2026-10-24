@@ -37,7 +37,7 @@ BRICKS = [
     # Story 22: first in the bricks panel.
     BrickDeclaration(
         id="reasoning",
-        category="prompt",
+        category="harness",
         group="reads",
         capabilities=["reasoning"],
         components=[

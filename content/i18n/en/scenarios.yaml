@@ -101,7 +101,8 @@ scenarios:
       The bricks of module 1 stay on, except the reasoning (global memory goes back to its
       demonstration), and the local tools are added. Send a prompt and follow the call
       cycle in Orchestration: the model asks for the tool, the harness runs it and
-      reinjects its result.
+      reinjects its result. The prompts name the tool because the small model needs it: it
+      is scaffolding, which a stronger model does not require (try a cloud model).
     bricks: [short_memory, system_prompt, global_memory, tools]
     restore_memory: true
     prompts:
@@ -247,7 +248,9 @@ scenarios:
       Send the prompt, then look at the “Hook points” strip of the diagram: the H1 guard
       blocks the reading; it is code, not the model, that decides. If the model does not
       call the tool, force the read_file call with the preset “Sensitive file” (after
-      “Show the forced actions”) and replay.
+      “Show the forced actions”) and replay. Same logic for a third-party skill or plugin: a
+      package to check before installing (source, scripts, requested rights), because a hook
+      controls it at run time but does not replace that check.
     bricks: [short_memory, system_prompt, tools, hooks]
     tools: [get_datetime, read_file]
     hooks: [h1, h2]

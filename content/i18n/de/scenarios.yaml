@@ -107,7 +107,9 @@ scenarios:
       Die Bausteine aus Modul 1 bleiben aktiv, außer dem Denkprozess (das globale Gedächtnis
       kehrt zu seiner Demo zurück), und die lokalen Tools kommen hinzu. Senden Sie einen
       Prompt und verfolgen Sie im Bereich Orchestrierung den Ablauf des Aufrufs: Das Modell fordert
-      das Tool an, der Harness führt es aus und speist sein Ergebnis wieder ein.
+      das Tool an, der Harness führt es aus und speist sein Ergebnis wieder ein. Die Prompts
+      nennen das Tool, weil das kleine Modell das braucht: Das ist ein Gerüst, das ein
+      stärkeres Modell nicht verlangt (probieren Sie ein Cloud-Modell).
     bricks: [short_memory, system_prompt, global_memory, tools]
     restore_memory: true
     prompts:
@@ -263,7 +265,9 @@ scenarios:
       Der Schutz H1 blockiert das Lesen; es entscheidet Code, nicht das Modell. Ruft das
       Modell das Tool nicht auf, erzwingen Sie den Aufruf von read_file mit der
       Voreinstellung „Sensible Datei“ (nach „Erzwungene Aktionen anzeigen“) und wiederholen
-      Sie.
+      Sie. Dieselbe Logik gilt für einen Skill oder ein Plugin von Dritten: ein Paket, das
+      vor der Installation zu prüfen ist (Quelle, Skripte, angeforderte Rechte), denn ein
+      Hook kontrolliert es zur Laufzeit, ersetzt diese Prüfung aber nicht.
     bricks: [short_memory, system_prompt, tools, hooks]
     tools: [get_datetime, read_file]
     hooks: [h1, h2]

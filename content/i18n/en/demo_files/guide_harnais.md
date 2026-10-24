@@ -114,12 +114,29 @@ hosted in the cloud. In that last case, each call sends the whole context to the
 provider, sub-agent included. An honest harness shows this outbound traffic, displays its
 exact content and lets a human approve it before it is sent.
 
-## 10. Key takeaways
+## 10. Prompt, context and harness: three nested disciplines
+
+The prompt is what you write to the model. The context is everything it reads in one
+call: prompt, history, tools, documents. The harness is the code that builds that context,
+runs the actions and sets the limits. Each level contains the next: prompt ⊂ context ⊂
+harness. In coding agents, hierarchical context files (AGENTS.md, CLAUDE.md) feed the
+system prompt.
+
+The harness adds two families of controls. Guides steer the model before it acts (system
+prompt, skills, instructions); sensors check afterwards (hooks, guardrails, tests). A
+control is either computed by code, deterministic and cheap, or inferred by a model, more
+flexible but less reliable (Böckeler).
+
+WaveStack does not show: platforms (ACP, marketplaces), operating-system-level sandboxes,
+permission modes.
+
+## 11. Key takeaways
 
 - The model predicts text; the harness turns it into an agent.
 - Context is scarce: each brick of the harness adds tokens to it, with a gain and a
   cost.
 - Tools, skills and documentation are loaded on demand to save context.
 - Bounds and hooks are code: they decide in the model's place when they need to.
+- Prompt, context and harness nest; guides steer, sensors check.
 - The sub-agent isolates a bulky sub-task: only its result comes back into the main
   context.

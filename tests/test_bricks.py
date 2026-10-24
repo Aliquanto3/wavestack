@@ -514,7 +514,7 @@ def test_cards_come_in_two_groups_in_the_story_order():
     ]
     # The categories do not change: skills and compression are context engineering.
     assert {b["id"]: b["category"] for b in cards} == {
-        "reasoning": "prompt",
+        "reasoning": "harness",
         "system_prompt": "prompt",
         "short_memory": "context",
         "global_memory": "context",
