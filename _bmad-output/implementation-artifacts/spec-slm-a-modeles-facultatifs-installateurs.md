@@ -2,7 +2,7 @@
 title: 'Modèles facultatifs des installateurs, dont Qwen3.5-0.8B'
 type: 'feature'
 created: '2026-10-24'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '51d34f64cca83f82cea31c30bb1883280bec3032'
 review_loop_iteration: 0
