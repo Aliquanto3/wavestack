@@ -98,3 +98,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:39 · 1.4-3 · décision · à revoir : search_documents garde la règle languages du RAG (même corpus pour la comparaison) · 2d30c34
 - 2026-10-24 23:39 · 1.4-3 · PR · #91 ouverte, CI lancée · 2d30c34
 - 2026-10-24 23:39 · 1.3-1 · CI · Ubuntu verte, Windows en cours (#89) · c03250c
+- 2026-10-24 23:40 · 1.3-2 · dev · fini ; E2E local_server 50 OK ; faux llama-server garde le préfixe (lecture locale non nulle) · eae59ca
+- 2026-10-24 23:40 · 1.3-2 · second-avis · lancé · eae59ca
