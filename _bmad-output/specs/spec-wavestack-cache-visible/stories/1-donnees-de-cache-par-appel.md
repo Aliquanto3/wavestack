@@ -14,9 +14,9 @@ context:
 
 ## Intent
 
-**Problem:** Les champs de cache d'un appel cloud ne sont émis que si l'entrée déclare un `pricing` (`cloud_base.py:1044-1048`) et seulement quand le cache a servi. Un appel local ne porte que `kv_cache_tokens` et `evaluated_tokens`, sans forme commune. Les stories 2 à 5 (jauge, bilan, vidage, cache Claude) n'ont donc pas de donnée uniforme à lire.
+**Problem:** Les champs de cache d'un appel cloud ne sont émis que si l'entrée déclare un `pricing` (`cloud_base.py:1029-1048`) et seulement quand le cache a servi. Un appel local ne porte que `kv_cache_tokens` (moteur `llama-server` seulement) et `evaluated_tokens`, sans forme commune. Les stories 2 à 5 (jauge, vidage, bilan, cache Claude) n'ont donc pas de donnée uniforme à lire.
 
-**Approach:** Fixer une fois, dans `ModelCallEndedPayload` (`trace/catalog.py`), un jeu de quatre champs de cache lu par toutes les stories du lot : trois cases de tokens et leur origine. Les remplir pour chaque appel, local ou cloud, avec ou sans prix. Une case que le fournisseur ne remonte pas vaut `None` (« non déclaré »), jamais 0. Les champs de coût existants ne changent pas.
+**Approach:** Fixer une fois, dans `ModelCallEndedPayload` (`trace/catalog.py`), un jeu de champs de cache lu par toutes les stories du lot : trois cases de tokens, la part d'écriture à 1 h et l'origine de la mesure. Les remplir pour chaque appel, local ou cloud, avec ou sans prix. Les champs de coût existants ne changent pas.
 
 ## Boundaries & Constraints
 
@@ -24,25 +24,40 @@ context:
 
 | Champ | Type | Sens |
 |---|---|---|
+| `cache_origin` | `Literal["local", "provider"] \| None` | Qui a mesuré : `local` (mémoire de contexte du moteur), `provider` (usage du fournisseur). `None` seulement pour une trace antérieure au lot. |
 | `cache_read_tokens` | `int \| None` | Lecture cache : tokens du prompt repris du cache. |
-| `cache_write_tokens` | `int \| None` | Écriture cache : tokens du prompt écrits dans le cache par cet appel. |
+| `cache_write_tokens` | `int \| None` | Écriture cache : tokens du prompt écrits dans le cache par cet appel, toutes durées confondues. |
+| `cache_write_1h_tokens` | `int \| None` | Part de `cache_write_tokens` écrite pour 1 h (Claude). Le reste est écrit pour 5 min. `None` si le fournisseur ne détaille pas. |
 | `cache_uncached_tokens` | `int \| None` | Non caché : tokens du prompt ni lus ni écrits. |
-| `cache_origin` | `Literal["local", "provider"] \| None` | Qui a mesuré : `local` (mémoire de contexte du moteur), `provider` (usage du fournisseur), `None` (appel antérieur au lot ou sans mesure). |
 
-- Les trois cases sont des entiers positifs ou nuls, ou `None`. `None` signifie « non déclaré par le fournisseur » ; la jauge et le bilan l'affichent ainsi, jamais comme 0. Un `0` est une valeur déclarée.
-- `cache_read_tokens` et `cache_write_tokens` existent déjà (`catalog.py:454-455`, « absents quand l'appel n'a ni lu ni écrit »). Ils changent de sémantique : présents sur chaque appel mesuré, 0 compris. Les lecteurs existants (`app.js` `cacheNode`, `record_spend`, `cache_savings`) sont réalignés pour ne pas confondre 0 et absent.
-- Les autres champs de cache existants (`cache_full_usd`, `cache_write_usd`, `cache_saved_usd`, `cache_priced`, `cache_source`) restent émis comme aujourd'hui, uniquement quand l'entrée a un `pricing` et que le cache a servi.
-- Invariant : quand les trois cases sont non `None`, leur somme égale `prompt_tokens`.
+**Lecture de `None` (règle unique pour les stories 2 à 4) :**
+- Un entier, 0 compris, est une valeur mesurée. `None` n'est jamais affiché ni sommé comme 0.
+- `None` se lit avec `cache_origin` :
+  - `provider` : « non déclaré par le fournisseur » ;
+  - `local` + `cache_uncached_tokens` : « sans objet en local » (le moteur conserve tout ce qu'il évalue) ;
+  - `local` + `cache_read_tokens` ou `cache_write_tokens` : « non mesuré » (le moteur n'a rien dit).
+- Invariant : quand `cache_read_tokens` et `cache_write_tokens` sont non `None`, `read + write + (uncached or 0) == prompt_tokens`. En local, `read + write == prompt_tokens`.
+
+**Changement de sémantique :** `cache_read_tokens` et `cache_write_tokens` existent déjà (`catalog.py:454-455`, « absents quand l'appel n'a ni lu ni écrit », remplis par `cache_savings`). Ils deviennent présents sur chaque appel mesuré, 0 compris, et ne viennent plus que de la nouvelle fonction `cache_tokens()`. `cache_savings()` ne les renvoie plus : sinon `payload |= cache` écraserait le `None` de l'écriture OpenAI par 0. Les autres champs de cache (`cache_full_usd`, `cache_write_usd`, `cache_saved_usd`, `cache_priced`, `cache_source`) restent émis comme aujourd'hui, seulement avec un `pricing` et un cache qui a servi.
 
 **Règles par source :**
-- **Local** (`cache_origin: "local"`) : lu = `kv_cache_tokens`, écrit = `evaluated_tokens`, non caché = `0` (il n'y a pas de « non caché » en local : tout ce qui est évalué est conservé). Si le moteur ne dit ni l'un ni l'autre (pas de `timings`), les trois valent `None`.
-- **Anthropic** (`cache_origin: "provider"`) : lu = `cache_read_input_tokens`, écrit = `cache_creation_input_tokens`, non caché = `input_tokens`. Les trois sont déclarés, 0 compris.
-- **Compatible OpenAI** (`openai_chat`, `openai_responses`) : lu = `cached_tokens` (0 si l'usage est présent sans ce champ), écrit = `None` (non déclaré), non caché = `prompt_tokens − lu`. Cette dernière case inclut une éventuelle écriture non déclarée.
-- **Usage absent ou estimé** (`usage_source: "estimate"`, appel en erreur sans usage) : `cache_origin: "provider"`, les trois cases à `None`.
-- Le prix n'entre pas en jeu : les cases sont émises sans `pricing`, y compris pour Groq, Mistral, Gemini et Gemma.
+- **Local** (`cache_origin: "local"`, `app_session.py`, première génération de l'appel, comme `_kv_fields`) :
+  - lu = `kv_cache_tokens` si le moteur le donne (`llama-server`), sinon `prompt_tokens − evaluations[0]` (`n_p_eval` de llama.cpp pour le moteur intégré et le faux moteur, qui n'ont pas `last_cache_reuse`) ;
+  - écrit = `prompt_tokens − lu`, borné à `[0, prompt_tokens]` ;
+  - non caché = `None` (sans objet en local) ; `cache_write_1h_tokens` = `None` ;
+  - si le moteur ne donne ni `kv_cache_tokens` ni `evaluations[0]` : lu et écrit valent `None`.
+  - Ce sont des comptes du moteur, pas une mesure du harnais. Un préremplissage (E122) avant l'appel compte comme une lecture de cet appel.
+- **Fournisseur, usage présent** (`cache_origin: "provider"`, `cloud_base.py`), à partir du pivot (`prompt_tokens_details`) :
+  - lu = `cached_tokens` (0 si absent ou illisible, comme `_cached_tokens`) ;
+  - écrit = `cache_write_tokens` du pivot s'il y figure (seul l'adaptateur Anthropic le pose, 0 compris), sinon `None` ;
+  - `cache_write_1h_tokens` = `cache_write_1h_tokens` du pivot s'il y figure, sinon `None`. L'adaptateur Anthropic le pose depuis `usage.cache_creation.ephemeral_1h_input_tokens` quand ce détail existe ;
+  - non caché = `prompt_tokens − lu − (écrit or 0)`. Pour Anthropic, c'est `input_tokens` par construction du pivot. Pour les autres, la case inclut une éventuelle écriture non déclarée ;
+  - les valeurs sont bornées comme dans `cache_savings` : lu ≤ `prompt_tokens`, écrit ≤ `prompt_tokens − lu`.
+- **Fournisseur, usage absent ou inutilisable** (`usage_source: "estimate"`, appel en erreur sans usage, ou pivot sans `prompt_tokens` > 0) : `cache_origin: "provider"`, toutes les cases à `None`.
+- Le prix n'entre pas en jeu : les cases sont émises sans `pricing`, y compris pour Groq, Mistral, Gemini et Gemma. La règle dépend du pivot, pas du nom de l'API : un fournisseur compatible OpenAI qui poserait `cache_write_tokens` dans le pivot serait déclaré.
 
 **Never:**
-- Pas de rendu, de jauge ni de bouton (stories 2 et 3), pas de changement de `record_spend` ni de `ConsumptionUpdatedPayload` (story 4), pas de `cache_control` (story 5).
+- Pas de rendu, de jauge ni de bouton (stories 2 et 3), pas de changement de `record_spend` ni de `ConsumptionUpdatedPayload` (story 4), pas de `cache_control` ni de prix 1 h (story 5).
 - Pas de nouvelle dépendance, pas de renommage des champs existants.
 - Pas de mesure côté harnais à la place de celle du moteur ou du fournisseur.
 
@@ -50,54 +65,66 @@ context:
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| Local, cache réutilisé | `kv_cache_tokens=900`, `evaluated_tokens=100` | read 900, write 100, uncached 0, origin `local` | N/A |
-| Local, premier appel | `kv_cache_tokens=0`, `evaluated_tokens=1000` | read 0, write 1000, uncached 0 | N/A |
-| Local sans mesure | pas de `timings` du moteur | trois cases `None`, origin `local` | N/A |
-| Anthropic, lecture et écriture | `cache_read=800`, `cache_creation=150`, `input_tokens=50` | read 800, write 150, uncached 50 | N/A |
+| Local `llama-server`, cache réutilisé | prompt 1000, `cache_n=900` | read 900, write 100, uncached `None`, origin `local` | N/A |
+| Local intégré ou faux moteur, cache réutilisé | prompt 1000, `last_evaluated=100`, pas de `last_cache_reuse` | read 900, write 100, uncached `None` | N/A |
+| Local, premier appel | prompt 1000, évalué 1000 | read 0, write 1000, uncached `None` | N/A |
+| Local sans mesure | ni `last_evaluated` ni `last_cache_reuse` | read, write, uncached `None`, origin `local` | N/A |
+| Anthropic, lecture et écriture | `cache_read=800`, `cache_creation=150`, `input_tokens=50` | read 800, write 150, uncached 50, origin `provider` | N/A |
+| Anthropic, écriture 1 h détaillée | `cache_creation={ephemeral_5m: 100, ephemeral_1h: 50}` | write 150, write_1h 50 | N/A |
 | Anthropic, rien de caché | `cache_*=0`, `input_tokens=1000` | read 0, write 0, uncached 1000 (déclarés) | N/A |
 | Compatible OpenAI, lecture | `prompt_tokens=1000`, `cached_tokens=600` | read 600, write `None`, uncached 400 | N/A |
 | Compatible OpenAI, sans détail | usage sans `prompt_tokens_details` | read 0, write `None`, uncached = `prompt_tokens` | N/A |
 | Entrée sans `pricing` | Groq ou Mistral, usage présent | cases remplies comme ci-dessus ; aucun champ de coût de cache | N/A |
-| Usage estimé | pas d'usage dans la réponse | trois cases `None`, origin `provider` | N/A |
-| Valeur illisible | `cached_tokens` = `NaN`, négatif ou booléen | traité comme 0 (comportement de `_cached_tokens`) | Aucune exception |
-| Appel refusé avant sortie | erreur HTTP sans usage | trois cases `None` | N/A |
+| Entrée avec `pricing`, cache servi | Gemini, `cached_tokens=800` | champs de coût de cache inchangés ; `cache_write_tokens` `None` (plus 0) | N/A |
+| Usage estimé | pas d'usage dans la réponse | toutes les cases `None`, origin `provider` | N/A |
+| Valeur illisible ou hors bornes | `cached_tokens` `NaN`, négatif, booléen, ou > `prompt_tokens` | 0, ou borné à `prompt_tokens` | Aucune exception |
+| Appel refusé avant sortie | erreur HTTP sans usage | toutes les cases `None` | N/A |
 
 </frozen-after-approval>
 
 ## Code Map
 
-- `src/wavestack/trace/catalog.py:427-474` `ModelCallEndedPayload` -- ajouter `cache_uncached_tokens` et `cache_origin` ; commenter `cache_read_tokens` et `cache_write_tokens` (nouvelle sémantique, `None` = non déclaré). Seul endroit où les noms sont définis.
-- `src/wavestack/models/cloud_base.py:1025-1070` -- lever la condition `pricing is not None` pour les trois cases ; garder `call_cost` et `cache_savings` sous `pricing`. `:362-378` `_cached_tokens` : distinguer « absent » de 0.
-- `src/wavestack/models/cloud_base.py:325-359` `cache_savings` -- ne plus porter `cache_read_tokens` ni `cache_write_tokens` en doublon (les cases viennent de la nouvelle fonction), ou les garder égales.
-- Nouvelle fonction pure `cache_tokens(api, usage, prompt_tokens, usage_source)` dans `cloud_base.py`, qui renvoie les quatre champs ; testable sans réseau.
-- `src/wavestack/models/anthropic_messages.py:47-59` `pivot_usage` -- ajouter `input_tokens` (non caché) au pivot (`prompt_tokens_details.uncached_tokens`) pour que `cache_tokens` n'ait pas à le déduire.
-- `src/wavestack/session/app_session.py:8578, 8788` `_kv_fields` -- ajouter les quatre champs locaux à partir de `kv_reuse` et `evaluated`. Voir aussi `:4884` et tout autre émetteur local de `model_call_ended` (`git grep '"model_call_ended"'`).
-- Lecteurs à réaligner : `src/wavestack/web/static/app.js:2577-2610` `cacheNode` (0 et `None` différents), `cloud_base.py:1062-1070` (`cache_saved_usd`).
+- `src/wavestack/trace/catalog.py:427-474` `ModelCallEndedPayload` -- ajouter `cache_origin`, `cache_write_1h_tokens`, `cache_uncached_tokens` ; réécrire le commentaire de `cache_read_tokens` et `cache_write_tokens` (contrat ci-dessus, lecture de `None`). Seul endroit où les noms sont définis.
+- `src/wavestack/models/cloud_base.py:362-378` `_cached_tokens` -- distinguer « absent » (`None`) de 0 pour l'écriture ; `call_cost` reçoit `or 0`, son résultat ne change pas.
+- Nouvelle fonction pure `cache_tokens(usage, prompt_tokens, usage_source)` dans `cloud_base.py`, qui renvoie les cinq champs ; testable sans réseau. Appelée dans `ended()` (`:1000-1055`) hors de la condition `pricing is not None`, et sous `produced` (sinon cases `None`).
+- `src/wavestack/models/cloud_base.py:325-359` `cache_savings` -- retirer `cache_read_tokens` et `cache_write_tokens` de son dict (collision avec `cache_tokens`) ; garder ses entrées et ses autres clés.
+- `src/wavestack/models/anthropic_messages.py:45-60` `pivot_usage` -- ajouter `cache_write_1h_tokens` à `prompt_tokens_details` quand `usage.cache_creation.ephemeral_1h_input_tokens` est un entier. Pas besoin d'y mettre le non caché : `prompt − read − write` vaut `input_tokens` par construction.
+- `src/wavestack/session/app_session.py:8546-8583` `end()` et `:8781` `_kv_fields` -- ajouter les champs locaux depuis `kv_reuse`, `evaluations[0]` et `len(rendered.ids)`. Seuls émetteurs de `model_call_ended` : `cloud_base.py:1055` et `app_session.py:8564` (vérifier par `git grep '"model_call_ended"' src`).
+- Lecteurs existants, vérifiés : `app.js:2577` `cacheNode` reste conditionné à `cache_saved_usd` (émis comme avant) et teste `cache_write_tokens` en vérité : `None` et 0 donnent tous deux « aucune écriture », rendu inchangé. Le libellé « non déclaré » pour OpenAI revient à la story 2. `kvCacheNode` lit `kv_cache_tokens`, inchangé. `bar.js`, `llm.js`, `mcp.js` ne lisent pas ces champs. `record_spend` reçoit `cache_saved_usd` comme avant.
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `trace/catalog.py` -- champs `cache_uncached_tokens`, `cache_origin` ; commentaire du contrat.
-- [ ] `models/cloud_base.py` -- `cache_tokens()` pure, émission sans `pricing`, `_cached_tokens` qui sait « absent ».
-- [ ] `models/anthropic_messages.py` -- non caché dans le pivot.
-- [ ] `session/app_session.py` -- champs locaux dans `_kv_fields` et les autres émetteurs.
-- [ ] `app.js` `cacheNode` et autres lecteurs -- réaligner sur la nouvelle sémantique (rendu inchangé pour l'utilisateur).
-- [ ] `tests/test_cache_per_call.py` -- cas de la matrice avec un faux moteur local, une fausse réponse Anthropic (lecture et écriture) et une fausse réponse compatible OpenAI (lecture seule), sur des entrées avec et sans `pricing` ; invariant de somme ; usage estimé.
-- [ ] Tests existants sur `cache_read_tokens` / `cache_write_tokens` (`git grep -n "cache_read_tokens\|cache_write_tokens" tests tools`) -- réaligner, E2E compris.
+- [ ] `trace/catalog.py` -- trois nouveaux champs ; commentaire du contrat.
+- [ ] `models/cloud_base.py` -- `cache_tokens()` pure, émission sans `pricing`, `_cached_tokens` qui sait « absent », `cache_savings` sans les deux champs de tokens.
+- [ ] `models/anthropic_messages.py` -- `cache_write_1h_tokens` dans le pivot.
+- [ ] `session/app_session.py` -- champs locaux dans `end()`.
+- [ ] `tests/test_cache_per_call.py` -- cas de la matrice : faux moteur local (`tests/fake_engine.py`, sans `last_cache_reuse`) sur deux appels d'affilée, faux `llama-server` (`cache_n`), fausse réponse Anthropic (lecture, écriture, détail 1 h), fausse réponse compatible OpenAI (lecture seule), avec et sans `pricing` ; invariant de somme ; usage estimé ; erreur sans usage.
+- [ ] Tests existants à réaligner : `tests/test_cloud_cap.py:372` (`cache_savings` ne renvoie plus les tokens : lire les cases dans `model_call_ended`) ; `:473` reste vrai (le pivot y porte `cache_write_tokens`) ; `tests/test_anthropic_messages.py` (pivot). Puis `git grep -n "cache_read_tokens\|cache_write_tokens\|pivot_usage" tests tools` pour le reste, E2E compris.
 
 **Acceptance Criteria:**
-- Given un faux moteur local avec réutilisation du cache, when l'appel se termine, then `model_call_ended` porte read, write, uncached et `cache_origin: "local"` selon la matrice.
-- Given une fausse réponse Anthropic avec lecture et écriture, when l'appel se termine, then les trois cases sont déclarées et leur somme égale `prompt_tokens`.
+- Given le faux moteur local (sans `last_cache_reuse`) et deux questions d'affilée, when le second appel se termine, then `model_call_ended` porte `cache_read_tokens > 0`, `read + write == prompt_tokens`, `cache_uncached_tokens is None` et `cache_origin == "local"`.
+- Given un faux `llama-server` qui renvoie `cache_n`, then `cache_read_tokens == kv_cache_tokens`.
+- Given une fausse réponse Anthropic avec lecture et écriture, when l'appel se termine, then les trois cases sont déclarées et leur somme égale `prompt_tokens` ; avec `cache_creation` détaillé, `cache_write_1h_tokens` est renseigné.
 - Given une fausse réponse compatible OpenAI sans prix déclaré, when l'appel se termine, then `cache_write_tokens` vaut `None` et les deux autres cases sont renseignées.
-- Given un usage estimé, then les trois cases valent `None`.
-- Given une entrée avec prix, when la suite ciblée tourne, then les champs de coût de cache sont inchangés.
+- Given un usage estimé ou une erreur sans usage, then toutes les cases valent `None` et `cache_origin == "provider"`.
+- Given une entrée avec prix, when la suite ciblée tourne, then `cost_*`, `cache_full_usd`, `cache_write_usd`, `cache_saved_usd`, `cache_priced`, `cache_source` et le `consumption_updated` émis sont inchangés.
 
 ## Verification
 
 **Commands:**
-- `uv run pytest -q --tb=short tests/test_cache_per_call.py` plus les tests existants touchés (cache, finops, anthropic) -- expected : vert.
+- `uv run pytest -q --tb=short tests/test_cache_per_call.py tests/test_cloud_cap.py tests/test_anthropic_messages.py tests/test_model_servers.py tests/test_turn_cache.py` -- expected : vert.
 - `uv run python .claude/cost-kit/controle_rapide.py` -- expected : vert.
 
 ## Spec Change Log
+
+- 2026-10-24, revue de spec (point de contrôle tenu pour Anaël) :
+  - Local : non caché `None` (sans objet), et non plus 0, qui est une valeur mesurée. La jauge distingue « sans objet » de « non déclaré » par `cache_origin`.
+  - Local : lu dérivé de `prompt_tokens − evaluations[0]` quand le moteur n'a pas `last_cache_reuse`. Le moteur intégré et le faux moteur n'en ont pas : sans cette règle, la jauge de la story 2 et son E2E n'auraient rien eu à lire en local.
+  - Écriture déclarée d'après le pivot, et non d'après le nom de l'API, ce qui garde vert `test_cloud_cap.py:444`.
+  - `cache_savings` ne renvoie plus les tokens, pour éviter que son 0 écrase le `None`.
+  - Nouveau champ `cache_write_1h_tokens`, pour les colonnes « Écriture cache 5 min » et « 1 h » du bilan (stories 4 et 5).
+  - Usage présent sans `prompt_tokens` : cases `None`, et non un non-caché estimé.
+  - `pivot_usage` n'a pas besoin du non caché.
 
 ## Review Triage Log
