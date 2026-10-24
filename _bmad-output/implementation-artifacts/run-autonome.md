@@ -172,3 +172,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:33 · 1.4-3 · CI · conflits avec main (#89, #92, #93) ; fusion de main dans la branche déléguée · 4be2138
 - 2026-10-25 00:33 · 1.2-3 · second-avis · 6 medium (Probe non arrêtée, tokens estimés non marqués, coûts périmés, génération en erreur, index livré sans coût, mise à jour sans effet sur les questions), 7 low · 6a1b3d3
 - 2026-10-25 00:33 · 1.2-3 · review · lancé (décision : la chaîne lit la copie de travail si raisonnable) · 6a1b3d3
+- 2026-10-25 00:35 · 1.4-3 · CI · main fusionnée (conflits run_e2e.py et une capture résolus), tests et E2E verts, poussée · 983883d
