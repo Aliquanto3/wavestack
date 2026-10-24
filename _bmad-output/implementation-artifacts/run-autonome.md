@@ -106,3 +106,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:44 · 1.4-1 · fusion · #90 MERGED · d9f223e
 - 2026-10-24 23:44 · 1.4-3 · CI · PR #91 rebasée sur main (avec 1.4-1), CI relancée · —
 - 2026-10-24 23:44 · 1.4-2 · dev · lancé (phase spec) · d9f223e
+- 2026-10-24 23:46 · 1.3-1 · CI · verte (Windows, Ubuntu) · c03250c
+- 2026-10-24 23:46 · 1.3-1 · fusion · #89 MERGED (aucun fichier commun avec #90) · e15cc3e
