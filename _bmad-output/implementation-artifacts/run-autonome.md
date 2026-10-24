@@ -94,3 +94,7 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:35 · 1.3-5 · décision · à revoir : 3e point de cache sur le dernier message (sinon rien n'est mis en cache) ; la story 6 doit faire dépasser le seuil · e193a0f
 - 2026-10-24 23:35 · 1.3-5 · décision · à revoir : cache_control seulement pour le chat (_render_chat), pas les ateliers ni Tester ; clé via config.cloud_key · e193a0f
 - 2026-10-24 23:35 · 1.3-5 · dev · phase 2 (code) lancée · e193a0f
+- 2026-10-24 23:39 · 1.4-3 · review · high corrigé (casse CORPUS/ sous Linux), mots vides, notice masquée, E2E par id ; rag_agentic 20/20 · 2d30c34
+- 2026-10-24 23:39 · 1.4-3 · décision · à revoir : search_documents garde la règle languages du RAG (même corpus pour la comparaison) · 2d30c34
+- 2026-10-24 23:39 · 1.4-3 · PR · #91 ouverte, CI lancée · 2d30c34
+- 2026-10-24 23:39 · 1.3-1 · CI · Ubuntu verte, Windows en cours (#89) · c03250c
