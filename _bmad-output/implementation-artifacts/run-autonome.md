@@ -143,3 +143,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:05 · 1.4-2 · second-avis · lancé · 0daec7d
 - 2026-10-25 00:05 · 1.2-2 · attente humaine · banc de modèles réels (candidats System One, Qwen3.5-2B 16 384 / 4 Go) : à lancer par Anaël, hors run parallèle · —
 - 2026-10-25 00:05 · 1.2-3 · dev · lancé (créneau libre, V1.3 et V1.4 restantes bloquées par des fusions) · e15cc3e
+- 2026-10-25 00:06 · 1.3-2 · CI · verte (Windows, Ubuntu) · c81b6d5
+- 2026-10-25 00:06 · 1.3-2 · fusion · #92 MERGED · 8b1245f
