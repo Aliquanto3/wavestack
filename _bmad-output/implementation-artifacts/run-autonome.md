@@ -174,3 +174,7 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:33 · 1.2-3 · review · lancé (décision : la chaîne lit la copie de travail si raisonnable) · 6a1b3d3
 - 2026-10-25 00:35 · 1.4-3 · CI · main fusionnée (conflits run_e2e.py et une capture résolus), tests et E2E verts, poussée · 983883d
 - 2026-10-25 00:43 · 1.3-4 · CI · rouge (Windows, Ubuntu) : test_llm_lab, consumption_updated émis avant model_call_ended sur LLM nu ; correctif renvoyé au reviewer · b53a301
+- 2026-10-25 00:44 · 1.2-3 · review · 6 medium traités (5 corrigés, 1 en attente humaine), 8 low ; E2E 154/154 · 0f79d92
+- 2026-10-25 00:44 · 1.2-3 · décision · à revoir : la chaîne lit la copie de travail quand elle diffère du livré (Never de la spec de story levé) ; Modifier = ajout d'un paragraphe · 0f79d92
+- 2026-10-25 00:44 · 1.2-3 · attente humaine · reconstruire les 3 index réels (build_rag_index.py --lang fr|en|de) pour leurs fichiers de coût · 0f79d92
+- 2026-10-25 00:44 · 1.2-3 · PR · ouverte, CI lancée · 0f79d92
