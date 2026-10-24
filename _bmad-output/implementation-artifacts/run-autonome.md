@@ -129,3 +129,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:54 · 1.3-4 · review · spec approuvée ; signal corrigé (écriture du 1er appel retirée), cost_ring, appels sans prix comptés · fb60884
 - 2026-10-24 23:54 · 1.3-4 · décision · à revoir : signal = écriture hors 1er appel > lecture ; appels hors tour seulement dans « Depuis le lancement » · fb60884
 - 2026-10-24 23:54 · 1.3-4 · report · phase 2 en attente d'un créneau (2 stories en développement) · fb60884
+- 2026-10-24 23:56 · 1.3-3 · dev · fini ; E2E local_server 53 OK, cause cache_cleared · 95c0450
+- 2026-10-24 23:56 · 1.3-3 · second-avis · lancé · 95c0450
+- 2026-10-24 23:56 · 1.3-4 · dev · phase 2 (code) lancée · fb60884
