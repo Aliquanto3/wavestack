@@ -147,3 +147,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:06 · 1.3-2 · fusion · #92 MERGED · 8b1245f
 - 2026-10-25 00:06 · 1.3-5 · CI · PR #93 rebasée sur main (avec 1.3-2), CI relancée · —
 - 2026-10-25 00:07 · 1.4-2 · second-avis · 1 high (test_compression cherche l'ancien module 6), 3 défauts à la fusion avec #91 (22 scénarios, 6 h, conflit run_e2e.py), 3 low · 0daec7d
+- 2026-10-25 00:10 · 1.3-4 · dev · fini, rebasé sur main ; E2E cache_bilan et bar_panels 30 OK · 806554a
+- 2026-10-25 00:10 · 1.3-4 · second-avis · lancé · 806554a
