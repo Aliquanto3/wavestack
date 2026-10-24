@@ -31,6 +31,7 @@ context: []
 - Le rendu du 2026-10-24 montre que le gabarit Granite affiche lui-même les `tool_calls` passés (`<|start_of_role|>assistant<|end_of_role|><tool_call>\n{"name": …}\n</tool_call>`) : aucun changement de session n'est nécessaire.
 - Les familles `qwen3` et `minicpm5` gardent leur détection et leur lecteur, à l'octet près (tests existants verts).
 - Décision du 2026-10-24 : sont exclus les modèles dont la licence ou l'exécution laisse un doute (LFM2.5, EXAONE 4.0, Falcon-H1, SmolLM3-3B, Gemma 4). Les variantes hybrides Granite 4.0-H ont le même gabarit et sont donc reconnues de fait, mais elles ne sont ni proposées par l'installateur, ni recommandées dans la doc.
+- Décision du 2026-10-24 (revue) : règle d'aller-retour. Un gabarit qui annonce `<tool_call>` sans `<function=` ne reçoit le lecteur `hermes` que si un appel passé, rendu par le gabarit lui-même (message `assistant` avec `tool_calls`, puis message `tool`), est relu par `parse_tool_calls(…, "hermes", …)` avec le même nom et les mêmes arguments. La sonde est en cache par gabarit et ne lève jamais d'exception ; un échec vaut « pas de lecteur ». Granite 4.0 et un ChatML Hermes passent la sonde. SmolLM3 et Falcon-H1 (appel passé absent du rendu) ainsi que Hunyuan (nom nu et bloc JSON en markdown) échouent et restent sans outils, comme avant. EXAONE 4.0 la passe techniquement, mais il n'est ni proposé par l'installateur ni recommandé (licence).
 
 **Never:**
 - Pas d'entrée d'installateur ni de recommandation pour Granite 4.0-H.
@@ -47,6 +48,8 @@ context: []
 | Gabarit ChatML + `<tool_call>` sans raisonnement (Qwen2.5, Hermes) | fixture minimale | lecteur `hermes`, arrêt `<|im_end|>` (aujourd'hui : aucun lecteur) | N/A |
 | Qwen3.5, MiniCPM5 | fixtures existantes | famille et lecteur inchangés | N/A |
 | Gabarit sans `<tool_call>` (Gemma 3, Llama 3.2) | fixture minimale | aucun lecteur, comme aujourd'hui | N/A |
+| Gabarit `<tool_call>` dont l'appel passé n'est pas relu | gabarits réels SmolLM3, Falcon-H1, Hunyuan 1.8B (fixtures) | aucun lecteur, comme aujourd'hui | N/A |
+| Gabarit `<tool_call>` relu, autre fin de tour | gabarit réel EXAONE 4.0 (fixture) | lecteur `hermes`, arrêt `[|endofturn|]` | N/A |
 
 </frozen-after-approval>
 
