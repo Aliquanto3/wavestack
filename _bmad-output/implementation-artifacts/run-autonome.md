@@ -45,3 +45,7 @@ B ← A : B ajoute ses entrées d'installateur à la liste créée par A.
 - 2026-10-24 22:00 · 1.2.0 · recette · MiniCPM5-2B réel : téléchargement -Models minicpm5 (1 561 318 368 octets, empreinte OK), tour Outils réel, lecteur minicpm5, calculatrice 444 en 5,2 s · —
 - 2026-10-24 22:03 · A · review · 1 medium corrigé (-Models en session PowerShell), 3 low corrigés · b6380a8
 - 2026-10-24 22:03 · A · PR · #86 ouverte, CI lancée · b6380a8
+- 2026-10-24 22:22 · A · CI · rouge : Get-FileHash introuvable (powershell 5.1 lancé depuis pwsh) ; corrigé par SHA256 de .NET · 382834c
+- 2026-10-24 22:35 · A · CI · verte (Windows, Ubuntu) · 382834c
+- 2026-10-24 22:35 · A · fusion · #86 MERGED · 82e05ef
+- 2026-10-24 22:35 · B · dev · lancé · ae6dba7
