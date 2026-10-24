@@ -108,3 +108,8 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:44 · 1.4-2 · dev · lancé (phase spec) · d9f223e
 - 2026-10-24 23:46 · 1.3-1 · CI · verte (Windows, Ubuntu) · c03250c
 - 2026-10-24 23:46 · 1.3-1 · fusion · #89 MERGED (aucun fichier commun avec #90) · e15cc3e
+- 2026-10-24 23:48 · 1.3-5 · dev · fini, rebasé sur main ; E2E claude_cache 29/29 (avant rebase) · e802bd0
+- 2026-10-24 23:48 · 1.3-5 · second-avis · lancé · e802bd0
+- 2026-10-24 23:48 · 1.4-2 · dev · spec prête · aca8e38
+- 2026-10-24 23:48 · 1.4-2 · décision · libellés des 7 sous-systèmes vérifiés sur arXiv 2609.00006 (tableau 1) : Tools & actions, Safety & permissions corrigés · aca8e38
+- 2026-10-24 23:48 · 1.4-2 · review · relecture de la spec lancée · aca8e38
