@@ -139,3 +139,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:00 · 1.3-3 · review · lancé · 95c0450
 - 2026-10-25 00:00 · 1.4-3 · CI · rouge sur Ubuntu après rebase sur 1.4-1 ; 371 tests ciblés verts en local, journal attendu · 21515b7
 - 2026-10-25 00:00 · 1.4-3 · CI · échec Ubuntu = test_engine_candidates (probabilités, hors diff, instable présumé) ; job relancé · 21515b7
+- 2026-10-25 00:05 · 1.4-2 · dev · fini ; E2E harness_map, programme, subagent, disciplines verts ; écart : H3 non reconduit au module 7, test_program assoupli · 0daec7d
+- 2026-10-25 00:05 · 1.4-2 · second-avis · lancé · 0daec7d
