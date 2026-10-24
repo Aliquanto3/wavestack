@@ -156,3 +156,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:14 · 1.3-3 · décision · à revoir : cause cache_cleared prioritaire sur reset et replay tant que le moteur reste vide · 9e09b49
 - 2026-10-25 00:14 · 1.3-3 · PR · ouverte, CI lancée · 9e09b49
 - 2026-10-25 00:16 · 1.4-3 · CI · cause : premier jeton tiré = fin de génération (température 1, sans graine), probabiliste sous Ubuntu ; test rendu robuste (jusqu'à 30 tirages), poussé · 4be2138
+- 2026-10-25 00:18 · 1.3-4 · review · 3 low corrigés (appel local hors « sans prix », remise à zéro sous verrou, tests) ; E2E 30/30 ; branchement 1 h à faire après #93 · f06671c
+- 2026-10-25 00:18 · 1.3-4 · décision · à revoir : appel local exclu de « sans prix déclaré » (contre une ligne de la spec de story) · f06671c
