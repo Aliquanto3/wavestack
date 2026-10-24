@@ -49,3 +49,12 @@ B ← A : B ajoute ses entrées d'installateur à la liste créée par A.
 - 2026-10-24 22:35 · A · CI · verte (Windows, Ubuntu) · 382834c
 - 2026-10-24 22:35 · A · fusion · #86 MERGED · 82e05ef
 - 2026-10-24 22:35 · B · dev · lancé · ae6dba7
+- 2026-10-24 22:40 · B · dev · fini ; essais réels Granite 1B (12,9 s) et 350M (4,6 s) : hermes, calculatrice 444 · 42e80dc
+- 2026-10-24 22:40 · B · second-avis · lancé · 42e80dc
+- 2026-10-24 22:47 · B · second-avis · 2 high (règle large : outils offerts à SmolLM3, Falcon-H1, EXAONE, Hunyuan), 3 medium, 3 low · 42e80dc
+- 2026-10-24 22:47 · B · décision · Anaël : règle d'aller-retour (outils seulement si l'appel passé rendu par le gabarit est relu par hermes) · 00d67e9
+- 2026-10-24 22:47 · B · review · lancé, avec la correction · 00d67e9
+- 2026-10-24 22:55 · B · review · 8 constats corrigés (règle d'aller-retour, [|endofturn|], taille 0,2 Go…), 1 report (SmolLM3 servi par llama-server) · 3216834
+- 2026-10-24 22:55 · B · recette · Granite 1B et 350M réels après revue : hermes, calculatrice 444 (3,1 s et 0,8 s) · 3216834
+- 2026-10-24 22:55 · B · report · SmolLM3 servi par llama-server reçoit hermes par la branche qwen3 (deferred-work.md) · 4cca5dc
+- 2026-10-24 22:55 · B · PR · #88 ouverte, CI lancée · 4cca5dc
