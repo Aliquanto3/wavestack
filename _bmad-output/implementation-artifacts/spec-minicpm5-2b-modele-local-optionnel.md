@@ -96,6 +96,18 @@ Implémenté selon la spec. Suite complète et E2E laissés à la fin du lot (ru
 
 ## Review Triage Log
 
+Revue du 2026-10-24 (Opus), branche rebasée sur `origin/main` (1f3b8d9) avant de juger.
+
+- medium · second avis 1 · corrigé : `<function name="a">…<function name="b">…</function>` donnait un seul appel `a` aux arguments fusionnés `{'x','y'}` (reproduit), donc un outil exécuté avec des arguments d'un autre appel. `_minicpm5_end` rend désormais « jamais fermé » quand un `<function name="` s'ouvre hors CDATA avant le `</function>` ; test `test_a_new_call_before_the_close_means_never_closed` (rouge sans le correctif).
+- low · second avis 2 · consigné : `</function>` dans une CDATA ferme le canal `tool_call` trop tôt ; limite déjà assumée en Design Notes, le lecteur lit l'appel correctement (test existant). Effet résiduel : la fin s'affiche comme texte, et une coupure par la limite après ce point suit le chemin `limit` au lieu de `tools.parser.cut`. Un séparateur conscient des CDATA n'est pas un petit correctif.
+- false · second avis 3 · rejeté : un `<function name="calc">` jamais fermé rend toute la sortie `Malformed`, comme `<tool_call>` jamais fermé chez Qwen (règle « un bloc mal formé rend la sortie mal formée » de `parse_tool_calls`).
+- low · second avis 4 · consigné : `<param>` sans attribut `name`, et du texte entre les `<param>`, sont ignorés en silence ; même tolérance que `qwen3_coder`, hors matrice.
+- low · second avis 5 · consigné : la branche MiniCPM5 précède Qwen3 ; elle exige `<|im_start|>`, `<function name="` et `<param name="` ensemble, absents de tous les autres gabarits du dépôt (vérifié sur `tests/fixtures/`), et le gabarit Qwen3.5 reste `qwen3` (test).
+- low · second avis 6 · consigné : les tests d'installateur passent par le mode à blanc, comme ceux de Qwen ; le vrai téléchargement (1,5 Go) reste la vérification manuelle ci-dessous.
+- low · second avis 7 · corrigé en partie : ajout de `test_output_cut_inside_a_call_takes_the_malformed_path` (sortie coupée dans un appel MiniCPM5 : canal `tool_call`, message `coupée`). Préférence Qwen et blobs Ollama : les blobs se nomment `sha256-…`, ils ne peuvent pas égaler `DEFAULT_MODEL_FILE` ; pas de test ajouté.
+- false · revue · rejeté : préférence au démarrage qui sauvegarderait le choix ; `_hand_out` n'écrit pas `selected_model_path` (test `…_is_not_saved`).
+- low · revue · consigné : `_minicpm5_end` relance deux `find` depuis chaque fin de CDATA (O(k·n) pour k CDATA), une fois par sortie de modèle ; sans impact réel. Complexité : 0 constat à corriger.
+
 ## Design Notes
 
 **Balises du lecteur.** Chez Qwen3, l'appel est enveloppé dans `<tool_call>`. Chez MiniCPM5, la balise `<function …>` est l'appel lui-même, sans enveloppe. Le séparateur de canaux retire les balises du canal `tool_call`, qui ne sert qu'au comptage des jetons. Le lecteur, lui, travaille sur `out.answer`, qui les garde. Limite assumée : un `</function>` dans une CDATA ferme le canal `tool_call` trop tôt, et la fin de la CDATA s'affiche alors comme du texte. Le lecteur, CDATA-aware, lit quand même l'appel correctement.

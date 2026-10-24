@@ -112,12 +112,14 @@ _ENTITIES = {"&quot;": '"', "&apos;": "'"}
 
 
 def _minicpm5_end(raw: str, start: int) -> int:
-    """Index just past the first `</function>` outside a CDATA after `start`, or -1."""
+    """Index just past the first `</function>` outside a CDATA after `start`, or -1 (also
+    when a new `<function name="` opens first: the call was never closed)."""
     close = "</function>"
     pos = start
     while True:
         end, cdata = raw.find(close, pos), raw.find(_CDATA[0], pos)
-        if end < 0:
+        opening = raw.find('<function name="', pos)
+        if end < 0 or 0 <= opening < end and (cdata < 0 or opening < cdata):
             return -1
         if cdata < 0 or end < cdata:
             return end + len(close)

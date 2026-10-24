@@ -70,6 +70,30 @@ def test_never_closed():
     assert "jamais fermée" in str(bad.detail_text)
 
 
+def test_a_new_call_before_the_close_means_never_closed():
+    calls, bad = parse(fn_open := '<function name="a"><param name="x">1</param>' + fn("b", y="2"))
+    assert calls == [] and bad is not None and bad.fragment == fn_open
+    assert "jamais fermée" in str(bad.detail_text)
+    raw = '<function name="a"><param name="s"><![CDATA[<function name="b">]]></param></function>'
+    calls, bad = parse(raw)
+    assert bad is None and calls[0].arguments == {"s": '<function name="b">'}
+
+
+def test_output_cut_inside_a_call_takes_the_malformed_path():
+    engine = FakeEngine(
+        outputs=['<function name="calculator"><param name="expression">' + "1+" * 300, "Pardon."],
+        template=MINICPM5,
+        architecture="llama",
+    )
+    session = booted_session(engine)
+    session.set_brick("tools", True)
+
+    events = _run(session, "Calcule")
+
+    assert events["output_truncated"][0]["channel"] == "tool_call"
+    assert "coupée" in events["tool_call_malformed"][0]["detail_text"]
+
+
 def test_param_not_closed():
     calls, bad = parse('<function name="x"><param name="a">1</function>')
     assert calls == [] and bad is not None
