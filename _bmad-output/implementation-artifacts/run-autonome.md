@@ -118,3 +118,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:49 · 1.3-2 · décision · à revoir : seuil de 1 700 px du texte court de la jauge (spec de story, absent de DESIGN.md) · 1b0fdb5
 - 2026-10-24 23:49 · 1.3-2 · PR · rebasée sur main, ouverte, CI lancée · c81b6d5
 - 2026-10-24 23:49 · 1.3-3 · dev · lancé (empilé sur 1.3-2) · c81b6d5
+- 2026-10-24 23:50 · 1.3-4 · dev · spec prête (cases partielles, anneau SVG, registre _spend_conv) · e229269
+- 2026-10-24 23:50 · 1.3-4 · review · relecture de la spec lancée · e229269
