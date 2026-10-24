@@ -59,8 +59,16 @@ def _ended(events) -> dict:
             {"prompt_tokens": 1000, "prompt_tokens_details": {"cached_tokens": 600}},
             ("provider", 600, None, None, 400),
         ),
-        (  # no detail at all: a read of 0, still not declared for the write
+        (  # no detail at all (Mistral, Groq…): nothing declared, never a 0
             {"prompt_tokens": 1000},
+            ("provider", None, None, None, None),
+        ),
+        (  # details without a read count: the same
+            {"prompt_tokens": 1000, "prompt_tokens_details": None},
+            ("provider", None, None, None, None),
+        ),
+        (  # a read of 0 the provider declares stays a measured 0
+            {"prompt_tokens": 1000, "prompt_tokens_details": {"cached_tokens": 0}},
             ("provider", 0, None, None, 1000),
         ),
         (  # the pivot carries the write (Anthropic): all three declared
@@ -77,9 +85,9 @@ def _ended(events) -> dict:
             },
             ("provider", 1000, 0, None, 0),
         ),
-        (
+        (  # an unreadable read is not a declared one
             {"prompt_tokens": 1000, "prompt_tokens_details": {"cached_tokens": float("nan")}},
-            ("provider", 0, None, None, 1000),
+            ("provider", None, None, None, None),
         ),
         (  # usage without a prompt count: nothing is invented
             {"prompt_tokens_details": {"cached_tokens": 5}},
@@ -129,6 +137,7 @@ def test_anthropic_details_the_one_hour_write():
     stream = anthropic_sse(
         start(
             50,
+            cache_read_input_tokens=0,
             cache_creation_input_tokens=150,
             cache_creation={"ephemeral_5m_input_tokens": 100, "ephemeral_1h_input_tokens": 50},
         ),
@@ -141,9 +150,26 @@ def test_anthropic_details_the_one_hour_write():
 
 
 def test_anthropic_declares_zeros_when_nothing_is_cached():
-    cells = _cells(_anthropic_ended(PLAIN_TEXT))
+    stream = anthropic_sse(
+        start(800, cache_read_input_tokens=0, cache_creation_input_tokens=0),
+        *text(0, "Bonjour."),
+        *end("end_turn", 5),
+    )
+    cells = _cells(_anthropic_ended(stream))
     assert cells["cache_read_tokens"] == 0 and cells["cache_write_tokens"] == 0
     assert cells["cache_uncached_tokens"] == 800
+
+
+def test_an_anthropic_usage_without_cache_counts_declares_nothing():
+    cells = _cells(_anthropic_ended(PLAIN_TEXT))
+    assert cells == NONE_CELLS
+
+
+def test_a_compatible_response_without_cache_details_declares_nothing():
+    """CAP-1: Mistral or Groq without `prompt_tokens_details`: « not declared », not 0."""
+    ended = _compatible("gemma", _usage(1000))
+    assert _cells(ended) == NONE_CELLS
+    assert ended["prompt_tokens"] == 1000
 
 
 # ---------- OpenAI-compatible ----------
@@ -254,3 +280,13 @@ def test_a_server_that_says_its_cache_reuse_is_read_as_it_says_it():
 def test_an_engine_that_says_nothing_leaves_the_local_cells_unmeasured():
     cells = AppSession._local_cache_cells(None, None, 500)
     assert cells == {**NONE_CELLS, "cache_origin": "local"}
+
+
+def test_the_pivots_leave_out_a_cache_count_the_response_does_not_carry():
+    """CAP-1: an absent count stays absent in the pivot, a declared 0 stays a 0."""
+    from wavestack.models import anthropic_messages, openai_responses
+
+    assert openai_responses.pivot_usage({"input_tokens": 10})["prompt_tokens_details"] == {}
+    declared = {"input_tokens": 10, "input_tokens_details": {"cached_tokens": 0}}
+    assert openai_responses.pivot_usage(declared)["prompt_tokens_details"] == {"cached_tokens": 0}
+    assert anthropic_messages.pivot_usage({"input_tokens": 10})["prompt_tokens_details"] == {}

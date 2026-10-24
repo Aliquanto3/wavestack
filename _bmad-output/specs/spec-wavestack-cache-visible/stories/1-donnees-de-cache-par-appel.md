@@ -48,11 +48,11 @@ context:
   - si le moteur ne donne ni `kv_cache_tokens` ni `evaluations[0]` : lu et écrit valent `None`.
   - Ce sont des comptes du moteur, pas une mesure du harnais. Un préremplissage (E122) avant l'appel compte comme une lecture de cet appel.
 - **Fournisseur, usage présent** (`cache_origin: "provider"`, `cloud_base.py`), à partir du pivot (`prompt_tokens_details`) :
-  - lu = `cached_tokens` (0 si absent ou illisible, comme `_cached_tokens`) ;
+  - lu = `cached_tokens` du pivot s'il y figure, 0 compris ; `None` s'il est absent ou illisible (`NaN`, booléen), car le fournisseur ne l'a pas déclaré (Mistral, Groq… sans `prompt_tokens_details`). Les adaptateurs Anthropic et Responses ne posent `cached_tokens` et `cache_write_tokens` dans le pivot que si la réponse porte le compte correspondant (revue, passe 1). Le coût (`_cached_tokens`, `call_cost`) garde 0 pour un absent ;
   - écrit = `cache_write_tokens` du pivot s'il y figure (seul l'adaptateur Anthropic le pose, 0 compris), sinon `None` ;
   - `cache_write_1h_tokens` = `cache_write_1h_tokens` du pivot s'il y figure, sinon `None`. L'adaptateur Anthropic le pose depuis `usage.cache_creation.ephemeral_1h_input_tokens` quand ce détail existe ;
-  - non caché = `prompt_tokens − lu − (écrit or 0)`. Pour Anthropic, c'est `input_tokens` par construction du pivot. Pour les autres, la case inclut une éventuelle écriture non déclarée ;
-  - les valeurs sont bornées comme dans `cache_savings` : lu ≤ `prompt_tokens`, écrit ≤ `prompt_tokens − lu`.
+  - non caché = `prompt_tokens − lu − (écrit or 0)`, `None` si lu est `None`. Pour Anthropic, c'est `input_tokens` par construction du pivot. Pour les autres, la case inclut une éventuelle écriture non déclarée ;
+  - les valeurs sont bornées comme dans `cache_savings` : lu ≤ `prompt_tokens`, écrit ≤ `prompt_tokens − (lu or 0)`, négatif → 0.
 - **Fournisseur, usage absent ou inutilisable** (`usage_source: "estimate"`, appel en erreur sans usage, ou pivot sans `prompt_tokens` > 0) : `cache_origin: "provider"`, toutes les cases à `None`.
 - Le prix n'entre pas en jeu : les cases sont émises sans `pricing`, y compris pour Groq, Mistral, Gemini et Gemma. La règle dépend du pivot, pas du nom de l'API : un fournisseur compatible OpenAI qui poserait `cache_write_tokens` dans le pivot serait déclaré.
 
@@ -73,11 +73,11 @@ context:
 | Anthropic, écriture 1 h détaillée | `cache_creation={ephemeral_5m: 100, ephemeral_1h: 50}` | write 150, write_1h 50 | N/A |
 | Anthropic, rien de caché | `cache_*=0`, `input_tokens=1000` | read 0, write 0, uncached 1000 (déclarés) | N/A |
 | Compatible OpenAI, lecture | `prompt_tokens=1000`, `cached_tokens=600` | read 600, write `None`, uncached 400 | N/A |
-| Compatible OpenAI, sans détail | usage sans `prompt_tokens_details` | read 0, write `None`, uncached = `prompt_tokens` | N/A |
+| Compatible OpenAI, sans détail | usage sans `prompt_tokens_details` (ou sans `cached_tokens`) | read, write, uncached `None` (non déclaré) ; `cached_tokens: 0` déclaré → read 0, uncached = `prompt_tokens` | N/A |
 | Entrée sans `pricing` | Groq ou Mistral, usage présent | cases remplies comme ci-dessus ; aucun champ de coût de cache | N/A |
 | Entrée avec `pricing`, cache servi | Gemini, `cached_tokens=800` | champs de coût de cache inchangés ; `cache_write_tokens` `None` (plus 0) | N/A |
 | Usage estimé | pas d'usage dans la réponse | toutes les cases `None`, origin `provider` | N/A |
-| Valeur illisible ou hors bornes | `cached_tokens` `NaN`, négatif, booléen, ou > `prompt_tokens` | 0, ou borné à `prompt_tokens` | Aucune exception |
+| Valeur illisible ou hors bornes | `cached_tokens` `NaN` ou booléen ; négatif ; > `prompt_tokens` | `None` (non déclaré) ; 0 ; borné à `prompt_tokens` | Aucune exception |
 | Appel refusé avant sortie | erreur HTTP sans usage | toutes les cases `None` | N/A |
 
 </frozen-after-approval>
@@ -128,3 +128,11 @@ context:
   - `pivot_usage` n'a pas besoin du non caché.
 
 ## Review Triage Log
+
+## Revue
+
+### Passe 1 (2026-10-24, SHA revu ab89fb3)
+
+- Important, medium, second avis (2) : un usage compatible OpenAI sans `prompt_tokens_details` (Mistral, Groq) donnait lu = 0 « mesuré », contraire à CAP-1. Corrigé : lu et non caché `None` quand `cached_tokens` est absent ou illisible, 0 gardé s'il est déclaré ; les pivots Anthropic et Responses n'inventent plus de 0 pour un compte absent. Contrat mis à jour ci-dessus, tests ajoutés.
+- Pre-existing, low, second avis (1) : un moteur local qui échoue avant d'appeler sa génération laisserait `last_evaluated` de l'appel précédent ; les moteurs le remettent à `None` en tête de génération, et `evaluated_tokens` partage déjà cette source. Non corrigé.
+- Nit, low, second avis (7) : imports de helpers d'autres modules de test. Rejeté : pratique établie du dépôt (50 fichiers).

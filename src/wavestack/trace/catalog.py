@@ -458,6 +458,7 @@ class ModelCallEndedPayload(BaseModel):
     # evaluates) or « not measured » (read, write). `cache_origin` is `None` only on a trace
     # from before the batch. `cache_write_1h_tokens`: the part of the write kept 1 h (Claude),
     # the rest being 5 min; `None` when the provider does not detail it.
+    # A provider's read not declared (no `cached_tokens`) leaves read and uncached `None`.
     # When read and write are not `None`: read + write + (uncached or 0) == prompt_tokens.
     cache_origin: Literal["local", "provider"] | None = None
     cache_read_tokens: int | None = None

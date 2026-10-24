@@ -368,10 +368,12 @@ def _cell(details: dict[str, Any], name: str) -> int | None:
 
 
 def cache_tokens(usage: dict[str, Any], prompt_tokens: int, usage_source: str) -> dict[str, Any]:
-    """V1.3 CAP-1: `model_call_ended`'s cache cells of a cloud call, priced or not. The write
-    is declared only when the pivot carries it (the Anthropic adapter's); else `None`, never
-    0. Without a usable usage, every cell is `None`. The uncached part is what is neither
-    read nor written (an undeclared write included)."""
+    """V1.3 CAP-1: `model_call_ended`'s cache cells of a cloud call, priced or not. A cell
+    is declared only when the pivot carries it, 0 included: the read when the response has
+    `cached_tokens` (Mistral, Groq… may not), the write when it has `cache_write_tokens` (the
+    Anthropic adapter's); else `None`, never 0. Without a usable usage, every cell is `None`.
+    The uncached part is what is neither read nor written (an undeclared write included),
+    `None` when the read is not declared."""
     fields: dict[str, Any] = {
         "cache_origin": "provider",
         "cache_read_tokens": None,
@@ -386,10 +388,12 @@ def cache_tokens(usage: dict[str, Any], prompt_tokens: int, usage_source: str) -
         return fields
     raw = usage.get("prompt_tokens_details")
     details: dict[str, Any] = raw if isinstance(raw, dict) else {}
-    read = min(_cell(details, "cached_tokens") or 0, prompt_tokens)
+    read = _cell(details, "cached_tokens")
+    if read is not None:
+        read = min(read, prompt_tokens)
     written = _cell(details, "cache_write_tokens")
     if written is not None:
-        written = min(written, prompt_tokens - read)
+        written = min(written, prompt_tokens - (read or 0))
     one_hour = _cell(details, "cache_write_1h_tokens")
     if one_hour is not None:
         one_hour = min(one_hour, written or 0)
@@ -397,7 +401,7 @@ def cache_tokens(usage: dict[str, Any], prompt_tokens: int, usage_source: str) -
         "cache_read_tokens": read,
         "cache_write_tokens": written,
         "cache_write_1h_tokens": one_hour,
-        "cache_uncached_tokens": prompt_tokens - read - (written or 0),
+        "cache_uncached_tokens": None if read is None else prompt_tokens - read - (written or 0),
     }
     return fields
 
