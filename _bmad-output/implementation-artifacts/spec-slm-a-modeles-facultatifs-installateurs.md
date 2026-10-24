@@ -2,8 +2,9 @@
 title: 'Modèles facultatifs des installateurs, dont Qwen3.5-0.8B'
 type: 'feature'
 created: '2026-10-24'
-status: 'draft'
-route: ''
+status: 'ready-for-dev'
+route: 'dispatch'
+baseline_commit: '51d34f64cca83f82cea31c30bb1883280bec3032'
 review_loop_iteration: 0
 context: []
 ---
@@ -23,18 +24,14 @@ context: []
 - Même schéma pour chaque modèle : idempotent, `.part` puis renommage, rien en mode à blanc (`-DryRun` / `WAVESTACK_DRY_RUN=1`, qui affiche les modèles demandés).
 - Un identifiant inconnu arrête l'installateur avant tout téléchargement, avec la liste des identifiants valides.
 - Une seule source de vérité pour les URL : les tests comparent ps1, sh et `docs/installation.md`.
+- Décision du 2026-10-24 (empreinte) : chaque modèle facultatif est vérifié après téléchargement, avec `Get-FileHash -Algorithm SHA256` (PowerShell) ou `sha256sum` (repli sur `shasum -a 256` sous macOS) en bash. Un fichier non conforme est supprimé (le `.part`), et l'installateur s'arrête avec un message clair. Un fichier déjà présent n'est pas revérifié (idempotence, pas de relecture de 1,5 Go à chaque lancement). MiniCPM5 : sha256 `ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd`, 1 561 318 368 octets.
+- Décision du 2026-10-24 (liste) : `-Models list` / `WAVESTACK_MODELS=list` affiche la table (identifiant, fichier, taille, licence), puis s'arrête sans rien installer, cloner ni télécharger.
 
 **Never:**
-- Ne pas changer ce que fait l'installateur sans option.
+- Ne pas changer ce que fait l'installateur sans option (le téléchargement de Qwen3.5-2B n'est pas vérifié par empreinte dans cette story).
 - Pas de téléchargement de modèle de chat depuis l'interface.
-- Pas de vérification sha256 dans les installateurs si cela demande un outil absent des postes sans droits admin (voir Open Questions).
 
 </frozen-after-approval>
-
-## Open Questions
-
-- Vérification d'empreinte au téléchargement. Options : aucune, comme aujourd'hui pour Qwen (le plus simple) ; `Get-FileHash` (PowerShell) et `sha256sum` / `shasum -a 256` (bash), un fichier non conforme étant supprimé (plus sûr, quelques lignes et une colonne sha256 dans la liste).
-- Liste visible des modèles disponibles. Options : `-Models list` / `WAVESTACK_MODELS=list` affiche la table (id, taille, licence) et s'arrête ; ou seulement la doc.
 
 ## Code Map
 
@@ -51,7 +48,7 @@ context: []
 **Execution:**
 - [ ] `install.ps1`, `install.sh` -- table des modèles facultatifs, option `-Models` / `WAVESTACK_MODELS`, alias MiniCPM5, erreur sur identifiant inconnu.
 - [ ] `docs/installation.md`, `docs/modeles.md` -- table et exemples (`-Models qwen3.5-0.8b`, `curl … | WAVESTACK_MODELS=qwen3.5-0.8b bash`).
-- [ ] `tests/test_installers.py` -- URL identiques partout pour chaque entrée ; mode à blanc avec et sans `-Models` ; alias ; identifiant inconnu (code de sortie non nul, rien créé).
+- [ ] `tests/test_installers.py` -- URL identiques partout pour chaque entrée ; mode à blanc avec et sans `-Models` ; alias ; identifiant inconnu (code de sortie non nul, rien créé) ; `-Models list` (table affichée, rien créé) ; vérification d'empreinte sur un petit fichier local servi sans réseau (fonction de vérification isolée ou URL `file://`), empreinte fausse : fichier supprimé et arrêt.
 - [ ] `tests/test_tools.py` ou `tests/test_model_switch.py` -- un test qui charge la fixture Qwen3.5 sous l'architecture `qwen35` et un nom de fichier 0.8B, et vérifie la famille `qwen3` et le lecteur `qwen3_coder`.
 
 **Acceptance Criteria:**
