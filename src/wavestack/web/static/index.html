@@ -268,6 +268,11 @@
       </div>
       <span class="gauge-figures" id="gauge-figures" data-i18n="main.gauge.waiting">Contexte : en attente du modèle</span>
     </div>
+    <!-- V1.3 story 2 (CAP-2): the last call's cache, read / written / uncached, beside the context bar. -->
+    <div class="cache-gauge" id="cache-gauge" role="group" tabindex="0" hidden>
+      <div class="cache-gauge-bar" id="cache-gauge-bar"></div>
+      <span class="cache-gauge-text" id="cache-gauge-text"></span>
+    </div>
     <div class="window-picker" id="window-picker">
       <button type="button" id="window-toggle" class="window-toggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="window-panel"><span class="window-toggle-long" data-i18n="main.window.toggle">Fenêtre</span> <span id="window-toggle-value">…</span> ▾</button>
       <section id="window-panel" class="window-panel" role="dialog" aria-labelledby="window-panel-title" hidden>

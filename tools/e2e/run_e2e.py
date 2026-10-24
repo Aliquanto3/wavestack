@@ -934,6 +934,64 @@ def _braces_stay_text(r: Run, where: str) -> None:
     )
 
 
+def _cache_gauge(r: Run) -> None:
+    """V1.3 story 2 (CAP-2), local text mode (the fake llama-server keeps its previous prompt):
+    after two questions in a row the cache gauge beside the context bar shows a read part; after
+    the system prompt is switched it shows the write part and the cause. The bar never overflows."""
+    page = r.page
+    gauge = page.locator("#cache-gauge")
+    seq = r.ev.mark()
+    page.click("#reset-button")  # a short history: the 4 096-token window is nearly full here
+    r.ev.wait("harness_reset", seq, timeout=10)
+    r.wait_idle()
+    r.send("Première question")
+    seq = r.ev.mark()
+    r.send("Deuxième question")
+    first = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    expect(gauge).to_be_visible(timeout=5000)
+    expect(gauge.locator(".cache-seg-read")).to_have_count(1, timeout=5000)
+    catalogue = _ui_catalogue("fr")
+    title = gauge.get_attribute("title") or ""
+    r.check(
+        first["cache_origin"] == "local"
+        and first["cache_read_tokens"] > 0
+        and gauge.get_attribute("data-read") == str(first["cache_read_tokens"])
+        and catalogue["main.cache_gauge.not_applicable"] in title
+        and catalogue["main.cache_gauge.local_note"] in title
+        and (gauge.get_attribute("data-cause") or "") in ("", "history"),
+        "jauge du cache : au second appel, une part lue non nulle, sans « non caché » ni durée "
+        "de vie en local",
+        f"{first.get('cache_read_tokens')} · {title}",
+    )
+    fits = page.evaluate(
+        "() => { const b = document.querySelector('.top-bar'); "
+        "return b.scrollWidth <= b.clientWidth + 1; }"
+    )
+    r.check(fits, "jauge du cache : la barre du haut ne déborde pas")
+    was = bool(r.bricks()["system_prompt"]["wanted"])
+    r.set_brick("Prompt système", not was)
+    try:
+        seq = r.ev.mark()
+        r.send("Et après le changement ?")
+        changed = r.ev.since(seq, "model_call_ended")[0]["payload"]
+        expect(gauge).to_have_attribute("data-cause", "system", timeout=5000)
+        title = gauge.get_attribute("title") or ""
+        r.check(
+            changed["cache_write_tokens"] > first["cache_write_tokens"]
+            and changed["cache_read_tokens"] < first["cache_read_tokens"]
+            and gauge.locator(".cache-seg-write").count() == 1
+            and catalogue["main.orch.prefix_causes.system"] in title,
+            "jauge du cache : après le changement du prompt système, l'écriture grandit, la "
+            "lecture recule et la cause est citée",
+            f"{changed.get('cache_read_tokens')}/{changed.get('cache_write_tokens')} · {title}",
+        )
+    finally:
+        r.set_brick("Prompt système", was)
+        follow = page.locator("#follow-live")
+        if follow.is_visible():
+            follow.click()
+
+
 def _cache_not_reused(r: Run) -> None:
     """Lot 1 of 2026-10-04, in local text mode (the ids of the fake llama-server, AD-4): the
     system message changed between two turns (« Prompt système » switched), the next turn's
@@ -10058,6 +10116,7 @@ def s_local_server(r: Run) -> None:
     r.shot("23-serveur-local-llama-server")
     _braces_stay_text(r, "mode local")
     _cache_not_reused(r)
+    _cache_gauge(r)
 
     # Story 32: a reasoning cut by the harness stays one call; the harness's note sits
     # between the reflection and the answer. The LLM nu, so that the reasoning's reserve
