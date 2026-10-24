@@ -152,3 +152,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:13 · 1.4-3 · CI · relance encore rouge sur Ubuntu (test_engine_candidates, même assertion) ; non reproduit sous Windows ; diagnostic délégué · 21515b7
 - 2026-10-25 00:13 · 1.3-4 · second-avis · 1 medium (anneau 1 h à brancher après #93), 4 low · 806554a
 - 2026-10-25 00:13 · 1.3-4 · review · lancé · 806554a
+- 2026-10-25 00:14 · 1.3-3 · review · 3 medium corrigés (vidage en file sur le worker, attente du préremplissage, tous les slots), 4 low ; E2E local_server 53/53 · 9e09b49
+- 2026-10-25 00:14 · 1.3-3 · décision · à revoir : cause cache_cleared prioritaire sur reset et replay tant que le moteur reste vide · 9e09b49
+- 2026-10-25 00:14 · 1.3-3 · PR · ouverte, CI lancée · 9e09b49
