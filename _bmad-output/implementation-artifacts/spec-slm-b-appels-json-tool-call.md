@@ -2,8 +2,9 @@
 title: 'Granite 4.0 Nano (350M, 1B) : appels JSON <tool_call>'
 type: 'feature'
 created: '2026-10-24'
-status: 'draft'
-route: ''
+status: 'ready-for-dev'
+route: 'dispatch'
+baseline_commit: '82e05ef74b6c7effa9be437c70e5d59743c92844'
 review_loop_iteration: 0
 context: []
 ---
@@ -73,6 +74,8 @@ context: []
 - Given Granite et la brique Outils, when le modèle appelle la calculatrice puis répond, then l'outil s'exécute et le second prompt contient l'appel et le résultat (rôle `tool` du gabarit), sans `harness_error`.
 
 ## Implementation Notes
+
+- 2026-10-24, préparation par l'orchestrateur : les deux fichiers Q4_K_M sont déjà téléchargés et vérifiés (tailles et sha256 de la spec) dans `%TEMP%\wavestack-e2e-models\models`. Leurs gabarits réels sont identiques octet pour octet (6 418 caractères) : une seule fixture `tests/fixtures/granite4_chat_template.jinja`, à extraire de l'en-tête de l'un d'eux par `gguf_meta.read_metadata`. Architecture `granite`, `general.basename` `granite-4.0`, tailles `350M` et `1B`. La spec A est fusionnée (#86) : la table `$OptionalModels` (install.ps1) et `OPTIONAL_MODELS` (install.sh) reçoivent les entrées `granite-4.0-350m` et `granite-4.0-1b`.
 
 ## Spec Change Log
 
