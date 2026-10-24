@@ -195,3 +195,4 @@ Tout cela sans écrire de code. L'E2E complet de l'atelier est vert.
 - Qwen3.5-2B avec une fenêtre de 16 384 tokens tient dans 4 Go ; c'est mesuré dans la story de banc.
 - L'export OpenTelemetry passe par `opentelemetry-sdk` et l'exporteur OTLP HTTP (pur Python), dans un extra `otel`.
 - L'accès à Jev (accès anticipé de TypeSafe, ou Eden AI en alpha) sera obtenu d'ici la story 2. Sinon, le banc le mesure sur les seuls chiffres publiés, et le reporte dans `deferred-work.md`.
+- La recherche agentique de CAP-7 réutilise l'outil `search_documents` de la V1.4 (état de l'art des harnais), livrée avant la story 2 (proposition de changement du 2026-10-24).

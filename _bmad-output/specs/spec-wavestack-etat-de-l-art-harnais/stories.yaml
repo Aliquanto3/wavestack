@@ -1,0 +1,44 @@
+# Vagues : V0 = 1 et 3 (scenarios.yaml en ajouts seulement) ; V1 = 2 (après 1) ;
+# V2 = 4 (après 2 et après les stories 1 à 3 de la V1.3). Story 3 après la fusion de la PR #79.
+- id: "1"
+  title: Disciplines revues et notions récentes
+  description: >-
+    CAP-1 et CAP-2 : Raisonnement en harness engineering, Garde-fous en « harness engineering »,
+    emboîtement et guides/capteurs dans guide_harnais.md, fichiers de contexte, échafaudage, skills
+    tiers et rappel de ce que WaveStack ne montre pas ; fr, en, de.
+  invoke_dev_with: >-
+    Sonnet, story de contenu. Changer category dans bricks/registry.py et category_text dans les
+    trois langues ; refaire les captures 28-disciplines-*. Après l'ajout à guide_harnais.md,
+    rejouer subagent et compression sur le faux moteur dans 4 096 tokens. Renvoi dans
+    docs/guide.md.
+- id: "2"
+  title: Carte du harnais et module « Contexte long et carte »
+  description: >-
+    CAP-3 : sous-système et rôle déclarés par brique, carte générée en dialogue, ouverte par le
+    scénario harness_map et le panneau des briques ; scission du module 6 en « Sous-agent » et
+    « Contexte long et carte ».
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Après la story 1. Sonnet. Placement et rôles d'après carte-du-harnais.md, maquette 1 de
+    maquettes.md ; vérifier les libellés des sous-systèmes sur arXiv 2609.00006. Test
+    d'exhaustivité (sous-système, rôle, libellés fr/en/de) et un E2E d'ouverture et fermeture.
+- id: "3"
+  title: Outil search_documents et scénario RAG ou recherche agentique
+  description: >-
+    CAP-4 : outil natif de recherche par mots dans le corpus Exemplia, read_file ouvert à
+    corpus/<doc>.md, paragraphe de la brique RAG et scénario de comparaison au module RAG (60 min).
+  invoke_dev_with: >-
+    Après la fusion de la PR #79. Sonnet. Étendre la résolution partagée par read_file et H1
+    (native.py, hooks.py), pas un chemin à part. Insensible à la casse et aux accents, résultats
+    bornés, langue de la session. Faux moteur et un E2E ; aucune dépendance.
+- id: "4"
+  title: Compaction et fenêtre glissante
+  description: >-
+    CAP-5 : au débordement ou par « Compacter », résumé par le modèle actif ou fenêtre glissante
+    sans appel, renvoi automatique du message refusé, causes du cache « compaction » et « fenêtre
+    glissante », scénario du module « Contexte long et carte ».
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Après la story 2 et les stories 1 à 3 de la V1.3 fusionnées. Opus (session, historique,
+    cache). Maquettes 2 à 4 ; pièges de brownfield.md (rejeu via _last, ContextOverflowPayload en
+    ajouts, chemin d'appel ordinaire pour le résumé). Faux moteur et un E2E par élément visuel.
