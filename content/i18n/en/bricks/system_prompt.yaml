@@ -9,3 +9,7 @@ explanation_text:
     tone, language, rules to follow. The user does not see it in the thread, but the model
     rereads it at every call.
   - "Edit it to see the answer change for the same message."
+  - >-
+    In coding agents, this instruction often comes from hierarchical context files
+    (AGENTS.md, CLAUDE.md): one file at the project root, others in subfolders, which the
+    harness assembles and places before the conversation.

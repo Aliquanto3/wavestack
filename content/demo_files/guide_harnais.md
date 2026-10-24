@@ -115,7 +115,23 @@ lui-même est hébergé dans le cloud. Dans ce dernier cas, chaque appel envoie 
 entier au fournisseur, sous-agent compris. Un harnais honnête montre ces sorties, en
 affiche le contenu exact et permet de les faire valider par un humain avant l'envoi.
 
-## 10. À retenir
+## 10. Prompt, contexte et harnais : trois disciplines emboîtées
+
+Le prompt est ce que l'on écrit au modèle. Le contexte est tout ce qu'il lit à un appel :
+prompt, historique, outils, documents. Le harnais est le code qui construit ce contexte,
+exécute les actions et pose les bornes. Chaque niveau contient le suivant : prompt ⊂
+contexte ⊂ harnais. Dans les agents de code, les fichiers de contexte hiérarchiques
+(AGENTS.md, CLAUDE.md) alimentent le prompt système.
+
+Le harnais ajoute deux familles de contrôles. Les guides orientent le modèle avant qu'il
+agisse (prompt système, skills, consignes) ; les capteurs vérifient après coup (hooks,
+garde-fous, tests). Un contrôle est soit calculé par du code, déterministe et peu coûteux,
+soit déduit par un modèle, plus souple mais moins sûr (Böckeler).
+
+WaveStack ne montre pas : les plateformes (ACP, places de marché), les bacs à sable au
+niveau du système d'exploitation, les modes de permission.
+
+## 11. À retenir
 
 - Le modèle prédit du texte ; le harnais en fait un agent.
 - Le contexte est rare : chaque brique du harnais y ajoute des tokens, avec un gain et un
@@ -124,5 +140,6 @@ affiche le contenu exact et permet de les faire valider par un humain avant l'en
   contexte.
 - Les bornes et les hooks sont du code : ils décident à la place du modèle quand il le
   faut.
+- Prompt, contexte et harnais s'emboîtent ; les guides orientent, les capteurs vérifient.
 - Le sous-agent isole une sous-tâche volumineuse : seul son résultat revient dans le
   contexte principal.

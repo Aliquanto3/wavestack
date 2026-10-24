@@ -219,8 +219,8 @@ scenarios:
       skill are in the context. Send the prompt: the model calls load_skill, the full
       content of the skill joins the context and the gauge grows. The prompt names the
       skill and the tool, because a small local model does not always link the request to
-      the skill; a bigger model loads it from the request alone (try with a cloud model).
-      If the model does not load the skill, arm “Trigger the skill” on “Meeting minutes”
+      the skill; a bigger model loads it from the request alone (try with a cloud model):
+      naming the skill is scaffolding for the small model. If the model does not load the skill, arm “Trigger the skill” on “Meeting minutes”
       in the Skills card (after “Show the forced actions”), then replay the prompt.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills]
     mcp_lazy: true
@@ -247,7 +247,9 @@ scenarios:
       Send the prompt, then look at the “Hook points” strip of the diagram: the H1 guard
       blocks the reading; it is code, not the model, that decides. If the model does not
       call the tool, force the read_file call with the preset “Sensitive file” (after
-      “Show the forced actions”) and replay.
+      “Show the forced actions”) and replay. Same logic for a third-party skill or plugin: a
+      package to check before installing (source, scripts, requested rights), because a hook
+      controls it at run time but does not replace that check.
     bricks: [short_memory, system_prompt, tools, hooks]
     tools: [get_datetime, read_file]
     hooks: [h1, h2]

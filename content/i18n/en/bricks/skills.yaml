@@ -23,3 +23,7 @@ explanation_text:
     Compare the output tokens of the same question with and without the Caveman skill:
     its telegraphic answers produce fewer. “Clear the conversation” unloads all the
     skills.
+  - >-
+    A third-party skill is a package that enters your context and may come with scripts:
+    check it before installing (source, content, executable files), like any software
+    package.

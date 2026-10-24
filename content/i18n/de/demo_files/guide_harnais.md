@@ -119,7 +119,24 @@ jeder Aufruf den gesamten Kontext an den Anbieter, den Sub-Agenten eingeschlosse
 ehrlicher Harness zeigt diese Datenflüsse, zeigt ihren genauen Inhalt an und lässt sie vor
 dem Senden von einem Menschen freigeben.
 
-## 10. Merksätze
+## 10. Prompt, Kontext und Harness: drei verschachtelte Disziplinen
+
+Der Prompt ist das, was man dem Modell schreibt. Der Kontext ist alles, was es bei einem
+Aufruf liest: Prompt, Verlauf, Tools, Dokumente. Der Harness ist der Code, der diesen
+Kontext aufbaut, die Aktionen ausführt und die Grenzen setzt. Jede Ebene enthält die
+nächste: Prompt ⊂ Kontext ⊂ Harness. In Coding-Agenten speisen hierarchische
+Kontextdateien (AGENTS.md, CLAUDE.md) den System-Prompt.
+
+Der Harness fügt zwei Arten von Kontrollen hinzu. Guides lenken das Modell, bevor es
+handelt (System-Prompt, Skills, Anweisungen); Sensoren prüfen im Nachhinein (Hooks,
+Schutzmechanismen, Tests). Eine Kontrolle wird entweder vom Code berechnet,
+deterministisch und günstig, oder von einem Modell abgeleitet, flexibler, aber weniger
+verlässlich (Böckeler).
+
+WaveStack zeigt nicht: Plattformen (ACP, Marktplätze), Sandboxes auf Betriebssystemebene,
+Berechtigungsmodi.
+
+## 11. Merksätze
 
 - Das Modell sagt Text voraus; der Harness macht daraus einen Agenten.
 - Der Kontext ist knapp: Jeder Baustein des Harness fügt Tokens hinzu, mit einem Nutzen und
@@ -127,5 +144,6 @@ dem Senden von einem Menschen freigeben.
 - Tools, Skills und Dokumentation werden bei Bedarf geladen, um Kontext zu sparen.
 - Die Grenzen und die Hooks sind Code: Sie entscheiden an Stelle des Modells, wenn es nötig
   ist.
+- Prompt, Kontext und Harness sind verschachtelt; Guides lenken, Sensoren prüfen.
 - Der Sub-Agent isoliert eine umfangreiche Teilaufgabe: Nur sein Ergebnis kommt in den
   Hauptkontext zurück.

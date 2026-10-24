@@ -9,3 +9,7 @@ explanation_text:
     Ton, Sprache, einzuhaltende Regeln. Der Benutzer sieht sie nicht in der Unterhaltung,
     aber das Modell liest sie bei jedem Aufruf erneut.
   - "Ändern Sie sie, um die Antwort bei gleicher Nachricht wechseln zu sehen."
+  - >-
+    In Coding-Agenten stammt diese Anweisung oft aus hierarchischen Kontextdateien
+    (AGENTS.md, CLAUDE.md): eine Datei im Projektstamm, weitere in Unterordnern, die der
+    Harness zusammensetzt und vor die Unterhaltung stellt.

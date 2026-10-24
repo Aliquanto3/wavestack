@@ -217,7 +217,7 @@ def test_brick_off_after_arming_drops_the_action_and_the_turn_goes_on():
 
 
 def test_sub_agent_overflow_fails_the_delegation_not_the_turn():
-    # The fake engine counts a token per byte: the guide (≈ 7 000 bytes) cannot fit in 4 096.
+    # The fake engine counts a token per byte: the guide (≈ 8 600 bytes) cannot fit in 4 096.
     task = "Lis le fichier guide_harnais.md et résume-le."
     outputs = [delegation(task), call("read_file", path="guide_harnais.md"), "Désolé."]
     engine, session = sub_session(outputs, window=4096)

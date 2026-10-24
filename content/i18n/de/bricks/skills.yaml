@@ -23,3 +23,7 @@ explanation_text:
     Vergleichen Sie die Ausgabe-Tokens derselben Frage mit und ohne den Skill Caveman: Seine
     Antworten im Telegrammstil erzeugen weniger davon. „Unterhaltung leeren“ entlädt alle
     Skills.
+  - >-
+    Ein Skill von Dritten ist ein Paket, das in Ihren Kontext gelangt und Skripte
+    mitbringen kann: Prüfen Sie es vor der Installation (Quelle, Inhalt, ausführbare
+    Dateien), wie jedes Software-Paket.

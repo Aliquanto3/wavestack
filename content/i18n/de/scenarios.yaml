@@ -232,7 +232,8 @@ scenarios:
       vollständige Inhalt des Skills kommt in den Kontext, und die Füllstandsanzeige wächst.
       Der Prompt nennt den Skill und das Tool, weil ein kleines lokales Modell nicht immer
       die Verbindung zwischen Anfrage und Skill herstellt; ein größeres Modell lädt ihn
-      allein auf die Anfrage hin (probieren Sie es mit einem Cloud-Modell). Lädt das Modell
+      allein auf die Anfrage hin (probieren Sie es mit einem Cloud-Modell): Den Skill zu nennen ist ein Gerüst für
+      das kleine Modell. Lädt das Modell
       den Skill nicht, schalten Sie „Skill auslösen“ auf „Besprechungsprotokoll“ auf der
       Karte Skills scharf (nach „Erzwungene Aktionen anzeigen“) und wiederholen Sie dann
       den Prompt.
@@ -263,7 +264,9 @@ scenarios:
       Der Schutz H1 blockiert das Lesen; es entscheidet Code, nicht das Modell. Ruft das
       Modell das Tool nicht auf, erzwingen Sie den Aufruf von read_file mit der
       Voreinstellung „Sensible Datei“ (nach „Erzwungene Aktionen anzeigen“) und wiederholen
-      Sie.
+      Sie. Dieselbe Logik gilt für einen Skill oder ein Plugin von Dritten: ein Paket, das
+      vor der Installation zu prüfen ist (Quelle, Skripte, angeforderte Rechte), denn ein
+      Hook kontrolliert es zur Laufzeit, ersetzt diese Prüfung aber nicht.
     bricks: [short_memory, system_prompt, tools, hooks]
     tools: [get_datetime, read_file]
     hooks: [h1, h2]

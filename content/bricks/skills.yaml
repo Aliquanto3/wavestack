@@ -23,3 +23,7 @@ explanation_text:
     Comparez les tokens de sortie d'une même question avec et sans le skill
     Caveman : ses réponses télégraphiques en produisent moins. « Vider la
     conversation » décharge tous les skills.
+  - >-
+    Un skill tiers est un paquet qui entre dans votre contexte et peut s'accompagner de
+    scripts : à vérifier avant installation (source, contenu, fichiers exécutables), comme
+    n'importe quel paquet logiciel.
