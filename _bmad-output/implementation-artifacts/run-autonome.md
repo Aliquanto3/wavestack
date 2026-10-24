@@ -180,3 +180,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:44 · 1.2-3 · PR · ouverte, CI lancée · 0f79d92
 - 2026-10-25 00:44 · 1.2-4 · dev · lancé (empilé sur 1.2-3, même page) · 0f79d92
 - 2026-10-25 00:44 · 1.3-4 · CI · cause : assertion de test_llm_lab sur l'ancien ordre (bilan désormais émis pour un appel local) ; test réaligné, code inchangé, poussé · b5386c5
+- 2026-10-25 00:45 · 1.3-3 · CI · verte (Windows, Ubuntu) · 02d4662
+- 2026-10-25 00:45 · 1.3-3 · fusion · #94 MERGED · c8d0a50
