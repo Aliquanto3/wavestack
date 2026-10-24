@@ -19,10 +19,15 @@
 .PARAMETER NoLaunch
     N'ouvre pas l'application a la fin (utile pour les tests).
 
+.PARAMETER Models
+    Modeles locaux facultatifs a telecharger en plus de Qwen3.5-2B (qui reste le modele par
+    defaut), identifiants separes par des virgules : qwen3.5-0.8b, minicpm5. `-Models list`
+    affiche la table (identifiant, fichier, taille, licence) puis s'arrete. Equivalent :
+    WAVESTACK_MODELS=id1,id2 (sous `irm | iex`, qui ne passe pas d'option). Chaque fichier
+    est verifie par son empreinte SHA-256 apres telechargement.
+
 .PARAMETER WithMiniCPM
-    Telecharge aussi MiniCPM5-2B (1,5 Go, Apache-2.0), modele local facultatif a cote de
-    Qwen3.5-2B, qui reste le modele par defaut. Equivalent : WAVESTACK_WITH_MINICPM=1
-    (sous `irm | iex`, qui ne passe pas d'option).
+    Alias de `-Models minicpm5` (publie en 1.2.0). Equivalent : WAVESTACK_WITH_MINICPM=1.
 
 .PARAMETER DryRun
     Affiche les dossiers resolus sans rien installer, cloner, telecharger ni lancer.
@@ -33,6 +38,7 @@ param(
     [string]$DataDir,
     [string]$UvInstallDir,
     [switch]$NoLaunch,
+    [string]$Models,
     [switch]$WithMiniCPM,
     [switch]$DryRun
 )
@@ -45,11 +51,53 @@ param(
     # Memes valeurs que README.md (une seule source de verite : voir tests/test_installers.py)
     $QwenUrl  = 'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf'
     $QwenFile = 'Qwen3.5-2B-Q4_K_M.gguf'
-    $MiniCPMUrl  = 'https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf'
-    $MiniCPMFile = 'MiniCPM5-2B-Q4_K_M.gguf'
+    # Modeles locaux facultatifs : une seule table, lue par -Models (revision epinglee, taille,
+    # licence et empreinte SHA-256 verifiee apres telechargement).
+    $OptionalModels = @(
+        @{ Id = 'qwen3.5-0.8b'; Size = '0,5 Go'; Bytes = 532517120; License = 'Apache-2.0'
+           File = 'Qwen3.5-0.8B-Q4_K_M.gguf'
+           Sha256 = 'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517'
+           Url = 'https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf' },
+        @{ Id = 'minicpm5'; Size = '1,5 Go'; Bytes = 1561318368; License = 'Apache-2.0'
+           File = 'MiniCPM5-2B-Q4_K_M.gguf'
+           Sha256 = 'ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd'
+           Url = 'https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf' }
+    )
     $RepoUrl  = 'https://github.com/Aliquanto3/wavestack.git'
     $ZipUrl   = 'https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.zip'
     $ZipRoot  = 'wavestack-main'
+
+    # -- Modeles facultatifs demandes : valides avant toute action (rien n'est cree si un
+    #    identifiant est inconnu). `list` affiche la table et s'arrete.
+    $requested = @()
+    $modelsArg = if ($Models) { $Models } else { $env:WAVESTACK_MODELS }
+    if ($modelsArg) {
+        $requested += @($modelsArg -split ',' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
+    }
+    if ($WithMiniCPM -or ($env:WAVESTACK_WITH_MINICPM -eq '1')) { $requested += 'minicpm5' }
+    if ($requested -contains 'list') {
+        Write-Host 'Modeles facultatifs (Qwen3.5-2B est toujours telecharge) :'
+        foreach ($m in $OptionalModels) {
+            Write-Host ('  {0,-14} {1,-28} {2,-8} {3}' -f $m.Id, $m.File, $m.Size, $m.License)
+        }
+        return
+    }
+    $validIds = @($OptionalModels | ForEach-Object { $_.Id })
+    foreach ($id in $requested) {
+        if ($validIds -notcontains $id) {
+            throw "Modele facultatif inconnu : '$id'. Identifiants valides : $($validIds -join ', ')."
+        }
+    }
+    $selected = @($OptionalModels | Where-Object { $requested -contains $_.Id })
+
+    # Verifie l'empreinte SHA-256 d'un fichier telecharge ; non conforme : fichier supprime et arret.
+    function Test-ModelHash([string]$Path, [string]$Expected) {
+        $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+        if ($actual -ne $Expected.ToLowerInvariant()) {
+            [IO.File]::Delete($Path)
+            throw "Empreinte SHA-256 non conforme pour $(Split-Path -Leaf $Path) : fichier supprime. Attendue $Expected, obtenue $actual."
+        }
+    }
 
     # -- Dossier du projet : sur place si on est deja dans un clone ou un zip, sinon un
     #    dossier visible sous Documents (chemin reel, eventuellement redirige par OneDrive).
@@ -71,13 +119,11 @@ param(
     $CacheDir  = Join-Path $DataDir 'uv-cache'
     $ModelsDir = Join-Path $DataDir 'models'
     $ModelPath = Join-Path $ModelsDir $QwenFile
-    $MiniCPMPath = Join-Path $ModelsDir $MiniCPMFile
-    $WantMiniCPM = $WithMiniCPM -or ($env:WAVESTACK_WITH_MINICPM -eq '1')
 
     Write-Host "Projet      : $InstallDir"
     Write-Host "Donnees     : $DataDir"
     Write-Host "Modele Qwen : $ModelPath"
-    if ($WantMiniCPM) { Write-Host "Modele MiniCPM5 : $MiniCPMPath" }
+    foreach ($m in $selected) { Write-Host "Modele $($m.Id) : $(Join-Path $ModelsDir $m.File)" }
 
     if ($DryRun) {
         Write-Host "(mode a blanc : aucune commande reseau ou d'installation executee)"
@@ -126,15 +172,17 @@ param(
         Write-Host 'Modele Qwen deja present, pas de nouveau telechargement.'
     }
 
-    # -- Modele MiniCPM5 : seulement sur demande (-WithMiniCPM), telecharge si absent.
-    if ($WantMiniCPM) {
-        if (-not (Test-Path $MiniCPMPath)) {
-            Write-Host 'Telechargement du modele MiniCPM5 (1,5 Go)...'
+    # -- Modeles facultatifs (-Models) : telecharges si absents, verifies par empreinte.
+    foreach ($m in $selected) {
+        $path = Join-Path $ModelsDir $m.File
+        if (-not (Test-Path $path)) {
+            Write-Host "Telechargement du modele $($m.Id) ($($m.Size))..."
             $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -UseBasicParsing $MiniCPMUrl -OutFile "$MiniCPMPath.part"
-            Move-Item -Force -LiteralPath "$MiniCPMPath.part" $MiniCPMPath
+            Invoke-WebRequest -UseBasicParsing $m.Url -OutFile "$path.part"
+            Test-ModelHash "$path.part" $m.Sha256
+            Move-Item -Force -LiteralPath "$path.part" $path
         } else {
-            Write-Host 'Modele MiniCPM5 deja present, pas de nouveau telechargement.'
+            Write-Host "Modele $($m.Id) deja present, pas de nouveau telechargement."
         }
     }
 

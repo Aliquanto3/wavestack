@@ -2,7 +2,7 @@
 title: 'Modèles facultatifs des installateurs, dont Qwen3.5-0.8B'
 type: 'feature'
 created: '2026-10-24'
-status: 'ready-for-dev'
+status: 'in-progress'
 route: 'dispatch'
 baseline_commit: '51d34f64cca83f82cea31c30bb1883280bec3032'
 review_loop_iteration: 0
@@ -46,10 +46,10 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `install.ps1`, `install.sh` -- table des modèles facultatifs, option `-Models` / `WAVESTACK_MODELS`, alias MiniCPM5, erreur sur identifiant inconnu.
-- [ ] `docs/installation.md`, `docs/modeles.md` -- table et exemples (`-Models qwen3.5-0.8b`, `curl … | WAVESTACK_MODELS=qwen3.5-0.8b bash`).
-- [ ] `tests/test_installers.py` -- URL identiques partout pour chaque entrée ; mode à blanc avec et sans `-Models` ; alias ; identifiant inconnu (code de sortie non nul, rien créé) ; `-Models list` (table affichée, rien créé) ; vérification d'empreinte sur un petit fichier local servi sans réseau (fonction de vérification isolée ou URL `file://`), empreinte fausse : fichier supprimé et arrêt.
-- [ ] `tests/test_tools.py` ou `tests/test_model_switch.py` -- un test qui charge la fixture Qwen3.5 sous l'architecture `qwen35` et un nom de fichier 0.8B, et vérifie la famille `qwen3` et le lecteur `qwen3_coder`.
+- [x] `install.ps1`, `install.sh` -- table des modèles facultatifs, option `-Models` / `WAVESTACK_MODELS`, alias MiniCPM5, erreur sur identifiant inconnu.
+- [x] `docs/installation.md`, `docs/modeles.md` -- table et exemples (`-Models qwen3.5-0.8b`, `curl … | WAVESTACK_MODELS=qwen3.5-0.8b bash`).
+- [x] `tests/test_installers.py` -- URL identiques partout pour chaque entrée ; mode à blanc avec et sans `-Models` ; alias ; identifiant inconnu (code de sortie non nul, rien créé) ; `-Models list` (table affichée, rien créé) ; vérification d'empreinte sur un petit fichier local servi sans réseau (fonction de vérification isolée ou URL `file://`), empreinte fausse : fichier supprimé et arrêt.
+- [x] `tests/test_tools.py` ou `tests/test_model_switch.py` -- un test qui charge la fixture Qwen3.5 sous l'architecture `qwen35` et un nom de fichier 0.8B, et vérifie la famille `qwen3` et le lecteur `qwen3_coder`.
 
 **Acceptance Criteria:**
 - Given `-Models qwen3.5-0.8b,minicpm5`, when l'installateur tourne deux fois, then les deux fichiers sont téléchargés une seule fois, à côté de Qwen3.5-2B.

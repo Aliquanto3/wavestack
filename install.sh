@@ -6,15 +6,18 @@
 # Surcharges (dossiers d'installation, utiles aussi pour les tests) :
 #   WAVESTACK_INSTALL_DIR, WAVESTACK_DATA_DIR, WAVESTACK_UV_INSTALL_DIR,
 #   WAVESTACK_NO_LAUNCH=1 (n'ouvre pas l'application), WAVESTACK_DRY_RUN=1 (mode a blanc),
-#   WAVESTACK_WITH_MINICPM=1 (telecharge aussi MiniCPM5-2B, 1,5 Go, modele facultatif ;
-#   Qwen reste le modele par defaut).
+#   WAVESTACK_MODELS=id1,id2 (telecharge aussi ces modeles locaux facultatifs, verifies par
+#   empreinte SHA-256 ; Qwen reste le modele par defaut ; `list` affiche la table et
+#   s'arrete), WAVESTACK_WITH_MINICPM=1 (alias de WAVESTACK_MODELS=minicpm5, publie en 1.2.0).
 set -euo pipefail
 
 # Memes valeurs que README.md (une seule source de verite : voir tests/test_installers.py)
 QWEN_URL="https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf"
 QWEN_FILE="Qwen3.5-2B-Q4_K_M.gguf"
-MINICPM_URL="https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf"
-MINICPM_FILE="MiniCPM5-2B-Q4_K_M.gguf"
+# Modeles locaux facultatifs : une seule table, lue par WAVESTACK_MODELS. Une ligne par modele :
+# identifiant|fichier|taille|licence|sha256|url (revision epinglee).
+OPTIONAL_MODELS="qwen3.5-0.8b|Qwen3.5-0.8B-Q4_K_M.gguf|0,5 Go|Apache-2.0|bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517|https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf
+minicpm5|MiniCPM5-2B-Q4_K_M.gguf|1,5 Go|Apache-2.0|ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd|https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf"
 REPO_URL="https://github.com/Aliquanto3/wavestack.git"
 TARBALL_URL="https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.tar.gz"
 
@@ -24,8 +27,57 @@ UV_INSTALL_DIR_OVERRIDE="${WAVESTACK_UV_INSTALL_DIR:-}"
 NO_LAUNCH="${WAVESTACK_NO_LAUNCH:-}"
 DRY_RUN="${WAVESTACK_DRY_RUN:-}"
 WITH_MINICPM="${WAVESTACK_WITH_MINICPM:-}"
+MODELS_ARG="${WAVESTACK_MODELS:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
+# Verifie l'empreinte SHA-256 d'un fichier telecharge ; non conforme : fichier supprime et arret.
+verify_sha256() {
+    local path="$1" expected="$2" actual
+    if command -v sha256sum >/dev/null 2>&1; then
+        actual="$(sha256sum "$path" | cut -d' ' -f1)"
+    else
+        actual="$(shasum -a 256 "$path" | cut -d' ' -f1)"
+    fi
+    if [ "$actual" != "$expected" ]; then
+        rm -f "$path"
+        echo "Empreinte SHA-256 non conforme pour $(basename "$path") : fichier supprime. Attendue $expected, obtenue $actual." >&2
+        exit 1
+    fi
+}
+
+# -- Modeles facultatifs demandes : valides avant toute action (rien n'est cree si un
+#    identifiant est inconnu). `list` affiche la table et s'arrete.
+REQUESTED=","
+if [ -n "$MODELS_ARG" ]; then
+    for id in $(echo "$MODELS_ARG" | tr ',' ' ' | tr 'A-Z' 'a-z'); do
+        REQUESTED="$REQUESTED$id,"
+    done
+fi
+if [ "$WITH_MINICPM" = "1" ]; then
+    REQUESTED="${REQUESTED}minicpm5,"
+fi
+VALID_IDS="$(echo "$OPTIONAL_MODELS" | cut -d'|' -f1 | paste -sd, - | sed 's/,/, /g')"
+case "$REQUESTED" in
+    *,list,*)
+        echo "Modeles facultatifs (Qwen3.5-2B est toujours telecharge) :"
+        echo "$OPTIONAL_MODELS" | while IFS='|' read -r id file size license _ _; do
+            printf '  %-14s %-28s %-8s %s
+' "$id" "$file" "$size" "$license"
+        done
+        exit 0
+        ;;
+esac
+for id in $(echo "$REQUESTED" | tr ',' ' '); do
+    if ! echo "$OPTIONAL_MODELS" | cut -d'|' -f1 | grep -qx -- "$id"; then
+        echo "Modele facultatif inconnu : '$id'. Identifiants valides : $VALID_IDS." >&2
+        exit 1
+    fi
+done
+# Lignes de la table retenues, dans l'ordre de la table (sans doublon).
+SELECTED="$(echo "$OPTIONAL_MODELS" | while IFS= read -r line; do
+    case "$REQUESTED" in *",${line%%|*},"*) echo "$line" ;; esac
+done)"
 
 # -- Dossier du projet : sur place si on est deja dans un clone ou un zip, sinon un
 #    dossier visible sous Documents.
@@ -45,13 +97,14 @@ VENV_DIR="$DATA_DIR/venv"
 CACHE_DIR="$DATA_DIR/uv-cache"
 MODELS_DIR="$DATA_DIR/models"
 MODEL_PATH="$MODELS_DIR/$QWEN_FILE"
-MINICPM_PATH="$MODELS_DIR/$MINICPM_FILE"
 
 echo "Projet      : $INSTALL_DIR"
 echo "Donnees     : $DATA_DIR"
 echo "Modele Qwen : $MODEL_PATH"
-if [ "$WITH_MINICPM" = "1" ]; then
-    echo "Modele MiniCPM5 : $MINICPM_PATH"
+if [ -n "$SELECTED" ]; then
+    echo "$SELECTED" | while IFS='|' read -r id file _; do
+        echo "Modele $id : $MODELS_DIR/$file"
+    done
 fi
 
 if [ -n "$DRY_RUN" ]; then
@@ -95,15 +148,19 @@ else
     echo "Modele Qwen deja present, pas de nouveau telechargement."
 fi
 
-# -- Modele MiniCPM5 : seulement sur demande (WAVESTACK_WITH_MINICPM=1), telecharge si absent.
-if [ "$WITH_MINICPM" = "1" ]; then
-    if [ ! -f "$MINICPM_PATH" ]; then
-        echo "Telechargement du modele MiniCPM5 (1,5 Go)..."
-        curl -fL -o "$MINICPM_PATH.part" "$MINICPM_URL"
-        mv -f "$MINICPM_PATH.part" "$MINICPM_PATH"
-    else
-        echo "Modele MiniCPM5 deja present, pas de nouveau telechargement."
-    fi
+# -- Modeles facultatifs (WAVESTACK_MODELS) : telecharges si absents, verifies par empreinte.
+if [ -n "$SELECTED" ]; then
+    while IFS='|' read -r id file size _ sha url; do
+        path="$MODELS_DIR/$file"
+        if [ ! -f "$path" ]; then
+            echo "Telechargement du modele $id ($size)..."
+            curl -fL -o "$path.part" "$url"
+            verify_sha256 "$path.part" "$sha"
+            mv -f "$path.part" "$path"
+        else
+            echo "Modele $id deja present, pas de nouveau telechargement."
+        fi
+    done <<< "$SELECTED"
 fi
 
 # -- Venv et caches sous le dossier de donnees, jamais sous Documents ; l'appli lit ses

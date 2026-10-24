@@ -780,3 +780,21 @@ def test_a_tool_turn_marks_what_the_second_call_read_already():
     assert len(catalog) == 1 and catalog[0]["end"] - catalog[0]["start"] > 1
     assert [list(_prompt(c).encode()) for c in (first, second)] == engine.calls
     session.close()
+
+
+def test_qwen35_0_8b_file_gets_the_qwen3_family_and_the_qwen3_coder_reader():
+    # Qwen3.5-0.8B shares the architecture and the chat template of Qwen3.5-2B: no new
+    # recognition code (the file name does not matter).
+    from wavestack.models.capabilities import capabilities_for
+
+    engine = FakeEngine(template=QWEN.decode("utf-8"), architecture="qwen35")
+    caps = capabilities_for(engine.metadata())
+    assert caps.family == "qwen3"
+    assert caps.tool_call_parser == "qwen3_coder"
+    session = AppSession(
+        config.Config(values={"context": {"window": 4096, "near_limit_ratio": 0.8}}),
+        engine_factory=lambda path, n_ctx: engine,
+    )
+    session.boot("Qwen3.5-0.8B-Q4_K_M.gguf").result()
+    assert session._caps.family == "qwen3"
+    assert session._caps.tool_call_parser == "qwen3_coder"
