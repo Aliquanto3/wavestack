@@ -149,3 +149,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:07 · 1.4-2 · second-avis · 1 high (test_compression cherche l'ancien module 6), 3 défauts à la fusion avec #91 (22 scénarios, 6 h, conflit run_e2e.py), 3 low · 0daec7d
 - 2026-10-25 00:10 · 1.3-4 · dev · fini, rebasé sur main ; E2E cache_bilan et bar_panels 30 OK · 806554a
 - 2026-10-25 00:10 · 1.3-4 · second-avis · lancé · 806554a
+- 2026-10-25 00:13 · 1.4-3 · CI · relance encore rouge sur Ubuntu (test_engine_candidates, même assertion) ; non reproduit sous Windows ; diagnostic délégué · 21515b7
+- 2026-10-25 00:13 · 1.3-4 · second-avis · 1 medium (anneau 1 h à brancher après #93), 4 low · 806554a
+- 2026-10-25 00:13 · 1.3-4 · review · lancé · 806554a
