@@ -2,7 +2,7 @@
 title: 'Story 1 : données de cache par appel'
 type: 'feature'
 created: '2026-10-24'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:

@@ -349,14 +349,57 @@ def cache_savings(
         not cached_write or write_price is not None
     )
     return {
-        "cache_read_tokens": cached_read,
-        "cache_write_tokens": cached_write,
         "cache_full_usd": full_usd,
         "cache_write_usd": write_usd,
         "cache_saved_usd": full_usd - paid_input_usd,
         "cache_priced": priced,
         "cache_source": _CACHE_SOURCE.get(api, _CACHE_SOURCE["openai_chat"]),
     }
+
+
+def _cell(details: dict[str, Any], name: str) -> int | None:
+    """One integer of `prompt_tokens_details`, or `None` when absent or unreadable."""
+    value = details.get(name)
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    if not math.isfinite(value):
+        return None
+    return max(0, int(value))
+
+
+def cache_tokens(usage: dict[str, Any], prompt_tokens: int, usage_source: str) -> dict[str, Any]:
+    """V1.3 CAP-1: `model_call_ended`'s cache cells of a cloud call, priced or not. The write
+    is declared only when the pivot carries it (the Anthropic adapter's); else `None`, never
+    0. Without a usable usage, every cell is `None`. The uncached part is what is neither
+    read nor written (an undeclared write included)."""
+    fields: dict[str, Any] = {
+        "cache_origin": "provider",
+        "cache_read_tokens": None,
+        "cache_write_tokens": None,
+        "cache_write_1h_tokens": None,
+        "cache_uncached_tokens": None,
+    }
+    reported = usage.get("prompt_tokens")
+    if usage_source != "api" or isinstance(reported, bool) or not isinstance(reported, int | float):
+        return fields
+    if not reported > 0:
+        return fields
+    raw = usage.get("prompt_tokens_details")
+    details: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    read = min(_cell(details, "cached_tokens") or 0, prompt_tokens)
+    written = _cell(details, "cache_write_tokens")
+    if written is not None:
+        written = min(written, prompt_tokens - read)
+    one_hour = _cell(details, "cache_write_1h_tokens")
+    if one_hour is not None:
+        one_hour = min(one_hour, written or 0)
+    fields |= {
+        "cache_read_tokens": read,
+        "cache_write_tokens": written,
+        "cache_write_1h_tokens": one_hour,
+        "cache_uncached_tokens": prompt_tokens - read - (written or 0),
+    }
+    return fields
 
 
 def _cached_tokens(usage: dict[str, Any]) -> tuple[int, int]:
@@ -1026,6 +1069,7 @@ def run_call(
         # FinOps: a call refused before any output (an HTTP error, the network) is not billed,
         # unless the provider's usage came before the error (native providers 3/5).
         produced = stop_reason != "error" or first_at is not None or out.usage is not None
+        payload |= cache_tokens(usage if produced else {}, prompt_tokens, source)
         if pricing is not None and produced:
             cached_read, cached_write = _cached_tokens(usage)
             out.cost = call_cost(
