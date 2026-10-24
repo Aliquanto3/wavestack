@@ -163,6 +163,9 @@ def create_app(flavor: str) -> Starlette:
         previous.clear()
         return JSONResponse({"id_slot": 0, "n_erased": erased})
 
+    async def slot_list(_: Request) -> JSONResponse:
+        return JSONResponse([{"id": 0}])  # one slot, as `llama-server -np 1`
+
     async def tags(_: Request) -> JSONResponse:
         # Story 25: `details`, as a real Ollama, for the model table's publisher and size.
         details = {"family": "qwen3", "parameter_size": "0.6B"}
@@ -194,6 +197,7 @@ def create_app(flavor: str) -> Starlette:
             Route("/detokenize", detokenize_route, methods=["POST"]),
             Route("/completion", completion, methods=["POST"]),
             Route("/slots/{slot:int}", slots, methods=["POST"]),
+            Route("/slots", slot_list, methods=["GET"]),
         ]
     return Starlette(routes=[*routes, Route("/_e2e/requests", requests_log)])
 

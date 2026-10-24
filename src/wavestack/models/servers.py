@@ -447,9 +447,19 @@ class LlamaServerEngine:
         return self._last_evaluated
 
     def clear_cache(self) -> bool:
-        """V1.3 story 3: the server's own slot erased (`POST /slots/0?action=erase`), the
-        server and its model untouched. A server without the slots API raises `ServerError`."""
-        _json(self._client, self.url, "POST", "/slots/0?action=erase")
+        """V1.3 story 3: every slot of the server erased (`POST /slots/{id}?action=erase`),
+        the server and its model untouched. A server started with several slots (`-np`,
+        several by default in recent builds) picks one per call: all are listed
+        (`GET /slots`), slot 0 alone when it does not list them. A server without the slots
+        API raises `ServerError`."""
+        try:
+            listed = self._client.request("GET", self.url + "/slots")
+            listed.raise_for_status()
+            slots = [s["id"] for s in listed.json() if isinstance(s, dict) and "id" in s]
+        except (httpx.HTTPError, ValueError, TypeError):
+            slots = []
+        for slot in [s for s in slots if isinstance(s, int)] or [0]:
+            _json(self._client, self.url, "POST", f"/slots/{slot}?action=erase")
         return True
 
     @property

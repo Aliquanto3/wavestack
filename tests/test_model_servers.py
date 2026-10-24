@@ -1020,7 +1020,7 @@ def test_e2e_fake_llama_server_speaks_what_the_adapter_reads():
     engine.close()
 
 
-def test_e2e_fake_llama_server_forgets_its_prompt_when_the_slot_is_erased():
+def test_e2e_fake_llama_server_forgets_its_prompt_when_the_slot_is_erased(monkeypatch):
     """V1.3 story 3: `clear_cache` posts `/slots/0?action=erase`; the next call evaluates all."""
     import importlib.util
     import sys
@@ -1028,7 +1028,7 @@ def test_e2e_fake_llama_server_forgets_its_prompt_when_the_slot_is_erased():
     path = Path(__file__).resolve().parents[1] / "tools" / "e2e" / "fake_local_server.py"
     spec = importlib.util.spec_from_file_location("fake_local_server", path)
     module = importlib.util.module_from_spec(spec)
-    sys.modules["fake_local_server"] = module
+    monkeypatch.setitem(sys.modules, "fake_local_server", module)
     spec.loader.exec_module(module)
     client = TestClient(module.create_app("llama_server"))
     seen: list[str] = []
@@ -1048,6 +1048,34 @@ def test_e2e_fake_llama_server_forgets_its_prompt_when_the_slot_is_erased():
     list(engine.complete(ids, [], 100, CancelToken()))
     assert engine.last_evaluated == len(ids)
     engine.close()
+
+
+def test_llama_server_clear_cache_erases_every_slot_it_lists():
+    """Review of V1.3 story 3: a server with several slots (`-np`) picks one per call, so all
+    are erased; one without the list gets slot 0; one without the slots API is refused."""
+    posted: list[str] = []
+    server = FakeServer()
+
+    def answer(slots: httpx.Response, erase: httpx.Response | None = None):
+        def handler(request: httpx.Request) -> httpx.Response:
+            if not request.url.path.startswith("/slots"):
+                return server(request)
+            if request.method == "GET":
+                return slots
+            posted.append(f"{request.url.path}?{request.url.query.decode()}")
+            return erase or httpx.Response(200, json={"id_slot": 0, "n_erased": 0})
+
+        return httpx.MockTransport(handler)
+
+    listed = httpx.Response(200, json=[{"id": 0}, {"id": 1}, {"id": 2}])
+    assert servers.LlamaServerEngine(LLAMA_URL, transport=answer(listed)).clear_cache()
+    assert posted == [f"/slots/{i}?action=erase" for i in range(3)]
+    posted.clear()
+    assert servers.LlamaServerEngine(LLAMA_URL, transport=answer(httpx.Response(501))).clear_cache()
+    assert posted == ["/slots/0?action=erase"]
+    refusing = answer(httpx.Response(404), httpx.Response(501, text="not supported"))
+    with pytest.raises(servers.ServerError):
+        servers.LlamaServerEngine(LLAMA_URL, transport=refusing).clear_cache()
 
 
 # ---------- independent review of story 18 ----------
