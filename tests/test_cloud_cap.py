@@ -369,7 +369,7 @@ def test_the_cache_line_names_the_full_price_the_write_apart_and_the_net_saving(
     pricing = _pricing(cache_read_usd_per_mtok=0.10, cache_write_usd_per_mtok=1.25)
     paid = call_cost(pricing, 1000, 0, "api", cached_read=800, cached_write=100).input_usd
     line = cache_savings(pricing, 1000, 800, 100, paid)
-    assert line["cache_read_tokens"] == 800 and line["cache_write_tokens"] == 100
+    assert "cache_read_tokens" not in line and "cache_write_tokens" not in line  # CAP-1
     assert line["cache_full_usd"] == pytest.approx(1000 * 1 / 1e6)
     assert line["cache_write_usd"] == pytest.approx(100 * 1.25 / 1e6)
     assert line["cache_saved_usd"] == pytest.approx(line["cache_full_usd"] - paid)

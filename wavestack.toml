@@ -291,7 +291,8 @@ eur_per_usd = 0.86
 # Quand le total de la séance (tous les appels tarifés : tours, sous-agent, « Tester », « LLM
 # nu ») l'a atteint, un appel à un modèle qui déclare ses prix n'est pas envoyé ; les modèles
 # sans prix (local, Gemma) restent utilisables. Les appels déjà en cours ne sont jamais
-# interrompus : le total peut dépasser le plafond du coût de chacun d'eux. Pour le relever :
+# interrompus : le total peut dépasser le plafond du coût de chacun d'eux (la prime d'écriture
+# du cache de Claude, 1,25 ou 2 fois l'entrée, y est comptée, mais pas estimée d'avance). Pour le relever :
 # settings.json, WaveStack arrêté, puis relancer (le total ne revient à zéro qu'au relancement).
 max_session_usd = 5
 
@@ -333,6 +334,10 @@ codecarbon_cost_mb = 80
 # les dans settings.json (même id) dans cette langue (décision d'Anaël du 2026-10-01).
 # Tokens estimés en mode chat : caractères / chars_per_token, puis corrigés par le ratio
 # réel usage.prompt_tokens / estimation (borné à [0,8 ; 1,5], initialisé à estimate_ratio).
+# Cache de prompt de Claude (V1.3, api = "anthropic_messages" seulement) : "off" (défaut), "5m"
+# ou "1h". Réglable dans le panneau (settings.json, cloud.claude_cache) ; toute autre valeur
+# vaut "off". L'écriture coûte 1,25 fois l'entrée (5m) ou 2 fois (1h), la lecture 0,1 fois.
+claude_cache = "off"
 chars_per_token = 4
 estimate_ratio = 1.0
 # Délais de l'appel au modèle cloud, en secondes : connexion, puis lecture du flux.
@@ -516,8 +521,9 @@ resend = false
 # Fournisseurs natifs 3/5 : Claude d'Anthropic par l'API Messages (api = "anthropic_messages",
 # HTTP brut, sans SDK ; la couche compatible OpenAI d'Anthropic ne renvoie pas la réflexion).
 # Prix relevés sur platform.claude.com/docs/en/about-claude/pricing le 2026-10-03 : cache lu
-# à 0,1 fois l'entrée, écrit (5 minutes) à 1,25 fois ; WaveStack n'active jamais le cache de
-# prompt (pas de cache_control), ces prix ne servent qu'à compter juste si Anthropic en fait.
+# à 0,1 fois l'entrée, écrit (5 minutes) à 1,25 fois, écrit (1 heure) à 2 fois. Le cache de
+# prompt est off par défaut ; le réglage claude_cache de [cloud] (« off », « 5m » ou « 1h »,
+# ou le panneau) ajoute un cache_control aux outils, au system et au dernier message.
 # Conditions relevées le 2026-10-03 : les données de l'API ne servent pas à l'entraînement
 # sans permission expresse ; suppression sous 30 jours ; inférence « global » par défaut (ou
 # « us » à 1,1 fois le prix, inference_geo, Claude 4.6 et après seulement), stockage aux
@@ -554,7 +560,7 @@ training = "no"
 notes_text = "Les données envoyées par l'API ne servent pas à l'entraînement sans permission expresse et sont supprimées sous 30 jours (conditions relevées le 2026-10-03). Prix et quotas à lire dans la console Anthropic."
 key_env = "ANTHROPIC_API_KEY"
 sampling = ["temperature"]
-pricing = { input_usd_per_mtok = 1.0, output_usd_per_mtok = 5.0, cache_read_usd_per_mtok = 0.10, cache_write_usd_per_mtok = 1.25, checked = "2026-10-03" }
+pricing = { input_usd_per_mtok = 1.0, output_usd_per_mtok = 5.0, cache_read_usd_per_mtok = 0.10, cache_write_usd_per_mtok = 1.25, cache_write_1h_usd_per_mtok = 2.0, checked = "2026-10-03" }
 # GreenOps : EcoLogits 0.11.2 connaît claude-haiku-4-5 chez anthropic.
 impacts = { provider = "anthropic", model = "claude-haiku-4-5" }
 
@@ -583,7 +589,7 @@ hosting_text = "Anthropic, États-Unis (inférence « global » par défaut, ou 
 training = "no"
 notes_text = "Les données envoyées par l'API ne servent pas à l'entraînement sans permission expresse et sont supprimées sous 30 jours (conditions relevées le 2026-10-03). Prix et quotas à lire dans la console Anthropic."
 key_env = "ANTHROPIC_API_KEY"
-pricing = { input_usd_per_mtok = 2.0, output_usd_per_mtok = 10.0, cache_read_usd_per_mtok = 0.20, cache_write_usd_per_mtok = 2.50, checked = "2026-10-03" }
+pricing = { input_usd_per_mtok = 2.0, output_usd_per_mtok = 10.0, cache_read_usd_per_mtok = 0.20, cache_write_usd_per_mtok = 2.50, cache_write_1h_usd_per_mtok = 4.0, checked = "2026-10-03" }
 # GreenOps : EcoLogits 0.11.2 connaît claude-sonnet-5 chez anthropic.
 impacts = { provider = "anthropic", model = "claude-sonnet-5" }
 
@@ -690,7 +696,8 @@ resend = true
 # par le fournisseur) et tool_call_extra (ce qu'ajoute à chaque appel d'outil fabriqué par
 # le harnais un fournisseur qui l'exige, comme Gemini ci-dessus) et pricing (FinOps : prix
 # d'entrée et de sortie en dollars par million de tokens, avec la date du relevé, et, facultatifs,
-# cache_read_usd_per_mtok et cache_write_usd_per_mtok, prix des tokens d'entrée lus ou écrits
+# cache_read_usd_per_mtok, cache_write_usd_per_mtok et cache_write_1h_usd_per_mtok (écriture
+# gardée 1 heure ; absent : 2 fois le prix d'entrée), prix des tokens d'entrée lus ou écrits
 # dans le cache du fournisseur, au prix d'entrée s'ils manquent ; sans pricing, aucun coût n'est
 # estimé ni affiché pour ce modèle, et le plafond [finops] max_session_usd ne le bloque jamais)
 # et impacts (GreenOps : provider et model

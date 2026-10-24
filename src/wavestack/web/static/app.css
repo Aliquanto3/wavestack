@@ -4798,3 +4798,74 @@ body .arch .arch-robots .robot.is-selection-linked {
 body > .site-nav {
   margin: 0;
 }
+
+/* ---------- V1.3 story 2: the last call's cache, beside the context bar ---------- */
+
+/* A light track on the ink bar, like the context bar; the bar stays at every width, its
+   short text goes when the bar is tight (the full text is its tooltip and accessible name). */
+.cache-gauge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.cache-gauge[hidden] {
+  display: none;
+}
+
+.cache-gauge-bar {
+  display: flex;
+  width: 72px;
+  height: 12px;
+  border-radius: var(--rounded-full);
+  overflow: hidden;
+  border: 1px solid var(--color-on-ink-soft);
+  background: var(--color-surface-raised);
+}
+
+.cache-seg {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.cache-seg-read {
+  background: var(--color-state-ok);
+}
+
+.cache-seg-write {
+  background: var(--color-warning);
+}
+
+.cache-seg-uncached {
+  background: var(--color-muted);
+}
+
+.cache-seg-none {
+  flex-grow: 1;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-surface-raised) 0 4px,
+    var(--color-line) 4px 5px
+  );
+}
+
+.cache-seg + .cache-seg {
+  box-shadow: inset 1px 0 0 var(--color-surface-raised);
+}
+
+.cache-gauge-text {
+  font: var(--typography-number-font-weight) var(--typography-number-font-size) /
+    var(--typography-number-line-height) var(--typography-number-font-family);
+}
+
+@media (max-width: 1700px) {
+  .cache-gauge-text {
+    display: none;
+  }
+}
+
+@media (width < 1000px) {
+  .cache-gauge-bar {
+    width: 40px;
+  }
+}

@@ -211,6 +211,12 @@ class ContextWindowIntention(BaseModel):
     window: Literal[config.WINDOW_CHOICES]  # type: ignore[valid-type]
 
 
+class ClaudeCacheIntention(BaseModel):
+    """V1.3 story 5: Claude's prompt cache setting."""
+
+    value: Literal["off", "5m", "1h"]
+
+
 class LlmTokenizeIntention(BaseModel):
     """Story 29: the text the « LLM nu » screen cuts into tokens (2 000 characters at most)."""
 
@@ -981,6 +987,19 @@ def create_app(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
             ) from None
         return {"switching": future is not None, "message_text": shown(message_text)}
+
+    @app.post("/api/intentions/claude_cache")
+    def claude_cache(intention: ClaudeCacheIntention) -> dict[str, object]:
+        """V1.3 story 5, class (b): Claude's prompt cache (`off`, `5m`, `1h`), applied in
+        `idle` only and with a Claude key; taken at the next call, nothing reloads."""
+        _diagnostic_class_b()
+        try:
+            message_text = app_session.set_claude_cache(intention.value)
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+        return {"message_text": shown(message_text)}
 
     @app.post("/api/intentions/set_api_key")
     def set_api_key(intention: SetApiKeyIntention) -> dict[str, object]:
