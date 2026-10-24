@@ -353,7 +353,14 @@ def test_screen_generation_events_and_sampling_sent_to_the_engine():
     tokens = [e for e in events if e.kind == "llm_token"]
     assert [t.payload["text"] for t in tokens] == list("Salut !")
     assert [t.payload["index"] for t in tokens] == list(range(7))
-    assert kinds[-3:] == ["model_call_ended", "llm_generation_ended", "session_state"]
+    # V1.3 CAP-3: the call's cache cells join the bilan (launch column), right after its end,
+    # in the same order as a cloud call (`run_call`)
+    assert kinds[-4:] == [
+        "model_call_ended",
+        "consumption_updated",
+        "llm_generation_ended",
+        "session_state",
+    ]
     assert events[-1].payload["state"] == "idle" and session.state == "idle"
     # The workshop's projections read it: out of the screen's context.
     assert events[-1].context_id is None and events[-1].step_id is None
