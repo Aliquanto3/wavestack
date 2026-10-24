@@ -40,10 +40,13 @@ fichier, pas d'après son nom.
 | Qwen3.5-0.8B | `qwen3_coder` | activable | 0,5 Go |
 | MiniCPM5-2B | `minicpm5` | activable | 1,5 Go |
 | Granite 4.0 1B | `hermes` (`<tool_call>` JSON) | non | 1,0 Go |
-| Granite 4.0 350M | `hermes` (`<tool_call>` JSON) | non | 0,3 Go |
+| Granite 4.0 350M | `hermes` (`<tool_call>` JSON) | non | 0,2 Go |
 
-Tout gabarit qui annonce `<tool_call>` sans `<function=` reçoit le lecteur `hermes`. Les variantes
-hybrides Granite 4.0-H sont donc reconnues, mais ni proposées par l'installateur ni recommandées.
+Un gabarit qui annonce `<tool_call>` sans `<function=` reçoit le lecteur `hermes` s'il passe
+l'aller-retour : WaveStack lui fait rendre un appel passé et son résultat, puis vérifie que le
+lecteur relit ce même appel. Sinon, le modèle reste sans outils (SmolLM3, Falcon-H1 et Hunyuan
+n'affichent pas l'appel passé, ou pas en JSON). Les variantes hybrides Granite 4.0-H passent
+l'aller-retour et sont donc reconnues, mais ni proposées par l'installateur ni recommandées.
 
 **Lire le sélecteur.** Chaque option commence par une icône, 🏠 (sur ce poste) ou ☁️ (réseau).
 Sa deuxième ligne est une légende, qui dit où tourne le modèle, puis qui le sert :

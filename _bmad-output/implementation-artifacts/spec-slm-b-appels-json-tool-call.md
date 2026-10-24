@@ -84,6 +84,21 @@ context: []
 
 ## Review Triage Log
 
+Revue du 2026-10-24 (Opus, base `origin/main` = 82e05ef, à jour). Preuve commune : `capabilities_for` passé sur les 23 gabarits réels tirés le 2026-10-24 (architecture déclarée et `None`).
+
+- HIGH · second avis 1 · corrigé : la branche « `<tool_call>` sans `<function=` » donnait `hermes` à SmolLM3, Falcon-H1, EXAONE et Hunyuan. Règle d'aller-retour : `hermes_round_trip` (`capabilities.py`, `@cache`, imports locaux à cause de `tools/parser.py` → `capabilities.py`, `except Exception` → `False`) rend user, `assistant` avec `tool_calls` (arguments en dict), `tool`, et relit par `parse_tool_calls(…, "hermes", {})` le rendu situé après la question (marqueur privé ``), pour ignorer l'exemple vide `<tool_call></tool_call>` des prompts système (Falcon-H1, Granite). Granite 4.0 (350M, 1B, H) et Qwen3-1.7B passent ; SmolLM3, Falcon-H1, Hunyuan échouent.
+- HIGH · second avis 2 · corrigé (même cause) : Hunyuan, `json_unreadable` sur `nom\n```json…`, la sonde échoue, aucun lecteur (test `test_real_templates_failing_the_round_trip[hunyuan]`).
+- MEDIUM · second avis 3 · corrigé (même cause) : Falcon-H1 n'affiche que `content`, l'appel passé est absent du rendu.
+- MEDIUM · second avis 4 · corrigé (même cause) : SmolLM3 et Falcon-H1, fixtures réelles `smollm3_chat_template.jinja`, `falcon_h1_chat_template.jinja`.
+- MEDIUM · second avis 5 · corrigé : `[|endofturn|]` ajouté à `_END_OF_TURN_MARKERS` ; EXAONE 4.0 (`exaone4`) reçoit `hermes` et l'arrêt `[|endofturn|]` (test dédié).
+- LOW · second avis 6 · corrigé : `_end_of_turn` prend le marqueur écrit le premier dans le gabarit, plus l'ordre de la table.
+- LOW · second avis 7 · corrigé : `granite-4.0-350m` annoncé « 0,2 Go » (236 985 760 octets, 0,237 Go / 0,221 Gio) dans `install.sh`, `install.ps1`, `docs/installation.md` (deux endroits) et `docs/modeles.md`.
+- LOW · second avis 8 · corrigé : le test de rendu vérifie le bloc exact de l'appel passé (`<|start_of_role|>assistant…</tool_call><|end_of_text|>`) puis `<tool_response>\n444\n</tool_response>`.
+- MEDIUM · revue · corrigé : la fixture minimale ChatML Hermes n'affichait pas l'appel passé ; elle le rend désormais en JSON (forme Qwen2.5), avec un exemple vide `<tool_call>` dans le prompt système, et une variante sans appel passé vérifie l'absence de lecteur. Ajouts : Llama 3.2 minimal (matrice « sans `<tool_call>` »), sonde qui ne lève jamais (gabarit qui lève, gabarit qui ne compile pas), sonde qui exige le même appel.
+- LOW · revue · corrigé : `docs/modeles.md` disait « tout gabarit … reçoit `hermes` » ; la phrase décrit maintenant l'aller-retour.
+- LOW · revue · consigné : SmolLM3 servi par llama-server (architecture `None`) passe par `by_template` (ChatML, `<tool_call>`, `enable_thinking`) et reçoit encore `hermes` dans la branche `qwen3`. Comportement antérieur à la story ; appliquer la sonde à cette branche casse `test_model_catalog.py::test_qwen_file` (gabarit Qwen factice sans appel passé), alors que la spec exige `qwen3` à l'octet près. À traiter dans une story à part (sonde dans la branche `qwen3` et gabarits factices réalistes).
+- Complexité : 0 constat (aucune structure qui grossit ; la sonde est en cache par gabarit, un rendu Jinja par gabarit distinct).
+
 ## Verification
 
 **Commands:**
