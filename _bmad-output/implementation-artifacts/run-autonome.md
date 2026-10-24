@@ -135,3 +135,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:57 · 1.3-5 · review · 1 medium corrigé (dégrisage à la saisie de clé), mock remplacé ; E2E claude_cache et context_window 55 OK · 3a11e05
 - 2026-10-24 23:57 · 1.3-5 · report · story 6 : dire que changer mémoire, skills ou prompt réécrit tout le cache · 3a11e05
 - 2026-10-24 23:57 · 1.3-5 · PR · ouverte, CI lancée · 3a11e05
+- 2026-10-25 00:00 · 1.3-3 · second-avis · 3 medium (course vidage/tour, vidage pendant préremplissage, slot 0 seul), 4 low · 95c0450
+- 2026-10-25 00:00 · 1.3-3 · review · lancé · 95c0450
+- 2026-10-25 00:00 · 1.4-3 · CI · rouge sur Ubuntu après rebase sur 1.4-1 ; 371 tests ciblés verts en local, journal attendu · 21515b7
