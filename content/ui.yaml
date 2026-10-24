@@ -399,6 +399,12 @@ main:
     saved_help: "Le choix appliqué est mémorisé dans settings.json, qui prend le pas sur [context] window de wavestack.toml au lancement suivant."
     size_legend: "Taille de la fenêtre"
     apply: "Appliquer"
+    claude_cache_legend: "Cache de prompt de Claude"
+    claude_cache_off: "Désactivé"
+    claude_cache_5m: "5 minutes (écriture ×1,25)"
+    claude_cache_1h: "1 heure (écriture ×2)"
+    claude_cache_pending: "Réglage du cache en cours…"
+    claude_cache_refused: "Réglage du cache refusé."
   ctx:
     modes:
       grouped: "Lecture groupée"

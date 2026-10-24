@@ -16037,6 +16037,101 @@ def s_security_page(r: Run) -> None:
     r.goto_app()
 
 
+def s_claude_cache(r: Run) -> None:
+    """V1.3 story 5: the « Cache de prompt de Claude » setting of the « Fenêtre ▾ » panel, on
+    the fake provider in Anthropic's shape. Off by default, no `cache_control` sent; 5 min
+    noted: the next call writes (the fake server counts the write), the one after reads, and
+    the body carries the three points; 1 h: points with `ttl: 1h` and the write detailed;
+    back to off; `settings.json` keeps the choice."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    r.goto_app()
+    r.wait_idle()
+    r.launch("system_prompt")
+    a_label = "☁️ RÉSEAU · Faux fournisseur (e2e) · wavestack-fake"
+    try:
+        _pick_model(r, f"☁️ RÉSEAU · {ANTHROPIC_PROVIDER} · {ANTHROPIC_MODEL}")
+        group = page.locator("#claude-cache")
+
+        def open_panel() -> None:
+            if page.locator("#window-panel").is_hidden():
+                page.click("#window-toggle")
+            expect(page.locator("#window-panel")).to_be_visible(timeout=5000)
+
+        def pick(value: str) -> None:
+            seq = r.ev.mark()
+            open_panel()
+            group.locator(f'input[value="{value}"]').check()
+            r.poll(lambda: bool(r.ev.since(seq, "context_window_state")), 10)
+
+        open_panel()
+        radios = group.locator("input[name='claude-cache']")
+        r.check(
+            radios.count() == 3
+            and group.locator("input[value='off']").is_checked()
+            and not group.locator("input[value='off']").is_disabled(),
+            "cache de Claude : trois choix, « Désactivé » par défaut, réglable avec une clé",
+        )
+        page.keyboard.press("Escape")
+        r.send("Bonjour")
+        r.check(
+            "cache_control" not in json.dumps(r.fake_calls()[-1]),
+            "cache de Claude désactivé : aucun cache_control envoyé",
+        )
+
+        for value, ttl in (("5m", None), ("1h", "1h")):
+            pick(value)
+            r.check(
+                group.locator(f"input[value='{value}']").is_checked(),
+                f"cache de Claude : « {value} » noté dans le panneau",
+            )
+            page.keyboard.press("Escape")
+            seq = r.ev.mark()
+            r.send(f"Premier appel à {value}")
+            first = r.fake_calls()[-1]
+            written = r.ev.since(seq, "model_call_ended")[-1]["payload"]
+            r.check(
+                first["system"][0]["cache_control"]
+                == ({"type": "ephemeral", "ttl": ttl} if ttl else {"type": "ephemeral"})
+                and first["messages"][-1]["content"][-1].get("cache_control") is not None,
+                f"{value} : le system et le dernier message portent le point de cache",
+                json.dumps(first["system"])[:120],
+            )
+            r.check(
+                written["cache_write_tokens"] > 0
+                and (written["cache_write_1h_tokens"] > 0) == bool(ttl),
+                f"{value} : le premier appel écrit ({'1 h' if ttl else '5 min'})",
+                str({k: v for k, v in written.items() if k.startswith("cache_")}),
+            )
+            seq = r.ev.mark()
+            r.send(f"Second appel à {value}")
+            read = r.ev.since(seq, "model_call_ended")[-1]["payload"]
+            r.check(
+                read["cache_read_tokens"] > 0 and read["cache_write_tokens"] == 0,
+                f"{value} : l'appel suivant lit le cache",
+                str({k: v for k, v in read.items() if k.startswith("cache_")}),
+            )
+        saved = json.loads((r.stack.data_dir / "settings.json").read_text(encoding="utf-8"))
+        r.check(
+            saved["cloud"]["claude_cache"] == "1h" and saved["cloud"].get("models"),
+            "settings.json : cloud.claude_cache == « 1h », les modèles gardés",
+        )
+        pick("off")
+        page.keyboard.press("Escape")
+        r.send("Retour à off")
+        r.check(
+            "cache_control" not in json.dumps(r.fake_calls()[-1]),
+            "retour à off : plus de cache_control",
+        )
+        open_panel()
+        r.shot_element("claude-cache-reglage", "#window-panel")
+        page.keyboard.press("Escape")
+    finally:
+        r.goto_app()
+        if (r.state().get("active_model") or {}).get("ref") != MODEL_ENTRY_ID:
+            _pick_model(r, a_label)
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -16096,6 +16191,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("relaunch", s_relaunch),
     ("bar_panels", s_bar_panels),  # story 9 (V1.1 vague 2): the barre commune's two flyouts
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
+    ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
 ]
 
 

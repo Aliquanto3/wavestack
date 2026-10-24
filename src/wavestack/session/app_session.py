@@ -869,6 +869,9 @@ class AppSession:
         # (`configured_window`), and the active model's effective one is `_window`.
         self._configured_window = self.cfg.context_window
         self._window = self._configured_window
+        # V1.3 story 5: Claude's prompt cache setting (`off`, `5m`, `1h`), read at launch
+        # (`[cloud] claude_cache`, `settings.json` over `wavestack.toml`), changed by the panel.
+        self._claude_cache: str = self.cfg.claude_cache
         # The active model's metadata (its native and server contexts), for the window
         # panel's choices; `None` for a cloud model or none.
         self._meta: EngineMetadata | None = None
@@ -2719,6 +2722,53 @@ class AppSession:
             return notice
         return None
 
+    def _claude_cache_locked(self) -> Message | None:
+        """V1.3 story 5: why Claude's cache setting is greyed, else `None`: no Claude entry
+        (`anthropic_messages`) has a key, the test that greys an entry of the cloud panel
+        (`config.cloud_key`), read again at each state so that a key typed during the session
+        enables the setting."""
+        has_key = any(
+            entry.api == "anthropic_messages" and config.cloud_key(entry) is not None
+            for entry in self.cfg.cloud_models[0]
+        )
+        return None if has_key else Message("session.claude_cache.no_key")
+
+    def _claude_cache_ttl(self, entry: CloudModel) -> str | None:
+        """V1.3 story 5: the cache duration given to the request body of `entry`: `5m` or
+        `1h` for a Claude model (`anthropic_messages`) when the setting is on, else `None`
+        (no `cache_control`: the other APIs never get one, the setting off sends the body
+        as before)."""
+        if entry.api != "anthropic_messages" or self._claude_cache == "off":
+            return None
+        return self._claude_cache
+
+    def set_claude_cache(self, value: str) -> Message:
+        """Intention `claude_cache` (class b): `off`, `5m` or `1h`, accepted in `idle` only
+        (else `SendRefused` with the reason) and with a Claude key (else `SendRefused` with
+        the panel's reason). Saved in `settings.json` (`cloud.claude_cache`); taken into
+        account at the next call, nothing reloads."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            if (locked := self._claude_cache_locked()) is not None:
+                raise SendRefused(locked)
+            if value not in ("off", "5m", "1h"):
+                raise SendRefused(Message("session.claude_cache.unknown"))
+            self._claude_cache = value
+        try:
+            saved = config.read_settings().get("cloud")
+            apply_setting(
+                SettingWrite(
+                    key="cloud",
+                    value={**(saved if isinstance(saved, dict) else {}), "claude_cache": value},
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - AD-16: the setting applied stays applied
+            notice = Message("session.claude_cache.not_saved")
+            self._error(Message("session.settings.unwritable"), exc, notice)
+        self._emit_window_state()
+        return Message(f"session.claude_cache.applied_{value}")
+
     def _note_read_rate(self, evaluated: int | None, prompt_ms: int) -> None:
         """Story 26: the active local or served model's read rate, from a call that
         evaluated at least `READ_MIN_TOKENS` tokens (not a cache hit, lot A). Never the
@@ -2847,6 +2897,9 @@ class AppSession:
             "read_tps": round(tps, 1) if tps else None,
             "read_note_text": note,
             "locked_text": self._locked_fr(active.entry if active else None),
+            "claude_cache": self._claude_cache,
+            "claude_cache_locked_text": self._claude_cache_locked(),
+            "claude_cache_note_text": self._t("session.claude_cache.note"),
             "choices": [
                 self._window_choice(n, active, meta, configured, tps, kv_per_token, effective)
                 for n in WINDOW_CHOICES
@@ -4705,6 +4758,7 @@ class AppSession:
             provider_label_text=content.provider_segment_text,
             lang=self._language,
             api=entry.api,
+            cache_ttl=self._claude_cache_ttl(entry),
         )
         rendered.seen = seen_prefix(read_before, rendered.segments)
         payload = self._chat_gauge(

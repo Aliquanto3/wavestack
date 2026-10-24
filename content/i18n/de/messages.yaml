@@ -75,6 +75,15 @@ session:
     no_turn: Keine Runde möglich.
     load_stopped: "Senden nicht verfügbar: Das Laden des Modells wurde gestoppt, und es ist kein Modell geladen. Wählen Sie ein Modell auf der Diagnoseseite."
   # Story 26 (AD-9): the window panel, when the cache and the read time are not WaveStack's to measure.
+  # V1.3 Story 5: Prompt-Cache von Claude, im Fensterpanel eingestellt.
+  claude_cache:
+    no_key: "Deaktiviert: Geben Sie zuerst den API-Schlüssel eines Claude-Modells ein (Diagnoseseite)."
+    unknown: "Unbekannte Einstellung: Wählen Sie off, 5 Min. oder 1 Std."
+    not_saved: "Der Cache von Claude ist für diese Sitzung eingestellt, die Einstellung konnte aber nicht in settings.json gespeichert werden."
+    note: "Gilt für Claude-Modelle. Unterhalb einer modellspezifischen Token-Schwelle cacht der Anbieter nichts: Alles bleibt dann „Nicht gecacht“. Wird beim nächsten Aufruf berücksichtigt."
+    applied_off: "Prompt-Cache von Claude: aus."
+    applied_5m: "Prompt-Cache von Claude: 5 Minuten (Schreiben zum 1,25-fachen Eingabepreis)."
+    applied_1h: "Prompt-Cache von Claude: 1 Stunde (Schreiben zum 2-fachen Eingabepreis)."
   window:
     kv_cloud: "Kontext-Cache: beim Anbieter, kein Speicher auf diesem Arbeitsplatz"
     kv_no_model: "Kontext-Cache: wird beim Laden eines Modells berechnet"

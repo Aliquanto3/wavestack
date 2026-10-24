@@ -73,6 +73,15 @@ session:
     no_turn: No turn possible.
     load_stopped: "Sending unavailable: the model loading was stopped and no model is loaded. Choose a model on the diagnostics page."
   # Story 26 (AD-9): the window panel, when the cache and the read time are not WaveStack's to measure.
+  # V1.3 story 5: Claude's prompt cache, set in the window panel.
+  claude_cache:
+    no_key: "Disabled: first enter the API key of a Claude model (diagnostic page)."
+    unknown: "Unknown setting: choose off, 5 min or 1 h."
+    not_saved: "Claude's cache is set for this session, but the setting could not be saved in settings.json."
+    note: "Applies to Claude models. Below a token threshold specific to each model, the provider caches nothing: everything then stays in “Uncached”. Taken into account at the next call."
+    applied_off: "Claude prompt cache: off."
+    applied_5m: "Claude prompt cache: 5 minutes (write at 1.25 times the input price)."
+    applied_1h: "Claude prompt cache: 1 hour (write at 2 times the input price)."
   window:
     kv_cloud: "Context cache: at the provider, no memory on this workstation"
     kv_no_model: "Context cache: computed when a model is loaded"
