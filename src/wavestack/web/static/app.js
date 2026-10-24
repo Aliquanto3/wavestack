@@ -2900,6 +2900,8 @@ function renderModelPicker() {
 const windowPanel = () => document.getElementById("window-panel");
 let renderedWindowKey = null;
 let windowApplying = false; // a POST in flight: a second click sends nothing
+let claudeCacheApplying = false; // V1.3 story 5: the cache setting's own POST
+let claudeCachePick = null; // ... and the choice it carries, shown until the session answers
 
 function bindWindowPicker() {
   document.getElementById("window-toggle").addEventListener("click", () => {
@@ -2908,6 +2910,9 @@ function bindWindowPicker() {
   });
   document.getElementById("window-close").addEventListener("click", () => closeWindowPanel(true));
   document.getElementById("window-apply").addEventListener("click", applyWindow);
+  document.getElementById("claude-cache").addEventListener("change", (event) => {
+    if (event.target.name === "claude-cache") applyClaudeCache(event.target.value);
+  });
   document.getElementById("window-choices").addEventListener("change", (event) => {
     if (event.target.name !== "window-choice") return;
     store.windowPick = Number(event.target.value);
@@ -3002,6 +3007,17 @@ function renderWindowPicker() {
     input.closest(".window-choice").classList.toggle("is-picked", checked);
   }
   setText(document.getElementById("window-note"), ws.read_note_text);
+  // V1.3 story 5: Claude's prompt cache; the state (and the reason it is greyed) is the
+  // session's, the browser only lays it out.
+  const cacheReason = claudeCacheApplying
+    ? t("main.window.claude_cache_pending")
+    : ws.claude_cache_locked_text ||
+      (store.sessionState?.state !== "idle" ? store.sessionState?.reason_text || t("main.window.between_turns") : null);
+  for (const input of document.querySelectorAll('input[name="claude-cache"]')) {
+    input.checked = input.value === (claudeCacheApplying ? claudeCachePick : ws.claude_cache);
+    input.disabled = Boolean(cacheReason);
+  }
+  setText(document.getElementById("claude-cache-note"), cacheReason ?? ws.claude_cache_note_text ?? "");
   const apply = document.getElementById("window-apply");
   const reason = windowApplying ? t("main.window.request_pending") : windowApplyReason(ws, pick);
   apply.disabled = Boolean(reason);
@@ -3038,6 +3054,28 @@ function windowChoiceNode(choice) {
   input.setAttribute("aria-describedby", `${figures.id} ${verdict.id}`);
   row.append(label, details);
   return row;
+}
+
+// V1.3 story 5: the cache setting applies at once (no « Appliquer »); a refusal is shown in
+// the panel's alert, the radios go back to the session's state.
+async function applyClaudeCache(value) {
+  if (claudeCacheApplying) return;
+  store.windowError = null;
+  claudeCacheApplying = true;
+  claudeCachePick = value;
+  renderWindowPicker();
+  try {
+    const response = await postIntention("/api/intentions/claude_cache", { value });
+    const answer = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      store.windowError = typeof answer.detail === "string" ? answer.detail : t("main.window.claude_cache_refused");
+    }
+  } catch (error) {
+    store.windowError = t("main.request_failed", { error: error.message });
+  } finally {
+    claudeCacheApplying = false;
+  }
+  render();
 }
 
 async function applyWindow() {

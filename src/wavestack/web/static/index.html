@@ -287,6 +287,13 @@
           <div id="window-choices"></div>
         </fieldset>
         <p class="window-note" id="window-note"></p>
+        <fieldset class="window-choices" id="claude-cache" data-testid="claude-cache">
+          <legend class="window-choices-legend" data-i18n="main.window.claude_cache_legend">Cache de prompt de Claude</legend>
+          <label class="window-choice-label"><input type="radio" name="claude-cache" value="off"> <span data-i18n="main.window.claude_cache_off">Désactivé</span></label>
+          <label class="window-choice-label"><input type="radio" name="claude-cache" value="5m"> <span data-i18n="main.window.claude_cache_5m">5 minutes (écriture ×1,25)</span></label>
+          <label class="window-choice-label"><input type="radio" name="claude-cache" value="1h"> <span data-i18n="main.window.claude_cache_1h">1 heure (écriture ×2)</span></label>
+        </fieldset>
+        <p class="window-note" id="claude-cache-note"></p>
         </div>
         <p class="window-alert" id="window-alert" role="alert" hidden></p>
         <div class="window-actions">

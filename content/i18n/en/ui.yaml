@@ -390,6 +390,12 @@ main:
     saved_help: "The applied choice is stored in settings.json, which overrides [context] window in wavestack.toml at the next launch."
     size_legend: "Window size"
     apply: "Apply"
+    claude_cache_legend: "Claude prompt cache"
+    claude_cache_off: "Off"
+    claude_cache_5m: "5 minutes (write ×1.25)"
+    claude_cache_1h: "1 hour (write ×2)"
+    claude_cache_pending: "Setting the cache…"
+    claude_cache_refused: "Cache setting refused."
   ctx:
     modes:
       grouped: "Grouped reading"

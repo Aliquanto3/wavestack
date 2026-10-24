@@ -76,6 +76,15 @@ session:
     no_turn: Aucun tour possible.
     load_stopped: "Envoi indisponible : le chargement du modèle a été arrêté et aucun modèle n'est chargé. Choisissez un modèle sur la page de diagnostic."
   # Story 26 (AD-9): the window panel, when the cache and the read time are not WaveStack's to measure.
+  # V1.3 story 5 : le cache de prompt de Claude, réglé dans le panneau de la fenêtre.
+  claude_cache:
+    no_key: "Désactivé : saisissez d'abord la clé API d'un modèle Claude (page de diagnostic)."
+    unknown: "Réglage inconnu : choisissez off, 5 min ou 1 h."
+    not_saved: "Cache de Claude réglé pour cette séance, mais le réglage n'a pas pu être enregistré dans settings.json."
+    note: "S'applique aux modèles Claude. Sous un seuil de tokens propre à chaque modèle, le fournisseur ne met rien en cache : tout reste alors en « Non caché ». Prise en compte à l'appel suivant."
+    applied_off: "Cache de prompt de Claude : désactivé."
+    applied_5m: "Cache de prompt de Claude : 5 minutes (écriture à 1,25 fois le prix d'entrée)."
+    applied_1h: "Cache de prompt de Claude : 1 heure (écriture à 2 fois le prix d'entrée)."
   window:
     kv_cloud: "Cache de contexte : chez le fournisseur, aucune mémoire sur ce poste"
     kv_no_model: "Cache de contexte : calculé au chargement d'un modèle"
