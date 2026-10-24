@@ -58,6 +58,8 @@ context: []
 
 ## Implementation Notes
 
+- 2026-10-24, CI Windows : `Get-FileHash` introuvable quand Windows PowerShell 5.1 est lancé depuis PowerShell 7, qui lui transmet son `PSModulePath` (runner GitHub, ou `install.bat` tapé dans un terminal pwsh). `install.ps1` calcule donc l'empreinte avec `[Security.Cryptography.SHA256]` de .NET. La décision reste la même (empreinte SHA-256 vérifiée), seul l'outil change.
+
 ## Spec Change Log
 
 ## Review Triage Log

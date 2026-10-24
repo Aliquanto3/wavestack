@@ -93,8 +93,16 @@ param(
     $selected = @($OptionalModels | Where-Object { $requested -contains $_.Id })
 
     # Verifie l'empreinte SHA-256 d'un fichier telecharge ; non conforme : fichier supprime et arret.
+    # SHA256 de .NET plutot que Get-FileHash : Windows PowerShell 5.1 lance depuis PowerShell 7
+    # (install.bat dans un terminal pwsh) herite de son PSModulePath et ne trouve plus Get-FileHash.
     function Test-ModelHash([string]$Path, [string]$Expected) {
-        $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+        $stream = [IO.File]::OpenRead($Path)
+        try {
+            $sha = [Security.Cryptography.SHA256]::Create()
+            $actual = -join ($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') })
+        } finally {
+            $stream.Dispose()
+        }
         if ($actual -ne $Expected.ToLowerInvariant()) {
             [IO.File]::Delete($Path)
             throw "Empreinte SHA-256 non conforme pour $(Split-Path -Leaf $Path) : fichier supprime. Attendue $Expected, obtenue $actual."
