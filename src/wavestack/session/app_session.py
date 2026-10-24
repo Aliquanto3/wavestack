@@ -148,6 +148,7 @@ from wavestack.models.capabilities import (
     tool_call_tags,
 )
 from wavestack.models.cloud_api import create_cloud_engine
+from wavestack.models.cloud_base import reset_conversation_spend
 from wavestack.models.embedding import Embedder
 from wavestack.models.engine import (
     DEFAULT_SAMPLING,
@@ -6340,8 +6341,17 @@ class AppSession:
             self._memory_snapshot = None  # N1: the next conversation reads the memory again
             self._cache_cause = "reset"
         self._journal().emit("conversation_cleared", {})
+        self._reset_conversation_spend()
         self._emit_architecture()
         self._refresh_preview()
+
+    def _reset_conversation_spend(self) -> None:
+        """V1.3 CAP-3: the bilan's « Cette conversation » restarts with the conversation; the
+        session's column stays (only a relaunch resets it)."""
+        journal = self._journal()
+        reset_conversation_spend(
+            self.cfg.eur_per_usd, lambda spend: journal.emit("consumption_updated", spend)
+        )
 
     # ---------- languages (1/5, AD-19) ----------
 
@@ -6655,6 +6665,7 @@ class AppSession:
                 self._active_scenario = scenario_id
             journal = self._journal()
             journal.emit("conversation_cleared" if scenario_id else "harness_reset", {})
+            self._reset_conversation_spend()
             if scenario_id is None or restore_memory:  # FR-39; story 21, a module's start
                 self._restore_memory()
         self._emit_armed()
@@ -7478,6 +7489,7 @@ class AppSession:
                         self.cfg.eur_per_usd,
                         lambda spend: journal.emit("consumption_updated", spend),
                         compression_saved_usd=saved_usd,
+                        in_conversation=current().turn_id is not None,
                     )
         if first and state.rag_excerpts:
             state = replace(state, rag_excerpts=tuple(excerpts), rag_compressed=tuple(was))
@@ -8646,7 +8658,9 @@ class AppSession:
             rate = kv_fields.get("kv_prompt_per_second")
             if rate:
                 kv_time_saved_s = kv_fields["kv_cache_tokens"] / rate
-            self._count_impact(impact, kv_time_saved_s)
+            # V1.3 CAP-3: its cache cells join the bilan (not a call refused before any output).
+            counted = None if reason == "error" and first_at is None else cache_cells
+            self._count_impact(impact, kv_time_saved_s, counted)
             # Story 7 (CAP-7): this call's own tokens, for the sub-agent's dedicated line
             # (within a turn only, like `_count_impact`: the labs have none).
             if current().turn_id is not None:
@@ -8902,13 +8916,18 @@ class AppSession:
             "gco2e_max": sum(i.gco2e_max for i in impacts),
         }
 
-    def _count_impact(self, impact: Impact, kv_time_saved_s: float | None = None) -> None:
+    def _count_impact(
+        self,
+        impact: Impact,
+        kv_time_saved_s: float | None = None,
+        cache: dict[str, Any] | None = None,
+    ) -> None:
         """GreenOps: a local call's estimated footprint joins the session's registry (then
         `consumption_updated`) and, within a turn, the turn's sums; a local call costs
         nothing. Story 9 (CAP-7): `kv_time_saved_s` (the call's own KV-cache reuse, when the
         engine said one) joins the running total too, even without an estimated footprint."""
         estimated = impact.estimated
-        if not estimated and kv_time_saved_s is None:
+        if not estimated and kv_time_saved_s is None and cache is None:
             return
         if estimated and current().turn_id is not None:  # the « LLM nu » screen has no turn
             self._turn_impacts.append(impact)
@@ -8919,6 +8938,8 @@ class AppSession:
             lambda spend: journal.emit("consumption_updated", spend),
             impact=impact if estimated else None,
             kv_time_saved_s=kv_time_saved_s,
+            cache=cache,
+            in_conversation=current().turn_id is not None,
         )
 
     def consumption(self) -> dict[str, Any] | None:
