@@ -114,3 +114,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:48 · 1.4-2 · décision · libellés des 7 sous-systèmes vérifiés sur arXiv 2609.00006 (tableau 1) : Tools & actions, Safety & permissions corrigés · aca8e38
 - 2026-10-24 23:48 · 1.4-2 · review · relecture de la spec lancée · aca8e38
 - 2026-10-24 23:48 · 1.3-4 · dev · lancé (phase spec) · e15cc3e
+- 2026-10-24 23:49 · 1.3-2 · review · 2 medium corrigés (« non mesuré » en local, barre à 1 280 et 1 366 px vérifiée), 2 écartés · 1b0fdb5
+- 2026-10-24 23:49 · 1.3-2 · décision · à revoir : seuil de 1 700 px du texte court de la jauge (spec de story, absent de DESIGN.md) · 1b0fdb5
+- 2026-10-24 23:49 · 1.3-2 · PR · rebasée sur main, ouverte, CI lancée · c81b6d5
