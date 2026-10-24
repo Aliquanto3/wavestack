@@ -25,6 +25,12 @@ validation) :
   « Choisir ce modèle… » dans celle d'un modèle cloud (qui ouvre d'abord l'avertissement), ou
   « Choisir ce fichier » après un chemin saisi.
 
+**Deux modèles locaux.** Qwen3.5-2B (recommandé) et MiniCPM5-2B (facultatif, voir
+[le modèle local](installation.md#le-modèle-local)) peuvent coexister dans `models/`. Sans choix
+mémorisé, WaveStack charge Qwen3.5-2B, sans l'enregistrer ; un choix mémorisé (MiniCPM5 par
+exemple) est repris au redémarrage. Avec plusieurs fichiers dont aucun n'est Qwen3.5-2B, le
+démarrage attend votre choix.
+
 **Lire le sélecteur.** Chaque option commence par une icône, 🏠 (sur ce poste) ou ☁️ (réseau).
 Sa deuxième ligne est une légende, qui dit où tourne le modèle, puis qui le sert :
 - « Local · fichier » : un fichier GGUF chargé par WaveStack lui-même (blob Ollama compris) ;

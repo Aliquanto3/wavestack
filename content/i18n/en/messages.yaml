@@ -671,6 +671,9 @@ tools:
     no_name: "the call is not a JSON object with a “name” field"
     arguments_not_object: "the “arguments” field is not a JSON object"
     never_closed: "the <tool_call> tag is never closed"
+    minicpm5_function_tag: "the <function name=\"…\"> tag is missing or not properly closed"
+    minicpm5_param_unclosed: "a <param name=\"…\"> tag is not closed by </param>"
+    minicpm5_never_closed: "the <function name=\"…\"> tag is never closed by </function>"
     cut: "the output was cut at {limit} tokens in the middle of the call"
   calculator:
     power: "Power refused: the exponent {exponent} is too large for the calculator (at most {max}, and a result of reasonable size)."

@@ -2,7 +2,7 @@
 title: 'MiniCPM5-2B, modèle local optionnel'
 type: 'feature'
 created: '2026-10-24'
-status: 'in-progress'
+status: 'review'
 route: 'dispatch'
 baseline_commit: 'bde9e65c12ddb95a835f4e1e55a27bf3c9a7b7b5'
 review_loop_iteration: 0
@@ -89,6 +89,8 @@ context: []
 - Given les deux fichiers dans `models/` sans choix mémorisé, when WaveStack démarre, then le modèle chargé est Qwen3.5-2B, sans blocage ni choix sauvegardé ; given MiniCPM5 sauvegardé comme choix, when WaveStack redémarre, then c'est MiniCPM5 qui est chargé.
 
 ## Implementation Notes
+
+Implémenté selon la spec. Suite complète et E2E laissés à la fin du lot (ruff et tests ciblés par story). Le test réel `-WithMiniCPM` (1,5 Go) n'a pas été rejoué.
 
 ## Spec Change Log
 

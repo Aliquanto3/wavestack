@@ -453,6 +453,7 @@ def test_size_text():
         (["nemotron_h"], [], "nemotron"),
         (["gpt-oss"], [], "gpt_oss"),
         (["minicpm"], [], "minicpm"),
+        (["llama"], ["MiniCPM5-2B-Q4_K_M"], "minicpm"),  # MiniCPM5 declares `llama`
         ([], ["gemma-3-270m-it"], "gemma"),
         ([], ["granite-4.0-h-micro"], "granite"),
         ([], ["Phi-4-mini-instruct"], "phi"),

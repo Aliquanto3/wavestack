@@ -674,6 +674,9 @@ tools:
     no_name: "der Aufruf ist kein JSON-Objekt mit einem Feld „name“"
     arguments_not_object: "das Feld „arguments“ ist kein JSON-Objekt"
     never_closed: "das Tag <tool_call> wird nie geschlossen"
+    minicpm5_function_tag: "das Tag <function name=\"…\"> fehlt oder ist nicht richtig geschlossen"
+    minicpm5_param_unclosed: "ein Tag <param name=\"…\"> ist nicht mit </param> geschlossen"
+    minicpm5_never_closed: "das Tag <function name=\"…\"> wird nie mit </function> geschlossen"
     cut: "die Ausgabe wurde bei {limit} Tokens mitten im Aufruf abgeschnitten"
   calculator:
     power: "Potenz abgelehnt: Der Exponent {exponent} ist zu groß für den Taschenrechner (höchstens {max}, und ein Ergebnis vernünftiger Größe)."
