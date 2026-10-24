@@ -512,7 +512,7 @@ def test_cards_come_in_two_groups_in_the_story_order():
         ("guardrails", "acts"),
         ("compression", "acts"),
     ]
-    # The categories do not change: skills and compression are context engineering.
+    # V1.4: reasoning is harness engineering; skills and compression are context engineering.
     assert {b["id"]: b["category"] for b in cards} == {
         "reasoning": "harness",
         "system_prompt": "prompt",

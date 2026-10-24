@@ -101,8 +101,7 @@ scenarios:
       The bricks of module 1 stay on, except the reasoning (global memory goes back to its
       demonstration), and the local tools are added. Send a prompt and follow the call
       cycle in Orchestration: the model asks for the tool, the harness runs it and
-      reinjects its result. The prompts name the tool because the small model needs it: it
-      is scaffolding, which a stronger model does not require (try a cloud model).
+      reinjects its result.
     bricks: [short_memory, system_prompt, global_memory, tools]
     restore_memory: true
     prompts:
@@ -220,8 +219,8 @@ scenarios:
       skill are in the context. Send the prompt: the model calls load_skill, the full
       content of the skill joins the context and the gauge grows. The prompt names the
       skill and the tool, because a small local model does not always link the request to
-      the skill; a bigger model loads it from the request alone (try with a cloud model).
-      If the model does not load the skill, arm “Trigger the skill” on “Meeting minutes”
+      the skill; a bigger model loads it from the request alone (try with a cloud model):
+      naming the skill is scaffolding for the small model. If the model does not load the skill, arm “Trigger the skill” on “Meeting minutes”
       in the Skills card (after “Show the forced actions”), then replay the prompt.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills]
     mcp_lazy: true

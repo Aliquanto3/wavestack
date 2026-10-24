@@ -132,9 +132,7 @@ scenarios:
     description_text: >-
       Les briques du module 1 restent actives, sauf le raisonnement (la mémoire globale
       revient à sa démonstration), et les outils locaux s'y ajoutent. Envoyez un prompt et suivez dans Orchestration le cycle d'appel : le
-      modèle demande l'outil, le harnais l'exécute et réinjecte son résultat. Les prompts
-      nomment l'outil parce que le petit modèle en a besoin : c'est un échafaudage, qu'un
-      modèle plus fort n'exige pas (essayez avec un modèle cloud).
+      modèle demande l'outil, le harnais l'exécute et réinjecte son résultat.
     bricks: [short_memory, system_prompt, global_memory, tools]
     restore_memory: true
     prompts:
@@ -254,7 +252,8 @@ scenarios:
       load_skill, le contenu complet du skill rejoint le contexte et la jauge grandit. Le
       prompt nomme le skill et l'outil, parce qu'un petit modèle local ne fait pas toujours
       le lien entre la demande et le skill ; un modèle plus gros le charge sur la seule
-      demande (essayez avec un modèle cloud). Si le modèle ne charge pas le skill, armez
+      demande (essayez avec un modèle cloud) : nommer le skill est un échafaudage pour le
+      petit modèle. Si le modèle ne charge pas le skill, armez
       « Déclencher le skill » sur « Compte rendu de réunion » dans la carte Skills (après
       « Afficher les actions forcées »), puis rejouez le prompt.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills]

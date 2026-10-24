@@ -107,9 +107,7 @@ scenarios:
       Die Bausteine aus Modul 1 bleiben aktiv, außer dem Denkprozess (das globale Gedächtnis
       kehrt zu seiner Demo zurück), und die lokalen Tools kommen hinzu. Senden Sie einen
       Prompt und verfolgen Sie im Bereich Orchestrierung den Ablauf des Aufrufs: Das Modell fordert
-      das Tool an, der Harness führt es aus und speist sein Ergebnis wieder ein. Die Prompts
-      nennen das Tool, weil das kleine Modell das braucht: Das ist ein Gerüst, das ein
-      stärkeres Modell nicht verlangt (probieren Sie ein Cloud-Modell).
+      das Tool an, der Harness führt es aus und speist sein Ergebnis wieder ein.
     bricks: [short_memory, system_prompt, global_memory, tools]
     restore_memory: true
     prompts:
@@ -234,7 +232,8 @@ scenarios:
       vollständige Inhalt des Skills kommt in den Kontext, und die Füllstandsanzeige wächst.
       Der Prompt nennt den Skill und das Tool, weil ein kleines lokales Modell nicht immer
       die Verbindung zwischen Anfrage und Skill herstellt; ein größeres Modell lädt ihn
-      allein auf die Anfrage hin (probieren Sie es mit einem Cloud-Modell). Lädt das Modell
+      allein auf die Anfrage hin (probieren Sie es mit einem Cloud-Modell): Den Skill zu nennen ist ein Gerüst für
+      das kleine Modell. Lädt das Modell
       den Skill nicht, schalten Sie „Skill auslösen“ auf „Besprechungsprotokoll“ auf der
       Karte Skills scharf (nach „Erzwungene Aktionen anzeigen“) und wiederholen Sie dann
       den Prompt.
