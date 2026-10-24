@@ -21,7 +21,7 @@
 
 .PARAMETER Models
     Modeles locaux facultatifs a telecharger en plus de Qwen3.5-2B (qui reste le modele par
-    defaut), identifiants separes par des virgules : qwen3.5-0.8b, minicpm5. `-Models list`
+    defaut), identifiants separes par des virgules : qwen3.5-0.8b, minicpm5, granite-4.0-350m, granite-4.0-1b. `-Models list`
     affiche la table (identifiant, fichier, taille, licence) puis s'arrete. Equivalent :
     WAVESTACK_MODELS=id1,id2 (sous `irm | iex`, qui ne passe pas d'option). Chaque fichier
     est verifie par son empreinte SHA-256 apres telechargement.
@@ -61,7 +61,15 @@ param(
         @{ Id = 'minicpm5'; Size = '1,5 Go'; Bytes = 1561318368; License = 'Apache-2.0'
            File = 'MiniCPM5-2B-Q4_K_M.gguf'
            Sha256 = 'ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd'
-           Url = 'https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf' }
+           Url = 'https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/resolve/2079a22f3beaa4e306449978533478fe0522f4b3/MiniCPM5-2B-Q4_K_M.gguf' },
+        @{ Id = 'granite-4.0-350m'; Size = '0,3 Go'; Bytes = 236985760; License = 'Apache-2.0'
+           File = 'granite-4.0-350m-Q4_K_M.gguf'
+           Sha256 = '771c588a49607f274a2bba3185733607ebe6f74b996ab90e2d6bee0d98bcec52'
+           Url = 'https://huggingface.co/ibm-granite/granite-4.0-350m-GGUF/resolve/b8208a86a58427e1739265318028eb5895b74bf2/granite-4.0-350m-Q4_K_M.gguf' },
+        @{ Id = 'granite-4.0-1b'; Size = '1,0 Go'; Bytes = 1023645440; License = 'Apache-2.0'
+           File = 'granite-4.0-1b-Q4_K_M.gguf'
+           Sha256 = '22ec0f9cc99a90185312de3c882c84e7bd6789bdd050389844380a01a831d7f1'
+           Url = 'https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf' }
     )
     $RepoUrl  = 'https://github.com/Aliquanto3/wavestack.git'
     $ZipUrl   = 'https://github.com/Aliquanto3/wavestack/archive/refs/heads/main.zip'

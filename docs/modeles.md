@@ -31,6 +31,20 @@ mémorisé, WaveStack charge Qwen3.5-2B, sans l'enregistrer ; un choix mémoris�
 exemple) est repris au redémarrage. Avec plusieurs fichiers dont aucun n'est Qwen3.5-2B, le
 démarrage attend votre choix.
 
+**Modèles locaux et appels d'outils.** Le lecteur d'appels est choisi d'après le gabarit du
+fichier, pas d'après son nom.
+
+| Modèle | Lecteur | Raisonnement | Taille (Q4_K_M) |
+|---|---|---|---|
+| Qwen3.5-2B | `qwen3_coder` | activable | 1,3 Go |
+| Qwen3.5-0.8B | `qwen3_coder` | activable | 0,5 Go |
+| MiniCPM5-2B | `minicpm5` | activable | 1,5 Go |
+| Granite 4.0 1B | `hermes` (`<tool_call>` JSON) | non | 1,0 Go |
+| Granite 4.0 350M | `hermes` (`<tool_call>` JSON) | non | 0,3 Go |
+
+Tout gabarit qui annonce `<tool_call>` sans `<function=` reçoit le lecteur `hermes`. Les variantes
+hybrides Granite 4.0-H sont donc reconnues, mais ni proposées par l'installateur ni recommandées.
+
 **Lire le sélecteur.** Chaque option commence par une icône, 🏠 (sur ce poste) ou ☁️ (réseau).
 Sa deuxième ligne est une légende, qui dit où tourne le modèle, puis qui le sert :
 - « Local · fichier » : un fichier GGUF chargé par WaveStack lui-même (blob Ollama compris) ;

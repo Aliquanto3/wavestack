@@ -2,7 +2,7 @@
 title: 'Granite 4.0 Nano (350M, 1B) : appels JSON <tool_call>'
 type: 'feature'
 created: '2026-10-24'
-status: 'ready-for-dev'
+status: 'in-progress'
 route: 'dispatch'
 baseline_commit: '82e05ef74b6c7effa9be437c70e5d59743c92844'
 review_loop_iteration: 0
@@ -62,12 +62,12 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `tests/fixtures/granite4_chat_template.jinja` -- gabarit vérifié contre l'en-tête.
-- [ ] `src/wavestack/models/capabilities.py` -- détection et séquences d'arrêt.
-- [ ] `content/models/publishers.yaml` (+ i18n si besoin) -- architecture `granite`.
-- [ ] `install.ps1`, `install.sh`, `tests/test_installers.py` -- deux entrées dans la liste de la spec A.
-- [ ] `tests/test_tool_parser_granite4.py` -- matrice ; capacités de la fixture (famille `granite`, `hermes`, arrêt, pas de raisonnement) ; rendu avec outil et appel passé ; cycle complet calculatrice avec `FakeEngine(template=GRANITE, architecture="granite")`.
-- [ ] `docs/modeles.md`, `docs/installation.md` -- table des modèles et option d'installation.
+- [x] `tests/fixtures/granite4_chat_template.jinja` -- gabarit vérifié contre l'en-tête.
+- [x] `src/wavestack/models/capabilities.py` -- détection et séquences d'arrêt.
+- [x] `content/models/publishers.yaml` (+ i18n si besoin) -- architecture `granite`.
+- [x] `install.ps1`, `install.sh`, `tests/test_installers.py` -- deux entrées dans la liste de la spec A.
+- [x] `tests/test_tool_parser_granite4.py` -- matrice ; capacités de la fixture (famille `granite`, `hermes`, arrêt, pas de raisonnement) ; rendu avec outil et appel passé ; cycle complet calculatrice avec `FakeEngine(template=GRANITE, architecture="granite")`.
+- [x] `docs/modeles.md`, `docs/installation.md` -- table des modèles et option d'installation.
 
 **Acceptance Criteria:**
 - Given le gabarit Granite 4.0, when les capacités sont lues, then la brique Outils est disponible avec le lecteur `hermes` et l'arrêt `<|end_of_text|>`.

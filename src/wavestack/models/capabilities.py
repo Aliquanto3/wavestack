@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from wavestack.config import CloudModel
 
 _THINK_TAGS = ("<think>", "</think>")
+# End-of-turn markers a template writes (ChatML, Granite), searched in this order: the first
+# one found is the model's stop sequence.
+_END_OF_TURN_MARKERS = ("<|end_of_text|>", "<|im_end|>")
 CLOUD_FAMILY = "openai_chat"  # a cloud model: capabilities declared, no template (AD-6)
 # AD-6: why a local model offers no tool call; the brick cards and the model table (story 25).
 # Languages (5/5): the texts of this module are `Message`s, French as a text, rendered by
@@ -106,6 +109,20 @@ def capabilities_for(meta: EngineMetadata) -> Capabilities:
             reasoning_variable=reasoning_variable,
             native_context=meta.native_context,
             reasoning_tags=_THINK_TAGS,
+            reasoning=reasoning_variable is not None,
+        )
+    if "<tool_call>" in template and "<function=" not in template:
+        # Any other family that announces Hermes-style JSON calls (Granite 4.0, Qwen2.5,
+        # Hermes): the `hermes` reader, the stop marker its template writes, and reasoning
+        # by the generic rules.
+        return Capabilities(
+            family=arch or "unknown",
+            chat_template=template,
+            tool_call_parser="hermes",
+            stop_sequences=tuple(m for m in _END_OF_TURN_MARKERS if m in template)[:1],
+            reasoning_variable=reasoning_variable,
+            native_context=meta.native_context,
+            reasoning_tags=_THINK_TAGS if _THINK_TAGS[0] in template else None,
             reasoning=reasoning_variable is not None,
         )
     return Capabilities(
