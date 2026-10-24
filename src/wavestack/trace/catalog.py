@@ -636,6 +636,10 @@ class BrickState(BaseModel):
     id: str
     label_text: str
     category: Literal["prompt", "context", "harness"]
+    # V1.4-2: the brick's place on the harness map (declared in the registry, not translated).
+    subsystem: str | None = None
+    roles: list[str] = []
+    sensor_kind: str | None = None
     # Story 33: « Ce que le modèle lit » (`reads`) or « Ce que le harnais fait » (`acts`).
     group: Literal["reads", "acts"] | None = None
     category_text: str

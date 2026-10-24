@@ -17,7 +17,7 @@ chaque message, il assemble le contexte (prompt système, mémoire, descriptions
 extraits de documents…), appelle le modèle, exécute les outils que celui-ci demande et lui
 en réinjecte les résultats, jusqu'à la réponse. WaveStack montre cette boucle pendant qu'elle tourne :
 
-- **Des briques à allumer une à une**, au fil d'un programme guidé de six modules (5 h 15) :
+- **Des briques à allumer une à une**, au fil d'un programme guidé de sept modules (5 h 45) :
   chaque scénario allume ses briques, donne sa consigne et propose ses prompts.
 - **Quatre volets synchronisés** : ce que voit l'utilisateur, ce que lit vraiment le modèle (en
   tokens), ce que fait le harnais pas à pas, et où tourne chaque pièce (sur le poste ou non).

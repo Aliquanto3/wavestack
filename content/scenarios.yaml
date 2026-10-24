@@ -1,14 +1,20 @@
 # Programme de formation et scénarios par brique (stories 10 et 21, AD-19, FR-38, FR-40).
 # Chaque scénario déclare sa configuration complète, pas un écart au précédent :
 # lancer le premier scénario d'un module active déjà les briques des modules précédents
-# (CAP-40), avec deux exceptions (AD-9), que la consigne du premier scénario de chaque
+# (CAP-40), avec trois exceptions (AD-9), que la consigne du premier scénario de chaque
 # module suivant rappelle :
 # - le raisonnement, montré au module 1, n'est reconduit dans aucun module suivant : sa
 #   réserve de sortie de 1 536 tokens ôte 1 024 tokens utiles à chaque appel et allonge
 #   chaque tour (NFR-1) ; rallumez-le à la main pour le montrer à l'œuvre ;
 # - le RAG, montré au module 3, n'est reconduit dans aucun module suivant : ses extraits sur
 #   Exemplia sont hors sujet dans les démonstrations suivantes, trompent le petit modèle et
-#   forcent la relecture du contexte à chaque tour (D5) ; rallumez-le à la main au besoin.
+#   forcent la relecture du contexte à chaque tour (D5) ; rallumez-le à la main au besoin ;
+# - le sous-agent, montré au module 6, n'est reconduit dans aucun module suivant : sa
+#   description d'outil prend de la place dans la fenêtre, et le petit modèle déléguerait la
+#   lecture que la compression doit montrer ; rallumez-le à la main au besoin.
+# Un hook fait de même : H3 (injection de contexte), montré au module 5, n'est pas reconduit au
+# module 7, dont la consigne le dit : ses règles de mission feraient déborder la fenêtre au
+# second prompt de la compression (le journal relu reste dans l'historique).
 # Le premier scénario d'un module restaure aussi la mémoire globale de démonstration
 # (`restore_memory`) : un module démarré directement part toujours de la même mémoire, et une
 # mémoire remplie au module précédent ne déborde pas la fenêtre.
@@ -50,9 +56,12 @@ program:
   - title_text: Skills et hooks
     duration_min: 60
     scenarios: [skills, caveman, hooks]
-  - title_text: Sous-agent et compression
-    duration_min: 60
-    scenarios: [subagent, compression]
+  - title_text: Sous-agent
+    duration_min: 45
+    scenarios: [subagent]
+  - title_text: Contexte long et carte
+    duration_min: 45
+    scenarios: [compression, harness_map]
 
 transverse: [data_flows, soc, iam, sovereignty]
 
@@ -325,8 +334,9 @@ scenarios:
   compression:
     title_text: Compression du contexte
     description_text: >-
-      Les briques du scénario Sous-agent restent actives, sans le sous-agent (ni le
-      raisonnement ni le RAG), et la brique Compression s'y ajoute : Headroom raccourcit les
+      Les briques des modules précédents restent actives (MCP en lazy loading), sans le
+      sous-agent, sans l'injection de contexte (H3), et sans le raisonnement ni le RAG, et la
+      brique Compression s'y ajoute : Headroom raccourcit les
       gros résultats d'outils avant l'appel au modèle. Éteignez d'abord la compression et
       envoyez le premier prompt : le modèle appelle read_file et le journal de sauvegarde
       entre en entier dans le contexte. S'il ne lit pas le journal, cliquez « Forcer
@@ -347,12 +357,32 @@ scenarios:
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [read_file]
     mcp_lazy: true
+    restore_memory: true
     hooks: [h1, h2]
     prompts:
       - >-
         Appelle l'outil read_file sur journal_serveur.log, puis dis-moi quelle erreur grave
         la sauvegarde de cette nuit a rencontrée.
       - Dans le journal_serveur.log, à quelle heure le lot 12 a-t-il été copié ?
+
+  harness_map:
+    title_text: Carte du harnais
+    description_text: >-
+      Les briques de compression restent actives, comme au scénario précédent. Aucun appel
+      d'outil ici : cliquez « Carte du harnais » sous ce texte (ou en pied du panneau des
+      briques) pour ouvrir la carte. Chaque brique y est placée dans l'un des 7 sous-systèmes
+      d'un harnais, avec son rôle : guide (il oriente le modèle avant qu'il agisse), capteur
+      (il observe et bloque ou corrige, calculé par une règle ou déduit par un modèle) ou
+      simple capacité. Repérez les guides et les capteurs, puis le sous-système sans brique
+      (la boucle de l'agent), qui existe quand même dans le cœur du harnais. Une brique
+      éteinte reste placée, grisée : la carte décrit le harnais complet. Échap ou « Fermer »
+      referme la carte. Le prompt suggéré n'appelle aucun outil.
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - En une phrase, qu'est-ce qu'un harnais d'agent ?
 
   data_flows:
     title_text: Où vont mes données ?

@@ -2,7 +2,7 @@
 title: 'Carte du harnais et module « Contexte long et carte »'
 type: 'feature'
 created: '2026-10-24'
-status: 'ready-for-dev'
+status: 'review'
 baseline_revision: 'd9f223e'
 context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-etat-de-l-art-harnais/SPEC.md'
@@ -107,3 +107,10 @@ Relecture de spec avant code (point de contrôle tenu à la place d'Anaël), bra
 - Nit, low, revue : `state.bricks` au lieu de `store.bricks.bricks`, règle de grisé floue, carte avant tout modèle ; corrigé (vérifié : `emit_initial` émet toutes les briques).
 - Nit, low, revue : légende des rôles et pastille de discipline de la maquette 1 seulement évoquées ; corrigé (symboles, texte accessible, jeton `--color-discipline-{category}`).
 - Nit, low, revue : service par `bricks_changed` sans route : suffisant (toutes les briques, `wanted`/`available`), confirmé.
+
+## Écarts de mise en œuvre
+
+- `compression` (premier scénario du module 7) doit aussi porter `restore_memory: true` (fr, en, de : le test de miroir l'exige) ; les miroirs en et de l'ont reçu.
+- H3 (injection de contexte) n'est pas reconduit à `compression` et `harness_map` (`hooks: [h1, h2]`) : avec H3 le second prompt déborde (1 692 × 1,1 + 1 851 > 3 584). `tests/test_program.py` gagne `HOOKS_NOT_CARRIED_FR` : un hook absent du premier scénario d'un module n'est toléré que si la consigne le dit (« sans l'injection de contexte (H3) »), comme pour les briques AD-9 ; en-tête de `scenarios.yaml` complété.
+- Durée totale du programme : 5 h 45 (sept modules) dans `README.md` et `docs/guide.md` ; `tools/demo/compose.py:300` (« 6 modules · 5 h 15 », visuel de démonstration) non touché.
+- Bouton du panneau des briques : hors de `#bricks` (reconstruit à chaque rendu), activé dès que `store.bricks` existe.

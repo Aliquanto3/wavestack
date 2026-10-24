@@ -104,6 +104,9 @@
         </div>
       </header>
       <div class="pane-body" id="bricks"></div>
+      <div class="harness-map-foot">
+        <button type="button" id="harness-map-open" class="harness-map-open" disabled data-i18n="main.harness_map.open">Carte du harnais</button>
+      </div>
       <aside class="edit-drawer" id="edit-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="edit-drawer-title">
         <h3 id="edit-drawer-title" data-i18n="main.drawer.title">Prompt système</h3>
         <p class="drawer-help" data-i18n="main.drawer.help">Placé avant la conversation, relu par le modèle à chaque appel. Prend effet au prochain tour.</p>
@@ -311,6 +314,15 @@
     <div class="drawer-actions">
       <button type="button" id="audit-close" class="primary" data-i18n="common.close">Fermer</button>
     </div>
+  </dialog>
+
+  <!-- V1.4-2: the harness map, drawn from the last `bricks_changed` on each opening. -->
+  <dialog class="audit-dialog harness-map-dialog" id="harness-map-dialog" aria-labelledby="harness-map-title">
+    <header class="harness-map-head">
+      <h3 id="harness-map-title" data-i18n="main.harness_map.title">Carte du harnais</h3>
+      <button type="button" id="harness-map-close" class="primary" autofocus data-i18n="common.close">Fermer</button>
+    </header>
+    <div class="harness-map-body" id="harness-map-body"></div>
   </dialog>
 
   <!-- Story 17: the cloud warning, in the page (EXPERIENCE.md cloud-warning). -->

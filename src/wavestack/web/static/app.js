@@ -1172,6 +1172,7 @@ function renderBricks() {
   }
   renderedSessionKey = sessionKey();
   renderedBricks = store.bricks;
+  document.getElementById("harness-map-open").disabled = !store.bricks;
   renderedArmed = store.armed;
   renderedForceUi = store.forceForm;
   renderedMemory = store.memory;
@@ -3559,6 +3560,14 @@ function renderScenarioInfo(scenario) {
     el("p", "scenario-info-title", scenario.title_text),
     el("p", "scenario-info-text", scenario.description_text)
   );
+  if (scenario.id === "harness_map") {
+    // V1.4-2: the map opens from the last scenario's instructions, as from the bricks panel.
+    const open = el("button", "harness-map-open", t("main.harness_map.open"));
+    open.type = "button";
+    open.id = "scenario-harness-map";
+    open.addEventListener("click", () => openHarnessMap(open));
+    popover.append(open);
+  }
   // A new scenario: the « i » glows once so the eye finds where its instructions went.
   button.classList.remove("is-new");
   void button.offsetWidth;
@@ -7454,6 +7463,97 @@ function drawSchemaWires({ height, box }) {
   return parts;
 }
 
+// ---------- harness map (V1.4-2): the bricks in the paper's 7 subsystems ----------
+
+const HARNESS_SUBSYSTEMS = ["loop", "llm", "tools", "memory", "security", "orchestration", "extensibility"];
+const HARNESS_CORE = ["loop", "llm", "orchestration"]; // subsystems the harness core fills
+let harnessMapOrigin = null;
+
+function harnessRoleMarks(brick) {
+  const marks = [];
+  if (brick.roles.includes("guide")) marks.push(["◆", t("main.harness_map.roles.guide")]);
+  if (brick.roles.includes("sensor")) {
+    const kind = brick.sensor_kind === "inferred" ? "sensor_inferred" : "sensor_computed";
+    marks.push([brick.sensor_kind === "inferred" ? "◎" : "◉", t(`main.harness_map.roles.${kind}`)]);
+  }
+  if (!marks.length) marks.push(["·", t("main.harness_map.roles.capability")]);
+  return marks;
+}
+
+function drawHarnessMap() {
+  const bricks = store.bricks?.bricks ?? [];
+  const body = document.getElementById("harness-map-body");
+  const grid = el("div", "harness-map-grid");
+  for (const id of HARNESS_SUBSYSTEMS) {
+    const box = el("section", "harness-map-box");
+    box.dataset.subsystem = id;
+    box.append(el("h4", "harness-map-box-title", t(`main.harness_map.subsystems.${id}`)));
+    for (const brick of bricks.filter((b) => b.subsystem === id)) {
+      const row = el("div", "harness-map-brick");
+      row.dataset.brick = brick.id;
+      const off = !(brick.wanted && brick.available);
+      if (off) row.classList.add("is-off");
+      const marks = harnessRoleMarks(brick);
+      const symbol = el("span", "harness-map-role", marks.map((m) => m[0]).join(""));
+      symbol.setAttribute("aria-hidden", "true");
+      row.append(symbol);
+      const name = el("span", "harness-map-name", brick.label_text);
+      row.append(name);
+      const badge = el("span", "harness-map-discipline");
+      badge.dataset.discipline = brick.category;
+      badge.title = brick.category_text;
+      badge.setAttribute("role", "img");
+      badge.setAttribute("aria-label", brick.category_text);
+      row.append(badge);
+      const spoken = marks.map((m) => m[1]).join(", ") + (off ? `, ${t("main.harness_map.off_badge")}` : "");
+      row.append(el("span", "sr-only", ` (${spoken})`));
+      box.append(row);
+    }
+    if (HARNESS_CORE.includes(id)) {
+      const core = el("p", "harness-map-core", t(`main.harness_map.core.${id}`));
+      core.title = t("main.harness_map.core_label");
+      box.append(core);
+    }
+    grid.append(box);
+  }
+  body.replaceChildren(
+    el("p", "drawer-help", t("main.harness_map.intro")),
+    el("p", "drawer-help", t("main.harness_map.legend_roles")),
+    el("p", "drawer-help", t("main.harness_map.legend_discipline")),
+    grid,
+    el("p", "drawer-help", t("main.harness_map.off_note")),
+    el("p", "drawer-help", t("main.harness_map.not_shown")),
+    el("p", "drawer-help harness-map-sources", t("main.harness_map.sources"))
+  );
+}
+
+function openHarnessMap(origin) {
+  if (!store.bricks) return;
+  harnessMapOrigin = origin;
+  drawHarnessMap();
+  const popover = document.getElementById("scenario-info-popover");
+  const fromGuide = popover.contains(origin);
+  if (fromGuide && popover.matches(":popover-open")) popover.hidePopover();
+  if (fromGuide) harnessMapOrigin = document.getElementById("scenario-info");
+  const dialog = document.getElementById("harness-map-dialog");
+  if (!dialog.open) dialog.showModal();
+}
+
+function setupHarnessMap() {
+  const dialog = document.getElementById("harness-map-dialog");
+  const open = document.getElementById("harness-map-open");
+  open.addEventListener("click", () => openHarnessMap(open));
+  document.getElementById("harness-map-close").addEventListener("click", () => dialog.close());
+  // Escape (native), « Fermer » or a click on the backdrop: the focus goes back to the opener.
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener("close", () => {
+    harnessMapOrigin?.focus();
+    harnessMapOrigin = null;
+  });
+}
+
 // ---------- audit log: the whole file, read only (story 8) ----------
 
 async function openAudit() {
@@ -7560,6 +7660,7 @@ async function boot() {
     if (await saveMemoryEntries(memoryDirty().map((e) => e.id))) closeMemoryDrawer(true);
   });
   document.getElementById("memory-dirty-discard").addEventListener("click", () => closeMemoryDrawer(true));
+  setupHarnessMap();
   document.getElementById("audit-close").addEventListener("click", () =>
     document.getElementById("audit-dialog").close()
   );
@@ -7581,6 +7682,7 @@ async function boot() {
     // Story 2: an open « Affichage ▾ » menu is closed by site-nav.js first (`defaultPrevented`).
     if (event.key !== "Escape" || event.defaultPrevented) return;
     if (document.getElementById("audit-dialog").open) return; // the dialog closes itself
+    if (document.getElementById("harness-map-dialog").open) return;
     if (document.getElementById("cloud-warning").open) return;
     if (!drawer().hidden) {
       closeDrawer();
