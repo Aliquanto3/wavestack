@@ -102,3 +102,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:40 · 1.3-2 · second-avis · lancé · eae59ca
 - 2026-10-24 23:43 · 1.3-2 · second-avis · 3 medium (« non déclaré » en local, barre du haut à 1 280 px, non caché sans écriture), 5 low · eae59ca
 - 2026-10-24 23:43 · 1.3-2 · review · lancé · eae59ca
+- 2026-10-24 23:44 · 1.4-1 · CI · verte (Windows, Ubuntu) · 1ccca2d
+- 2026-10-24 23:44 · 1.4-1 · fusion · #90 MERGED · d9f223e
