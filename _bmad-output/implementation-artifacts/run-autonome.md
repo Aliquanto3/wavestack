@@ -75,3 +75,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:22 · 1.4-1 · review · lancé (avec E2E compression et subagent) · f916b57
 - 2026-10-24 23:24 · 1.3-1 · second-avis · 0 high/medium, 3 low ; orchestrateur : lecture OpenAI absente = None (CAP-1), traité comme important · ab89fb3
 - 2026-10-24 23:24 · 1.3-1 · review · lancé · ab89fb3
+- 2026-10-24 23:27 · 1.3-1 · review · 1 medium corrigé (lecture non déclarée = None, pivots Anthropic et Responses), contrat mis à jour · c03250c
+- 2026-10-24 23:27 · 1.3-1 · décision · à revoir : réponse Anthropic sans champs de cache = rien déclaré (None) · c03250c
+- 2026-10-24 23:27 · 1.3-1 · PR · ouverte, CI lancée · c03250c
