@@ -26,8 +26,8 @@ explanation_text:
       Daten: Der Index und das Embedding-Modell bleiben auf dem Arbeitsplatz; mit einem
       Cloud-Modell gehen die Auszüge in Ihrer Nachricht an den Anbieter.
   - >-
-    Der Demo-Korpus beschreibt Exemplia, eine erfundene Organisation: acht fiktive, für
-    WaveStack geschriebene Texte (Passwörter, Telearbeit, Spesen…). Die
+    Der Demo-Korpus beschreibt Exemplia, eine erfundene Organisation: etwa zwanzig fiktive,
+    für WaveStack geschriebene Texte (Passwörter, Telearbeit, Spesen…). Die
     Auszüge bleiben nicht im Verlauf: Jede Runde sucht erneut.
   - >-
     Grenze des einfachen RAG: Die Suchanfrage ist Ihre Nachricht, so wie sie ist. Eine

@@ -8,7 +8,7 @@ Any employee who notices or suspects an incident reports it within 30 minutes to
 
 While waiting for CERT-Ex to respond, the suspect workstation is disconnected from the network, cable unplugged and Wi-Fi turned off, but it is not shut down: its RAM holds traces that are useful to the investigation. Do not delete the suspicious email, and do not try to clean the machine yourself.
 
-CERT-Ex classifies each incident on 3 severity levels. A level 1 incident is handled within the day by the support team. A level 2 incident mobilises CERT-Ex, which informs the chief information security officer within the hour. A level 3 incident triggers the crisis unit, convened in under 2 hours and chaired by the chief executive officer.
+CERT-Ex classifies each incident on 3 severity levels. A level 1 incident is handled within the day by the support team. A level 2 incident mobilises CERT-Ex, which informs the chief information security officer within the hour. A level 3 incident triggers the crisis unit, convened in under 2 hours and chaired by the chief executive officer, under the crisis management procedure and its on-call contacts annex.
 
 When an incident affects personal data, the data protection officer is notified without delay: the supervisory authority must be notified no later than 72 hours after the breach is discovered.
 
