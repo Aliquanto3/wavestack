@@ -212,7 +212,7 @@ from wavestack.session.effects import (
 from wavestack.skills import SkillsContent, SkillText, load_skills_content
 from wavestack.subagent import SubagentContent, load_subagent_content
 from wavestack.tools.executor import ToolExecutor
-from wavestack.tools.native import NATIVE_TOOLS, get_datetime, read_file
+from wavestack.tools.native import NATIVE_TOOLS, get_datetime, read_file, search_documents
 from wavestack.tools.network import network_tools
 from wavestack.tools.parser import (
     Malformed,
@@ -1139,6 +1139,7 @@ class AppSession:
             if not (spec := self._registry.get(n)).network
             and spec.source != "harness"
             and not spec.is_mcp
+            and spec.default_enabled
         }
         # MCP servers (story 6): the local one starts enabled, the public ones disabled.
         self._mcp_enabled = {"local"} & set(self._mcp_servers)
@@ -5219,11 +5220,18 @@ class AppSession:
     def _native_tools(self) -> list[ToolSpec]:
         """The native tools, `read_file` bound to the session's language (languages 3/5): it
         reads the demonstration file of the language current at each call."""
-        bound = {"read_file": self._read_file, "get_datetime": self._get_datetime}
+        bound = {
+            "read_file": self._read_file,
+            "get_datetime": self._get_datetime,
+            "search_documents": self._search_documents,
+        }
         return [replace(s, run=bound[s.name]) if s.name in bound else s for s in NATIVE_TOOLS]
 
     def _read_file(self, path: str) -> str:
         return read_file(path, self._language)
+
+    def _search_documents(self, query: str) -> str:
+        return search_documents(query, self._language)
 
     def _get_datetime(self) -> str:
         return get_datetime(self._language)  # languages (5/5): the day in the session's

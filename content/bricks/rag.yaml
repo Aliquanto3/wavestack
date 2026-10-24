@@ -47,3 +47,14 @@ explanation_text:
   - >-
     Première installation : « Télécharger » récupère le modèle d'embedding, puis
     « Construire l'index » découpe le corpus et l'indexe sur le poste, sans ligne de commande.
+  - >-
+    RAG injecté ou recherche agentique : le RAG décide à votre place, à chaque tour, de ce que
+    le modèle lit ; la recherche agentique laisse le modèle chercher lui-même, avec l'outil
+    search_documents (les mots de sa requête, dans les documents actifs du corpus), puis
+    lire le passage trouvé avec read_file (« chercher puis lire »). Le RAG ajoute un modèle
+    d'embedding et des extraits à chaque tour, qu'ils servent ou non ; la recherche
+    agentique n'ajoute que les tours d'appel d'outil, mais un petit modèle peut mal choisir
+    ses mots ou oublier de lire. Le RAG convient à un corpus que le modèle ne sait pas
+    parcourir, la recherche à un corpus de fichiers dont les mots exacts comptent. Les
+    harnais de code (Claude Code, Codex, Cursor) font ce second choix : ils cherchent avec
+    grep et ouvrent les fichiers, plutôt que d'indexer le code par embeddings.

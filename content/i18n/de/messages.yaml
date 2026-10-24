@@ -688,8 +688,12 @@ tools:
     unreadable: "Unlesbarer Ausdruck: „{expression}“. Verwende {allowed}."
   read_file:
     outside: "Zugriff verweigert: „{path}“ liegt außerhalb des Demo-Ordners. Nur die Dateien in content/demo_files/ sind lesbar, über einen relativen Pfad."
-    listing: "Verfügbare Dateien:\n{files}"
+    listing: "Verfügbare Dateien (die Dokumente des Korpus öffnen sich unter corpus/):\n{files}"
     missing: "Datei fehlt: „{path}“. Verfügbare Dateien: {files}."
+  search_documents:
+    header: "{count} Zeile(n) von {total} angezeigt, im Format Datei:Zeile: Text. Lesen Sie die Datei danach mit read_file."
+    empty: "Leere Anfrage: Geben Sie mindestens ein Wort mit {min} Buchstaben oder mehr an."
+    none: "Kein Ergebnis für „{query}“ im Korpus. Versuchen Sie andere Wörter oder ein einzelnes Stichwort."
   network:
     blocked: "Verbindung vom Harness abgelehnt ({cause})."
     unreachable: "Dienst nicht erreichbar ({kind}): Der Arbeitsplatz hat keinen Zugang zu {host}."

@@ -6865,6 +6865,7 @@ const TOOL_ICONS = {
   get_datetime: "🕐",
   calculator: "🧮",
   read_file: "📂",
+  search_documents: "🔍",
   public_holidays: "📅",
   wikipedia_summary: "🔎",
   fetch_page: "🔗",

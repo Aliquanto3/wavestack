@@ -281,6 +281,11 @@ def _plan(
         for trigger in ("[lent]", DROP_TRIGGER):  # the sub-agent's call slow, or dropping
             task += f" {trigger}" if trigger in low else ""
         return [("delegate", {"task": task})]
+    if "search_documents" in low:  # V1.4 story 3: search, then read what the search found
+        return [
+            ("search_documents", {"query": "mot de passe"}),
+            ("read_file", {"path": "corpus/mots_de_passe.md"}),
+        ]
     if "journal_serveur" in low:  # story 20: a big log, for the compression
         return [("read_file", {"path": "journal_serveur.log"})]
     if "guide_harnais" in low:  # the sub-agent's task (or a main agent reading it itself)
@@ -353,6 +358,8 @@ def _final_text(user: str, messages: list[dict[str, Any]], results: list[str]) -
             "Le harnais m'a bloqué l'accès à ce fichier confidentiel : je transmets la "
             "vérification à un analyste habilité."
         )
+    if results and "search_documents" in low and "14 caractères" in results[-1]:
+        return "D'après le document lu : au minimum 14 caractères chez Exemplia."
     errors = [line for line in (results[-1] if results else "").splitlines() if " ERROR " in line]
     if errors:  # story 20: the log's error, kept by the compression
         return f"D'après le journal : {errors[0].strip()}"
