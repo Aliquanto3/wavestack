@@ -994,6 +994,7 @@ rag_lab:
   chunking:
     source_corpus: "dem Korpus (content/corpus), für diese Ausführung zerlegt"
     source_index: "dem Index des RAG-Bausteins (bei seiner Erstellung zerlegt)"
+    source_work_copy: "der Arbeitskopie des Korpus (Hinzufügen, Ändern, Löschen), für diese Ausführung zerlegt"
     index_unreadable: "Der Index des RAG-Bausteins lässt sich nicht lesen ({error}: {cause}). Erstellen Sie ihn über die RAG-Karte der Werkstatt neu."
     no_chunks: "Der Korpus ergibt keinen Auszug."
     input: "{documents} des Demo-Korpus ({declared} in content/rag.yaml deklariert)."

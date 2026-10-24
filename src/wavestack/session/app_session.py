@@ -6972,11 +6972,12 @@ class AppSession:
         stopped = False
         embedder, refusal = self._build_embedder(model)
         meta = None
-        probe = greenops.Probe(lambda: self._local_meter.start(machine=False))
         built_ms, built_impact = 0, None
         if refusal is not None:
             failed = refusal
         else:
+            # Started once the embedder is there: a refused build leaves no tracker running.
+            probe = greenops.Probe(lambda: self._local_meter.start(machine=False))
             try:
                 meta = rag_index.build_index(
                     content,
@@ -10367,15 +10368,16 @@ class AppSession:
             raise SendRefused(reason)
         content = self._rag_content
         assert content is not None
-        before = workcopy.load(self._language)
-        try:
-            after = workcopy.apply(content, before, operation, doc_id, title_text, text)
-        except workcopy.UpdateRefused as refused:
-            raise SendRefused(refused.reason) from refused
         label = rag_lab._t(f"update.op.{operation}", self._language, doc=doc_id)
         with self._lock:
             if self.state != "idle":
                 raise SendRefused(self._refusal_reason())
+            # Read under the lock, once `idle`: the copy an earlier update saved is the base.
+            before = workcopy.load(self._language)
+            try:
+                after = workcopy.apply(content, before, operation, doc_id, title_text, text)
+            except workcopy.UpdateRefused as refused:
+                raise SendRefused(refused.reason) from refused
             previous = self.reason_text
             self._rag_labs += 1
             run_id = f"{rag_lab.UPDATE_RUN_PREFIX}{self._rag_labs}"
@@ -10543,6 +10545,8 @@ class AppSession:
             # V1.2 story 3 (CAP-8): the embedding, reranking and indexing run in this process.
             meter=lambda: self._local_meter.start(machine=False),
             estimate_tokens=lambda t: config.estimate_tokens(t, self.cfg.chars_per_token),
+            # The chain reads the work copy while it differs from the shipped corpus.
+            work_copy=workcopy.load(self._language),
         )
 
     def _rag_lab_emit(

@@ -59,18 +59,32 @@ class FakeTracker:
         pass
 
 
-class FakeMeter:
-    """The session's local meter, replaced: every part gets a tracker that read 2 Wh."""
+class FakeOfflineTracker:
+    """CodeCarbon's `OfflineEmissionsTracker`, the boundary the session's `LocalMeter`
+    reaches: every part it tracks read 2 Wh."""
 
-    def __init__(self) -> None:
-        self.started = 0
+    made: list[FakeOfflineTracker] = []
 
-    def start(self, machine: bool) -> Measure:
-        self.started += 1
-        return Measure(FakeTracker(), machine, 41.4)
+    def __init__(self, **kwargs) -> None:
+        FakeOfflineTracker.made.append(self)
 
-    def warm_up(self, machine: bool) -> None:
+    def start(self) -> None:
         pass
+
+    def stop(self) -> None:
+        self.final_emissions_data = SimpleNamespace(energy_consumed=0.002, gpu_energy=0.0)
+
+
+@pytest.fixture
+def codecarbon(monkeypatch) -> list[FakeOfflineTracker]:
+    """CodeCarbon installed, as a double (the real `LocalMeter` runs): the trackers made."""
+    FakeOfflineTracker.made = []
+    module = SimpleNamespace(
+        OfflineEmissionsTracker=FakeOfflineTracker, count_physical_cpus=lambda: 1
+    )
+    monkeypatch.setattr(greenops, "_find_spec", lambda name: object())
+    monkeypatch.setattr(greenops, "_load_codecarbon", lambda: module)
+    return FakeOfflineTracker.made
 
 
 def test_a_probe_without_a_meter_gives_a_duration_and_no_footprint():
@@ -133,9 +147,8 @@ def costs_of(events: list, kind: str) -> list[dict]:
     return ended(events, kind)["costs"]
 
 
-def test_a_run_costs_the_embedding_the_reranking_and_the_generation_by_time(index):
+def test_a_run_costs_the_embedding_the_reranking_and_the_generation_by_time(index, codecarbon):
     session, _ = ready(index)
-    meter = session._local_meter = FakeMeter()
     events = run(session)
     assert run_status(events) == "ok"
     embedding = costs_of(events, "embedding")
@@ -150,7 +163,7 @@ def test_a_run_costs_the_embedding_the_reranking_and_the_generation_by_time(inde
     assert rerank["phase"] == "query" and rerank["tokens"] > 0 and rerank["gco2e_min"] > 0
     (generation,) = costs_of(events, "generation")
     assert generation["phase"] == "query" and generation["tokens"] > 0 and generation["usd"] == 0.0
-    assert meter.started >= 3
+    assert len(codecarbon) >= 3
     # A part with no cost of its own counts its duration in its time.
     assert [c["phase"] for c in costs_of(events, "chunking")] == ["build"]
     assert [c["phase"] for c in costs_of(events, "context")] == ["query"]
@@ -181,9 +194,8 @@ def test_a_precomputed_index_shows_the_cost_measured_when_it_was_built(index):
     assert costs_of(events, "vector_store") == []
 
 
-def test_a_cache_built_by_a_run_gives_its_cost_back_the_next_time(index):
+def test_a_cache_built_by_a_run_gives_its_cost_back_the_next_time(index, codecarbon):
     session, _ = ready(index)
-    session._local_meter = FakeMeter()
     _, _, b = chains(session)
     stage(b, "chunking").params["chunk_max_chars"] = 300
     stage(b, "vector_store").option = "memory"
@@ -284,9 +296,8 @@ def summary_of(events: list) -> dict:
     return found
 
 
-def test_modifying_a_document_embeds_only_its_changed_passages(index):
+def test_modifying_a_document_embeds_only_its_changed_passages(index, codecarbon):
     session, _ = ready(index)
-    session._local_meter = FakeMeter()
     run_id, events = update(
         session, "modify", "teletravail", "", "Une règle de plus sur le télétravail."
     )
@@ -399,9 +410,8 @@ def test_the_update_and_reset_routes(index):
     assert json.loads(client.get("/api/rag_lab").text)["last_update"]  # still told after a reload
 
 
-def test_the_index_built_in_the_app_records_its_cost_for_the_workshop(index):
+def test_the_index_built_in_the_app_records_its_cost_for_the_workshop(index, codecarbon):
     session, _ = ready(index)
-    session._local_meter = FakeMeter()
     index.unlink()  # absent: the app builds it
     session.build_rag_index()
     wait_idle(session)
@@ -410,3 +420,41 @@ def test_the_index_built_in_the_app_records_its_cost_for_the_workshop(index):
     assert kept["energy_wh_min"] == pytest.approx(2)
     build = costs_of(run(session), "embedding")[0]
     assert build["measured_at_build"] is True and build["tokens"] == kept["tokens"]
+
+
+# ---------- review of the story (2026-10-25) ----------
+
+
+def test_after_an_update_the_chain_reads_the_work_copy_and_says_so(index):
+    session, _ = ready(index)
+    _, events = update(session, "add", "doc_neuf", "Document neuf", "Texte du nouveau document.")
+    assert run_status(events) == "ok"
+    events = run(session)
+    chunking = ended(events, "chunking")
+    assert "copie de travail" in chunking["output_text"]
+    built = costs_of(events, "embedding")[0]  # never the brick's index, built from the shipped
+    assert built["measured_at_build"] is False and built["tokens"] > 0
+    session.reset_rag_lab_copy()
+    assert "copie de travail" not in ended(run(session), "chunking")["output_text"]
+
+
+def test_a_deleted_document_can_come_back_and_a_damaged_copy_reads_empty(caplog):
+    content = load_rag_content("fr")
+    gone = workcopy.apply(content, workcopy.WorkCopy(), "delete", "teletravail")
+    back = workcopy.apply(content, gone, "add", "teletravail", "Télétravail", "Texte revenu.")
+    texts = [c.text for c in workcopy.chunks(content, 600, "fr", back) if c.doc_id == "teletravail"]
+    assert texts == ["Texte revenu."]
+    workcopy.path("fr").parent.mkdir(parents=True, exist_ok=True)
+    workcopy.path("fr").write_text("{abîmé", encoding="utf-8")
+    assert workcopy.load("fr").empty and "illisible" in caplog.text
+
+
+def test_a_refused_build_starts_no_tracker(index, codecarbon, monkeypatch):
+    session, _ = ready(index)
+    refused = rag_lab.Message("session.build.embedder_failed", kind="X", cause="y")
+    monkeypatch.setattr(session, "_build_embedder", lambda model: (None, refused))
+    index.unlink()
+    before = len(codecarbon)
+    session.build_rag_index()
+    wait_idle(session)
+    assert len(codecarbon) == before

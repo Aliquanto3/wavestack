@@ -15799,9 +15799,9 @@ def _rag_lab_costs(r: Run) -> None:
     expect(update.locator(".rag-cost-op")).to_contain_text(
         "Ajout du document doc_atelier", timeout=5000
     )
-    # A refusal says why and changes nothing.
+    # A refusal says why and changes nothing (a deleted document may come back: not a refusal).
     measure("add")
-    page.fill("#rag-copy-id", "teletravail")
+    page.fill("#rag-copy-id", "doc_atelier")
     page.fill("#rag-copy-title", "Titre")
     page.fill("#rag-copy-body", "Texte")
     page.click("#rag-copy-apply")
@@ -15817,6 +15817,14 @@ def _rag_lab_costs(r: Run) -> None:
         and "1 supprimé" in page.locator("#rag-copy-info").inner_text(),
         "après rechargement : carte Mise à jour et copie de travail relues",
         page.locator("#rag-copy-info").inner_text()[:200],
+    )
+    # Review (2026-10-25): while the copy differs from the shipped corpus, the chain reads it.
+    _, seq = _rag_lab_run(r, compose=True)
+    chunking = _stage_ended(r, seq, "chunking").get("output_text") or ""
+    r.check(
+        "copie de travail" in chunking,
+        "la chaîne lit la copie de travail tant qu'elle diffère du corpus livré (Chunking le dit)",
+        chunking[:200],
     )
     # Revenir à l'état livré.
     page.click("#rag-copy-reset")

@@ -1339,6 +1339,7 @@ function applyEnvelope(envelope) {
         // B2: `parts`, a stage's parts run apart (BM25's index, at BUILD), by name.
         stages: p.stages.map((s) => ({ ...s, status: "waiting", progress: null, ended: null, live: "", reasoning: false, parts: {} })),
       };
+      store.costs = { build: null, query: null }; // V1.2 story 3: never the previous run's figures
       break;
     case "rag_lab_stage_started": {
       const stage = partOf(envelope);
@@ -1554,11 +1555,10 @@ function applyUpdateEnvelope(envelope) {
   if (!store.replaying) renderCosts();
 }
 
-// A run's build and query sums, kept for the cards (a run without a figure keeps the older).
+// A run's build and query sums, for the cards: this run's only (a time it did not reach stays empty).
 function keepRunCosts(summary) {
   for (const phase of ["build", "query"]) {
-    const found = (summary ?? []).find((s) => s.phase === phase);
-    if (found) store.costs[phase] = found;
+    store.costs[phase] = (summary ?? []).find((s) => s.phase === phase) ?? null;
   }
 }
 

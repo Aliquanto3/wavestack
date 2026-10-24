@@ -10,6 +10,7 @@ corpus is read as it is; `chunks()` gives the chunks of the corpus with the copy
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from collections.abc import Sequence
@@ -25,6 +26,8 @@ OPERATIONS = ("add", "modify", "delete")
 ID_PATTERN = re.compile(r"^[a-z0-9_]+$")
 TEXT_MAX = 20_000  # characters of a document or a paragraph given by the page
 TITLE_MAX = 200
+
+logger = logging.getLogger(__name__)
 
 
 class WorkDoc(BaseModel):
@@ -58,9 +61,15 @@ def path(lang: str, folder: Path | None = None) -> Path:
 
 def load(lang: str, folder: Path | None = None) -> WorkCopy:
     """The copy kept for `lang`, or an empty one (absent or unreadable file)."""
+    target = path(lang, folder)
     try:
-        return WorkCopy.model_validate_json(path(lang, folder).read_text(encoding="utf-8"))
-    except (OSError, ValueError, ValidationError):
+        raw = target.read_text(encoding="utf-8")
+    except OSError:
+        return WorkCopy()
+    try:
+        return WorkCopy.model_validate_json(raw)
+    except (ValueError, ValidationError) as exc:
+        logger.warning("Copie de travail illisible, lue comme vide : %s (%s)", target, exc)
         return WorkCopy()
 
 
@@ -106,7 +115,8 @@ def apply(
         raise UpdateRefused(Message("session.rag_lab.update_too_long", max=TEXT_MAX))
     present = known_ids(content, copy)
     if operation == "add":
-        taken = {d.id for d in content.documents} | set(new.added)
+        # A shipped document deleted from the copy may come back under its id, as added.
+        taken = {d.id for d in content.documents if d.id not in new.deleted} | set(new.added)
         if not ID_PATTERN.match(doc_id):
             raise UpdateRefused(Message("session.rag_lab.update_bad_id"))
         if doc_id in taken:

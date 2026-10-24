@@ -775,6 +775,9 @@ travail** du corpus, `rag_lab/work_corpus/<langue>.json` dans le dossier de donn
 `content/` du dépôt. « Modifier » ajoute le texte saisi au document comme dernier paragraphe.
 Seuls les passages nouveaux ou modifiés sont vectorisés ; l'index vectoriel et l'index BM25 sont
 reconstruits en entier (les index de l'atelier ne se mettent pas à jour vecteur par vecteur).
-Les exécutions de la chaîne continuent de lire le corpus livré. « Revenir à l'état livré »
-supprime la copie. Les deux périmètres de mesure (local : l'électricité consommée seulement ;
+Tant que la copie diffère du corpus livré, les exécutions de la chaîne la lisent, pour voir
+l'effet de la mise à jour sur les réponses : l'étape Chunking dit sa source (la copie de travail)
+et l'index précalculé de la brique n'est alors pas utilisé. « Revenir à l'état livré » supprime
+la copie. Une somme dont une partie n'a pas d'empreinte, ou d'une exécution arrêtée avant la fin,
+est une borne basse, dite partielle. Les deux périmètres de mesure (local : l'électricité consommée seulement ;
 cloud : le cycle de vie d'EcoLogits) restent signalés sous les cartes.

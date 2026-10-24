@@ -96,8 +96,34 @@ context:
 
 ## Spec Change Log
 
+- 2026-10-25, revue (décision de l'orchestrateur, **à revoir par Anaël**) : le « Never » « Les exécutions de la chaîne continuent de lire le corpus livré » est levé. Tant que la copie de travail diffère du corpus livré, la chaîne la lit (`LabDeps.work_copy`), l'étape Chunking le dit (« la copie de travail du corpus ») et l'index précalculé de la brique n'est pas utilisé. Motif : CAP-8 demande de voir ce que coûte une mise à jour et son effet ; sans cela, un document ajouté n'était jamais retrouvé. Les vecteurs de la copie sont calculés à la première exécution (coût de construction de la copie, mesuré).
+- 2026-10-25, revue : « Modifier un document » s'affiche « Modifier un document (ajouter un paragraphe) », fidèle à l'opération (ajout d'un dernier paragraphe, pas de remplacement).
+
 ## Reports
 
 - Reconstruire les trois index livrés (`scripts/build_rag_index.py --lang …`) avec le vrai modèle pour qu'ils portent leur fichier `rag_index*.cost.json`.
 - Intégrer les coûts d'embedding, de reranking et d'indexation dans le bilan de la séance (V1.3 story 4) si on le décide : demande un changement de `record_spend`.
 - Mise à jour incrémentale réelle (sans reconstruction complète des index) : stories d'architecture.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 6a1b3d3)
+
+Base : origin/main 5c677fb, à jour (pas de rebase nécessaire).
+
+- Important, medium, second avis 1 : « Construire l'index » démarrait le suivi CodeCarbon avant le contrôle du modèle refusé, sans l'arrêter. Corrigé : `Probe` démarrée une fois le modèle chargé ; test `test_a_refused_build_starts_no_tracker`.
+- Important, medium, second avis 2 : tokens estimés (caractères ÷ 4, occurrences BM25) affichés « Tokens ». Corrigé : libellé « Tokens (estimés) » en fr, en et de.
+- Important, medium, second avis 3 : `store.costs` gardait les chiffres de l'exécution précédente (exécution en erreur ou sans temps). Corrigé dans `rag.js` : remis à zéro au `rag_lab_run_started`, remplacé en entier à la fin.
+- Important, medium, second avis 4 : génération annulée ou en erreur sans coût, somme non marquée partielle. Corrigé : le coût de l'appel est posé avant `LabCancelled`/`StageFailed` ; une exécution qui ne finit pas `ok` a des sommes `partial` ; assertion ajoutée à `test_stop_during_the_generation_keeps_the_partial_answer`.
+- Important, medium, second avis 5 : les index livrés n'ont pas de `rag_index*.cost.json`, la carte Construction dit « mesuré à la construction » + « non enregistré ». Reporté (attente humaine) : le fichier ne se produit pas sans mesurer le vrai modèle (le fabriquer serait inventer un chiffre) et reconstruire modifie les index binaires suivis par git. Vérification : `uv run python scripts/build_rag_index.py --lang fr|en|de` avec le vrai modèle, commiter les trois `.cost.json`, puis la carte affiche les chiffres.
+- Important, medium, second avis 6 (décision de l'orchestrateur, à revoir par Anaël) : après une mise à jour, la chaîne lisait toujours le corpus livré. Corrigé : `LabDeps.work_copy`, la chaîne lit la copie tant qu'elle diffère, Chunking dit sa source, l'index de la brique n'est pas utilisé ; test `test_after_an_update_the_chain_reads_the_work_copy_and_says_so` et vérification E2E. Voir le Spec Change Log.
+- Nit, low, second avis 7 : libellé « Modifier » trompeur. Corrigé : « Modifier un document (ajouter un paragraphe) ».
+- Nit, low, second avis 8 : copie lue hors verrou (mise à jour perdue possible). Corrigé : lecture et application sous le verrou, après le contrôle `idle`.
+- Nit, low, second avis 9 : JSON abîmé lu comme copie vide sans signal. Corrigé : avertissement journalisé (« Copie de travail illisible »).
+- Nit, low, second avis 10 : `write_build_cost(reset=True)` effaçait les coûts `vector_store:*` du même cache. Corrigé : `reset` retiré des appels (la clé du cache fixe le modèle et le corpus, les autres enregistrements restent valides).
+- Nit, low, second avis 11 : `FakeMeter` remplaçait `session._local_meter`. Corrigé : double à la frontière (`OfflineEmissionsTracker` de CodeCarbon via `_load_codecarbon`), le vrai `LocalMeter` tourne.
+- Pre-existing, low, second avis 12 : le scénario E2E `rag_lab` dépend de `rag` et `rag_rerank` (déjà documenté avant la story, `tools/e2e/README.md`). Rejeté pour cette story.
+- Nit, low, second avis 13 : un document supprimé ne pouvait pas être réajouté. Corrigé : son identifiant redevient libre ; le refus E2E « existe déjà » utilise désormais `doc_atelier`.
+- Nit, low, revue : les parties sans empreinte propre (recherche, fusion, contexte : durée seule) rendent toute somme `partial`, si bien que la mention s'affiche presque toujours. Reporté : décider si ces parties comptent dans `partial`.
+- Nit, low, revue : `test_an_update_that_ends_in_error_leaves_the_copy_as_it_was` remplace `UpdateRun._update_embedding` (module interne). Reporté : le faire échouer par un faux modèle d'embedding.
+- Complexité : 0 constat (sommes calculées une fois en fin d'exécution, `last_update` une fois par `GET /api/rag_lab`).

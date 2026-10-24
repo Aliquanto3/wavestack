@@ -1448,6 +1448,9 @@ class LabDeps:
     # indexing (`None`: no footprint), and the tokens of a text (an estimate).
     meter: Callable[[], Measure] | None = None
     estimate_tokens: Callable[[str], int] = lambda text: config.estimate_tokens(text, 4.0)
+    # V1.2 story 3: the work copy of the corpus, read by the chain instead of the shipped
+    # corpus when it changes something (`None` or empty: the shipped corpus).
+    work_copy: workcopy.WorkCopy | None = None
 
 
 @dataclass
@@ -1625,10 +1628,11 @@ class LabRun:
 
     SUMMARY_PHASES: tuple[str, ...] = ("build", "query")
 
-    def cost_summary(self, phases: Sequence[str]) -> list[dict[str, Any]]:
-        """V1.2 story 3: the costs of the phases that have a part, summed."""
+    def cost_summary(self, phases: Sequence[str], complete: bool = True) -> list[dict[str, Any]]:
+        """V1.2 story 3: the costs of the phases that have a part, summed; a run that did not
+        end `ok` gives lower bounds (`partial`)."""
         sums = [greenops.summarize(self.costs, p, self._lang) for p in phases]
-        return [x for x in sums if x["parts"]]
+        return [x | {"partial": x["partial"] or not complete} for x in sums if x["parts"]]
 
     def end(self, status: str, duration_ms: int) -> None:
         """`rag_lab_run_ended`, once: the page never stays « en cours »."""
@@ -1640,7 +1644,7 @@ class LabRun:
             {
                 "status": status,
                 "duration_ms": duration_ms,
-                "cost_summary": self.cost_summary(self.SUMMARY_PHASES),
+                "cost_summary": self.cost_summary(self.SUMMARY_PHASES, status == "ok"),
             },
             self.run_id,
             "rag_lab",
@@ -1871,7 +1875,13 @@ class LabRun:
             and embedding is not None
             and embedding.option == "declared"
             and chain.chunk_max_chars == self.deps.shipped_chunk_max_chars
+            and not self._reads_work_copy()
         )
+
+    def _reads_work_copy(self) -> bool:
+        """V1.2 story 3: the work copy changes the corpus, the chain reads it (never the
+        brick's index, built from the shipped corpus)."""
+        return self.deps.work_copy is not None and not self.deps.work_copy.empty
 
     def _chunking(self, chain: _Chain, stage: Stage) -> _Result:
         size = param(stage, "chunk_max_chars", self.deps.catalog)
@@ -1891,7 +1901,10 @@ class LabRun:
                     )
                 ) from exc
             source = self._text("chunking.source_index")
-        if not chunks:
+        if not chunks and self._reads_work_copy():
+            chunks = workcopy.chunks(self.deps.content, size, self.deps.lang, self.deps.work_copy)
+            source = self._text("chunking.source_work_copy")
+        elif not chunks:
             chunks = chunk_corpus(self.deps.content, size, self.deps.lang)
         if not chunks:
             raise StageFailed(Message("rag_lab.chunking.no_chunks"))
@@ -1983,7 +1996,7 @@ class LabRun:
                 if len(vectors) != total or any(len(v) != embedder.dims for v in vectors):
                     raise StageFailed(Message("rag_lab.embedding.wrong_dims", dims=embedder.dims))
                 write_vectors(folder, chain.chunks, vectors, identity, truncated)
-                write_build_cost(folder, "embedding", built, reset=True)
+                write_build_cost(folder, "embedding", built)
                 costs.append(built)
                 seconds = time.monotonic() - started
                 passages = text(
@@ -2602,12 +2615,7 @@ class LabRun:
             )
         )
         result.output_text = got.answer_text
-        if got.status == "cancelled":
-            raise LabCancelled(result)
-        if got.status not in ("completed", "limit"):  # `error`, or a status it does not know
-            raise StageFailed(
-                got.error_text or Message("rag_lab.generation.model_error"), result=result
-            )
+        # V1.2 story 3: a call stopped or in error was sent all the same, its cost is kept.
         result.costs = [
             StageCost(
                 "query",
@@ -2621,6 +2629,12 @@ class LabRun:
                 else Message("rag_lab.costs.generation_unpriced"),
             )
         ]
+        if got.status == "cancelled":
+            raise LabCancelled(result)
+        if got.status not in ("completed", "limit"):  # `error`, or a status it does not know
+            raise StageFailed(
+                got.error_text or Message("rag_lab.generation.model_error"), result=result
+            )
         if not got.answer_text.strip():
             result.output_text = text("generation.empty")
         if got.status == "limit":
@@ -2813,7 +2827,7 @@ class UpdateRun(LabRun):
             finally:
                 built = self._cost("build", "embedding", probe, self._tokens(before))
             write_vectors(folder, before, vectors, identity, None)
-            write_build_cost(folder, "embedding", built, reset=True)
+            write_build_cost(folder, "embedding", built)
             facts.append((self._text("update.fact_prepared"), count(len(before))))
         known = {self._key(c): v for c, v in zip(before, vectors, strict=True)}
         probe = Probe(self.deps.meter)

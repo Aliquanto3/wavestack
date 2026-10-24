@@ -1007,6 +1007,7 @@ rag_lab:
   chunking:
     source_corpus: "le corpus (content/corpus), découpé pour cette exécution"
     source_index: "l'index de la brique RAG (découpé à sa construction)"
+    source_work_copy: "la copie de travail du corpus (Ajouter, Modifier, Supprimer), découpée pour cette exécution"
     index_unreadable: "L'index de la brique RAG ne se lit pas ({error} : {cause}). Reconstruisez-le depuis la carte RAG de l'atelier."
     no_chunks: "Le corpus ne donne aucun extrait."
     input: "{documents} du corpus de démonstration ({declared} déclarés dans content/rag.yaml)."

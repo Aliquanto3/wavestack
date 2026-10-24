@@ -764,5 +764,5 @@ d'autres (story 21) :
   lignes : tokens, durée, dollars, énergie, gCO₂e), les deux périmètres de mesure restent dits ;
   « Modifier », « Supprimer » puis « Ajouter un document » mesurent une mise à jour sur la copie de
   travail (`rag_lab/work_corpus/fr.json` du dossier de données, `git status` inchangé), un refus
-  (identifiant pris) dit sa raison, la carte et la copie survivent au rechargement, « Revenir à
-  l'état livré » supprime la copie ; capture `60-atelier-rag-couts.jpg`.
+  (identifiant pris) dit sa raison, la carte et la copie survivent au rechargement, un run lit
+  alors la copie (le Chunking le dit), « Revenir à l'état livré » supprime la copie ; capture `60-atelier-rag-couts.jpg`.
