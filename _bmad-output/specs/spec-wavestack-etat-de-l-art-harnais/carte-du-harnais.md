@@ -1,18 +1,18 @@
 # Carte du harnais : sous-systèmes et rôles (CAP-3)
 
-Source : Barbaste et al., *Harness Engineering*, Wavestone AI Lab, arXiv 2609.00006 (7 sous-systèmes) ; Böckeler, martinfowler.com (guides et capteurs). Placement proposé, à valider au point de contrôle de la story 2.
+Source : Barbaste et al., *Harness Engineering*, Wavestone AI Lab, arXiv 2609.00006 (7 sous-systèmes) ; Böckeler, martinfowler.com (guides et capteurs). Placement validé au point de contrôle de la story 2 (revue du 2026-10-24).
 
 ## Sous-systèmes
 
-Identifiants de code ; libellés anglais à vérifier sur le papier avant traduction (question ouverte).
+Identifiants de code ; libellés anglais exacts du papier (tableau 1, §2.3, vérifiés le 2026-10-24), dans son ordre ; fr et de traduits.
 
 | Id | fr | en | de |
 |---|---|---|---|
-| `loop` | Boucle | Agent loop | Agentenschleife |
-| `llm` | Intégration LLM | LLM integration | LLM-Anbindung |
-| `tools` | Outils | Tools | Werkzeuge |
-| `memory` | Mémoire et contexte | Memory and context | Gedächtnis und Kontext |
-| `security` | Sécurité | Security | Sicherheit |
+| `loop` | Boucle de l'agent | Agent loop | Agentenschleife |
+| `llm` | Intégration du LLM | LLM integration | LLM-Integration |
+| `tools` | Outils et actions | Tools & actions | Werkzeuge und Aktionen |
+| `memory` | Mémoire et contexte | Memory & context | Gedächtnis und Kontext |
+| `security` | Sécurité et permissions | Safety & permissions | Sicherheit und Berechtigungen |
 | `orchestration` | Orchestration | Orchestration | Orchestrierung |
 | `extensibility` | Extensibilité | Extensibility | Erweiterbarkeit |
 
