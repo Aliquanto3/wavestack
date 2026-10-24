@@ -65,3 +65,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-24 23:15 · 1.3-1 · décision · à revoir : champ cache_write_1h_tokens ajouté dès la story 1 (Anthropic ephemeral_1h) pour les stories 4 et 5 · 23e84c8
 - 2026-10-24 23:15 · 1.3-1 · décision · à revoir : cache_origin None seulement pour une trace antérieure ; usage estimé = provider, cases None · 23e84c8
 - 2026-10-24 23:15 · 1.3-1 · dev · phase 2 (code) lancée · 23e84c8
+- 2026-10-24 23:17 · 1.4-1 · dev · fini ; E2E disciplines 52 OK (PYTHONUTF8=1 requis sous Windows) ; skills tiers dans hooks, échafaudage dans native_tools · f916b57
+- 2026-10-24 23:17 · 1.4-1 · décision · à revoir : scénario de sécurité des skills tiers = hooks · f916b57
+- 2026-10-24 23:17 · 1.4-1 · second-avis · lancé · f916b57
