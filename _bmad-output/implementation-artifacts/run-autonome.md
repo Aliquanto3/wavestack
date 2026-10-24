@@ -58,3 +58,6 @@ B ← A : B ajoute ses entrées d'installateur à la liste créée par A.
 - 2026-10-24 22:55 · B · recette · Granite 1B et 350M réels après revue : hermes, calculatrice 444 (3,1 s et 0,8 s) · 3216834
 - 2026-10-24 22:55 · B · report · SmolLM3 servi par llama-server reçoit hermes par la branche qwen3 (deferred-work.md) · 4cca5dc
 - 2026-10-24 22:55 · B · PR · #88 ouverte, CI lancée · 4cca5dc
+- 2026-10-24 23:10 · B · CI · verte (Windows, Ubuntu) · 4cca5dc
+- 2026-10-24 23:10 · B · fusion · #88 MERGED · 971f7c3
+- 2026-10-24 23:10 · run · fin · A et B fusionnées ; recette réelle faite sur le poste de dev (Qwen3.5-0.8B, MiniCPM5-2B, Granite 4.0 1B et 350M) ; recette PC cible à faire par Anaël · 971f7c3
