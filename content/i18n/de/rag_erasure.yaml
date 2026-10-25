@@ -26,13 +26,11 @@ architectures:
     label_text: "RAG mit Reranking"
     update_text: "die Passagen per Kennung aus dem Speicher entfernen; das Reranking behält nichts."
   - id: long_context
-    available: false
-    story: 10
+    available: true
     label_text: "Langer Kontext, ohne Suche"
     update_text: "keine Kopie des Korpus neu aufzubauen, außer dem zwischengespeicherten Präfix, das neu geladen wird."
   - id: cag
-    available: false
-    story: 10
+    available: true
     label_text: "CAG"
     update_text: "den ganzen Cache des Modells neu laden, weil das Präfix das Dokument enthält."
   - id: agentic

@@ -62,7 +62,7 @@ Aucun modèle, aucun réseau, aucun calcul : les fiches sont du contenu déclar�
 
 ## Code Map
 
-- `src/wavestack/rag/sheets.py` (nouveau) : `PENDING_SHEET_KINDS` (familles d'`OPTIONS` dont les fiches viennent en story 19b : `embedding`, `vector_store`, `vector_search`, `lexical_search`, `fusion`, `rerank`, `context`, `generation`) ; modèles pydantic (`ArchitectureSheet`, `Axis`, `LocatedComponent`, réutilise `lab.SourceText`), chargement de `rag_sheets.yaml`, validation (sept axes exacts, niveaux contre `RISKS`, `regulatory` sans niveau, classes de localisation, `demo` parmi les trois ids, `story` requis hors `PRESETS`, au moins une source), `listing(lang)`, `component(lang, key)`, `architecture(lang, id)` ; jointure via `rag.erasure.load_erasure(lang)`.
+- `src/wavestack/rag/sheets.py` (nouveau) : `PENDING_SHEET_KINDS` (familles d'`OPTIONS` dont les fiches viennent en story 19b : `embedding`, `vector_store`, `vector_search`, `lexical_search`, `fusion`, `rerank`, `generation` ; `context` est fiché depuis la story 7, ses six options depuis la story 10) ; modèles pydantic (`ArchitectureSheet`, `Axis`, `LocatedComponent`, réutilise `lab.SourceText`), chargement de `rag_sheets.yaml`, validation (sept axes exacts, niveaux contre `RISKS`, `regulatory` sans niveau, classes de localisation, `demo` parmi les trois ids, `story` requis hors `PRESETS`, au moins une source), `listing(lang)`, `component(lang, key)`, `architecture(lang, id)` ; jointure via `rag.erasure.load_erasure(lang)`.
 - `src/wavestack/session/app_session.py` (fin de section RAG, après `rag_lab_access`) : `rag_lab_sheets`, `rag_lab_sheet_component`, `rag_lab_sheet_architecture` (pures, sans entrée au Journal de sécurité).
 - `src/wavestack/web/app.py` (après `/api/rag_lab/access`, `# V1.2 story 19`) : trois `GET` ; 404 sur id inconnu.
 - `src/wavestack/web/static/rag-sheets.js` (code de l'onglet), `rag.html` (contenu du panneau `rag-panel-sheets`, `.rag-soon` passé en `hidden`), `rag.css` (ajouts).
@@ -131,7 +131,7 @@ Exposition sur les axes à niveau (`L` low, `M` mid, `H` high). Localisation : `
   - points d'accès par le client de test de `web/app.py` : GET, 404 (id inconnu, famille en attente), clés sans agrégat (critère 12).
 - **E2E existant à relancer** : `rag_lab_views` (fonction `_rag_lab_tabs`) (sa vérification « à venir » de l'onglet Fiches est remplacée, voir Code Map).
 - **pytest existants à relancer** : `test_rag_lab.py`, `test_rag_lab_views.py` (onglets), `test_rag_evaluation.py` (`OTHER_TABS`), `test_rag_erasure.py`, `test_rag_access.py`, `test_i18n.py`, `test_annex_language.py`.
-- **E2E `rag_lab_sheets`** (aucun prérequis d'index) : ouvrir Fiches, voir la liste (8 composants fichés, 11 architectures, mention des familles en attente), ouvrir `chunking.semantic` (cinq blocs, « Pas encore mesuré »), ouvrir `hybrid` (sept axes, niveaux en mot, mention « proposition, à relire », bandeau « pas un avis juridique »), suivre le lien de l'axe Droits jusqu'à `#rag-access-card` visible dans l'onglet Attaquer (critère 18), revenir, ouvrir `graphrag` (étiquette « à venir dans l'atelier (story 13) »), repasser en en puis de ; aucune requête hors `127.0.0.1`. Capture clair et sombre.
+- **E2E `rag_lab_sheets`** (aucun prérequis d'index) : ouvrir Fiches, voir la liste (14 composants fichés : `query`, `chunking`, `context` ; 11 architectures, mention des familles en attente), ouvrir `chunking.semantic` (cinq blocs, « Pas encore mesuré »), ouvrir `hybrid` (sept axes, niveaux en mot, mention « proposition, à relire », bandeau « pas un avis juridique »), suivre le lien de l'axe Droits jusqu'à `#rag-access-card` visible dans l'onglet Attaquer (critère 18), revenir, ouvrir `graphrag` (étiquette « à venir dans l'atelier (story 13) »), repasser en en puis de ; aucune requête hors `127.0.0.1`. Capture clair et sombre.
 
 ## Spec Change Log
 
@@ -161,3 +161,22 @@ Exposition sur les axes à niveau (`L` low, `M` mid, `H` high). Localisation : `
 - Reprise après les stories 10 à 14 : brancher le bloc « ce qu'a mesuré le banc » dès que le projet de banc publie, reporter les coûts et durées de remise en conformité mesurés ; l'étiquette « à venir » tombe d'elle-même quand l'id entre dans `PRESETS` (mettre aussi `available` de `rag_erasure.yaml` à jour, le critère 7 le signale).
 - Lecture réelle de la localisation depuis la configuration cloud : attend un champ région ou qualification (hors lot).
 - Lien « Fiche » du focus vers la fiche du composant : story ultérieure.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 52a673e)
+
+Branche fusionnée avec `origin/integration/v1-2-atelier` (story 12.10, #113) avant la revue ; conflit sur la capture 57 résolu par celle de l'intégration. Écarts du texte gelé avec le code, consignés ici sans toucher l'intention : 14 fiches de composant (et non 8 : `context` est fiché depuis la story 7, six options depuis la story 10) ; `long_context` et `cag` sont dans `PRESETS` depuis la story 10, donc disponibles et sans `story`.
+
+- Important · high · contrat 12.10 / 12.19 · corrigé : `long_context` et `cag` entrés dans `PRESETS` faisaient échouer le chargement de `rag_sheets.yaml` (22 tests rouges). `story: 10` retiré des deux fiches ×3 langues ; `rag_erasure.yaml` ×3 passé à `available: true` sans `story` ; `erasure.py` : un endroit construit garde sa story 10 quand son architecture est entrée dans l'atelier (validation assouplie, seul écart à la liste Never, imposé par le contrat) ; tests `test_rag_erasure.py` (IN_WORKSHOP, plus d'« à venir » sur la ligne source de `long_context`) et `test_rag_sheets.py` (story retirée sur `graphrag`) ajustés.
+- Important · medium · E2E après fusion · corrigé : `rag_lab_sheets` et `_rag_lab_tabs` attendaient 23 entrées ; 25 après la story 10 (14 composants + 11 architectures). README E2E aligné.
+- Important · medium · second avis · corrigé : l'accolade fermée après `#rag-case` réactive 70 règles qui n'étaient actives que dans `#rag-case` (imbrication CSS depuis la story 9). Seul conflit réel : la règle `.rag-badge` de la story 7 écrasait la bordure primaire de la story 4 sur tous les badges ; portée restreinte à `.rag-badge[data-state]` (états de passage, seuls à porter `data-state`). Les autres règles réactivées n'ont pas de doublon antérieur (script de comparaison des sélecteurs) ; captures 55 à 70 refaites.
+- Pre-existing · medium · revue · reporté : l'accolade manquante de `#rag-case` (story 9, déjà sur `main` v1.4.0) a laissé les styles des stories 6 à 18 inactifs hors `#rag-case` ; corrigée ici pour l'intégration, `main` reste à corriger à la fusion V1.2.
+- Nit · low · second avis · corrigé : `missing_sheets()` signale aussi une famille en attente absente d'`OPTIONS`.
+- Nit · low · second avis · rejeté : `PENDING_SHEET_KINDS` en dur est exigé par la spec (constante vidée par la story 19b), la partition est testée dans les deux sens.
+- Nit · low · second avis · corrigé : spec périmée (Code Map, plan E2E) mise en accord ; texte gelé laissé tel quel, écarts consignés ci-dessus.
+- Nit · low · second avis · reporté : `load()` de `rag-sheets.js` n'affiche rien si `/api/rag_lab/sheets` échoue (pas de clé de texte hors du YAML servi) ; l'onglet réessaie à la réouverture. À traiter en 19b avec un texte `ui.yaml` ×3.
+- Nit · low · second avis · rejeté : pas de test JS hors E2E, comme les autres onglets de l'atelier ; `rag_lab_sheets` couvre liste, fiches, lien, langues et contraste.
+- Pre-existing · low · revue · reporté : `rag_lab_views` dépend de `rag_lab` (mode Composer mémorisé, `#rag-reset-chain` caché sinon), alors que le README dit « après `rag` et `rag_rerank` ».
+- Complexité : 0 constat (contenu déclaré, lu à la requête, aucune structure qui grossit).
+

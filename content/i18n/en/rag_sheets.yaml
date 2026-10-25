@@ -217,7 +217,6 @@ architectures:
     regulatory:
       text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the store''s vectors and passages? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the generation model?'
 - id: long_context
-  story: 10
   hypotheses:
   - H11
   - H12
@@ -270,7 +269,6 @@ architectures:
     regulatory:
       text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the cached prefix? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that reads the whole corpus?'
 - id: cag
-  story: 10
   hypotheses:
   - H11
   - H12

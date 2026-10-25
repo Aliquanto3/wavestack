@@ -223,7 +223,6 @@ architectures:
     regulatory:
       text: 'Questions à poser, pas un verdict. RGPD : quelle base légale, quelle minimisation, et comment exercer le droit à l''effacement sur les vecteurs et les passages du magasin ? AI Act : quelle classification selon l''usage ? DORA ou NIS2 : selon le secteur de l''organisation. Dépendance fournisseur : que quitte l''atelier avec l''utilisation du modèle de génération ?'
 - id: long_context
-  story: 10
   hypotheses:
   - H11
   - H12
@@ -276,7 +275,6 @@ architectures:
     regulatory:
       text: 'Questions à poser, pas un verdict. RGPD : quelle base légale, quelle minimisation, et comment exercer le droit à l''effacement sur le préfixe mis en cache ? AI Act : quelle classification selon l''usage ? DORA ou NIS2 : selon le secteur de l''organisation. Dépendance fournisseur : que quitte l''atelier avec l''utilisation du modèle qui lit tout le corpus ?'
 - id: cag
-  story: 10
   hypotheses:
   - H11
   - H12

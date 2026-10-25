@@ -127,6 +127,11 @@ def missing_sheets() -> list[str]:
         for k in lab.SHEETED_KINDS
         if k in PENDING_SHEET_KINDS
     ]
+    problems += [
+        f"family {k!r}: pending but not in OPTIONS"
+        for k in PENDING_SHEET_KINDS
+        if k not in lab.OPTIONS
+    ]
     have = {a.id for a in load_sheets().architectures}
     problems += [f"preset {p!r}: no architecture sheet" for p in lab.PRESETS if p not in have]
     return problems

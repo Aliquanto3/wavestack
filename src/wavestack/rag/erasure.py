@@ -195,7 +195,9 @@ class ErasureContent(_Strict):
                 if len(place.architectures) != 1:
                     raise ValueError(f"{place.id}: a constructed place belongs to one architecture")
                 arch = self.architecture(place.architectures[0])
-                if arch.story != place.story:
+                # V1.2 story 10 brought long_context and cag into the workshop: their places
+                # stay constructed (the real cache is not recorded yet) and keep their story.
+                if arch.story is not None and arch.story != place.story:
                     raise ValueError(f"{place.id}: the story of its architecture")
         return self
 
