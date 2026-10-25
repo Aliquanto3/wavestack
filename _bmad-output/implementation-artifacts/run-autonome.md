@@ -474,3 +474,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:07 · run · fusion · #112 MERGED dans main (CLAUDE.md, RAM) via file_prs.py · 42b5e37
 - 2026-10-25 11:11 · 12.2 · dev · spec prête (10 critères, 8 points ouverts : seuils H7 <= 0,13, ~240 items, 3 répétitions en ligne, ~4 300 appels / ~0,26 $ plafonnés à 2 $, réponses JSONL rejouables, CI sans réseau) · 422dcb5
 - 2026-10-25 11:11 · 12.2 · review · relecture de la spec lancée · 422dcb5
+- 2026-10-25 11:23 · 12.2 · review · spec approuvée ; jeu réel recompté (21 questions × 3 langues, 27 documents dont 25 actifs) → ~450 items, 2 répétitions en ligne (Jev déterministe dans T9), 5 400 appels plafonnés, rapport identique au rejeu, enregistrement en liste blanche, Strands Decider 2B et AnyJev à vérifier · 8719ce3
+- 2026-10-25 11:23 · 12.2 · décision · à revoir : seuils du filtre 0,95 / 0,60 sans source, 2 répétitions en ligne, 0,33 $ par modèle, jeu en 3 langues avec affirmations écrites à la main, passages périmés comptés à part, tranche 3-4 Go à confirmer sur le PC cible, enregistrement en liste blanche · 8719ce3
+- 2026-10-25 11:23 · 12.2 · dev · phase 2 (banc, mode à sec, tests sans réseau) lancée ; banc réel non lancé · 8719ce3
+- 2026-10-25 11:23 · 12.2 · attente humaine · banc réel : ordre d'Anaël poste libre, clé OpenRouter créditée (limites du modèle :free), GGUF Qwen3.5-2B et reranker, ONNX deberta_xsmall et mdeberta à télécharger une fois ; 25 min à 1 h en ligne, ~1 h en local · —
