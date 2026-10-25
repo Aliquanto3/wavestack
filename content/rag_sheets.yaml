@@ -482,7 +482,6 @@ architectures:
     regulatory:
       text: 'Questions à poser, pas un verdict. RGPD : quelle base légale, quelle minimisation, et comment exercer le droit à l''effacement sur les résumés récursifs ? AI Act : quelle classification selon l''usage ? DORA ou NIS2 : selon le secteur de l''organisation. Dépendance fournisseur : que quitte l''atelier avec l''utilisation du modèle qui écrit les résumés ?'
 - id: graphrag
-  story: 13
   hypotheses:
   - H2
   - H12

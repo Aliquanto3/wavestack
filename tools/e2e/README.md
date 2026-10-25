@@ -852,3 +852,13 @@ d'autres (story 21) :
   « Arbre » « calculé par une règle, sans modèle » ; « Reconstruire » puis « Rétablir » ; Comparer
   (les trois temps des deux) ; Effacement (`pageindex_tree` mesuré, « effacé » après sa
   reconstruction) ; en puis de ; captures `84-atelier-rag-agentique.jpg`, `85-atelier-rag-pageindex.jpg`.
+- `rag_lab_graphrag`, V1.2 story 13 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le
+  faux llama-server répond aux appels de GraphRAG par son script (`ENTITIES: astreinte, gestion de
+  crise`, `POINTS: …`, lignes `ENTITY:` / `RELATION:`, un résumé de communauté fixe). « GraphRAG »
+  dans la famille Structure, carte « Graphe » « calculé par une règle, sans modèle » avec
+  l'estimation étiquetée ; mode local (entités et preuves dans le focus) ; mode global
+  (communautés et extraits « map ») ; « Reconstruire le graphe » ; « Ajouter un document » (les
+  quatre parties de la mise à jour) ; Comparer, graphe reconstruit en place : GraphRAG au-dessus du
+  RAG dense en tokens aux trois temps, sans estimation ; « Rétablir le graphe » ; captures
+  `86-atelier-rag-graphrag-local.jpg`, `87-atelier-rag-graphrag-reconstruit.jpg`,
+  `88-atelier-rag-graphrag-comparer.jpg`.

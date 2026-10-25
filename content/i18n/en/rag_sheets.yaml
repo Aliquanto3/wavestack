@@ -476,7 +476,6 @@ architectures:
     regulatory:
       text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the recursive summaries? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that writes the summaries?'
 - id: graphrag
-  story: 13
   hypotheses:
   - H2
   - H12

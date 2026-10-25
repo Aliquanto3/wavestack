@@ -2194,7 +2194,9 @@ async function runChain() {
   store.pending = true;
   renderBusy();
   status.textContent = text("running_text");
-  const answer = await post("/api/intentions/rag_lab_run", { question, pipelines: store.pipelines });
+  // V1.2 story 13: GraphRAG's mode, chosen on its card (rag-graph.js); « local » by default.
+  const body = { question, pipelines: store.pipelines, graph_mode: store.graphMode || "local" };
+  const answer = await post("/api/intentions/rag_lab_run", body);
   store.pending = false;
   if (!answer.ok) {
     setMode(before); // refused: nothing runs, back where the trainer was
