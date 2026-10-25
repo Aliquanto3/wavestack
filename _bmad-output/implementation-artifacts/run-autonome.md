@@ -422,3 +422,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:01 · 12.19 · décision · à revoir : 13 fiches de composant découpées en story 12.19b (vague V19) ; page Sécurité = même vocabulaire RISKS sans seconde matrice (lecture de CAP-16) ; RAPTOR sans source · 3bbbf2f
 - 2026-10-25 10:01 · 12.19 · attente humaine · avant de déclarer finie (done_checkpoint) : relire niveaux et formulations réglementaires fr/en/de (graphrag / Droits « élevé » contre « moyen » en maquette), liens de littérature, lecture de CAP-16, recette visuelle ; source primaire de RAPTOR à ouvrir avec réseau · —
 - 2026-10-25 10:01 · 12.19 · dev · phase 2 (code) lancée · 3bbbf2f
+- 2026-10-25 10:03 · 12.18 · review · passe 1 : 1 medium (statut erased_illustrative « effacé (illustratif, non mesuré) ») et 4 low corrigés (ligne Source, rebuild vide 422, datifs allemands, REQUIRED_TEXTS) ; E2E 99/99 · 6bb832d
+- 2026-10-25 10:03 · 12.18 · décision · à revoir : statut erased_illustrative et critère 6 réécrit · 6bb832d
+- 2026-10-25 10:03 · 12.18 · PR · #111 ouverte vers integration/v1-2-atelier · 6bb832d
