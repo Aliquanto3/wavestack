@@ -443,3 +443,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:52 · 12.11 · décision · à revoir : 9 points tranchés par le relecteur Opus (outils hors NATIVE_TOOLS mais mêmes noms et messages, arbre à deux niveaux, famille Structure, rebuild target) ; long_context et cag à passer available dans rag_erasure.yaml (12.10) · 3f8f1cd
 - 2026-10-25 10:52 · 12.11 · report · code à lancer après le /clear de l'orchestrateur (Opus, effort high) · 3f8f1cd
 - 2026-10-25 10:52 · run · décision · Anaël : le poste a 32 Go de RAM (CLAUDE.md dit 16) ; OpenRouter n'expose ni le modèle de décision Jev (seulement typesafe/jev-router) ni Microsoft-Decision-1 : chiffres publiés pour la 12.2 · —
+- 2026-10-25 10:53 · 12.19 · dev · fini ; 18 critères, test_rag_sheets 38 verts, 4949 tests ciblés verts, E2E 171/171 avant la dernière fusion puis rag_lab_sheets rag_lab_rights 35/35 (combinaison complète en échec mémoire) ; 12.19b ramenée à 12 fiches (context déjà fiché) · f1cba8b
+- 2026-10-25 10:53 · 12.19 · CI · défaut de l'intégration trouvé et corrigé : accolade manquante après #rag-case dans rag.css, styles des stories 6 à 18 ignorés par le navigateur · f1cba8b
+- 2026-10-25 10:53 · 12.19 · décision · à revoir : ~400 textes fr/en/de écrits par le dev, graphrag / Droits « high » à trancher, couleur d'encre forcée sur les puces pour le contraste AA, champ before_search · f1cba8b
+- 2026-10-25 10:53 · 12.19 · second-avis · lancé · f1cba8b
