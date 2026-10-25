@@ -84,7 +84,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 
 ## Prochaines étapes (mise à jour du 2026-10-25 13:35)
 
-1. #118 (12.20) : file_prs.py --methode merge en cours ; à la fusion, prévenir 12.13 et 12.14 de refusionner l'intégration.
+1. (Fait : #118 fusionnée, 820d109 ; 12.13 et 12.14 prévenues.)
 2. Banc 12.2, partie en ligne : en cours dans ../wavestack-v12-s2, résultats dans tools/bench/results/2026-10-25-v12s2 (journal de la commande : scratchpad s2/online.log).
 3. Créneau sans agent réservé (décision d'Anaël) : dès que les dev de 12.13 et 12.14 ont rendu leur rapport et que la partie en ligne est finie, ne lancer aucun agent ; puis dans ../wavestack-v12-s2 : `local --confirm-idle --download --results-dir tools/bench/results/2026-10-25-v12s2` (uv run --with onnxruntime --with tokenizers --with huggingface-hub, ~1 h), `memory --confirm-idle --append-memlog --results-dir …` (~10 min), `dry-run` ; commiter rapport, .memlog.md et recorded/*.jsonl sur une branche de suivi de 12.2, PR vers l'intégration. Ensuite seulement : second avis et revue de 12.13 et 12.14.
 4. Après le rapport de 12.2 : 12.8, puis 12.12. Après 12.13 et 12.14 : 12.16, puis 12.21 (mesure sur poste libre aussi).
@@ -554,3 +554,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:29 · 12.20 · décision · à revoir : compte des passages RH retirés dans la réponse au client (le garder au seul journal local ?), outils exposés dans la ligne « réseau » de la matrice en attendant la ligne « exposé » · 914cdcd
 - 2026-10-25 13:29 · 12.20 · PR · #118 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 914cdcd
 - 2026-10-25 13:35 · 12.2 · décision · Anaël : créneau sans agent réservé pour la partie locale et la mémoire du banc, après les dev de 12.13 et 12.14 et la fin de la partie en ligne ; revues de 12.13 et 12.14 ensuite · —
+- 2026-10-25 13:36 · 12.20 · CI · verte · 914cdcd
+- 2026-10-25 13:36 · 12.20 · fusion · #118 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.13 et 12.14 prévenues · 820d109
