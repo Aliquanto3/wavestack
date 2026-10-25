@@ -571,3 +571,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 14:36 · 12.2 · blocked · SLM juge en échec sur 100 % des items (logprobs demandés sur un Llama sans logits_all=True, défaut du banc) ; Strands Decider 2B écarté (opérateur ONNX com.microsoft:CausalConvWithState absent d'onnxruntime 1.31.0) ; correctif lancé, remesure du juge seule sur poste libre ensuite · 43ec7c1
 - 2026-10-25 14:36 · 12.13 · second-avis · lancé (lecture seule, sans E2E) · 6bb7616
 - 2026-10-25 14:36 · 12.14 · second-avis · lancé (lecture seule, sans E2E) · 538aa5d
+- 2026-10-25 14:39 · 12.2 · dev · SLM juge corrigé (probabilité lue sur les logits du jeton contraint par GBNF, sans logits_all, comme LlamaCppEngine._candidates ; appel réel P(oui) 0,919) ; reprise qui remesure un candidat tout en erreur ; Strands reste écarté (CausalConvWithState sans noyau CPU fp16 dans onnxruntime ≤ 1.31.0) ; remesure du juge seule après les seconds avis en cours · 7ff9e29
