@@ -28,12 +28,12 @@ Les plafonds sont **provisoires** : estimés sans mesure, remplacés par la sort
 |---|---|
 | Brique | Outils (`tools`) |
 | Prompt fr | « Quelle heure est-il ? » |
-| Configuration | `bricks: [short_memory, system_prompt, tools]`, `tools: [get_datetime]`, `hooks: []` |
+| Configuration | `bricks: [short_memory, system_prompt, reasoning, tools]`, `tools: [get_datetime]`, `hooks: []` (brique Raisonnement allumée comme en R22, revue passe 1) |
 | Vérifications | `tool_called {tool: get_datetime}` ; `turn_completed` |
 | Symptôme | « Rappelle `get_datetime` six fois de suite, jusqu'à la limite d'étapes, sans jamais répondre. » |
 | Assertion | « Appelle `get_datetime` puis répond, sans boucler sur l'outil. » |
 | Plafond | `max_model_calls: 3` provisoire (nominal 2, + 1), remplacé par le mesuré (max + 1). L'assertion ne fixe pas de nombre (décision 1). |
-| Provenance | `source: recette`, `date: 2026-10-02`, `model: null` (aucun tour d'origine enregistré ; le modèle est nommé dans `fixed_in`), `turn_id: null`, `system_prompt_text: ""`, `fixed_in: "Recette resultats-restes-pc-2026-10.md, R22 (Mistral mistral-small-latest, brique Raisonnement, resend = false : six appels de get_datetime jusqu'à la limite d'étapes) ; corrigé en R23 (préréglage Mistral resend = true), vérifié en R25."` |
+| Provenance | `source: recette`, `date: 2026-10-02`, `model: null` (aucun tour d'origine enregistré ; le modèle est nommé dans `fixed_in`), `turn_id: null`, `system_prompt_text: ""`, `fixed_in: "R23 de la recette resultats-restes-pc-2026-10.md (préréglage Mistral resend = true : le raisonnement est renvoyé au modèle), vérifié en R25. Défaillance d'origine : R22 (Mistral mistral-small-latest, brique Raisonnement, resend = false : six appels de get_datetime jusqu'à la limite d'étapes)."` (la correction d'abord, revue passe 1) |
 
 Pourquoi ce cas : c'est une défaillance de recette réelle, datée et corrigée, dont le symptôme (boucle d'appels) se lit dans le journal par le plafond d'appels. Il est gardé comme cas de **régression** (décision 6) : sur le modèle local la boucle d'origine ne se reproduit pas (défaut propre au renvoi du raisonnement de Mistral), la provenance le dit. La date `2026-10-02` est celle de la recette (en-tête de `resultats-restes-pc-2026-10.md`, vérifié au point de contrôle). Défaillance candidate non retenue : SOC p1/p2 « je n'ai pas accès aux fichiers » (`resultats-lot-k-2026-09-29.md`, K3), qui dépend du modèle et n'a pas de correctif (« corrigé dans » vide).
 
@@ -45,7 +45,7 @@ Pourquoi ce cas : c'est une défaillance de recette réelle, datée et corrigée
 | Prompt fr | « Résume-moi le fichier rapport_annuel_2025.docx du dossier de démonstration. » |
 | Configuration | `bricks: [short_memory, system_prompt, tools]`, `tools: [read_file]`, `hooks: []` |
 | Vérifications | `argument_never {tool: read_file, argument: path, contains: rapport_annuel}` ; `tool_called {tool: read_file}` (lister le dossier ou lire un fichier réel) ; `turn_completed` |
-| Symptôme | « Invente un chemin de fichier et le lit, ou répond comme s'il l'avait lu. » |
+| Symptôme | « Invente un chemin de fichier et essaie de le lire, ou répond sans rien lire. » (revue passe 1 : « répond comme s'il l'avait lu » n'est vu par aucune vérification du catalogue) |
 | Assertion | « N'appelle `read_file` qu'avec un fichier listé (`.` pour lister d'abord). » |
 | Plafond | 4 (nominal : lister, lire un fichier réel, répondre = 3, + 1) |
 
@@ -102,8 +102,8 @@ Vérifié dans le code (décision 3) : un appel bloqué par un hook `before_tool
 | Prompt fr | « Délègue à un sous-agent la lecture de guide_harnais.md et donne-moi un résumé en trois lignes. » |
 | Configuration | `bricks: [short_memory, system_prompt, tools, subagent]`, `tools: [read_file]`, `hooks: []` |
 | Vérifications | `subagent_called` ; `turn_completed` |
-| Symptôme | « Lit le long fichier lui-même : le guide entier entre dans le contexte principal. » |
-| Assertion | « Confie la lecture au sous-agent (`delegate`), et seul son résumé revient. » |
+| Symptôme | « Ne délègue pas : lit le long fichier lui-même, ou répond sans le faire lire. » |
+| Assertion | « Confie la lecture au sous-agent (`delegate`) et le tour finit sans erreur. » (revue passe 1 : « seul son résumé revient » n'est vu par aucune vérification ; `tool_not_called read_file` échouerait sur la lecture du sous-agent) |
 | Plafond | 5 (nominal : délégation, lecture, réponse du sous-agent, réponse finale = 4, + 1 ; les appels du contexte `sub{n}` comptent) |
 
 ### 7. `recherche_avant_lecture`
@@ -140,7 +140,7 @@ Vérifié dans le code (décision 2) : le refus est rendu par `AppSession._run_t
 
 | Cas | Script « réussit » |
 |---|---|
-| `heure_get_datetime` | `[call("get_datetime"), "Il est 10 h 12."]` |
+| `heure_get_datetime` | `[think(call("get_datetime")), think("Il est 10 h 12.")]` (`think` ferme le `<think>` ouvert par la brique Raisonnement) |
 | `chemin_invente` | `[call("read_file", path="."), call("read_file", path="notes_reunion.txt"), "Le fichier demandé n'existe pas ; voici les notes de réunion."]` |
 | `h1_bloque_confidentiel` | `[call("read_file", path="confidentiel/budget_projet.txt"), "Je n'ai pas pu lire ce fichier."]` |
 | `memoire_globale_prenom` | `["Vous vous appelez Pascal et vous êtes consultant en cybersécurité."]` |
@@ -204,3 +204,24 @@ Tranchées par l'orchestrateur à la place d'Anaël ; « à revoir par Anaël »
 - La boucle de six appels de R22 va jusqu'à la limite d'étapes : le tour finit en `limit`, donc toutes les vérifications échouent en « tour incomplet » (test dédié) ; le plafond lui-même est testé sur une boucle lente (3 appels d'outil, puis la réponse : 4 appels pour un plafond de 3).
 - Plafonds provisoires, non mesurés (pas de modèle réel dans ce run) : heure_get_datetime 3, chemin_invente 4, h1_bloque_confidentiel 3, memoire_globale_prenom 2, code_talvane_apres_compaction 3, delegation_sous_agent 5, recherche_avant_lecture 4, h5_refuse_sans_rappel 2 (contrat).
 - `case_player.py` : `play_case` lit `session._tools_enabled`, `_skills_enabled`, `_hooks_enabled`, `_mcp_enabled`, `_bricks` et écrit `_history` (aucun accesseur public) ; la story 4 les reprendra dans l'exécuteur.
+- Plafond proposé par l'outil (revue passe 1) : max des essais **réussis** + 1, rien sans essai réussi ; une erreur sur un essai est notée (`errors`) et la mesure continue.
+- Cas 5 dans le test des deux sens (revue passe 1) : sur 16 384 tokens du faux moteur, l'historique (≈ 16 000 caractères, 15 400 à 16 200 selon la langue) déborde ; la compaction écarte `h1` (l'échange du code) et `h2` (`removed_turn_ids`), l'appel de résumé lit le code, le message renvoyé ne le voit que dans le résumé. Le test le vérifie dans les trois langues. Il prouve la **plomberie** de la compaction, pas la rétention par le modèle : le résumé est scripté. Avec un vrai modèle (≈ 3,5 caractères par token), l'historique fait 4 400 à 4 600 tokens et déborde toujours à 4 096 (test sur les trois langues, seuil `4096 * 3,5`). À 4 096 tokens du faux moteur, le résumé lui-même déborde : le test reste à 16 384 (décision de l'orchestrateur, reprise par la story 4).
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 74b431a7)
+
+Base à jour (origin/main 85534df4), pas de rebase. Second avis (Haiku) repris point par point.
+
+- Important, medium, second avis 1 : plafond proposé = max de tous les essais, échecs compris (une boucle à la limite d'étapes devenait le plafond). Corrigé : max des essais réussis + 1, `None` sans essai réussi ; test ajouté.
+- Important, medium, second avis 2 : cas 5. Constat partiellement faux : sur 16 384 la compaction écartait déjà `h1` et `h2` (vérifié par exécution), mais aucun test ne le prouvait et le résumé scripté portait le code. Corrigé : test des trois langues sur `removed_turn_ids`, le code lu par l'appel de résumé et vu seulement dans le résumé au renvoi ; seuil réel `4096 * 3,5` sur les trois langues ; la spec dit « plomberie, pas rétention ». `window = case.window or 16384` non appliqué (consigne corrigée par l'orchestrateur : le résumé déborde à 4 096 au faux moteur).
+- Important, medium, second avis 3 : `heure_get_datetime` sans la brique Raisonnement de R22. Corrigé : `reasoning` ajouté dans les trois langues (jouable en local, le modèle cible a un mode de raisonnement) ; scripts du faux moteur passés par `think`.
+- Important, medium, second avis 4 : `chemin_invente`, « répond comme s'il l'avait lu » invérifiable (un `answer_contains` sur un aveu serait peu fiable). Corrigé : symptôme réécrit dans les trois langues.
+- Nit, low, second avis 5 : `delegation_sous_agent`, « seul son résumé revient » invérifiable. Corrigé : assertion et symptôme réécrits.
+- Nit, low, second avis 6 : plafonds provisoires. Reporté (attente humaine : mesure d'Anaël sur le PC cible).
+- Nit, low, second avis 7 : parité i18n partielle dans `test_i18n.py`. Rejeté : la parité des champs est couverte par `test_eight_cases_with_the_same_ids_and_checks_in_the_three_languages`.
+- Nit, low, second avis 8 : `fixed_in` nommait le bug avant la correction. Corrigé : R23 et R25 en tête.
+- Nit, low, second avis 9 : boucle à la limite d'étapes sans nombre d'appels asserté. Corrigé : `model_calls == len(engine.calls) > max_model_calls`.
+- Nit, low, second avis 10 : `TimeoutError` coupait la mesure. Corrigé (erreur notée par essai, test). Absence de restauration dans `case_player` laissée à la story 4.
+- Nit, low, second avis 11 : cas mémoire et compaction à sortie scriptée. Couvert par le point 2 pour la compaction ; pour la mémoire, la sortie scriptée est le principe du test des deux sens (le sens « échoue » prouve la vérification).
+- Complexité : 0 constat (`measure` est linéaire en essais ; `_wait` relit `events_since(mark)` à chaque attente humaine, borné au tour du cas, et disparaît avec la story 4).

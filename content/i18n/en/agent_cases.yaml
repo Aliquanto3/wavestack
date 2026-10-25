@@ -10,6 +10,7 @@ cases:
   bricks:
   - short_memory
   - system_prompt
+  - reasoning
   - tools
   tools:
   - get_datetime
@@ -30,13 +31,13 @@ cases:
     model: null
     turn_id: null
     system_prompt_text: ''
-    fixed_in: 'Recette resultats-restes-pc-2026-10.md, R22 (Mistral mistral-small-latest, brique Raisonnement,
-      resend = false : six appels de get_datetime jusqu''à la limite d''étapes) ; corrigé en R23 (préréglage
-      Mistral resend = true), vérifié en R25.'
+    fixed_in: 'R23 de la recette resultats-restes-pc-2026-10.md (préréglage Mistral resend = true : le raisonnement
+      est renvoyé au modèle), vérifié en R25. Défaillance d''origine : R22 (Mistral mistral-small-latest, brique
+      Raisonnement, resend = false : six appels de get_datetime jusqu''à la limite d''étapes).'
 - id: chemin_invente
   title_text: Invented file path
   brick: tools
-  symptom_text: Invents a file path and reads it, or answers as if it had read it.
+  symptom_text: Invents a file path and tries to read it, or answers without reading anything.
   assertion_text: Calls `read_file` only with a listed file (`.` to list first).
   prompt: Summarise the file rapport_annuel_2025.docx from the demonstration folder.
   history: []
@@ -328,8 +329,8 @@ cases:
 - id: delegation_sous_agent
   title_text: Reading delegated to a sub-agent
   brick: subagent
-  symptom_text: 'Reads the long file itself: the whole guide enters the main context.'
-  assertion_text: Hands the reading to the sub-agent (`delegate`), and only its summary comes back.
+  symptom_text: 'Does not delegate: reads the long file itself, or answers without having it read.'
+  assertion_text: Hands the reading to the sub-agent (`delegate`) and the turn ends without error.
   prompt: Delegate the reading of guide_harnais.md to a sub-agent and give me a three-line summary.
   history: []
   bricks:

@@ -4,7 +4,7 @@
 # paramètres de vérification (seuls les textes et les messages changent).
 # PLAFONDS PROVISOIRES : `max_model_calls` est estimé (appels du chemin nominal + 1), sauf
 # `h5_refuse_sans_rappel` (2, sans marge, fixé par le contrat). À remplacer par la sortie de
-# `uv run python tools/eval/measure_cases.py --runs 3` (max observé + 1) sur le PC cible, dans
+# `uv run python tools/eval/measure_cases.py --runs 3` (max des essais réussis + 1) sur le PC cible, dans
 # les trois fichiers.
 cases:
 - id: heure_get_datetime
@@ -17,6 +17,7 @@ cases:
   bricks:
   - short_memory
   - system_prompt
+  - reasoning
   - tools
   tools:
   - get_datetime
@@ -37,13 +38,13 @@ cases:
     model: null
     turn_id: null
     system_prompt_text: ''
-    fixed_in: 'Recette resultats-restes-pc-2026-10.md, R22 (Mistral mistral-small-latest, brique Raisonnement,
-      resend = false : six appels de get_datetime jusqu''à la limite d''étapes) ; corrigé en R23 (préréglage
-      Mistral resend = true), vérifié en R25.'
+    fixed_in: 'R23 de la recette resultats-restes-pc-2026-10.md (préréglage Mistral resend = true : le raisonnement
+      est renvoyé au modèle), vérifié en R25. Défaillance d''origine : R22 (Mistral mistral-small-latest, brique
+      Raisonnement, resend = false : six appels de get_datetime jusqu''à la limite d''étapes).'
 - id: chemin_invente
   title_text: Chemin de fichier inventé
   brick: tools
-  symptom_text: Invente un chemin de fichier et le lit, ou répond comme s'il l'avait lu.
+  symptom_text: Invente un chemin de fichier et essaie de le lire, ou répond sans rien lire.
   assertion_text: N'appelle `read_file` qu'avec un fichier listé (`.` pour lister d'abord).
   prompt: Résume-moi le fichier rapport_annuel_2025.docx du dossier de démonstration.
   history: []
@@ -341,8 +342,8 @@ cases:
 - id: delegation_sous_agent
   title_text: Lecture déléguée à un sous-agent
   brick: subagent
-  symptom_text: 'Lit le long fichier lui-même : le guide entier entre dans le contexte principal.'
-  assertion_text: Confie la lecture au sous-agent (`delegate`), et seul son résumé revient.
+  symptom_text: 'Ne délègue pas : lit le long fichier lui-même, ou répond sans le faire lire.'
+  assertion_text: Confie la lecture au sous-agent (`delegate`) et le tour finit sans erreur.
   prompt: Délègue à un sous-agent la lecture de guide_harnais.md et donne-moi un résumé en trois lignes.
   history: []
   bricks:

@@ -10,6 +10,7 @@ cases:
   bricks:
   - short_memory
   - system_prompt
+  - reasoning
   - tools
   tools:
   - get_datetime
@@ -30,13 +31,13 @@ cases:
     model: null
     turn_id: null
     system_prompt_text: ''
-    fixed_in: 'Recette resultats-restes-pc-2026-10.md, R22 (Mistral mistral-small-latest, brique Raisonnement,
-      resend = false : six appels de get_datetime jusqu''à la limite d''étapes) ; corrigé en R23 (préréglage
-      Mistral resend = true), vérifié en R25.'
+    fixed_in: 'R23 de la recette resultats-restes-pc-2026-10.md (préréglage Mistral resend = true : le raisonnement
+      est renvoyé au modèle), vérifié en R25. Défaillance d''origine : R22 (Mistral mistral-small-latest, brique
+      Raisonnement, resend = false : six appels de get_datetime jusqu''à la limite d''étapes).'
 - id: chemin_invente
   title_text: Erfundener Dateipfad
   brick: tools
-  symptom_text: Erfindet einen Dateipfad und liest ihn, oder antwortet, als hätte es ihn gelesen.
+  symptom_text: Erfindet einen Dateipfad und versucht ihn zu lesen, oder antwortet, ohne etwas zu lesen.
   assertion_text: Ruft `read_file` nur mit einer aufgelisteten Datei auf (`.`, um zuerst aufzulisten).
   prompt: Fasse mir die Datei rapport_annuel_2025.docx aus dem Demonstrationsordner zusammen.
   history: []
@@ -332,9 +333,8 @@ cases:
 - id: delegation_sous_agent
   title_text: Lesen an einen Unteragenten delegiert
   brick: subagent
-  symptom_text: 'Liest die lange Datei selbst: der ganze Leitfaden gelangt in den Hauptkontext.'
-  assertion_text: Überlässt das Lesen dem Unteragenten (`delegate`), und nur seine Zusammenfassung kommt
-    zurück.
+  symptom_text: 'Delegiert nicht: liest die lange Datei selbst, oder antwortet, ohne sie lesen zu lassen.'
+  assertion_text: Überlässt das Lesen dem Unteragenten (`delegate`), und der Zug endet ohne Fehler.
   prompt: Delegiere das Lesen von guide_harnais.md an einen Unteragenten und gib mir eine Zusammenfassung
     in drei Zeilen.
   history: []

@@ -17,6 +17,9 @@ uv run python tools/eval/measure_cases.py --model C:\chemin\modele.gguf
   et les lignes `max_model_calls: N` à recopier **à la main** dans `content/agent_cases.yaml` et
   ses deux traductions (`content/i18n/{en,de}/agent_cases.yaml`). L'outil n'écrit aucun fichier
   de cas : le choix du plafond est humain.
+- Le plafond proposé est le max des essais **réussis** + 1 : un essai qui boucle jusqu'à la
+  limite d'étapes ne devient pas le plafond. Sans essai réussi, rien n'est proposé. Une erreur
+  sur un essai (délai dépassé, refus) est notée et la mesure continue.
 - `h5_refuse_sans_rappel` garde son plafond de contrat (2, sans marge) : l'outil le dit, ne le
   propose pas. Si le modèle rappelle l'outil après le refus, le cas échoue, c'est ce qu'il montre.
 - Un cas dont `window` diffère de la fenêtre courante est signalé « non mesurable ici ».

@@ -24,8 +24,17 @@ EVAL = ROOT / "tools" / "eval"
 LANGS = ("fr", "en", "de")
 CASES_FILE = ROOT / "content" / "agent_cases.yaml"
 
+
+def think(output: str) -> str:
+    """An output of the recipe case, played with the reasoning brick on (R22): the Qwen
+    template opens `<think>`, the model closes it before its answer or its call."""
+    return "Je réfléchis.\n</think>\n\n" + output
+
+
+GD = think(call("get_datetime"))
+
 SCRIPTS: dict[str, list[str]] = {
-    "heure_get_datetime": [call("get_datetime"), "Il est 10 h 12."],
+    "heure_get_datetime": [GD, think("Il est 10 h 12.")],
     "chemin_invente": [
         call("read_file", path="."),
         call("read_file", path="notes_reunion.txt"),
@@ -166,13 +175,42 @@ def test_caps_are_positive_and_h5_keeps_its_contract_cap():
     assert cases["h5_refuse_sans_rappel"].max_model_calls == 2
 
 
-def test_compaction_case_history_overflows_a_4096_window_and_keeps_the_code_in_the_first_exchange():
-    case = _cases("fr")["code_talvane_apres_compaction"]
+@pytest.mark.parametrize("lang", LANGS)
+def test_compaction_case_history_overflows_a_4096_window_and_keeps_the_code_in_the_first_exchange(
+    lang,
+):
+    case = _cases(lang)["code_talvane_apres_compaction"]
     assert (case.window, case.on_overflow) == (4096, "compaction")
     assert len(case.history) == 4 and "TLV-7731-QZ" in case.history[0].assistant
     assert all("TLV-7731-QZ" not in e.user + e.assistant for e in case.history[1:])
     assert "TLV-7731-QZ" not in case.prompt
-    assert sum(len(e.user + e.assistant) for e in case.history) > 4096 * 3
+    # A real small model counts about 3.5 characters per token: still above 4096 tokens.
+    assert sum(len(e.user + e.assistant) for e in case.history) > 4096 * 3.5
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_compaction_case_summarizes_the_exchange_of_the_code_and_resends_without_it(player, lang):
+    """The plumbing of the compaction, not the model's retention (the summary is scripted):
+    at 16384 fake tokens the history overflows, the exchange holding the code leaves the
+    history, the summary call reads it, and the resent call sees the code only by the
+    summary."""
+    case = _cases(lang)["code_talvane_apres_compaction"]
+    summary = "SUMMARY-MARK TLV-7731-QZ"
+    engine, session = _session([summary, "TLV-7731-QZ"], lang)
+    try:
+        envelopes = player.play_case(session, case)
+        verdict = verify(case, envelopes, lang)
+    finally:
+        session.close()
+
+    (compacted,) = [e for e in envelopes if e.kind == "history_compacted"]
+    assert compacted.payload["strategy"] == "compaction"
+    assert "h1" in compacted.payload["removed_turn_ids"]  # the exchange of the code left
+    first, resent = (bytes(ids).decode("utf-8", "replace") for ids in engine.calls)
+    assert "TLV-7731-QZ" in first  # the summary call reads the exchange of the code
+    assert "SUMMARY-MARK" in resent  # the resent call reads the summary...
+    assert resent.count("TLV-7731-QZ") == 1  # ...and the code only there
+    assert verdict.passed
 
 
 # ---------- both directions, through the session ----------
@@ -206,7 +244,7 @@ def test_the_case_fails_on_an_idle_engine(player, case_id, lang):
 def test_a_slow_loop_of_the_recipe_case_breaks_its_cap(player):
     case = _cases("fr")["heure_get_datetime"]
 
-    _, verdict = _play(player, case, [call("get_datetime")] * 3 + ["Il est 10 h."])
+    _, verdict = _play(player, case, [GD] * 3 + [think("Il est 10 h.")])
 
     cap = verdict.checks[-1]
     assert not verdict.passed and not cap.passed
@@ -217,8 +255,9 @@ def test_a_slow_loop_of_the_recipe_case_breaks_its_cap(player):
 def test_the_loop_to_the_step_limit_of_the_recipe_case_fails_every_check(player):
     case = _cases("fr")["heure_get_datetime"]
 
-    _, verdict = _play(player, case, [call("get_datetime")])  # R22: never answers
+    engine, verdict = _play(player, case, [GD])  # R22: never answers
 
+    assert verdict.model_calls == len(engine.calls) > case.max_model_calls
     assert not verdict.passed and not any(c.passed for c in verdict.checks)
     assert all("tour incomplet" in c.reason_text for c in verdict.checks)
 
@@ -261,9 +300,10 @@ def test_measure_proposes_the_largest_count_plus_one_and_leaves_h5_to_its_contra
         if c.id in ("heure_get_datetime", "h5_refuse_sans_rappel")
     ]
     # get_datetime: 2, then 3, then 2 model calls; then H5's two runs of two calls.
-    gd = call("get_datetime")
+    gd = GD
     h5 = call("public_holidays", year="2026")
-    outputs = [gd, "ok", gd, gd, "ok", gd, "ok", h5, "non", h5, "non", h5, "non"]
+    ok = think("ok")
+    outputs = [gd, ok, gd, gd, ok, gd, ok, h5, "non", h5, "non", h5, "non"]
     _, session = _session(outputs)
     before = hashlib.sha256(CASES_FILE.read_bytes()).hexdigest()
 
@@ -279,6 +319,35 @@ def test_measure_proposes_the_largest_count_plus_one_and_leaves_h5_to_its_contra
     assert "h5_refuse_sans_rappel: plafond du contrat (2), non relevé" in text
     assert json.loads(out.read_text(encoding="utf-8"))[0]["calls"] == [2, 3, 2]
     assert hashlib.sha256(CASES_FILE.read_bytes()).hexdigest() == before  # the file is untouched
+
+
+def test_measure_proposes_nothing_without_a_passed_try_and_survives_an_error(
+    measure_module, monkeypatch
+):
+    case = _cases("fr")["heure_get_datetime"]
+    _, session = _session([GD])  # a loop to the step limit, every try
+    real_play = measure_module.play_case
+    plays = iter([real_play, real_play, None])
+
+    def play(session, case):  # noqa: ANN001
+        fn = next(plays)
+        if fn is None:
+            raise TimeoutError("case heure_get_datetime: the session did not come back to idle")
+        return fn(session, case)
+
+    monkeypatch.setattr(measure_module, "play_case", play)
+    try:
+        (result,) = measure_module.measure(session, [case], runs=3)
+    finally:
+        session.close()
+
+    assert len(result.calls) == 2 and result.passed == [False, False]
+    assert result.calls[0] > case.max_model_calls and result.proposed_cap is None
+    assert result.errors == [
+        "TimeoutError: case heure_get_datetime: the session did not come back to idle"
+    ]
+    text = measure_module.render([result], 3)
+    assert "aucun essai réussi" in text and "0/3" in text and "erreur : TimeoutError" in text
 
 
 def test_measure_skips_a_case_whose_window_is_not_the_current_one(measure_module):
