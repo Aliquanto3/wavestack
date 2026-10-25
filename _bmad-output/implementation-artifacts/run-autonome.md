@@ -251,3 +251,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:49 · 13.6 · review · passe 1 : 2 medium corrigés (emplacement de « Vider le cache », test_content_language en de déjà rouge) et 4 low · cf08515
 - 2026-10-25 06:49 · 13.6 · PR · #101 ouverte · cf08515
 - 2026-10-25 06:49 · 13.6 · décision · à revoir : fiche du cache en français seul ; mention de /agent-cost-kit:mesurer-couts « si le plugin est installé » · —
+- 2026-10-25 06:51 · run · review · #100 passe 1 (Sonnet) : retour de DeviceIoControl vérifié, avertissement sinon · 0b676a7
