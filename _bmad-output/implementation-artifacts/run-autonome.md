@@ -136,3 +136,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:41 · 15.4 · décision · not_run des deux côtés = inchangé dans la comparaison (cas de la fenêtre) · à revoir
 - 2026-10-25 22:45 · 15.4 · second-avis · 4a : 2 medium (configuration non rétablie si l'arrêt dépasse 30 s ; conversation vidée, prévue par la spec), 5 low · c087f36a
 - 2026-10-25 22:45 · 15.4 · review · 4a lancé (Opus) · —
+- 2026-10-25 22:52 · 15.4 · review · 4a prête (1 medium et 3 low corrigés, 2 faux ; API inchangée) · ed6e15e8
+- 2026-10-25 22:52 · 15.4 · PR · #140 ouverte (partie 4a), CI en cours · ed6e15e8
