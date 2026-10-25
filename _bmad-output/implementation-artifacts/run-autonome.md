@@ -83,3 +83,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:18 · 15.1 · fusion · PR #137 ouverte, CI en cours · aa2ca985
 - 2026-10-25 21:19 · 15.3 · dev · fini (phase spec, 9 points ouverts) · 69b8840e
 - 2026-10-25 21:19 · 15.3 · review · lancé (spec_checkpoint, Opus) · —
+- 2026-10-25 21:25 · 15.6 · CI · verte (8/8) · 4179682c
+- 2026-10-25 21:25 · 15.6 · fusion · #135 MERGED dans main (squash) · 23108ae2
