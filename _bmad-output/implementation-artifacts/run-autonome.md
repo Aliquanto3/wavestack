@@ -374,3 +374,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:18 · 12.17 · dev · fini ; 16 critères, test_rag_attack 37 verts, 4670 tests ciblés verts, E2E rag_lab_attack 28/28 deux fois ; corpus faq_mots_de_passe reformulé ×3 · d95e83a
 - 2026-10-25 09:18 · 12.17 · décision · à revoir : sans Prompt Guard chargé, verdict enregistré appliqué à la colonne « avec » ; entrées de démonstration comptées dans « bloqués » ; not_installed au niveau mid ; capture sans numéro · d95e83a
 - 2026-10-25 09:18 · 12.17 · second-avis · lancé (priorité : effet de la reformulation du corpus sur 12.6, 12.9, 12.15) · d95e83a
+- 2026-10-25 09:19 · 12.18 · dev · lancé (phase spec, empilé sur 12.17, worktree ../wavestack-v12-s18) · d95e83a
