@@ -116,3 +116,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:05 · 15.3 · PR · #139 ouverte, CI en cours · 51bd3579
 - 2026-10-25 22:05 · run · décision · 15.5 avancée pendant les CI de 15.2 et 15.3 : contenus et programme d'après la spec validée de 15.4 et la maquette, libellés de la vue vérifiés après 4b · —
 - 2026-10-25 22:05 · 15.5 · dev · lancé (Sonnet, ../wavestack-v15-s5) · —
+- 2026-10-25 22:13 · 15.2 · CI · verte (8/8) · b43d4bd8
+- 2026-10-25 22:13 · 15.2 · fusion · #138 MERGED dans main (squash) · f29058e1
+- 2026-10-25 22:13 · 15.2 · attente humaine · mesure des plafonds par Anaël sur le PC cible (uv run python tools/eval/measure_cases.py --runs 3), notifiée, non bloquante · —
+- 2026-10-25 22:13 · 15.4 · dev · lancé (Opus, partie 4a exécuteur et API, rebasé sur f29058e1) · —
