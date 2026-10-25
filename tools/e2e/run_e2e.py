@@ -14477,7 +14477,7 @@ def s_rag_lab_query(r: Run) -> None:
     try:
         _rag_lab_query(r)
     finally:
-        page.locator("#rag-reset-chain").click()
+        page.evaluate("localStorage.removeItem('wavestack.ragLab')")
         r.goto_app()
 
 
@@ -14485,8 +14485,9 @@ def _rag_lab_query(r: Run) -> None:
     page = r.page
     questions = r.api("GET", "/api/rag_lab").json()["questions"]
     multi = next(q for q in questions if q["type"] == "multi_hop")["question_text"]
-    page.locator("#rag-reset-chain").click()
     _rag_mode(r, "compose")
+    if page.locator("#rag-reset-chain").is_visible():  # hidden while the chain is the shipped one
+        page.locator("#rag-reset-chain").click()
     _add_stage(r, "Query understanding")
     kinds = _chain_kinds(r)
     r.check(
