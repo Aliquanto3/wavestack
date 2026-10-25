@@ -439,3 +439,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:38 · 12.11 · review · relecture de la spec lancée · d9f6a59
 - 2026-10-25 10:39 · 12.10 · second-avis · 0 high, 1 medium (état CAG jamais enregistré au registre de mémoire), 6 low ; restauration du moteur du chat sur tous les chemins et jauge du chat vérifiées · 598f633
 - 2026-10-25 10:39 · 12.10 · review · lancé (Opus) · 598f633
+- 2026-10-25 10:52 · 12.11 · review · spec approuvée ; confinement par noms virtuels corpus/<doc_id>.md (jamais de chemin ouvert), bornes chiffrées, boucle annulable, agent_unreadable, SEARCHLESS_OPTIONS en 4 usages, match_lines extrait de search_documents sans changement · 3f8f1cd
+- 2026-10-25 10:52 · 12.11 · décision · à revoir : 9 points tranchés par le relecteur Opus (outils hors NATIVE_TOOLS mais mêmes noms et messages, arbre à deux niveaux, famille Structure, rebuild target) ; long_context et cag à passer available dans rag_erasure.yaml (12.10) · 3f8f1cd
+- 2026-10-25 10:52 · 12.11 · report · code à lancer après le /clear de l'orchestrateur (Opus, effort high) · 3f8f1cd
+- 2026-10-25 10:52 · run · décision · Anaël : le poste a 32 Go de RAM (CLAUDE.md dit 16) ; OpenRouter n'expose ni le modèle de décision Jev (seulement typesafe/jev-router) ni Microsoft-Decision-1 : chiffres publiés pour la 12.2 · —
