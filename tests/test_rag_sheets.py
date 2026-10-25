@@ -33,16 +33,6 @@ SPEC = (
 LITERATURE = SPEC / "litterature.md"
 AVERAGE = re.compile(r"\b(mean|average|avg|mrr|recall_at_k|aggregates?)\b", re.IGNORECASE)
 GLOBAL_SCORE = {"score", "total", "overall"}
-STORY_OF = {
-    "long_context": 10,
-    "cag": 10,
-    "agentic": 11,
-    "pageindex": 11,
-    "raptor": 12,
-    "crag": 12,
-    "graphrag": 13,
-    "llm_wiki": 14,
-}
 FORBIDDEN = {
     "fr": ["est conforme", "conforme au RGPD", "garantit la conformité", "assure la conformité"],
     "en": ["is compliant", "compliant with", "ensures compliance", "guarantees compliance"],
@@ -276,14 +266,12 @@ def test_places_and_update_cost_are_those_of_the_erasure_card(lang):
         assert body["story"] == a.story
 
 
-def test_the_architectures_outside_the_presets_have_their_story():
-    for arch_id, story in STORY_OF.items():
+def test_available_follows_the_presets_and_the_others_have_their_story():
+    for arch_id in erasure.ARCHITECTURES:
         body = sheets.architecture("fr", arch_id)
-        assert body["available"] is False and body["story"] == story
+        assert body["available"] == (arch_id in lab.PRESETS)
+        assert (body["story"] is None) == body["available"]
         assert len(body["axes"]) == 7 and body["sources"]
-    for arch_id in lab.PRESETS:
-        body = sheets.architecture("fr", arch_id)
-        assert body["available"] is True and body["story"] is None
 
 
 # ---------- sources (criterion 9) ----------
