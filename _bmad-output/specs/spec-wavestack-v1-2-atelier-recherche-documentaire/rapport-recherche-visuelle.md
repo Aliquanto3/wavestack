@@ -4,17 +4,18 @@ V1.2, story 21, CAP-19. Généré par `tools/bench/v12s21_visual_search_bench.py
 
 ## 1. Statut
 
-- **Pas encore mesuré.** Le script et la spec sont livrés ; la mesure demande un poste libre de tout agent (ordre d'Anaël). Les tableaux 3 à 5 sont vides.
-- Notice de lancement : section 7.
+- Mesure enregistrée le 2026-10-25 sur Windows-11-10.0.26300-SP0 (12 CPU, 31861 Mo de RAM).
+- Corpus : fr, 12 pages tirées de 26 (rendu A4 150 dpi, police consola.ttf), 8 requêtes ; commit e647ad100ae229a3da1c4fb58e30354cf0ec0674.
+- La mesure vaut pour le poste de développement (32 Go) : la mémoire est un pic de processus, indépendant de la RAM libre, mais les durées ne valent pas pour le PC cible (16 Go, i5) sans confirmation.
 
-**Conclusion : pas encore mesuré.** Aucune mesure enregistrée : le lancement est une ressource d'Anaël.
+**Conclusion : ne tient pas.** Aucun candidat mesuré ne tient. ColPali v1.3, ONNX fp16 (Qdrant, fastembed) : arrêté au plafond de sécurité (18750 Mo); ColSmol-256M, ONNX fp32 (onnx-community) : mémoire : pic 6130 Mo > 4096 Mo ; requêtes non exécutables : le graphe refuse l'entrée : Fail("[ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running Split node. Name:'/model/model/vision_model/embeddings/Split' Status Message: Cannot split using values in 'split' attribute. Axis=0 Input shape={0,32,32} NumOutputs=13 Num entries in 'split ; qualité non jugeable : 0 requêtes < 6.
 
 ## 2. Candidats
 
 | Candidat | Dépôt @ révision | Poids | Licence | Voie d'exécution | Langue | État |
 |---|---|---|---|---|---|---|
-| ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | `Qdrant/colpali-v1.3-fp16` @ `e69c27e8` | 5890 Mo, ~2,9 Md (PaliGemma 3B) | Gemma Terms of Use (modèle dérivé de Gemma ; adaptateur ColPali MIT) | fastembed 0.9.1 (onnxruntime), sans torch | anglais (entraînement 100 % anglais, généralisation non anglaise non garantie) | pas encore mesuré |
-| ColSmol-256M, ONNX fp32 (onnx-community) | `onnx-community/colSmol-256M-ONNX` @ `12022f06` | 960 Mo, ~256 M (SmolVLM-256M) | MIT (carte onnx-community ; modèle d'origine vidore/colSmol-256M, MIT) | onnxruntime + tokenizers + pillow, entrées construites à la main, sans torch | anglais (entraînement 100 % anglais, généralisation non anglaise non garantie) | pas encore mesuré |
+| ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | `Qdrant/colpali-v1.3-fp16` @ `e69c27e8` | 5890 Mo, ~2,9 Md (PaliGemma 3B) | Gemma Terms of Use (modèle dérivé de Gemma ; adaptateur ColPali MIT) | fastembed 0.9.1 (onnxruntime), sans torch | anglais (entraînement 100 % anglais, généralisation non anglaise non garantie) | mesuré : non exécutable |
+| ColSmol-256M, ONNX fp32 (onnx-community) | `onnx-community/colSmol-256M-ONNX` @ `12022f06` | 960 Mo, ~256 M (SmolVLM-256M) | MIT (carte onnx-community ; modèle d'origine vidore/colSmol-256M, MIT) | onnxruntime + tokenizers + pillow, entrées construites à la main, sans torch | anglais (entraînement 100 % anglais, généralisation non anglaise non garantie) | mesuré : ne tient pas |
 
 Écartés ou en réserve, avec le motif (cartes lues le 2026-10-25, aucun poids téléchargé) :
 
@@ -30,22 +31,22 @@ V1.2, story 21, CAP-19. Généré par `tools/bench/v12s21_visual_search_bench.py
 
 | Candidat | Pic (Mo) | Budget 4 096 Mo | Chargement (s) | Indexation médiane / max (s par page) | Requête médiane / max (ms) | Pages indexées | Vecteurs par page |
 |---|---|---|---|---|---|---|---|
-| ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | pas encore mesuré | | | | | | |
-| ColSmol-256M, ONNX fp32 (onnx-community) | pas encore mesuré | | | | | | |
+| ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | pas encore mesuré (arrêté au plafond de sécurité (18750 Mo)) | | | | | | |
+| ColSmol-256M, ONNX fp32 (onnx-community) | 6130 | non | 1,7 | 9,6 / 10,9 | n/d / n/d | 12 | 871 |
 
 ## 4. Qualité de la recherche et taille de l'index
 
 | Candidat | Requêtes | Rappel@1 | Rappel@3 | MRR | Index du corpus entier (Mo, fp16) | Indexation du corpus entier (min) |
 |---|---|---|---|---|---|---|
 | ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | pas encore mesuré | | | | | |
-| ColSmol-256M, ONNX fp32 (onnx-community) | pas encore mesuré | | | | | |
+| ColSmol-256M, ONNX fp32 (onnx-community) | 0 | n/d | n/d | n/d | 5,5 (26 pages) | 4,2 |
 
 ## 5. Dépendances
 
 | Candidat | Paquets à installer (Mo sur disque) | Torch | Réseau pendant la mesure |
 |---|---|---|---|
 | ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | pas encore mesuré | | |
-| ColSmol-256M, ONNX fp32 (onnx-community) | pas encore mesuré | | |
+| ColSmol-256M, ONNX fp32 (onnx-community) | 146 Mo (onnxruntime, tokenizers, numpy, pillow) | absent | aucune tentative |
 
 Aucune dépendance n'est ajoutée au projet : `pyproject.toml` et `uv.lock` ne changent pas ; la mesure vient de `uv run --with fastembed==0.9.1`. Une fonction de l'application ajouterait onnxruntime (déjà employé par le banc des modèles de décision), numpy, pillow et fastembed, plus un modèle de 0,96 à 5,9 Go à télécharger.
 
@@ -60,7 +61,11 @@ Aucune dépendance n'est ajoutée au projet : `pyproject.toml` et `uv.lock` ne c
 
 ### Écart à consigner dans `deferred-work.md`
 
-Pas encore mesuré : l'entrée de report est déjà en place, à clore après la mesure.
+```yaml
+- source_spec: `_bmad-output/specs/spec-wavestack-v1-2-atelier-recherche-documentaire/stories/21-recherche-visuelle-sans-ocr.md`
+  summary: CAP-19, recherche visuelle sans OCR : ne tient pas. Aucun candidat mesuré ne tient. ColPali v1.3, ONNX fp16 (Qdrant, fastembed) : arrêté au plafond de sécurité (18750 Mo); ColSmol-256M, ONNX fp32 (onnx-community) : mémoire : pic 6130 Mo > 4096 Mo ; requêtes non exécutables : le graphe refuse l'entrée : Fail("[ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running Split node. Name:'/model/model/vision_model/embeddings/Split' Status Message: Cannot split using values in 'split' attribute. Axis=0 Input shape={0,32,32} NumOutputs=13 Num entries in 'split ; qualité non jugeable : 0 requêtes < 6.
+  evidence: rapport-recherche-visuelle.md ; décision d'intégration (ou non) à prendre par Anaël.
+```
 
 ## 7. Commandes
 

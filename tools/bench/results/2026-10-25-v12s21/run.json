@@ -1,0 +1,43 @@
+{
+ "bench_sha256": "d9d3613dfd1fbba9f3d674545be8ba9a0cfb4d9f72173a539a5ec53f95f2868d",
+ "commit": "e647ad100ae229a3da1c4fb58e30354cf0ec0674",
+ "corpus_pages": 26,
+ "font": "consola.ttf",
+ "lang": "fr",
+ "machine": {
+  "cpu_count": 12,
+  "platform": "Windows-11-10.0.26300-SP0",
+  "ram_total_mb": 31861
+ },
+ "measured_on": "2026-10-25",
+ "n_pages": 12,
+ "n_queries": 8,
+ "page_ids": [
+  "fr.mots_de_passe.p1",
+  "fr.mots_de_passe.p2",
+  "fr.ia_generative.p1",
+  "fr.deplacements.p1",
+  "fr.sauvegardes.p1",
+  "fr.registre_sous_traitants.p1",
+  "fr.charte_messagerie_v1.p1",
+  "fr.charte_messagerie_v2.p1",
+  "fr.rundschreiben_usb.p1",
+  "fr.uk_visitor_badges.p1",
+  "fr.plan_continuite_lyon.p1",
+  "fr.acces_physique.p1"
+ ],
+ "query_ids": [
+  "q_fact_badge",
+  "q_temporal_usage_perso",
+  "q_cross_badges",
+  "q_temporal_retention",
+  "q_cross_lyon",
+  "q_temporal_taille",
+  "q_fact_sauvegarde",
+  "q_fact_pwd"
+ ],
+ "seed": 12021,
+ "skipped_questions": [
+  "q_cross_usb"
+ ]
+}

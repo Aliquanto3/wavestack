@@ -1,0 +1,294 @@
+{
+ "attempts": [],
+ "base": {
+  "peak_pagefile_mb": 28,
+  "peak_private_mb": 28,
+  "peak_wset_mb": 39,
+  "rss_mb": 39
+ },
+ "deps": {
+  "packages": [
+   {
+    "license": "MIT",
+    "mb": 0,
+    "name": "anyio",
+    "version": "4.15.1"
+   },
+   {
+    "license": "Mozilla Public License 2.0 (MPL 2.0)",
+    "mb": 0,
+    "name": "certifi",
+    "version": "2026.7.22"
+   },
+   {
+    "license": "BSD-3-Clause",
+    "mb": 0,
+    "name": "click",
+    "version": "8.5.0"
+   },
+   {
+    "license": "BSD License",
+    "mb": 0,
+    "name": "colorama",
+    "version": "0.4.6"
+   },
+   {
+    "license": "MIT License",
+    "mb": 0,
+    "name": "coloredlogs",
+    "version": "15.0.1"
+   },
+   {
+    "license": "MIT",
+    "mb": 0,
+    "name": "filelock",
+    "version": "4.0.3"
+   },
+   {
+    "license": "Apache Software License",
+    "mb": 0,
+    "name": "flatbuffers",
+    "version": "25.12.19"
+   },
+   {
+    "license": "BSD-3-Clause",
+    "mb": 0,
+    "name": "fsspec",
+    "version": "2026.9.0"
+   },
+   {
+    "license": "MIT License",
+    "mb": 0,
+    "name": "h11",
+    "version": "0.16.0"
+   },
+   {
+    "license": "Apache-2.0",
+    "mb": 9,
+    "name": "hf-xet",
+    "version": "1.6.0"
+   },
+   {
+    "license": "BSD-3-Clause",
+    "mb": 0,
+    "name": "httpcore",
+    "version": "1.0.9"
+   },
+   {
+    "license": "BSD License",
+    "mb": 0,
+    "name": "httpx",
+    "version": "0.28.1"
+   },
+   {
+    "license": "Apache Software License",
+    "mb": 3,
+    "name": "huggingface_hub",
+    "version": "1.33.0"
+   },
+   {
+    "license": "MIT License",
+    "mb": 0,
+    "name": "humanfriendly",
+    "version": "10.0"
+   },
+   {
+    "license": "BSD-3-Clause",
+    "mb": 0,
+    "name": "idna",
+    "version": "3.20"
+   },
+   {
+    "license": "BSD License",
+    "mb": 1,
+    "name": "mpmath",
+    "version": "1.3.0"
+   },
+   {
+    "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+    "mb": 40,
+    "name": "numpy",
+    "version": "2.5.3"
+   },
+   {
+    "license": "MIT License",
+    "mb": 37,
+    "name": "onnxruntime",
+    "version": "1.23.2"
+   },
+   {
+    "license": "Apache-2.0 OR BSD-2-Clause",
+    "mb": 0,
+    "name": "packaging",
+    "version": "26.3"
+   },
+   {
+    "license": "MIT-CMU",
+    "mb": 14,
+    "name": "pillow",
+    "version": "13.0.0"
+   },
+   {
+    "license": "3-Clause BSD License",
+    "mb": 1,
+    "name": "protobuf",
+    "version": "7.36.2"
+   },
+   {
+    "license": "BSD License",
+    "mb": 0,
+    "name": "pyreadline3",
+    "version": "3.5.6"
+   },
+   {
+    "license": "MIT License",
+    "mb": 0,
+    "name": "PyYAML",
+    "version": "6.0.3"
+   },
+   {
+    "license": "BSD License",
+    "mb": 25,
+    "name": "sympy",
+    "version": "1.14.0"
+   },
+   {
+    "license": "Apache Software License",
+    "mb": 7,
+    "name": "tokenizers",
+    "version": "0.22.1"
+   },
+   {
+    "license": "MPL-2.0 AND MIT",
+    "mb": 0,
+    "name": "tqdm",
+    "version": "4.70.1"
+   },
+   {
+    "license": "PSF-2.0",
+    "mb": 0,
+    "name": "typing_extensions",
+    "version": "4.16.0"
+   }
+  ],
+  "total_mb": 146
+ },
+ "gold": [],
+ "guard": "wavestack.net.guard",
+ "load_s": 1.67,
+ "memory": {
+  "peak_pagefile_mb": 6130,
+  "peak_private_mb": 6118,
+  "peak_wset_mb": 4244,
+  "rss_mb": 84
+ },
+ "memory_phases": {
+  "index": {
+   "peak_pagefile_mb": 6130,
+   "peak_private_mb": 6118,
+   "peak_wset_mb": 4244,
+   "rss_mb": 3996
+  },
+  "load": {
+   "peak_pagefile_mb": 1512,
+   "peak_private_mb": 1400,
+   "peak_wset_mb": 1127,
+   "rss_mb": 1024
+  },
+  "search": {
+   "peak_pagefile_mb": 6130,
+   "peak_private_mb": 6118,
+   "peak_wset_mb": 4244,
+   "rss_mb": 3996
+  }
+ },
+ "page_ids": [
+  "fr.mots_de_passe.p1",
+  "fr.mots_de_passe.p2",
+  "fr.ia_generative.p1",
+  "fr.deplacements.p1",
+  "fr.sauvegardes.p1",
+  "fr.registre_sous_traitants.p1",
+  "fr.charte_messagerie_v1.p1",
+  "fr.charte_messagerie_v2.p1",
+  "fr.rundschreiben_usb.p1",
+  "fr.uk_visitor_badges.p1",
+  "fr.plan_continuite_lyon.p1",
+  "fr.acces_physique.p1"
+ ],
+ "pages": [
+  {
+   "id": "fr.mots_de_passe.p1",
+   "ms": 9323.0,
+   "vectors": 871
+  },
+  {
+   "id": "fr.mots_de_passe.p2",
+   "ms": 10854.3,
+   "vectors": 871
+  },
+  {
+   "id": "fr.ia_generative.p1",
+   "ms": 10071.0,
+   "vectors": 871
+  },
+  {
+   "id": "fr.deplacements.p1",
+   "ms": 9523.9,
+   "vectors": 871
+  },
+  {
+   "id": "fr.sauvegardes.p1",
+   "ms": 9648.0,
+   "vectors": 871
+  },
+  {
+   "id": "fr.registre_sous_traitants.p1",
+   "ms": 9626.6,
+   "vectors": 871
+  },
+  {
+   "id": "fr.charte_messagerie_v1.p1",
+   "ms": 9813.8,
+   "vectors": 871
+  },
+  {
+   "id": "fr.charte_messagerie_v2.p1",
+   "ms": 9628.2,
+   "vectors": 871
+  },
+  {
+   "id": "fr.rundschreiben_usb.p1",
+   "ms": 9639.7,
+   "vectors": 871
+  },
+  {
+   "id": "fr.uk_visitor_badges.p1",
+   "ms": 9464.3,
+   "vectors": 871
+  },
+  {
+   "id": "fr.plan_continuite_lyon.p1",
+   "ms": 9741.9,
+   "vectors": 871
+  },
+  {
+   "id": "fr.acces_physique.p1",
+   "ms": 9623.7,
+   "vectors": 871
+  }
+ ],
+ "partial": false,
+ "peak_mb": 6130,
+ "queries": [],
+ "query_error": "le graphe refuse l'entrée : Fail(\"[ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running Split node. Name:'/model/model/vision_model/embeddings/Split' Status Message: Cannot split using values in 'split' attribute. Axis=0 Input shape={0,32,32} NumOutputs=13 Num entries in 'split",
+ "ram_total_mb": 31861,
+ "scores": [],
+ "status": "measured",
+ "torch": false,
+ "watchdog": {
+  "budget_mb": 16384,
+  "period_s": 0.5,
+  "status": "active"
+ }
+}

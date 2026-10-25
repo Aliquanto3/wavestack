@@ -1,0 +1,5 @@
+{
+ "error": "arrêté au plafond de sécurité (18750 Mo)",
+ "peak_mb": 18750,
+ "status": "failed"
+}
