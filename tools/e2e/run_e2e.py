@@ -15296,7 +15296,7 @@ def s_rag_lab_rights(r: Run) -> None:
 
 def s_rag_lab_sheets(r: Run) -> None:
     """V1.2 story 19 (CAP-16, CAP-17), after `rag` and `rag_rerank`: the Fiches tab, no model, no
-    index, no key. The list (8 components, 11 architectures, the pending families), a component
+    index, no key. The list (12 components, 11 architectures, the pending families), a component
     sheet (five blocks, « Pas encore mesuré »), the hybrid architecture (seven axes, levels in a
     word, « proposition, à relire », « pas un avis juridique »), the link of the Droits axis to the
     card of the Attaquer tab (focus, not Construire), an upcoming architecture (story 13), the three
@@ -15314,11 +15314,11 @@ def s_rag_lab_sheets(r: Run) -> None:
     expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
     try:
         entries = page.locator("#rag-sh-list .rag-sh-entry")
-        expect(entries).to_have_count(19, timeout=10_000)
+        expect(entries).to_have_count(23, timeout=10_000)
         r.check(
             page.locator("#rag-sh-list").inner_text().count("story 19b") == 1
             and "pas un avis juridique" in page.inner_text("#rag-sh-banner"),
-            "Fiches : 8 composants et 11 architectures, familles en attente (story 19b), bandeau",
+            "Fiches : 12 composants et 11 architectures, familles en attente (story 19b), bandeau",
         )
         page.locator('#rag-sh-list [data-sheet-id="chunking.semantic"]').click()
         expect(page.locator("#rag-sh-sheet")).to_have_attribute(
@@ -15377,7 +15377,7 @@ def s_rag_lab_sheets(r: Run) -> None:
             _pick_language(r, language)
             expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
             page.click("#rag-tab-sheets")
-            expect(entries).to_have_count(19, timeout=10_000)
+            expect(entries).to_have_count(23, timeout=10_000)
             page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
             expect(page.locator("#rag-sh-sheet .rag-sh-upcoming")).to_contain_text(
                 upcoming, timeout=10_000
@@ -15409,9 +15409,9 @@ def _rag_lab_tabs(r: Run) -> None:
         "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
         str(tabs.all_inner_texts()),
     )
-    # V1.2 story 19: Fiches shows its list (8 components, 11 architectures), its note stays hidden.
+    # V1.2 story 19: Fiches shows its list (12 components, 11 architectures), its note stays hidden.
     page.click("#rag-tab-sheets")
-    expect(page.locator("#rag-sh-list .rag-sh-entry")).to_have_count(19, timeout=10_000)
+    expect(page.locator("#rag-sh-list .rag-sh-entry")).to_have_count(23, timeout=10_000)
     r.check(
         page.locator("#rag-panel-sheets .rag-soon").is_hidden()
         and page.locator("#rag-panel-build").is_hidden(),

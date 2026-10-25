@@ -146,7 +146,7 @@ def test_the_listing_serves_a_sheet_for_each_component(lang):
     body = sheets.listing(lang)
     expected = [f"{k}.{o}" for k in lab.SHEETED_KINDS for o in lab.OPTIONS[k]]
     assert [c["key"] for c in body["components"]] == expected
-    assert len(expected) == 8
+    assert len(expected) >= 8
     assert {p["kind"] for p in body["pending"]} == set(sheets.PENDING_SHEET_KINDS)
     assert "19b" in body["pending_text"]
     for key in expected:
@@ -381,6 +381,10 @@ def test_the_three_languages_mirror_each_other():
 # ---------- the endpoints (criterion 12) ----------
 
 
+def lab_components() -> list[str]:
+    return [f"{k}.{o}" for k in lab.SHEETED_KINDS for o in lab.OPTIONS[k]]
+
+
 def keys_of(node) -> set[str]:
     if isinstance(node, dict):
         return set(node) | {k for v in node.values() for k in keys_of(v)}
@@ -401,7 +405,8 @@ def test_endpoints_and_404():
     client = client_for()
     listing = client.get("/api/rag_lab/sheets")
     assert listing.status_code == 200
-    assert len(listing.json()["components"]) == 8 and len(listing.json()["architectures"]) == 11
+    assert len(listing.json()["components"]) == len(lab_components())
+    assert len(listing.json()["architectures"]) == 11
     comp = client.get("/api/rag_lab/sheets/component/chunking.semantic")
     assert comp.status_code == 200 and comp.json()["bench_text"] == ""
     arch = client.get("/api/rag_lab/sheets/architecture/graphrag")

@@ -28,7 +28,6 @@ PENDING_SHEET_KINDS = (
     "lexical_search",
     "fusion",
     "rerank",
-    "context",
     "generation",
 )
 AXES = ("location", "copies", "erasure", "rights", "injection", "traceability", "regulatory")

@@ -193,13 +193,13 @@
 - id: "19b"
   title: Fiches de composant des familles restantes (fin de CAP-17)
   description: >-
-    Les 13 fiches de composant des familles embedding, vector_store, vector_search, lexical_search,
-    fusion, rerank, context et generation, en fr, en et de, et la levée de PENDING_SHEET_KINDS.
+    Les 12 fiches de composant des familles embedding, vector_store, vector_search, lexical_search,
+    fusion, rerank et generation, en fr, en et de, et la levée de PENDING_SHEET_KINDS.
     Les embeddings n'ont aucune source dans litterature.md à ce jour.
   done_checkpoint: true
   invoke_dev_with: >-
     Étendre lab.SHEETED_KINDS, vider sheets.PENDING_SHEET_KINDS. Sources attendues : H1 (vector_search,
-    lexical_search, fusion, rerank), H14 (vector_store), H9 (context), H10 (generation) ; décider
+    lexical_search, fusion, rerank), H14 (vector_store), H10 (generation) ; décider
     un no_source_text pour SheetText ou une source primaire ouverte pour les embeddings.
 - id: "20"
   title: Optionnel, architecture exposée en MCP
