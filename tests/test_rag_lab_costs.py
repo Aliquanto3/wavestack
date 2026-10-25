@@ -362,6 +362,33 @@ def test_an_update_the_copy_refuses_emits_nothing_and_changes_nothing(index):
     assert not [e for e in get_journal().events_since(mark) if e.kind.startswith("rag_lab_")]
 
 
+def test_the_copy_is_saved_before_the_update_says_it_ended(index, monkeypatch):
+    # The page reloads the copy on `rag_lab_run_ended`: it must be on disk by then.
+    session, _ = ready(index)
+    seen = []
+    end = rag_lab.UpdateRun.end
+
+    def watched(self, status, duration_ms):  # noqa: ANN001, ANN202
+        seen.append(workcopy.load("fr").appended.get("teletravail"))
+        end(self, status, duration_ms)
+
+    monkeypatch.setattr(rag_lab.UpdateRun, "end", watched)
+    _, events = update(session, "modify", "teletravail", "", "Une règle de plus.")
+    assert run_status(events) == "ok" and seen == [["Une règle de plus."]]
+
+
+def test_an_update_whose_copy_cannot_be_saved_ends_in_error(index, monkeypatch):
+    session, _ = ready(index)
+
+    def unwritable(*_args):  # noqa: ANN002, ANN202
+        raise OSError("disque plein")
+
+    monkeypatch.setattr(workcopy, "save", unwritable)
+    _, events = update(session, "modify", "teletravail", "", "Texte.")
+    assert run_status(events) == "error" and workcopy.load("fr").empty
+    assert session.state == "idle"
+
+
 def test_an_update_that_ends_in_error_leaves_the_copy_as_it_was(index, monkeypatch):
     session, _ = ready(index)
 

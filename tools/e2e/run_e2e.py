@@ -14537,6 +14537,88 @@ def s_rag_lab_diagnosis(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_query(r: Run) -> None:
+    """V1.2 story 5 (CAP-3), after `rag` and `rag_rerank`: « Query understanding » added from the
+    palette, placed after the Vector store; « Décomposition en sous-questions » on a multi-hop
+    question of the prepared set: at least two sub-queries, listed in the focus of the step
+    and searched (the Dense retrieval counts them). « Réécriture » then gives one query
+    (the follow-up and HyDE options are covered by `tests/test_rag_lab_query.py`). Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_lab_query(r)
+    finally:
+        page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+        r.goto_app()
+
+
+def _rag_lab_query(r: Run) -> None:
+    page = r.page
+    questions = r.api("GET", "/api/rag_lab").json()["questions"]
+    multi = next(q for q in questions if q["type"] == "multi_hop")["question_text"]
+    _rag_mode(r, "compose")
+    if page.locator("#rag-reset-chain").is_visible():  # hidden while the chain is the shipped one
+        page.locator("#rag-reset-chain").click()
+    _add_stage(r, "Query understanding")
+    kinds = _chain_kinds(r)
+    r.check(
+        kinds[:4] == ["chunking", "embedding", "vector_store", "query"]
+        and not page.locator("#rag-seq .rag-chain-refusal").count(),
+        "Query understanding ajoutée depuis la palette : après le Vector store, chaîne valide",
+        str(kinds),
+    )
+    select = _seq_row(r, "query").locator("select.rag-option")
+    r.check(
+        select.locator("option").all_inner_texts()
+        == [
+            "Réécriture de la question",
+            "Décomposition en sous-questions",
+            "Question de suivi rendue autonome",
+            "Document hypothétique (HyDE)",
+        ],
+        "les quatre options de la compréhension de la requête",
+        str(select.locator("option").all_inner_texts()),
+    )
+    select.select_option(label="Décomposition en sous-questions")
+    time.sleep(0.8)  # the session's verdict
+    ended, seq = _rag_lab_run(r, multi)
+    query = _stage_ended(r, seq, "query")
+    search = _stage_ended(r, seq, "vector_search")
+    r.check(
+        ended["payload"]["status"] == "ok"
+        and query.get("status") == "ok"
+        and len(query.get("queries", [])) >= 2
+        and search.get("items")
+        and all(len(i["sources"]) == len(query["queries"]) for i in search["items"]),
+        "multi-sauts : la décomposition produit au moins deux sous-requêtes, cherchées chacune",
+        str(query.get("queries")),
+    )
+    focus = _focus_of(r, "query")
+    shown = page.locator("#rag-focus .rag-focus-queries-list li").all_inner_texts()
+    r.check(
+        focus["step"] == "query"
+        and len(shown) >= 2
+        and shown == query["queries"]
+        and "Requêtes produites" in focus["text"],
+        "le focus de l'étape liste les sous-requêtes produites",
+        str(shown),
+    )
+    r.shot("63-atelier-rag-requetes", full_page=True)
+    # One rewritten query.
+    _rag_mode(r, "compose")
+    select = _seq_row(r, "query").locator("select.rag-option")
+    select.select_option(label="Réécriture de la question")
+    time.sleep(0.8)
+    _, seq = _rag_lab_run(r, multi)
+    query = _stage_ended(r, seq, "query")
+    r.check(
+        query.get("status") == "ok" and len(query.get("queries", [])) == 1,
+        "réécriture : une seule requête produite",
+        str(query.get("queries")),
+    )
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -15995,6 +16077,8 @@ def _rag_lab_costs(r: Run) -> None:
     ended = r.ev.wait("rag_lab_run_ended", seq, timeout=60)
     expect(page.locator("#rag-copy-form")).to_be_hidden(timeout=5000)
     expect(update.locator(".rag-cost-row")).to_have_count(5, timeout=5000)
+    # The page reloads the copy on `rag_lab_run_ended`, a fetch of its own: waited for.
+    expect(page.locator("#rag-copy-info")).to_contain_text("1 modifié", timeout=5000)
     r.check(
         ended["payload"]["run_id"].startswith("upd")
         and ended["payload"]["cost_summary"][0]["phase"] == "update"
@@ -17058,6 +17142,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_agentic", s_rag_agentic),
     ("rag_lab", s_rag_lab),
     ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
+    ("rag_lab_query", s_rag_lab_query),  # V1.2 story 5
     ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side

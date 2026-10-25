@@ -1014,6 +1014,8 @@ class AppSession:
         self._rag_lab_import_errors: dict[str, str] = {}
         # The catalog the validation of an edited chain reads (`_rag_lab_recent_catalog`).
         self._rag_lab_catalog_kept: tuple[float, Any, rag_lab.Catalog] | None = None
+        # V1.2 story 5: the questions the workshop ran, which `follow_up` reads as history.
+        self._rag_lab_asked: list[str] = []
         # Lot 5c-1: the `[[rag_lab.embeddings]]` entries left out, traced once each.
         self._rag_lab_rejected_traced: set[str] = set()
         # Story 6 of 2026-09-30 (the MCP workshop): its exchanges, numbered (`mcp{n}`), the
@@ -7119,7 +7121,8 @@ class AppSession:
     def reset(self) -> None:
         """Class (b): back to the launch state: bare LLM, no turn, no scenario. Lot 4 of
         2026-10-04 (AD-27): the MCP workshop's connection closed too, its series forgotten."""
-        self._reconfigure(None, lambda: None)
+        # V1.2 story 5: the workshop's questions, read by `follow_up`, are forgotten too.
+        self._reconfigure(None, self._rag_lab_asked.clear)
         self._mcp_lab_reset()
 
     def _reconfigure(
@@ -10706,6 +10709,10 @@ class AppSession:
             )
         else:
             generation.note_text = Message("session.rag_lab.generation_no_model")
+            # V1.2 story 5: the query understanding asks the same model; without it, the
+            # stage is skipped and the question goes on as typed.
+            for option in rag_lab.OPTIONS["query"]:
+                options[("query", option)].note_text = Message("session.rag_lab.query_no_model")
         fastembed = options[("embedding", "fastembed")]
         declared, reason = self._rag_lab_fastembed()
         if declared is not None:
@@ -10967,9 +10974,20 @@ class AppSession:
             run_id = f"lab{self._rag_labs}"
             cancel = self._cancel = CancelToken()
             self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
+            history = tuple(self._rag_lab_asked[-rag_lab.HISTORY_MAX :])
+            self._rag_lab_asked.append(question)
+            del self._rag_lab_asked[: -rag_lab.HISTORY_MAX]
         self._emit_state()
         self._executor.submit(
-            self._run_rag_lab, run_id, question, chain, texts, catalog, cancel, previous
+            self._run_rag_lab,
+            run_id,
+            question,
+            chain,
+            texts,
+            catalog,
+            cancel,
+            previous,
+            history=history,
         )
         return run_id
 
@@ -11008,6 +11026,7 @@ class AppSession:
         cancel: CancelToken,
         previous: str | None,
         update: tuple[workcopy.WorkCopy, workcopy.WorkCopy] | None = None,
+        history: tuple[str, ...] = (),
     ) -> None:
         """On the worker, in series with the turns and `_sync_rag`: a model the brick holds
         cannot be closed meanwhile. What the run loads is closed and freed at its end (AD-8),
@@ -11015,14 +11034,13 @@ class AppSession:
         loans = rag_lab.Loans(self._load_registry)
         lab_run: rag_lab.LabRun | None = None
         try:
-            deps = self._rag_lab_deps(texts, catalog, cancel, loans)
+            deps = self._rag_lab_deps(texts, catalog, cancel, loans, history)
             if update is None:
                 lab_run = rag_lab.LabRun(run_id, question, chain, deps)
             else:
                 lab_run = rag_lab.UpdateRun(run_id, question, chain, deps, *update)
-            outcome = lab_run.run()
-            if update is not None and outcome == "ok":
-                workcopy.save(update[1], self._language)  # kept only when it was measured
+                lab_run.keep = lambda copy: workcopy.save(copy, self._language)
+            lab_run.run()
         except Exception as exc:  # noqa: BLE001 - AD-16: the state still comes back
             with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
                 self._error(
@@ -11054,6 +11072,7 @@ class AppSession:
         catalog: rag_lab.Catalog,
         cancel: CancelToken,
         loans: rag_lab.Loans,
+        history: tuple[str, ...] = (),
     ) -> rag_lab.LabDeps:
         """What a run of the workshop (a chain, or the measure of an update) is given."""
         content = self._rag_content
@@ -11084,6 +11103,7 @@ class AppSession:
             estimate_tokens=lambda t: config.estimate_tokens(t, self.cfg.chars_per_token),
             # The chain reads the work copy while it differs from the shipped corpus.
             work_copy=workcopy.load(self._language),
+            history=history,
         )
 
     def _rag_lab_emit(
@@ -11115,12 +11135,15 @@ class AppSession:
             raise rag_lab.StageSkipped(Message("rag_lab.generation.no_model"))
         state = self.build_turn_state()
         reasons, reserve = self._reasoning_on(state), self._reserve_of(state)
-        system = "system_prompt" in state.effective and bool(state.system_prompt)
+        instructed = ask.instruction is not None
+        if instructed:  # V1.2 story 5: a short task, its own instruction, no reasoning
+            reasons, reserve = False, min(reserve, ask.reserve or reserve)
+        system = instructed or ("system_prompt" in state.effective and bool(state.system_prompt))
         messages: list[dict[str, Any]] = []
         if system:
             prompt = Part(
                 SegmentKind.SYSTEM_PROMPT,
-                state.system_prompt,
+                ask.instruction if instructed else state.system_prompt,
                 "system_prompt",
                 "system_prompt.prompt",
             )
