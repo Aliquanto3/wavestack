@@ -68,6 +68,19 @@ def test_a_query_without_a_word_or_without_a_result_is_refused():
         search_documents("zzzqqqxxx")
 
 
+def test_the_query_is_checked_before_any_document_is_read(monkeypatch):
+    # V1.2 story 11 extracted `match_lines`: the empty query still refused before any reading.
+    from wavestack.tools import native
+
+    def unreadable(*_args):  # noqa: ANN002, ANN202
+        raise OSError("disk")
+
+    monkeypatch.setattr(native, "corpus_files", unreadable)
+    with pytest.raises(ToolError) as refused:
+        search_documents("de la")
+    assert refused.value.message.key == "tools.search_documents.empty"
+
+
 @pytest.mark.parametrize("lang", ["fr", "en", "de"])
 def test_an_inactive_document_is_neither_searched_nor_read(lang):
     assert INACTIVE  # the trapped document and the sentinel (rag.yaml)

@@ -466,6 +466,11 @@ def test_rebuild_rewrites_the_summaries_then_reset_gives_the_shipped_tree(index)
     after = pageindex.load_tree(_docs(session), "fr", config.rag_lab_dir())
     assert after.nodes["note_flash"].summary_text == "Résumé du nouveau."
     assert after.nodes["teletravail"].summary_text == "Résumé écrit par le modèle."
+    # A deleted document leaves none of its model summaries in the rebuilt file (story 18).
+    update(session, "delete", "note_flash", pipeline=chain)
+    kept = pageindex.load_files("fr", config.rag_lab_dir())[1]
+    assert kept is not None and kept.nodes
+    assert not [n.id for n in kept.nodes if n.id.split("#")[0] == "note_flash"]
     # A section modified in the copy: its node is stale, the rest kept.
     copy = workcopy.apply(
         session._rag_content, workcopy.load("fr"), "modify", "teletravail", "", "Un ajout."
