@@ -1503,6 +1503,7 @@ rag_lab:
     measure: "The rebuild's measure: {tokens} tokens, {calls} model calls, {duration}."
     run_label: "Rebuilding the graph"
     rebuild_model_error: "The model failed while rebuilding the graph: nothing is written, the graph in place is kept; the event log says why."
+    update_model_error: "The model failed while updating the graph: nothing is written, the work copy and the graph in place are kept; the event log says why."
     rebuild_nothing: "No answer of the model followed the protocol (no ENTITY: or RELATION: line, no summary): nothing is written, the graph in place is kept."
     by_rule: "by the rule, without a model"
     by_model: "by the model (rebuilt graph)"
