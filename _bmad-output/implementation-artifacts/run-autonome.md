@@ -593,3 +593,8 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 15:42 · 12.13 · CI · verte après correctif · fad7fbe
 - 2026-10-25 15:42 · 12.13 · fusion · #120 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.8 prévenue · 1db4ec2
 - 2026-10-25 15:42 · 12.14 · review · lancé (Opus ; refusion lourde avec 12.13 d'abord, test_ui_texts ajouté) · 538aa5d
+- 2026-10-25 15:51 · 12.8 · dev · fini ; critères CAP-6 couverts (auteur, probabilité, seuil ; cascade qui change l'auteur ; cloud grisé sans clé testé), deberta_xsmall déclaré dans wavestack.toml (262ae02f) avec extra decision, API OpenRouter choice / score / noul, 6 fiches ×3, MCP refusé (model_stage) ; 556 tests ciblés, E2E 162/162 ; intégration fusionnée (12.13) · 76f6a095
+- 2026-10-25 15:51 · 12.8 · décision · à revoir : 10 points de la spec (cascade désactivée « non validée », sens du seuil du banc contre la maquette, seuil du routeur 50 % non mesuré, routeur limité à dense / hybride / rerank, PPLX filtre et Jev routeur et ancrage, choice et score jamais appelés en réel, openrouter.ai dans [net] allowed_hosts, juge sans grammaire) · 76f6a095
+- 2026-10-25 15:51 · 12.8 · attente humaine · recette : extra decision, téléchargement du classifieur, routeur et Grounding check en local ; un vrai appel cloud (forme choice, coût, plafond) · —
+- 2026-10-25 15:51 · run · blocked · E2E rag_lab_context cassé sur l'intégration depuis 12.11 (attend 6 options de contexte, 8 aujourd'hui) ; hors CI ; à corriger par la revue de 12.8 · —
+- 2026-10-25 15:51 · 12.8 · second-avis · lancé (défaut cloud de la palette, allowed_hosts, extra decision, diagnostics config.py) · 76f6a095
