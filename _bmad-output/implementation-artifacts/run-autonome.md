@@ -371,3 +371,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:11 · 12.6 · fusion · #107 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 746329b
 - 2026-10-25 09:11 · 12.15 · CI · branche d'intégration fusionnée (4 conflits d'ajout, deux côtés gardés), 4652 tests ciblés verts, CI relancée · 9c9adf2
 - 2026-10-25 09:16 · 12.15 · CI · E2E de la fusion rag rag_rerank rag_lab_chunking rag_lab_evaluate : 47/54 (rag en délai dépassé, poste chargé), relancé 94/94 · 9c9adf2
+- 2026-10-25 09:18 · 12.17 · dev · fini ; 16 critères, test_rag_attack 37 verts, 4670 tests ciblés verts, E2E rag_lab_attack 28/28 deux fois ; corpus faq_mots_de_passe reformulé ×3 · d95e83a
+- 2026-10-25 09:18 · 12.17 · décision · à revoir : sans Prompt Guard chargé, verdict enregistré appliqué à la colonne « avec » ; entrées de démonstration comptées dans « bloqués » ; not_installed au niveau mid ; capture sans numéro · d95e83a
+- 2026-10-25 09:18 · 12.17 · second-avis · lancé (priorité : effet de la reformulation du corpus sur 12.6, 12.9, 12.15) · d95e83a
