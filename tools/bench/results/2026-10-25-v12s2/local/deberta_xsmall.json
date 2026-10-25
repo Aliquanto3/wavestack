@@ -1,0 +1,31 @@
+{
+  "determinism": {
+    "checked": 20,
+    "deterministic": true,
+    "max_gap": 0.0
+  },
+  "guard": "wavestack.net.guard",
+  "id": "deberta_xsmall",
+  "onnx_inputs": [
+    "attention_mask",
+    "input_ids"
+  ],
+  "peak_before_load_mb": 1935,
+  "probabilistic": true,
+  "revisions": {
+    "MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33": "262ae02f29173eec1c250f90804dc7edc677dcff"
+  },
+  "rss_added_mb": 351,
+  "rss_before_load_mb": 1935,
+  "rss_loaded_mb": 2239,
+  "rss_peak_mb": 2286,
+  "rss_with_slm_mb": 1935,
+  "status": "measured",
+  "truncated_items": 34,
+  "versions": {
+    "huggingface-hub": "1.33.0",
+    "llama-cpp-python": "0.3.35",
+    "onnxruntime": "1.23.2",
+    "tokenizers": "0.22.1"
+  }
+}
