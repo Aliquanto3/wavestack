@@ -1,0 +1,177 @@
+# Glossar des Harness (deutsche Überlagerung von content/glossary.yaml): gleiche Schlüssel, gleiche Struktur.
+# Einen Begriff in einem Baustein- oder Szenariotext zitieren: [[g:schlüssel]] oder [[g:schlüssel|angezeigter Text]].
+terms:
+  agent:
+    term: "Agent"
+    definition: "Ein Sprachmodell in einer Schleife: Es liest den Kontext, entscheidet, zu antworten oder ein Werkzeug aufzurufen, liest das Ergebnis und beginnt von vorn, bis es fertig ist. Der Agent selbst passt in wenige Zeilen; alles andere ist das Harness."
+  harness:
+    term: "Harness"
+    definition: "Alles, was das Modell umgibt und es zu einem nutzbaren Agenten macht: Systemprompt, Gedächtnis, Werkzeuge, RAG, MCP, Skills, Hooks, Subagenten, Leitplanken und Journal. WaveStack zeigt diese Bausteine einzeln."
+  llm:
+    term: "LLM (großes Sprachmodell)"
+    definition: "Ein Modell, das das nächste Wort (das Token) eines Textes vorhersagt. Allein setzt es nur den erhaltenen Text fort: Es handelt nicht, erinnert sich an nichts und weiß nichts, was nach seinem Training liegt."
+  slm:
+    term: "SLM (kleines Sprachmodell)"
+    definition: "Ein Modell mit wenigen Milliarden Parametern, leicht genug für einen gewöhnlichen Prozessor. Seine Antworten sind weniger zuverlässig als die eines großen Modells, wodurch die Schwächen des Harness gut sichtbar werden."
+  token:
+    term: "Token"
+    definition: "Die Texteinheit, die das Modell liest und erzeugt: ein Wort, ein Wortteil oder ein Zeichen. Kosten, Geschwindigkeit und die Größe des Kontextfensters werden in Tokens gezählt."
+  context_window:
+    term: "Kontextfenster"
+    definition: "Die maximale Zahl an Tokens, die das Modell in einem Aufruf lesen kann: Systemprompt, Verlauf, Werkzeugergebnisse und Frage. Darüber hinaus muss etwas entfernt oder zusammengefasst werden."
+  system_prompt:
+    term: "Systemprompt"
+    definition: "Der Text, den das Harness an den Anfang jedes Aufrufs stellt, um Rolle, Ton und Regeln des Modells festzulegen. Der Nutzer tippt ihn nicht, aber das Modell liest ihn in jeder Runde neu."
+  turn:
+    term: "Runde"
+    definition: "Ein vollständiger Austausch: die Anfrage des Nutzers, dann alles, was der Agent tut (Werkzeugaufrufe eingeschlossen), bis zu seiner endgültigen Antwort. Das Journal bewahrt jede Runde auf."
+  agent_loop:
+    term: "Agentenschleife"
+    definition: "Der Zyklus aus Modellaufruf, Ausführung der verlangten Werkzeuge und Rückgabe der Ergebnisse an das Modell, bis eine Antwort ohne neuen Werkzeugaufruf kommt. Eine Aufrufobergrenze begrenzt sie."
+  reasoning:
+    term: "Schlussfolgern"
+    definition: "Eine Phase, in der das Modell seine Schritte aufschreibt, bevor es antwortet. Sie verbessert die Antwort oft, verbraucht aber Ausgabe-Tokens und verlängert die Runde."
+  temperature:
+    term: "Temperatur"
+    definition: "Die Einstellung, die die Wahl des nächsten Tokens mehr oder weniger zufällig macht. Bei null wählt das Modell immer das wahrscheinlichste; höher können zwei gleiche Versuche abweichen."
+  sampling:
+    term: "Sampling"
+    definition: "Die Art, das nächste Token unter den wahrscheinlichsten auszuwählen (Temperatur, Top-k, Top-p). Sie macht dieselbe Anfrage nichtdeterministisch."
+  hallucination:
+    term: "Halluzination"
+    definition: "Eine falsche, selbstsicher vorgebrachte Antwort, weil das Modell plausiblen Text erzeugt, ohne zu prüfen. RAG, Werkzeuge und Prüfungen helfen, sie zu begrenzen."
+  quantization:
+    term: "Quantisierung"
+    definition: "Das Speichern der Modellgewichte mit weniger Bits, damit das Modell in den Speicher passt und auf der CPU schneller läuft, auf Kosten eines leichten Qualitätsverlusts."
+  gguf:
+    term: "GGUF"
+    definition: "Das Dateiformat der quantisierten Modelle, die die lokale Engine von WaveStack (llama.cpp) liest. Eine GGUF-Datei enthält die Gewichte und ihre Beschreibung."
+  tool:
+    term: "Werkzeug"
+    definition: "Eine Funktion, die das Harness dem Modell zur Verfügung stellt (eine Datei lesen, eine API abfragen, rechnen). Das Modell verlangt den Aufruf; das Harness führt ihn aus."
+  tool_call:
+    term: "Werkzeugaufruf"
+    definition: "Die Anforderung des Modells, ein Werkzeug mit Argumenten auszuführen. Das Harness prüft sie (Leitplanken, Bestätigung), bevor es sie ausführt."
+  tool_result:
+    term: "Werkzeugergebnis"
+    definition: "Was das Werkzeug zurückgibt und dem Kontext hinzugefügt wird, damit das Modell es in der nächsten Runde der Schleife liest. Ein großes Ergebnis beansprucht Platz im Fenster."
+  mcp:
+    term: "MCP (Model Context Protocol)"
+    definition: "Ein offenes Protokoll, das beschreibt, wie ein Harness Werkzeuge entdeckt und aufruft, die ein Server bereitstellt, unabhängig von dessen Sprache. Die Nachrichten sind JSON-RPC."
+  mcp_server:
+    term: "MCP-Server"
+    definition: "Ein Programm, das Werkzeuge, Ressourcen oder Prompts nach dem MCP-Protokoll bereitstellt. Das Harness verbindet sich als Client, listet die Werkzeuge auf und ruft sie dann auf."
+  lazy_loading:
+    term: "Lazy Loading (verzögertes Laden)"
+    definition: "Dem Modell nur Namen und eine kurze Beschreibung der Werkzeuge geben und die vollständige Dokumentation nur für die laden, die es wählt. Das spart Kontextfenster."
+  skill:
+    term: "Skill"
+    definition: "Ein Ordner mit Anweisungen, den das Modell bei Bedarf lädt, statt sie dauerhaft im Systemprompt zu halten. Nur seine Beschreibung bleibt im Kontext, solange er nicht benutzt wird."
+  hook:
+    term: "Hook"
+    definition: "Eine Regel, die das Harness zu einem bestimmten Zeitpunkt ausführt (vor einem Werkzeugaufruf, am Ende einer Runde ...): Sie kann ablehnen, ändern oder anreichern, was durchläuft, ohne dass das Modell entscheidet."
+  subagent:
+    term: "Subagent"
+    definition: "Ein zweiter Agent mit eigenem Kontext, an den der Hauptagent eine Aufgabe delegiert. Er liefert nur seine Antwort zurück: Sein Kontext belastet den des Hauptagenten nicht."
+  orchestration:
+    term: "Orchestrierung"
+    definition: "Die Koordination mehrerer Modellaufrufe oder Agenten: wer welche Aufgabe mit welchem Kontext erhält und wie die Ergebnisse zurückkommen."
+  memory:
+    term: "Gedächtnis"
+    definition: "Informationen, die das Harness von einer Sitzung zur nächsten aufbewahrt und wieder in den Kontext einfügt. Das Modell selbst behält zwischen zwei Aufrufen nichts."
+  history:
+    term: "Verlauf"
+    definition: "Die Nachrichten der vorherigen Runden, die bei jedem Aufruf an das Modell zurückgeschickt werden, damit es dem Gespräch folgt. Er wächst mit jeder Runde und füllt schließlich das Fenster."
+  compaction:
+    term: "Kompaktierung"
+    definition: "Den Anfang des Verlaufs durch eine Zusammenfassung ersetzen, wenn sich das Fenster füllt. Man gewinnt Platz, verliert aber Details."
+  compression:
+    term: "Kontextkomprimierung"
+    definition: "Große Werkzeugergebnisse und RAG-Auszüge vor dem Modellaufruf kürzen. Was abgeschnitten wird, ist für das Modell verloren."
+  headroom:
+    term: "Headroom"
+    definition: "Die Komprimierungsbibliothek, mit der WaveStack strukturierten Text (JSON, Logs) kürzt und die wichtigen Zeilen behält."
+  caveman:
+    term: "Caveman"
+    definition: "Eine Anweisung, die vom Modell sehr kurze Antworten verlangt, um die Ausgabe-Tokens und damit Dauer und Kosten einer Runde zu senken."
+  prompt_cache:
+    term: "Prompt-Cache"
+    definition: "Die Wiederverwendung des unveränderten Anfangs eines Prompts durch den Anbieter, zu einem niedrigeren Preis berechnet. Sie funktioniert nur, wenn der Kontextanfang von Aufruf zu Aufruf identisch bleibt."
+  kv_cache:
+    term: "KV-Cache"
+    definition: "Die Zwischenberechnungen (Attention-Schlüssel und -Werte), die die Engine behält, um nicht bei jedem neuen Token den ganzen Kontext neu zu lesen. Eine Änderung des Kontextanfangs macht ihn ungültig."
+  rag:
+    term: "RAG (Retrieval-Augmented Generation)"
+    definition: "In einem Korpus die Auszüge suchen, die der Frage nahekommen, und sie dem Modell zusammen mit der Frage geben, damit es aus Dokumenten statt allein aus seinem Gedächtnis antwortet."
+  chunk:
+    term: "Chunk"
+    definition: "Ein Dokumentstück begrenzter Größe, das vor der Indexierung zugeschnitten wird. Die Qualität des Zuschnitts bestimmt, was die Suche finden kann."
+  embedding:
+    term: "Embedding"
+    definition: "Ein Zahlenvektor, der die Bedeutung eines Textes darstellt: Zwei Texte mit ähnlicher Bedeutung haben ähnliche Vektoren."
+  vector_store:
+    term: "Vektordatenbank"
+    definition: "Die Speicherung der Embeddings der Auszüge, abgefragt per Ähnlichkeit mit dem Embedding der Frage."
+  reranking:
+    term: "Reranking"
+    definition: "Eine zweite, feinere Sortierung der von der Suche gefundenen Auszüge, bevor nur wenige davon für das Modell behalten werden."
+  guardrail:
+    term: "Leitplanke"
+    definition: "Eine Kontrolle des Harness außerhalb des Modells, die blockiert oder meldet, was gegen die Regel verstößt: verbotenes Werkzeug, Datenabfluss, nicht erlaubter Netzwerk-Host."
+  prompt_injection:
+    term: "Prompt-Injection"
+    definition: "Eine in einem Dokument oder Werkzeugergebnis versteckte Anweisung, die das Modell für eine legitime Vorgabe hält. Das Harness begrenzt die Folgen, ausschließen kann es sie nicht."
+  confirmation:
+    term: "Menschliche Bestätigung"
+    definition: "Ein Haltepunkt, an dem das Harness vor einer sensiblen Aktion, etwa dem Schreiben einer Datei, die Zustimmung des Nutzers einholt."
+  journal:
+    term: "Journal"
+    definition: "Das geordnete Protokoll von allem, was in der Sitzung geschieht: Modellaufrufe, Werkzeuge, Hooks, Ablehnungen. Die Ansichten lesen es neu, und die Bewertung stützt sich darauf."
+  envelope:
+    term: "Umschlag"
+    definition: "Ein Ereignis des Journals mit Typ, Ordnungsnummer und Daten. Die Prüfungen eines Agentenfalls werden auf den Umschlägen einer Runde berechnet."
+  provenance:
+    term: "Herkunft"
+    definition: "Der Ursprung eines Agentenfalls: mit WaveStack geliefert, aus einem Abnahmeprotokoll übernommen oder aus einer misslungenen Runde der Sitzung gewonnen."
+  replay:
+    term: "Wiedergabe (Replay)"
+    definition: "Eine Runde oder einen Fall erneut abspielen, um das Ergebnis neu zu beobachten. In WaveStack führt die Wiedergabe die Werkzeuge erneut aus: Sie liest nicht das Journal neu."
+  witness_replay:
+    term: "Zeugen-Wiedergabe"
+    definition: "Eine Wiedergabe, um Runde für Runde zu vergleichen, was dasselbe Szenario vor und nach einer Änderung ergibt, wobei die ursprüngliche Runde als Zeuge dient."
+  determinism:
+    term: "Determinismus"
+    definition: "Ein Lauf, der stets dasselbe Ergebnis liefert. Ein mit Sampling arbeitendes Modell tut das nicht: Eine Prüfung muss sich daher auf Messbares stützen, nicht auf einen exakten Satz."
+  agent_case:
+    term: "Agentenfall"
+    definition: "Eine Anfrage, eine Konfiguration und eine Liste von Prüfungen, die sagen, was eine erfolgreiche Runde getan haben muss. Ein Fall kann scheitern; das macht ihn nützlich."
+  check:
+    term: "Prüfung"
+    definition: "Eine genaue Bedingung an eine Runde (ein bestimmtes Werkzeug aufgerufen, ein bestimmtes Wort in der Antwort, kein verbotener Aufruf), ohne Modellaufruf ausgewertet. Ein Fall besteht, wenn alle seine Prüfungen bestehen."
+  verdict:
+    term: "Urteil"
+    definition: "Das Ergebnis der Bewertung eines Falls: bestanden oder gescheitert, bei Scheitern mit der fehlerhaften Prüfung."
+  call_ceiling:
+    term: "Aufrufobergrenze"
+    definition: "Die maximale Zahl an Modell- oder Werkzeugaufrufen, die eine Runde machen darf, bevor das Harness sie stoppt. Eine Obergrenze wird an echten Läufen gemessen, nie geraten."
+  budget_ceiling:
+    term: "Ausgabenobergrenze"
+    definition: "Der Höchstbetrag, den die Sitzung bei einem Modellanbieter ausgeben darf; das Harness lehnt Aufrufe darüber hinaus ab."
+  demo:
+    term: "Demo"
+    definition: "Ein Beispiel, das einmal vor Publikum funktioniert. Es zeigt, was möglich ist, nicht, was zuverlässig ist."
+  benchmark:
+    term: "Benchmark (Prüfstand)"
+    definition: "Eine feste Menge von Fällen, die identisch wiederholt werden, um einen Agenten zu messen und zwei Konfigurationen zu vergleichen. Er beantwortet: Ist es zuverlässig, und ist es besser als vorher?"
+  regression:
+    term: "Regression"
+    definition: "Ein Fall, der früher bestand und nach einer Änderung (Modell, Prompt, Werkzeug) scheitert. Man erkennt sie, indem man den Benchmark vorher und nachher wiederholt."
+  pass_at_k:
+    term: "pass@k"
+    definition: "Der Anteil der Fälle, die in k Versuchen mindestens einmal bestehen. Er misst, was der Agent kann, wenn man ihm mehrere Chancen lässt."
+  pass_hat_k:
+    term: "pass^k"
+    definition: "Der Anteil der Fälle, die bei jedem der k Versuche bestehen. Er misst die Zuverlässigkeit: der Wert, der für einen Agenten zählt, der jedes Mal funktionieren muss."
+  llm_judge:
+    term: "LLM-Richter"
+    definition: "Ein zweites Modell, das die Antwort eines ersten bewerten soll. Praktisch, aber auch es irrt und schwankt von Versuch zu Versuch; WaveStack verzichtet darauf und prüft Fakten des Journals."

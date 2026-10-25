@@ -5,6 +5,7 @@
   <script src="/static/theme.js"></script>
   <script type="module" src="/static/i18n.js"></script>
   <script type="module" src="/static/site-nav.js"></script>
+  <script type="module" src="/static/glossary.js"></script>
   <script type="module" src="/static/bar.js"></script>
   <title data-i18n="mcp.page_title">WaveStack — Atelier MCP</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
@@ -59,6 +60,7 @@
         <ul class="bar-log-list" id="bar-log-list"></ul>
       </div>
     </div>
+    <button type="button" id="glossary-toggle" class="bar-button glossary-toggle" aria-haspopup="dialog" aria-expanded="false" data-i18n="common.glossary.button">Glossaire</button>
     <div class="display-menu" id="display-menu">
       <button type="button" id="display-menu-toggle" class="display-menu-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="display-menu-panel" aria-label="Affichage" data-i18n-aria-label="common.display.menu"><span class="display-menu-symbol" data-theme-symbol aria-hidden="true">◐</span> <span class="display-menu-word" data-i18n="common.display.menu">Affichage</span> <span class="language-picker-code" id="language-picker-code" aria-hidden="true">FR</span> ▾</button>
       <div id="display-menu-panel" class="display-menu-panel" role="group" aria-label="Affichage" data-i18n-aria-label="common.display.menu" hidden>

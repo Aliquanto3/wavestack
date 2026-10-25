@@ -74,6 +74,13 @@ common:
     mcp_title: "MCP workshop: the MCP protocol to handle (JSON-RPC handshake, tool documentation, call)"
     security: "Security"
     security_title: "Security: risk matrix, active controls, full journal and the harness's limits"
+  glossary:
+    button: "Glossary"
+    title: "Harness glossary"
+    close: "Close"
+    search: "Search a term"
+    empty: "No term matches."
+    failed: "The glossary could not be loaded."
   display:
     menu: "Display"
     theme: "Theme"

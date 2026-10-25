@@ -1954,3 +1954,86 @@ body.focus-mode .pane.is-focused .pane-body {
 .bar-ring-dot.bar-ring-write_1h { background: var(--color-segment-message); }
 .bar-ring-dot.bar-ring-fresh { background: var(--color-segment-tool-descriptions); }
 .bar-ring-dot.bar-ring-out { background: var(--color-segment-system-prompt); }
+
+/* ---------- Glossaire (V1.5 story 6): the panel opened from the bar, and the citations ---------- */
+.glossary-panel {
+  position: fixed;
+  top: calc(var(--spacing-top-bar-height) + var(--spacing-2));
+  right: var(--spacing-3);
+  bottom: var(--spacing-3);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  width: min(32rem, calc(100vw - 2 * var(--spacing-3)));
+  padding: var(--spacing-3);
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  box-shadow: 0 var(--spacing-relief-offset-overlay) 0 var(--color-relief);
+}
+
+.glossary-panel[hidden] {
+  display: none;
+}
+
+.glossary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.glossary-head h2 {
+  margin: 0;
+}
+
+.glossary-search {
+  min-height: var(--spacing-hit-target-min);
+  padding: 0 var(--spacing-3);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  font: inherit;
+}
+
+.glossary-list {
+  margin: 0;
+  overflow-y: auto;
+}
+
+.glossary-list dt {
+  margin-top: var(--spacing-3);
+  font-weight: 600;
+}
+
+.glossary-list dd {
+  margin: var(--spacing-1) 0 0;
+  color: var(--color-ink-soft);
+}
+
+.glossary-current {
+  color: var(--color-primary);
+}
+
+.glossary-empty {
+  color: var(--color-ink-soft);
+}
+
+.glossary-cite {
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-primary);
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  font: inherit;
+  cursor: help;
+}
+
+.glossary-cite:focus-visible {
+  outline: var(--spacing-stroke-min) solid var(--color-primary);
+  outline-offset: 2px;
+}
