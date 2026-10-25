@@ -16096,6 +16096,73 @@ def s_bar_panels(r: Run) -> None:
     r.goto_app()
 
 
+def _cache_bilan_columns(r: Run) -> dict[str, str]:
+    """V1.3 story 4: opens « Dépense », reads the cache bilan's two columns (title -> text),
+    closes it again (Échap)."""
+    page = r.page
+    panel = page.locator("#bar-spend-panel")
+    if not panel.is_visible():
+        page.locator("#bar-spend-toggle").click()
+    expect(panel).to_be_visible(timeout=3000)
+    expect(page.locator("#bar-cache-bilan .bar-cache-col")).to_have_count(2, timeout=5000)
+    columns = {
+        col.locator("h3").inner_text(): col.inner_text()
+        for col in page.locator("#bar-cache-bilan .bar-cache-col").all()
+    }
+    page.keyboard.press("Escape")
+    expect(panel).to_be_hidden(timeout=3000)
+    return columns
+
+
+def s_cache_bilan(r: Run) -> None:
+    """V1.3 story 4 (CAP-3): the bilan's two columns on the fake model (a provider with no
+    `prompt_tokens_details` and no price: « non déclaré » cells, never 0; the exact local
+    sums are `tests/test_cache_bilan.py`'s). After two
+    questions, « Cette conversation » and « Depuis le lancement » show their reads and writes
+    (the uncached part has no meaning locally); « Vider la conversation » empties the first
+    column and leaves the second as it was."""
+    r.goto_app()
+    r.wait_idle()
+    seq = r.ev.mark()
+    r.page.click("#clear-conversation")
+    r.ev.wait("conversation_cleared", seq, timeout=10)
+    r.send("Bonjour, comment ça va ?")
+    r.send("Bonjour, comment ça va ?")
+    columns = _cache_bilan_columns(r)
+    conversation = columns.get("Cette conversation", "")
+    launch = columns.get("Depuis le lancement", "")
+    r.check(
+        list(columns) == ["Cette conversation", "Depuis le lancement"],
+        "bilan du cache : deux colonnes, « Cette conversation » puis « Depuis le lancement »",
+        str(list(columns)),
+    )
+    r.check(
+        "Lecture cache" in conversation
+        and "Écriture cache 5 min" in conversation
+        and "Non caché" in conversation
+        and conversation.count("non déclaré") == 3
+        and "Hors anneau : 2 appels sans prix déclaré" in conversation,
+        "Cette conversation : le faux fournisseur ne détaille pas son cache, trois cases « non "
+        "déclaré » (jamais 0), deux appels hors anneau",
+        conversation.replace("\n", " | "),
+    )
+    r.check(
+        "Rien de compté" not in launch and "Lecture cache" in launch,
+        "Depuis le lancement : les cases du cache sont comptées aussi",
+        launch.replace("\n", " | "),
+    )
+    seq = r.ev.mark()
+    r.page.click("#clear-conversation")
+    r.ev.wait("conversation_cleared", seq, timeout=10)
+    after = _cache_bilan_columns(r)
+    r.check(
+        "Rien de compté" in after.get("Cette conversation", "")
+        and after.get("Depuis le lancement") == launch,
+        "après « Vider la conversation » : conversation à zéro, lancement inchangé",
+        str(after).replace("\n", " | "),
+    )
+
+
 # A journal of the session as `/api/security_journal` would give it after flux 1's GitHub
 # merge refusal (ux/EXPERIENCE.md, étape 4) : the RSSI's row (étape 7), the fusion refused by
 # the WaveStack policy, explicit about what never reached GitHub.
@@ -16377,6 +16444,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("llm_loop", s_llm_loop),  # lot 6 of 2026-10-04: the model's loop in three stages
     ("relaunch", s_relaunch),
     ("bar_panels", s_bar_panels),  # story 9 (V1.1 vague 2): the barre commune's two flyouts
+    ("cache_bilan", s_cache_bilan),  # V1.3 story 4 (CAP-3): the bilan's two columns
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
     ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
 ]
