@@ -6667,6 +6667,11 @@ class UpdateRun(LabRun):
             self.costs = self.costs[:mark]
             if out["status"] == "cancelled":
                 raise LabCancelled(_Result(costs=costs))
+            if out["status"] == "error":
+                # A failing model writes nothing (as « Reconstruire »): the copy is not kept.
+                raise StageFailed(
+                    Message("rag_lab.graph.update_model_error"), result=_Result(costs=costs)
+                )
         else:
             terms = rag_graph.terms_for(after_docs, vocab, lang, size)
             fresh = {p.id: rag_graph.extract(p.text, terms, lang) for p in redo}
@@ -6749,6 +6754,11 @@ class UpdateRun(LabRun):
             self.costs = self.costs[:mark]
             if summaries["status"] == "cancelled":
                 raise LabCancelled(_Result(costs=costs + part))
+            if summaries["status"] == "error":
+                raise StageFailed(
+                    Message("rag_lab.graph.update_model_error"),
+                    result=_Result(costs=costs + part),
+                )
         else:
             for c in redone:
                 c.summary_text = c.summary_text or rag_graph.rule_summary(kg, c.entities)
@@ -6764,10 +6774,11 @@ class UpdateRun(LabRun):
             ),
         )
         costs += part
-        # A deleted document leaves none of its evidence in the rebuilt file (story 18).
-        rag_graph.forget(lang, removed, deps.lab_dir)
+        # A deleted document leaves none of its evidence in the rebuilt file (story 18). Both
+        # written once the copy is kept only (`after_keep`).
+        self.after_keep.append(lambda: rag_graph.forget(lang, removed, deps.lab_dir))
         if by_model:
-            self._keep_rebuilt(kg, out, summaries, costs)
+            self.after_keep.append(lambda: self._keep_rebuilt(kg, out, summaries, costs))
         facts = [
             (say("fact.graph_part_extraction"), count(len(redo))),
             (

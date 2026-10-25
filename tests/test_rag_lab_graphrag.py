@@ -27,7 +27,7 @@ from wavestack.rag import graph as rag_graph
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
 from wavestack.rag import workcopy
-from wavestack.rag.corpus import load_rag_questions
+from wavestack.rag.corpus import load_rag_questions, split_text
 from wavestack.session.app_session import SendRefused
 from wavestack.trace.journal import get_journal
 
@@ -507,6 +507,92 @@ def test_a_rebuilt_graph_updated_by_the_model_costs_more_than_dense_and_forgets(
     update(session, "delete", "note_zephyr", pipeline=chain)
     body = path.read_text(encoding="utf-8")
     assert "note_zephyr" not in body and "Zéphyr" not in body
+    session.close()
+
+
+class FailsSecond(FakeEngine):
+    """Its first call answers, the next ones fail (`status: error`)."""
+
+    @property
+    def fail(self) -> bool:  # type: ignore[override]
+        return len(self.calls) >= 2
+
+    @fail.setter
+    def fail(self, value: bool) -> None:
+        pass
+
+
+ZEPHYR = "Le Projet Zéphyr dépend de la cellule de crise.\n\nLe Projet Zéphyr a son astreinte."
+
+
+def test_a_model_failing_at_the_summary_of_an_update_writes_nothing_and_keeps_no_copy(index):
+    # One passage: the 1st call is its extraction, the 2nd (failing) one is a summary.
+    fake = FakeEngine(output=EXTRACTION)
+    session = full(index, fake)
+    rebuild(session, fake)
+    path = rag_graph.rebuilt_path("fr", config.rag_lab_dir())
+    before = path.read_text(encoding="utf-8")
+    broken = FailsSecond(output=EXTRACTION)
+    session._engine = broken
+    chain = preset(session, "graphrag")
+    events = update(session, "add", "note_zephyr", "Note Zéphyr", ZEPHYR, chain)
+    part = ended(events, "graph_search")
+    assert len(broken.calls) == 2 and part["status"] == "error"
+    assert "rien n'est écrit" in part["error_text"]
+    assert any(c["tokens"] for c in part["costs"])  # the calls made are said
+    assert path.read_text(encoding="utf-8") == before
+    assert "note_zephyr" not in {d.doc_id for d in docs(session)}
+    session.close()
+
+
+LONG_ZEPHYR = (
+    "Le Projet Zéphyr dépend de la cellule de crise. " * 8
+    + "\n\n"
+    + "Le Projet Zéphyr a son astreinte. " * 10
+)
+
+
+def test_a_model_failing_at_the_second_extraction_of_an_update_writes_nothing(index):
+    # Two passages to extract: the 1st extraction answers, the 2nd fails, no summary is asked.
+    fake = FakeEngine(output=EXTRACTION)
+    session = full(index, fake)
+    rebuild(session, fake)
+    path = rag_graph.rebuilt_path("fr", config.rag_lab_dir())
+    before = path.read_text(encoding="utf-8")
+    size = session.cfg.rag_chunk_max_chars
+    assert len(LONG_ZEPHYR) > size
+    assert len(split_text(LONG_ZEPHYR, size)) == 2
+    broken = FailsSecond(output=EXTRACTION)
+    session._engine = broken
+    chain = preset(session, "graphrag")
+    events = update(session, "add", "note_zephyr", "Note Zéphyr", LONG_ZEPHYR, chain)
+    part = ended(events, "graph_search")
+    assert part["status"] == "error"
+    assert len(broken.calls) == 2  # two extractions, the 2nd failed: no summary call
+    assert "rien n'est écrit" in part["error_text"]
+    assert path.read_text(encoding="utf-8") == before
+    assert "note_zephyr" not in {d.doc_id for d in docs(session)}
+    session.close()
+
+
+def test_the_rebuilt_file_is_written_once_the_copy_is_kept_only(index, monkeypatch):
+    fake = FakeEngine(output=EXTRACTION)
+    session = full(index, fake)
+    rebuild(session, fake)
+    path = rag_graph.rebuilt_path("fr", config.rag_lab_dir())
+    before = path.read_text(encoding="utf-8")
+    session._engine = FakeEngine(output=EXTRACTION)
+    chain = preset(session, "graphrag")
+
+    def refuse(copy):  # noqa: ANN001, ANN202
+        raise OSError("disque plein")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(session, "_rag_lab_keep_copy", refuse)
+        update(session, "add", "note_zephyr", "Note Zéphyr", ZEPHYR, chain)
+    assert path.read_text(encoding="utf-8") == before  # the copy not kept: nothing written
+    update(session, "add", "note_zephyr", "Note Zéphyr", ZEPHYR, chain)
+    assert path.read_text(encoding="utf-8") != before  # kept: written (the measure grows)
     session.close()
 
 
