@@ -2,7 +2,7 @@
 title: 'Story 2 : banc préalable System One et fenêtre de 16 384 tokens'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -67,16 +67,16 @@ context:
 
 ## Tasks & Acceptance
 
-- [ ] Critère 1 : construire le jeu d'items depuis les questions et le corpus : couples (question, passage) pour le filtre, couples (passage, affirmation) pour l'ancrage, étiquetés par construction.
-- [ ] Critère 2 : adaptateur du point d'accès alpha (requête, réponse, coût, latence), clé lue sans fuite.
-- [ ] Critère 3 : adaptateurs locaux sans torch ; candidat non exécutable : « écarté » motivé.
-- [ ] Critère 4 : enregistrement de chaque réponse brute (sans clé) et rejeu à sec identique.
-- [ ] Critère 5 : métriques par candidat et par tâche (voir points ouverts), avec n et intervalle de confiance.
-- [ ] Critère 6 : taux d'affirmations non étayées acceptées (H7), par candidat, comparé au SLM juge.
-- [ ] Critère 7 : budget plafond en dollars et en appels, arrêt propre, compteur dans le rapport.
+- [x] Critère 1 : construire le jeu d'items depuis les questions et le corpus : couples (question, passage) pour le filtre, couples (passage, affirmation) pour l'ancrage, étiquetés par construction.
+- [x] Critère 2 : adaptateur du point d'accès alpha (requête, réponse, coût, latence), clé lue sans fuite.
+- [x] Critère 3 : adaptateurs locaux sans torch ; candidat non exécutable : « écarté » motivé.
+- [x] Critère 4 : enregistrement de chaque réponse brute (sans clé) et rejeu à sec identique.
+- [x] Critère 5 : métriques par candidat et par tâche (voir points ouverts), avec n et intervalle de confiance.
+- [x] Critère 6 : taux d'affirmations non étayées acceptées (H7), par candidat, comparé au SLM juge.
+- [x] Critère 7 : budget plafond en dollars et en appels, arrêt propre, compteur dans le rapport.
 - [ ] Critère 8 : mesure du pic de RSS de Qwen3.5-2B à 16 384 tokens et verdict dans `.memlog.md`.
-- [ ] Critère 9 : rapport versionné : tableau des candidats (mesuré ou publié), choix du filtre et de l'ancrage, repli, limites, commandes.
-- [ ] Critère 10 : tests en CI sans réseau : construction du jeu, métriques, rejeu à sec, absence de fuite de clé, arrêt au plafond.
+- [x] Critère 9 : rapport versionné : tableau des candidats (mesuré ou publié), choix du filtre et de l'ancrage, repli, limites, commandes.
+- [x] Critère 10 : tests en CI sans réseau : construction du jeu, métriques, rejeu à sec, absence de fuite de clé, arrêt au plafond.
 
 **Acceptance Criteria:**
 - Given aucun réseau ni clé, when on lance le mode à sec sur les cas enregistrés, then le rapport et les métriques sortent à l'identique de ceux du réel.
@@ -131,9 +131,14 @@ Relu contre `stories.yaml` (id 2), SPEC.md, architectures.md, evaluation.md, cor
 ## Spec Change Log
 
 - 2026-10-25 : spec rédigée avec les décisions d'Anaël (modèles OpenRouter, clé, données, mode à sec) ; points ouverts proposés.
+- 2026-10-25, développement (phase 2) : banc, données, fixture, tests et gabarit de rapport livrés ; lancement réel non fait (critères 6 et 8 ouverts : H7 et pic de RSS à mesurer ; critères 5, 7 et 9 livrés en code et gabarit, chiffres en attente).
 - 2026-10-25, point de contrôle de spec (`ready-for-dev`) : points ouverts tranchés (section dédiée). Corrections dans le bloc d'intention, faits seulement : copies i18n du jeu de questions ; format T9 (`noul` seul vérifié sur OpenRouter, `choice` non employé, version datée rendue). Code Map : fichier d'affirmations, fixture, fonctions réutilisées.
 
 ## Reports
+
+- Lancement réel (en ligne, local, mémoire) : attente humaine, notice dans `tools/bench/README.md` ; rapport et `.memlog.md` « pas encore mesuré » jusque-là. Critères 6 et 8 ouverts.
+- Strands Decider 2B et AnyJev : carte non lue en phase de développement (aucun réseau) ; « écartés » d'office avec ce motif, à lire au lancement réel.
+- Décisions prises sans Anaël, à revoir : verdict mémoire sur le plus grand du pic d'ensemble de travail et du pic de mémoire privée ; invites d'ancrage et de filtre en trois langues ; hypothèse NLI du filtre = « ce passage répond à la question » ; question suivie = dernier tour d'historique + question pour le BM25 du négatif difficile ; modèle de la sonde = premier item de la série (enregistré comme cas normal).
 
 - Modèles à poids ouverts (Kev 4B, Clef Flash) : story ultérieure.
 - Lancement réel du banc et mesure mémoire : ressource d'Anaël (poste libre de tout autre agent, clé disponible, GGUF Qwen3.5-2B et binaire llama-server épinglés comme pour `v2s6`).

@@ -1,0 +1,10 @@
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "filter.fr.q_fact_pwd.pos1", "latency_ms": 120, "prob": 0.83, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "filter.fr.q_fact_sauvegarde.pos1", "latency_ms": 120, "prob": 0.71, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "filter.fr.q_fact_badge.pos1", "latency_ms": 120, "prob": 0.93, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "filter.fr.q_fact_pwd.same_doc", "latency_ms": 120, "prob": 0.21, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "filter.fr.q_fact_pwd.hard", "latency_ms": 120, "prob": 0.76, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "filter.fr.q_fact_pwd.random", "latency_ms": 120, "prob": 0.14, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "grounding.fr.q_fact_pwd.supported", "latency_ms": 120, "prob": 0.85, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "grounding.fr.q_fact_sauvegarde.supported", "latency_ms": 120, "prob": 0.24, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "grounding.fr.q_fact_pwd.unsupported1", "latency_ms": 120, "prob": 0.34, "rep": 1, "truncated": false}
+{"candidate": "deberta_xsmall", "date": "2000-01-01", "error": null, "item_id": "grounding.fr.q_fact_pwd.unsupported2", "latency_ms": 120, "prob": 0.43, "rep": 1, "truncated": false}

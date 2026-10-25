@@ -1,0 +1,11 @@
+{
+  "kv_estimate_mb": 700,
+  "mmap": true,
+  "n_batch": 512,
+  "n_ctx": 16384,
+  "peak_private_mb": 2800,
+  "peak_working_set_mb": 2900,
+  "prompt_tokens_full": 16128,
+  "prompt_tokens_short": 11000,
+  "ram_total_mb": 32000
+}
