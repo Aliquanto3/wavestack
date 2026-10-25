@@ -334,7 +334,9 @@ function applyEnvelope(envelope) {
       if (p.state === "download" || p.state === "index_build") store.ragNotice = store.rerankNotice = null;
       if (!isLive(envelope)) break;
       store.sessionState = p;
-      sessionStateChanged(p); // V1.5 story 4: « Évaluer l'agent » follows the run
+      // V1.5 story 4: « Évaluer l'agent » follows the application session only (the diagnostic
+      // session's states carry no `active_model`: it runs beside, it blocks no case run).
+      if (p.active_model !== undefined) sessionStateChanged(p);
       // The diagnostic session's own states carry no model: the last known one stays.
       if (p.active_model !== undefined) store.activeModel = p.active_model;
       if (p.state === "idle") store.composerError = null;
@@ -8087,6 +8089,8 @@ async function boot() {
     store.serverInstance = body.instance_id ?? null;
     store.liveFrom = body.seq ?? 0;
     store.sessionState = body.session_state;
+    // V1.5 story 4 (review): the view's buttons follow a turn already going at the load too.
+    if (body.session_state && body.session_state.active_model !== undefined) sessionStateChanged(body.session_state);
     store.activeModel = body.active_model ?? null;
     store.architecture = body.architecture_changed || { nodes: [], edges: [] };
     store.bricks = body.bricks_changed;

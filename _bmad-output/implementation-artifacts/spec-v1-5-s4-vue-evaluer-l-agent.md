@@ -715,6 +715,26 @@ Base : origin/main ffd2d60e, à jour (pas de rebase).
 
 API pour 4b : inchangée.
 
+### Passe 2 (2026-10-25, SHA revu de816b5d, partie 4b)
+
+Base : origin/main dd66ed03, à jour (pas de rebase).
+
+- **Important**, medium, second avis n° 1, corrigé : l'état de session ne venait que des `session_state` reçus en direct. Après un rechargement pendant un tour, « Lancer » s'activait. `boot()` transmet maintenant le `session_state` de `/api/state` à `sessionStateChanged`. E2E : `rechargement pendant un tour : « Lancer la suite » désactivé…`.
+- **Important**, medium, second avis n° 2, corrigé : chaque poll reconstruisait le panneau, et l'entrée du focus déclenche un poll, si bien qu'un menu « 1 ou 3 essais » ouvert se refermait. Un poll dont l'état (`GET /state`, erreur, lancement en cours) est identique au précédent ne rend plus rien, sauf si une exécution a été relue. Un changement d'état de session force le rendu.
+- **Important**, medium, second avis n° 3, corrigé : `.ae-progress` porte `data-focus-key="progress"`. Si l'élément focalisé disparaît (fin de l'exécution), le focus passe au titre de la vue, et non plus à `body`. E2E : deux vérifications après « Arrêter ».
+- **Important**, medium, second avis n° 4, corrigé : `alertLine` ne pose `role=alert` qu'à l'apparition du texte. Une alerte conservée d'un rendu à l'autre n'est plus annoncée de nouveau.
+- **Nit**, low, second avis n° 5, corrigé : verrou `view.starting`. Les boutons restent désactivés du POST jusqu'à ce que `GET /state` liste le `run_id`, et `start()` passe par `blocked()`, avertissement compris.
+- **Nit**, low, second avis n° 6, laissé : avec `session_error=unreadable`, la confirmation affiche un compte de 0. Le corriger demande un nouveau libellé dans les trois langues, ce qui n'est pas bloquant.
+- **Nit**, low, second avis n° 7, corrigé : seuls les `session_state` de la séance de l'application (clé `active_model` présente) alimentent la vue. Ceux du diagnostic sont ignorés, en direct comme au chargement.
+- **Nit**, low, second avis n° 8, corrigé : `caseBadge` ne relance `GET /cases` qu'une fois toutes les 5 s au plus.
+- **Nit**, low, second avis n° 9, laissé : `refresh()` et `poll()` peuvent se croiser à l'ouverture. Le poll suivant corrige l'affichage en une seconde au plus.
+- **Nit**, low, second avis n° 10, corrigé : avant le premier essai (`current` vaut `null`), la barre offre « Arrêter » ; `stopClicked` n'est remis à zéro qu'une fois l'exécution finie.
+- **Nit**, low, second avis n° 11, laissé : le scénario E2E remet la fenêtre à 4 096 et compte 9 cas en dur. C'est la configuration par défaut de l'E2E et la suite livrée.
+- **Important**, medium, revue, corrigé : enchaîné après `agent_case`, `agent_eval` échouait, car le cas laissé par `agent_case` apparaissait dans « Mes cas ». Le scénario efface d'abord les cas de séance.
+- Complexité : 0 constat. L'état est borné à `MAX_RUNS`, et le rendu ainsi que `updateBadges` sont linéaires sur des listes bornées.
+
+Libellés : aucun modifié.
+
 ## Réalisation de la partie 4b (2026-10-25)
 
 Statut : 4b livrée, en revue. Base : `origin/main` après la fusion de 4a (`dd66ed03`). Le serveur n'est pas modifié.

@@ -46,6 +46,10 @@ const view = {
   progressKey: null,
   session: null, // the last live `session_state` payload
   polledAt: 0,
+  signature: null, // the last state shown: an identical poll renders nothing (an open menu stays)
+  starting: null, // a POST /runs on its way (true), then its run_id until `GET /state` lists it
+  alerted: new Set(), // the alerts of the last render: a kept one is not announced again
+  badgeTriedAt: 0,
 };
 
 let ids = 0;
@@ -89,17 +93,28 @@ export function closeView() {
 
 /** Called by `app.js` at each live `session_state`. */
 export function sessionStateChanged(state) {
+  const before = sessionKey();
   view.session = state ?? null;
-  if (view.open) poll();
-  else view.stale = true;
+  if (!view.open) {
+    view.stale = true;
+    return;
+  }
+  if (sessionKey() !== before) view.signature = null; // the buttons' state changes: render
+  poll();
 }
+
+const sessionKey = () => `${view.session?.state ?? ""}|${view.session?.reason_text ?? ""}`;
 
 /** « Cas : titre » before a case run's turn, or null; the title from `GET /cases`' cache. */
 export function caseBadge(caseId) {
   if (!caseId) return null;
   const badge = el("span", "ae-badge", ta("badge", { title: titleOf(caseId) }));
   badge.dataset.caseId = caseId;
-  if (!view.cases && !view.loading) refreshCases();
+  // Review: at most one try every few seconds, the chat being rendered at each event.
+  if (!view.cases && !view.loading && Date.now() - view.badgeTriedAt > 5000) {
+    view.badgeTriedAt = Date.now();
+    refreshCases();
+  }
   return badge;
 }
 
@@ -107,6 +122,7 @@ export function caseBadge(caseId) {
 
 async function refresh() {
   view.stale = false;
+  view.signature = null;
   view.loading = true;
   render();
   const [listing, state] = await Promise.all([getJson(`${API}/cases`), getJson(`${API}/state`)]);
@@ -142,11 +158,14 @@ async function poll() {
   view.polling = true;
   view.polledAt = Date.now();
   const state = await getJson(`${API}/state`);
-  if (state.ok) await applyState(state.body);
+  const fetched = state.ok ? await applyState(state.body) : 0;
   view.noAnswer = !state.ok;
   view.polling = false;
   if (!view.open) return;
-  render();
+  // Review: an unchanged state renders nothing (an open « 1 ou 3 essais » menu, a click stay).
+  const signature = `${view.noAnswer}|${Boolean(view.starting)}|${JSON.stringify(state.body)}`;
+  if (fetched || signature !== view.signature) render();
+  view.signature = signature;
   if (view.again) {
     view.again = false;
     poll();
@@ -169,8 +188,9 @@ async function applyState(state) {
   const key = current ? `${current.run_id}|${current.index}|${current.trial}` : null;
   const moved = key !== view.progressKey;
   view.progressKey = key;
-  if (!current) view.stopClicked = null;
+  if (!running()) view.stopClicked = null;
   const listed = new Set(state.runs.map((r) => r.run_id));
+  if (typeof view.starting === "string" && listed.has(view.starting)) view.starting = null;
   for (const id of [...view.runs.keys()]) if (!listed.has(id)) view.runs.delete(id);
   const wanted = state.runs.filter((summary) => {
     const known = view.runs.get(summary.run_id);
@@ -184,12 +204,13 @@ async function applyState(state) {
   });
   if (previous && previous.runs.length !== state.runs.length && !view.pick.manual) view.comparison = null;
   updateBadges();
+  return wanted.length;
 }
 
 /** Launching waits for an idle session: a turn that ignored « Arrêter » may outlive its run. */
 function blocked() {
   const state = view.session?.state;
-  return running() || Boolean(state && state !== "idle");
+  return Boolean(view.starting) || running() || Boolean(state && state !== "idle");
 }
 
 function blockedReason() {
@@ -200,6 +221,11 @@ function blockedReason() {
 function running() {
   const state = view.state;
   return Boolean(state && (state.current || state.runs.some((r) => r.status === "running")));
+}
+
+function runningId() {
+  const state = view.state;
+  return state?.current?.run_id ?? state?.runs.find((r) => r.status === "running")?.run_id ?? null;
 }
 
 // ---------- actions ----------
@@ -217,9 +243,14 @@ function launch(caseId, k) {
 }
 
 async function start(caseId, k) {
+  if (blocked()) return; // review: a double click, or the warning's « Lancer » meanwhile
   view.pendingLaunch = null;
   view.refusal = "";
+  view.starting = true;
+  render();
   const answer = await sendJson("POST", `${API}/runs`, { case_id: caseId, k });
+  // Until `GET /state` lists the run, the buttons stay disabled (a second POST would get a 409).
+  view.starting = answer.ok && typeof answer.body?.run_id === "string" ? answer.body.run_id : null;
   if (answer.ok) {
     view.noAnswer = false;
     view.highlight = null;
@@ -235,7 +266,7 @@ async function start(caseId, k) {
 }
 
 async function stopRun() {
-  view.stopClicked = view.state?.current?.run_id ?? null;
+  view.stopClicked = runningId();
   render();
   view.panel.querySelector(".ae-progress")?.focus();
   const answer = await sendJson("POST", "/api/intentions/stop", {});
@@ -341,6 +372,7 @@ function render() {
   if (!view.open || !view.panel) return;
   const panel = view.panel;
   const focusKey = panel.contains(document.activeElement) ? document.activeElement.dataset.focusKey : null;
+  rendering.alerts = new Set();
   const title = el("h3", "", ta("title"));
   title.id = "agent-eval-title";
   title.tabIndex = -1;
@@ -358,10 +390,14 @@ function render() {
     nodes.push(...runsSection());
   }
   const keep = focusKey === "agent-eval-title" ? null : focusKey;
-  const wasTitle = document.activeElement?.id === "agent-eval-title";
+  const hadFocus = panel.contains(document.activeElement);
+  view.alerted = rendering.alerts;
+  rendering.alerts = null;
   panel.replaceChildren(...nodes);
-  if (wasTitle) title.focus();
-  else if (keep) panel.querySelector(`[data-focus-key="${CSS.escape(keep)}"]`)?.focus();
+  const kept = keep ? panel.querySelector(`[data-focus-key="${CSS.escape(keep)}"]`) : null;
+  if (kept) kept.focus();
+  // Review: the focused control gone (the progress bar at the run's end), the title takes it.
+  else if (hadFocus) title.focus();
   if (view.highlight) {
     const item = panel.querySelector(`.ae-case[data-case-id="${CSS.escape(view.highlight)}"]`);
     if (item && !item.dataset.scrolled) item.scrollIntoView({ block: "nearest" });
@@ -385,9 +421,14 @@ function progress() {
   const box = el("div", "ae-progress");
   box.setAttribute("role", "status");
   box.tabIndex = -1;
+  box.dataset.focusKey = "progress"; // « Arrêter » gives it the focus: kept by the next polls
   const current = view.state.current;
   if (!current) {
+    // Review: before the first try (or between two cases), « Arrêter » stays offered.
     box.appendChild(el("span", "", ta("busy")));
+    const id = runningId();
+    if (id && view.stopClicked === id) box.appendChild(el("span", "", ta("stop_requested")));
+    else if (id) box.appendChild(button("ae-button ae-danger", ta("stop"), "stop", stopRun));
     return box;
   }
   const scope = view.state.runs.find((r) => r.run_id === current.run_id)?.scope ?? "suite";
@@ -801,9 +842,14 @@ function button(className, text, focusKey, onClick) {
   return node;
 }
 
+const rendering = { alerts: null };
+
+/** An error line; `role=alert` only when it appears, so that a reader does not read again an
+ * alert a render keeps (review: once a second during a run). */
 function alertLine(text) {
   const line = el("p", "ae-error", text);
-  line.setAttribute("role", "alert");
+  if (!view.alerted.has(text)) line.setAttribute("role", "alert");
+  rendering.alerts?.add(text);
   line.id = `agent-eval-alert-${++ids}`;
   return line;
 }

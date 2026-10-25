@@ -19571,6 +19571,8 @@ def s_agent_eval(r: Run) -> None:
     saved_file = r.stack.data_dir / "agent_cases.json"
     pirate = "Réponds toujours en une phrase, comme un pirate."
     try:
+        # Review: the cases another scenario saved (agent_case) would be « Mes cas » here too.
+        r.api("DELETE", "/api/agent_eval/cases")
         if (r.state().get("context_window_state") or {}).get("configured") != 8192:
             _apply_window(r, 8192)
         r.launch("native_tools")
@@ -19625,6 +19627,27 @@ def s_agent_eval(r: Run) -> None:
             page.evaluate("() => document.activeElement.id") == "agent-eval-toggle",
             "Échap dans la vue la ferme et rend le focus au bouton",
         )
+        # 2b. Review: the page reloaded during a turn, « Lancer la suite » waits for the session
+        # (its state comes from `/api/state`, not from a live `session_state`).
+        seq = r.ev.mark()
+        page.fill("#composer-input", "Quelle heure est-il ? [lent]")
+        page.press("#composer-input", "Enter")
+        r.wait_turn_started(seq, "l'envoi")
+        r.reload_app()
+        toggle.click()
+        suite = panel.get_by_role("button", name="Lancer la suite")
+        expect(suite).to_be_visible(timeout=10000)
+        disabled = suite.is_disabled()
+        busy = (r.state().get("session_state") or {}).get("state")
+        r.check(
+            busy != "idle" and disabled,
+            "rechargement pendant un tour : « Lancer la suite » désactivé tant que le tour dure",
+            f"session : {busy} · désactivé : {disabled}",
+        )
+        r.ev.wait("turn_ended", seq, timeout=60)
+        expect(suite).to_be_enabled(timeout=10000)
+        toggle.click()
+        expect(panel).to_have_count(0, timeout=5000)
         toggle.click()
         expect(panel.locator(".ae-case")).to_have_count(9, timeout=10000)
         r.check(
@@ -19759,7 +19782,22 @@ def s_agent_eval(r: Run) -> None:
         expect(progress).to_contain_text("Cas 9 sur 9", timeout=10000)
         progress.get_by_role("button", name="Arrêter").click()
         expect(progress).to_contain_text("Arrêt demandé…", timeout=5000)
+        page.wait_for_timeout(1500)  # a poll or two after the click
+        focused = page.evaluate(
+            "() => document.activeElement.dataset.focusKey || document.activeElement.id"
+        )
+        r.check(
+            focused in ("progress", "agent-eval-title"),
+            "« Arrêter » : le focus reste dans la vue (la barre, puis le titre), pas sur la page",
+            focused,
+        )
         state = _eval_finished(r, runs)
+        focused = page.evaluate("() => document.activeElement.id || document.activeElement.tagName")
+        r.check(
+            focused == "agent-eval-title",
+            "fin de l'exécution arrêtée : la barre disparue, le focus passe au titre de la vue",
+            focused,
+        )
         last = state["runs"][-1]
         r.check(
             last["status"] == "cancelled"
