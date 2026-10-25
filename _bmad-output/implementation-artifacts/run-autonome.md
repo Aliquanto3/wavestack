@@ -296,3 +296,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:44 · 12.15 · dev · lancé (phase spec, worktree ../wavestack-v12-s15) · 50751a6
 - 2026-10-25 07:46 · 12.15 · dev · spec prête (16 critères, 9 points ouverts : jeu évalué, juge local non Qwen, famille cloud, annotation, extra Ragas/DeepEval…) · d40288d
 - 2026-10-25 07:46 · 12.15 · review · relecture de la spec lancée (pas de dépendance qui tire torch, cas enregistrés si modèle réel requis) · d40288d
+- 2026-10-25 07:48 · 12.5 · dev · fini ; 2 critères et 4 tâches couverts, captures écartées (regénérations), 332 tests ciblés verts ; E2E 167/168 (« Modifier : mise à jour mesurée sur la copie de travail »), échecs variables d'une passe à l'autre · 9573146
+- 2026-10-25 07:48 · 12.5 · décision · à revoir : suivi lu sur les 3 dernières questions, étape query à part, fusion par rangs réciproques, consigne dans messages.yaml ; sources des fiches citées sans accès réseau · —
+- 2026-10-25 07:48 · 12.5 · second-avis · lancé (priorité : échec E2E « Modifier ») · 9573146
+- 2026-10-25 07:48 · 12.6 · dev · lancé (phase spec, empilé sur 12.5, worktree ../wavestack-v12-s6) · 9573146

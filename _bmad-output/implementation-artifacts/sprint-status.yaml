@@ -8,8 +8,8 @@ development_status:
   12-2-banc-prealable-system-one: backlog
   12-3-couts-en-trois-temps: done
   12-4-onglets-et-comparaison: done
-  12-5-comprehension-de-la-requete: in-progress
-  12-6-decoupage-semantique: backlog
+  12-5-comprehension-de-la-requete: review
+  12-6-decoupage-semantique: in-progress
   12-7-construction-du-contexte: backlog
   12-8-couche-de-decision-system-one: backlog
   12-9-diagnostic-du-bon-extrait: done
