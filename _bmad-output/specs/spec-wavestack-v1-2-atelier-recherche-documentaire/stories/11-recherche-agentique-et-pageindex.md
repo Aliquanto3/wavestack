@@ -202,4 +202,4 @@ Intégration `origin/integration/v1-2-atelier` à jour (aucun commit à fusionne
 - Décision (f) conforme : la matrice (ligne « Reconstruire, annulé ») exige « état inchangé ».
 - Complexité : 0 constat (prompt de chaque tour borné, résultats bornés).
 
-Tests : contrôle rapide vert ; ciblés 549 verts, 1 sauté (lien symbolique sous Windows) ; E2E `rag rag_rerank rag_lab rag_lab_no_index rag_lab_agentic rag_lab_sheets` : 189 vérifications, 0 échec.
+Tests : contrôle rapide vert ; ciblés 548 verts, 1 sauté (lien symbolique sous Windows) ; E2E `rag rag_rerank rag_lab rag_lab_no_index rag_lab_agentic rag_lab_sheets` : 189 vérifications, 0 échec.
