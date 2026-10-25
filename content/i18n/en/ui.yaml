@@ -1158,6 +1158,21 @@ rag:
   contexts_reset: "Restore the shipped contexts"
   contexts_progress: "Rebuilding: {done} / {total} chunks"
   contexts_failed: "The rebuild did not succeed: {reason}"
+  # V1.2 story 7 (CAP-5): the focus of the Context step.
+  col_state: "In the context"
+  item_whole: "whole"
+  item_cut: "cut"
+  item_dropped: "dropped"
+  item_placed: "position {n}"
+  item_tokens: "{tokens} tokens"
+  item_tokens_after: "{before} → {after} tokens"
+  item_unchanged: "unchanged"
+  item_transforms: "transforms: {names}"
+  budget_used: "Budget: {used} of {budget} tokens (estimated)"
+  budget_compressed: "After compression: {after} tokens (estimated), against {before} before"
+  dropped_title: "Dropped by the budget ({count})"
+  prompt_title: "Final prompt, as it leaves for the model (estimated tokens; the model's template is added at generation)"
+  prompt_total: "Total: {tokens} tokens (estimated)"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

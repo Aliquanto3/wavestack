@@ -214,6 +214,12 @@ options:
   context:
     excerpts:
       label_text: "Extraits numérotés (format de la brique RAG)"
+    budget:
+      label_text: "Budget de contexte (tokens)"
+    order:
+      label_text: "Ordre des passages (extrémités d'abord)"
+    compress:
+      label_text: "Compression (Headroom)"
   generation:
     active:
       label_text: "Modèle actif de l'atelier"
@@ -240,6 +246,9 @@ params:
   top_k:
     label_text: "Chunks dans le prompt"
     unit_text: "chunks"
+  budget_tokens:
+    label_text: "Budget du contexte"
+    unit_text: "tokens (estimés)"
 
 # Lot 5a : les lignes de la séquence (vues-atelier-rag.md §2). Le nom technique est le même
 # dans les trois langues ; l'action et l'explication sont dans la langue de la page. Sans
@@ -560,3 +569,41 @@ sheets:
     sources:
       - label_text: "Anthropic, Introducing Contextual Retrieval (2024)"
         url: "https://www.anthropic.com/news/contextual-retrieval"
+
+# V1.2 story 7 (CAP-17): the sheet of each context option, in five blocks.
+  context.excerpts:
+    purpose_text: "Garder les premiers passages de la liste classée, dans l'ordre de pertinence, et coller leur texte entier derrière l'introduction. C'est le contexte de la brique RAG."
+    when_text: "À utiliser comme point de départ : simple, sans modèle, sans surprise. À éviter quand les passages sont longs ou nombreux : rien ne borne la taille du contexte, qui peut dépasser la fenêtre du modèle."
+    cost_text: "Aucun appel de modèle. Le prompt grandit avec le nombre de passages gardés et leur longueur, et chaque token lu par le modèle se paie en temps de lecture et, en nuage, en dollars."
+    literature_text: "Lewis et al. introduisent la génération augmentée par la recherche : les passages retrouvés sont donnés au modèle avec la question. Les hypothèses du cadrage ne couvrent pas cette option : la fiche s'appuie sur cette source seule."
+    bench_text: ""
+    sources:
+      - label_text: "Lewis et al., Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (2020)"
+        url: "https://arxiv.org/abs/2005.11401"
+  context.budget:
+    purpose_text: "Faire tenir le contexte dans un nombre de tokens fixé : les passages entrent entiers dans l'ordre de pertinence, le premier qui déborde est coupé à une fin de phrase et marqué « […] », les suivants sont écartés."
+    when_text: "À utiliser quand la fenêtre du modèle est étroite (4 096 tokens par défaut pour le modèle de l'atelier, réponse comprise) ou quand on veut borner le coût. À éviter si le passage décisif est écarté ou coupé : le diagnostic le désigne alors comme perdu à l'étape Contexte."
+    cost_text: "Aucun appel de modèle : on compte les tokens (estimés, pas ceux du modèle) et on coupe. Le coût de génération est borné par le budget, au prix de passages perdus."
+    literature_text: "Liu et al. montrent que la performance des modèles de langage baisse quand l'information utile est noyée dans un contexte plus long : de quoi justifier de borner le contexte. Les hypothèses du cadrage ne couvrent pas la coupe elle-même."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023, TACL 2024)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.order:
+    purpose_text: "Après le budget, placer les passages « extrémités d'abord » : le meilleur en tête, le deuxième en dernière position, le troisième en deuxième, et ainsi de suite, pour que les moins bons soient au milieu."
+    when_text: "À utiliser avec un contexte de plusieurs passages, quand le modèle semble ignorer ceux du milieu. À éviter avec deux passages ou moins (l'ordre reste celui de la pertinence, l'étape le dit) : l'effet n'a été mesuré que sur des contextes longs, et peut être faible avec un petit modèle."
+    cost_text: "Aucun appel de modèle ni token de plus : seul l'ordre change, donc la numérotation des extraits (elle suit la position dans le contexte)."
+    literature_text: "Liu et al. (« Lost in the Middle ») mesurent une courbe en U : les modèles répondent le mieux quand l'information utile est au début ou à la fin du contexte, et moins bien au milieu. Ils le mesurent sur des modèles et des contextes bien plus grands que ceux de l'atelier : l'effet reste à vérifier ici."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023, TACL 2024)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.compress:
+    purpose_text: "Après le budget et l'ordre, passer chaque extrait (jamais l'introduction) au compresseur Headroom de la carte Compression, et montrer les tokens avant et après."
+    when_text: "À utiliser quand les extraits sont des sorties structurées (JSON, journaux, tableaux). À éviter sur de la prose : Headroom est conçu pour des sorties structurées et réduit peu un texte rédigé, « inchangé » est alors le résultat honnête. L'option demande que la carte Compression soit activée ; sinon le contexte se construit comme avec l'ordre, et l'étape dit pourquoi."
+    cost_text: "Un passage par extrait au-dessus du seuil de la session, sur le processeur ; les tokens économisés au prompt se comptent contre ce temps. Aucun appel de modèle, aucun téléchargement : le compresseur est celui que la carte a déjà chargé."
+    literature_text: "Headroom (Apache-2.0) est la bibliothèque de compression de contexte de la brique Compression ; sa documentation la destine aux sorties d'outils structurées. Aucune mesure sur le corpus Exemplia n'est reportée ici : la mesure sur le PC cible reste à faire."
+    bench_text: ""
+    sources:
+      - label_text: "Headroom (headroom-ai), compression du contexte pour les agents"
+        url: "https://pypi.org/project/headroom-ai/"
