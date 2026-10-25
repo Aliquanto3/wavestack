@@ -96,3 +96,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:30 · 15.2 · dev · lancé (Sonnet, code, rebasé sur 85534df4) · —
 - 2026-10-25 21:30 · 15.3 · dev · lancé (Sonnet, code, rebasé sur 85534df4) · —
 - 2026-10-25 21:31 · 15.4 · dev · lancé (Opus, phase spec, ../wavestack-v15-s4) · —
+- 2026-10-25 21:44 · 15.2 · dev · fini (8 cas, tools/eval, 139 tests) · 74b431a7
+- 2026-10-25 21:44 · 15.2 · second-avis · lancé · —
+- 2026-10-25 21:44 · 15.4 · dev · fini (phase spec : état de session agent_eval, 11 points ouverts) · 63c0c771
+- 2026-10-25 21:44 · 15.4 · review · lancé (spec_checkpoint, Opus) · —
