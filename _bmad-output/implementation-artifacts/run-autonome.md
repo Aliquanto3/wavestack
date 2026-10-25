@@ -237,3 +237,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:35 · run · décision · Anaël : correction des tests lents propres à Windows maintenant, pas après le run (risques jugés faibles) · —
 - 2026-10-25 06:35 · run · dev · lancé : faux blobs creux sous Windows (chore/tests-fichiers-creux) · —
 - 2026-10-25 06:38 · 12.4 · fusion · #99 fusionnée · 881e14a
+- 2026-10-25 06:42 · 12.5 · dev · lancé · 881e14a
