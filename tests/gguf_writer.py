@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import struct
 import sys
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,7 @@ def make_sparse(path: Path, size: int) -> None:
     The size stays real: the code under test reads it with a plain `stat`.
     """
     path = Path(path)
-    path.touch()
+    path.touch()  # keeps an existing header: callers write the GGUF header first
     with open(path, "r+b") as f:
         if sys.platform == "win32":
             import ctypes
@@ -41,7 +42,7 @@ def make_sparse(path: Path, size: int) -> None:
                 wintypes.LPVOID,
             ]
             # Best effort: without the flag the file is still correct, only slower.
-            kernel32.DeviceIoControl(
+            if not kernel32.DeviceIoControl(
                 msvcrt.get_osfhandle(f.fileno()),
                 fsctl_set_sparse,
                 None,
@@ -50,7 +51,8 @@ def make_sparse(path: Path, size: int) -> None:
                 0,
                 ctypes.byref(returned),
                 None,
-            )
+            ):
+                warnings.warn("sparse flag refused: the file will be written in full", stacklevel=2)
         if sys.platform == "win32" and size > path.stat().st_size:
             # `truncate` (SetEndOfFile) still takes ~1 s/GB on NTFS, even flagged sparse;
             # writing the last byte extends the file at once (measured: 5 GiB in < 10 ms).
