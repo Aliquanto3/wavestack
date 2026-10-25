@@ -100,3 +100,19 @@ uv run python tools/bench/v12s2_system_one_bench.py dry-run
 À préparer : `OPENROUTER_API_KEY` (variable ou `HKCU\Environment`, jamais affichée ni écrite) avec du crédit ; GGUF Qwen3.5-2B (`Qwen3.5-2B-Q4_K_M.gguf`) et reranker de la brique dans le dossier des modèles de WaveStack ; snapshots ONNX `deberta_xsmall`, `mdeberta` et Strands Decider 2B (port ONNX q8 de hobson v19, ~1,8 Go), chacun à son commit épinglé, dans `~/.cache/wavestack-bench` (`--models-dir` pour un autre dossier ; un snapshot d'un autre commit est refusé). AnyJev s'installe depuis l'archive de son commit relu (construction pur Python) et lit le SLM par défaut, sans second modèle. Les limites quotidiennes du modèle `:free` sont à relire le jour du banc. Une clé refusée ou un crédit épuisé (HTTP 401, 402, 403) arrête tout le banc (code de sortie 3) sans marquer de modèle « refusé ».
 
 Les cas enregistrés (`recorded/*.jsonl`, liste blanche de champs, sha256 de la requête, sans clé) sont à committer avec le rapport. `tests/fixtures/v12s2/` ne contient que de fausses réponses de test.
+
+## Banc de la V1.2, story 21 : recherche visuelle sans OCR
+
+`v12s21_visual_search_bench.py` dit si un retriever visuel (ColPali, ColSmol ; ColQwen écarté faute de voie sans torch) tient dans le budget du CPU : pages du corpus Exemplia dessinées en images, indexées une à une, puis cherchées avec les questions préparées (MaxSim). Il mesure le pic de mémoire (budget 4 096 Mo), la latence par page et par requête, le rappel, les dépendances. Aucune dépendance n'est ajoutée au projet, torch n'est jamais installé. Rapport : `_bmad-output/specs/spec-wavestack-v1-2-atelier-recherche-documentaire/rapport-recherche-visuelle.md` (gabarit « pas encore mesuré » tant que rien n'est enregistré).
+
+```bash
+uv run python tools/bench/v12s21_visual_search_bench.py list
+# 1. téléchargement, seule étape réseau (révisions épinglées) : ~6,9 Go
+uv run --with fastembed==0.9.1 python tools/bench/v12s21_visual_search_bench.py download
+# 2. mesure hors ligne, poste libre de tout agent : ~20 à 30 min
+uv run --with fastembed==0.9.1 python tools/bench/v12s21_visual_search_bench.py measure --confirm-idle
+# 3. rapport rejoué depuis les enregistrements, sans modèle
+uv run python tools/bench/v12s21_visual_search_bench.py report --write
+```
+
+`measure --only colsmol_256m_onnx` mesure un seul candidat (3 min) ; `--pages` et `--queries` règlent le jeu ; les dossiers (`--models-dir`, `--work-dir` pour les images de pages) sont hors du dépôt.
