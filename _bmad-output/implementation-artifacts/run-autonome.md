@@ -212,3 +212,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:03 · run · PR · #98 ouverte (CI en 4 groupes, pytest-split 0.11.0) · 2345834
 - 2026-10-25 06:05 · 12.3 · fusion · #96 fusionnée · 377426f
 - 2026-10-25 06:05 · 12.4 · second-avis · lancé · e4db223
+- 2026-10-25 06:09 · 13.4 · fusion · #95 fusionnée · a53e96e
