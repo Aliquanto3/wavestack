@@ -1510,3 +1510,54 @@ body.rag-page {
   padding-left: var(--spacing-5);
   overflow-wrap: anywhere;
 }
+
+/* V1.2 story 6 (CAP-4): the chunks the chunking made, and the contexts' buttons, in the focus. */
+.rag-chunks-title {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-chunks-list {
+  margin: 0;
+  padding-left: var(--spacing-5);
+}
+
+.rag-chunk {
+  margin-bottom: var(--spacing-2);
+  overflow-wrap: anywhere;
+}
+
+.rag-chunk p {
+  margin: 0;
+}
+
+.rag-chunk-title {
+  font-weight: 600;
+}
+
+.rag-chunk-label {
+  color: var(--color-ink-soft);
+}
+
+.rag-chunk-mark {
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--rounded-md);
+  color: var(--color-primary);
+}
+
+.rag-chunk-context,
+.rag-chunk-parent {
+  padding-left: var(--spacing-2);
+  border-left: 3px solid var(--color-line);
+}
+
+.rag-contexts {
+  margin: var(--spacing-3) 0;
+}
+
+.rag-contexts-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}

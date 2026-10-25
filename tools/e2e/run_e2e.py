@@ -14547,6 +14547,121 @@ def _rag_lab_query(r: Run) -> None:
     )
 
 
+def s_rag_lab_chunking(r: Run) -> None:
+    """V1.2 story 6 (CAP-4), after `rag` and `rag_rerank`: the chunking's options in the stage's
+    editor; « Parent-enfant » then « Avec contexte »: the chunks listed in the focus of the step
+    (the parent under each child, each context marked « précalculé » and « heuristique »);
+    « Reconstruire » with the fake model (the contexts « reconstruits »), then « Rétablir les
+    contextes livrés ». Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_lab_chunking(r)
+    finally:
+        page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+        r.goto_app()
+
+
+def _chunking_focus(r: Run) -> dict[str, Any]:
+    _focus_of(r, "chunking")
+    return r.page.evaluate(
+        "() => { const f = document.getElementById('rag-focus');"
+        " const q = (s) => [...f.querySelectorAll(s)].map(n => n.innerText);"
+        " return { chunks: f.querySelectorAll('.rag-chunk').length,"
+        " parents: f.querySelectorAll('.rag-chunk-parent').length,"
+        " marks: q('.rag-chunk-mark'), texts: q('.rag-chunk-text'),"
+        " summary: f.querySelector('.rag-contexts-summary')?.innerText ?? '',"
+        " text: f.innerText }; }"
+    )
+
+
+def _rag_lab_chunking(r: Run) -> None:
+    page = r.page
+    _rag_mode(r, "compose")
+    if page.locator("#rag-reset-chain").is_visible():
+        page.locator("#rag-reset-chain").click()
+    select = _seq_row(r, "chunking").locator("select.rag-option")
+    r.check(
+        select.locator("option").all_inner_texts()
+        == [
+            "Par paragraphes",
+            "Par le sens (phrases)",
+            "Parent-enfant",
+            "Avec contexte (contextual retrieval)",
+        ],
+        "les quatre options du découpage",
+        str(select.locator("option").all_inner_texts()),
+    )
+    select.select_option(label="Parent-enfant")
+    time.sleep(0.8)
+    ended, seq = _rag_lab_run(r)
+    chunking = _stage_ended(r, seq, "chunking")
+    focus = _chunking_focus(r)
+    r.check(
+        ended["payload"]["status"] == "ok"
+        and chunking.get("chunks_total", 0) > len(chunking.get("chunks", []))
+        and focus["chunks"] == len(chunking["chunks"]) > 0
+        and focus["parents"] == focus["chunks"]
+        and all(len(t) <= 300 for t in focus["texts"]),
+        "parent-enfant : les enfants listés dans le focus, chacun avec son parent",
+        str((focus["chunks"], focus["parents"])),
+    )
+    r.shot("64-atelier-rag-decoupage", full_page=True)
+
+    _rag_mode(r, "compose")
+    _seq_row(r, "chunking").locator("select.rag-option").select_option(
+        label="Avec contexte (contextual retrieval)"
+    )
+    time.sleep(0.8)
+    ended, seq = _rag_lab_run(r)
+    focus = _chunking_focus(r)
+    r.check(
+        ended["payload"]["status"] == "ok"
+        and focus["chunks"] > 0
+        and set(focus["marks"]) == {"précalculé · heuristique, sans LLM"},
+        "contextual : chaque contexte marqué « précalculé » et « heuristique »",
+        str(set(focus["marks"])),
+    )
+
+    page.click("#rag-contexts-rebuild")
+    deadline = time.monotonic() + 120
+    contexts: dict[str, Any] = {}
+    while time.monotonic() < deadline:
+        state = r.api("GET", "/api/rag_lab").json()
+        contexts = state["contexts"]
+        if contexts["rebuilt"] and state["session_state"]["state"] == "idle":
+            break
+        time.sleep(0.5)
+    r.check(
+        contexts.get("rebuilt") is True and contexts["method"] == "llm",
+        "reconstruire avec le faux modèle : contextes reconstruits, méthode llm",
+        str(contexts),
+    )
+    page.reload()
+    expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
+    ended, seq = _rag_lab_run(r)
+    focus = _chunking_focus(r)
+    r.check(
+        focus["marks"]
+        and all(m.startswith("reconstruit") for m in focus["marks"])
+        and "reconstruit" in focus["summary"],
+        "après reconstruction : le focus marque les contextes « reconstruit »",
+        str(set(focus["marks"])),
+    )
+
+    page.click("#rag-contexts-reset")
+    expect(page.locator("#rag-contexts-reset")).to_be_disabled(timeout=10_000)
+    ended, seq = _rag_lab_run(r)
+    focus = _chunking_focus(r)
+    r.check(
+        r.api("GET", "/api/rag_lab").json()["contexts"]["rebuilt"] is False
+        and set(focus["marks"]) == {"précalculé · heuristique, sans LLM"},
+        "rétablir les contextes livrés : fichier supprimé, contextes « précalculé » relus",
+        str(set(focus["marks"])),
+    )
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -16674,6 +16789,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab", s_rag_lab),
     ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
     ("rag_lab_query", s_rag_lab_query),  # V1.2 story 5
+    ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

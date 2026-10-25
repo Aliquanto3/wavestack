@@ -780,3 +780,9 @@ d'autres (story 21) :
   (le faux llama-server coupe la question en deux), listées dans le focus de l'étape et cherchées
   chacune (chaque extrait donne son rang pour chaque requête) ; la réécriture n'en produit
   qu'une ; capture `63-atelier-rag-requetes.jpg`.
+
+- `rag_lab_chunking`, V1.2 story 6 (CAP-4), après `rag` et `rag_rerank` : les quatre options du
+  découpage ; « Parent-enfant » (les enfants listés dans le focus, chacun avec son parent) puis
+  « Avec contexte » (chaque contexte marqué « précalculé · heuristique, sans LLM ») ;
+  « Reconstruire » avec le faux modèle (contextes « reconstruits », méthode `llm`, relus après
+  rechargement), puis « Rétablir les contextes livrés » ; capture `64-atelier-rag-decoupage.jpg`.

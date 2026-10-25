@@ -362,6 +362,11 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert [p.model_dump(include=fixed) for p in tr.publishers] == [
             p.model_dump(include=fixed) for p in fr.publishers
         ]
+    elif rel == "rag_contexts.yaml":  # V1.2 story 6: its own corpus's chunks, the header's rule
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model", "chunk_max_chars"):
+            assert tr[key] == fr[key]
+        assert tr["chunks"] == len(tr["entries"]) and tr["entries"] != fr["entries"]
     elif rel == "rag_questions.yaml":  # story 1: same ids, types and doc_ids, texts translated
         fr, tr = load_rag_questions("fr"), load_rag_questions(lang)
 

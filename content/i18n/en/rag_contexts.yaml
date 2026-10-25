@@ -1,0 +1,270 @@
+# Contexts of the contextual chunking (V1.2 story 6). Built by tools/build_rag_contexts.py,
+# not by hand: a context belongs to a chunk by the sha256 of its text.
+author: shipped
+method: heuristic
+model: heuristic
+chunk_max_chars: 700
+chunks: 65
+tokens: 3353
+duration_ms: 0
+entries:
+- doc_id: mots_de_passe
+  position: 1
+  sha256: e5928b32331910896a93a34148aa766bcc6a7c741d66211660ce6ee27667faa5
+  context_text: 'Chunk 1/3 of “Password policy”. The document begins with: Length matters more than complexity: a passphrase of four or five unrelated words is recommended, for example a series of randomly drawn words separated by hyphens.'
+- doc_id: mots_de_passe
+  position: 2
+  sha256: d643e70d1efa466bd188ed02fcdf2700017ded971fe0ca87d1b283d9fb09a3f4
+  context_text: 'Chunk 2/3 of “Password policy”. The document begins with: At Exemplia, a user account password has at least 14 characters.'
+- doc_id: mots_de_passe
+  position: 3
+  sha256: fd60466f0d1553295063fdf5cf7d9ff6f8378a80ca337e238b5f412d7d8e71e0
+  context_text: 'Chunk 3/3 of “Password policy”. The document begins with: At Exemplia, a user account password has at least 14 characters.'
+- doc_id: teletravail
+  position: 1
+  sha256: 1930ab7e86f89d9663c40fc927dff06b1c84c595bdb6e8be3480d8c8591e492c
+  context_text: 'Chunk 1/3 of “Remote work agreement”. The document begins with: Interns and work-study students are limited to 1 day a week, to keep in touch with their mentor.'
+- doc_id: teletravail
+  position: 2
+  sha256: ad823ce84eca6db421bf8272704a2eeffd80d25435d8bc20f2edead4e7e53039
+  context_text: 'Chunk 2/3 of “Remote work agreement”. The document begins with: Any employee on a permanent contract may work remotely up to 3 days a week, after an onboarding period of 2 months.'
+- doc_id: teletravail
+  position: 3
+  sha256: 8e0a32707dee57935c047fd7fd190eb4f1ee8ba3e3995b32803ccdc89e57356c
+  context_text: 'Chunk 3/3 of “Remote work agreement”. The document begins with: Any employee on a permanent contract may work remotely up to 3 days a week, after an onboarding period of 2 months.'
+- doc_id: classification
+  position: 1
+  sha256: 6445ceaf3bec3196e61ea4881410ae5230828b6e24113ac4ac44cf4e551ff2ce
+  context_text: 'Chunk 1/4 of “Information classification”. The document begins with: By default, an unmarked document is treated as Internal.'
+- doc_id: classification
+  position: 2
+  sha256: c7e3e1ecabcd0338fa509d0ff4c23a948c87c282d2f952c8e450dadc9f414baa
+  context_text: 'Chunk 2/4 of “Information classification”. The document begins with: All information produced or received by Exemplia carries one of the following 4 classification levels: Public, Internal, Confidential and Secret.'
+- doc_id: classification
+  position: 3
+  sha256: 908d02e0f0a544bb6e4d5f2e43217c428cef07c8942c1f233d656ecb13f9edc1
+  context_text: 'Chunk 3/4 of “Information classification”. The document begins with: All information produced or received by Exemplia carries one of the following 4 classification levels: Public, Internal, Confidential and Secret.'
+- doc_id: classification
+  position: 4
+  sha256: 9d9cddeaf0eca04831a6245f855cf635a395ab1cdd11a757222c31cca0de5872
+  context_text: 'Chunk 4/4 of “Information classification”. The document begins with: All information produced or received by Exemplia carries one of the following 4 classification levels: Public, Internal, Confidential and Secret.'
+- doc_id: incidents
+  position: 1
+  sha256: 203a8d3a326d7336a387fb81179a569b0d361f2591034e034edad8119ebdc54e
+  context_text: 'Chunk 1/4 of “Security incidents”. The document begins with: Any employee who notices or suspects an incident reports it within 30 minutes to the response team, CERT-Ex.'
+- doc_id: incidents
+  position: 2
+  sha256: 743d594bb97b956c714d4645f4ad268ec92fe0e2a7fa0eb122909d48ecaa91f1
+  context_text: 'Chunk 2/4 of “Security incidents”. The document begins with: A security incident is any event that threatens the confidentiality, integrity or availability of Exemplia''s information: a phishing email opened, a laptop lost, a virus detected, a confidential docu…'
+- doc_id: incidents
+  position: 3
+  sha256: c3fac147bbad34b38691c3d4e129a56f4f3cf356b34ef147b95004e6a6de7f0a
+  context_text: 'Chunk 3/4 of “Security incidents”. The document begins with: A security incident is any event that threatens the confidentiality, integrity or availability of Exemplia''s information: a phishing email opened, a laptop lost, a virus detected, a confidential docu…'
+- doc_id: incidents
+  position: 4
+  sha256: d8ca6b19e24a10335bb1483f761ebc3a78bec21b0d3f05a323eccd7489e4eff8
+  context_text: 'Chunk 4/4 of “Security incidents”. The document begins with: A security incident is any event that threatens the confidentiality, integrity or availability of Exemplia''s information: a phishing email opened, a laptop lost, a virus detected, a confidential docu…'
+- doc_id: donnees_personnelles
+  position: 1
+  sha256: 5dc3e6f2838412b308893beed508b0752ac2f1c34ae16881bea52118c90e0b27
+  context_text: 'Chunk 1/4 of “Personal data retention”. The document begins with: Exemplia''s record of processing activities sets, for each processing activity, an active period, during which departments use the data, then an archiving period, during which only the legal departmen…'
+- doc_id: donnees_personnelles
+  position: 2
+  sha256: 2f03c85a9b43372cc770cbe64fc94537c1934446ed401c62d7e2ecd59b35a70f
+  context_text: 'Chunk 2/4 of “Personal data retention”. The document begins with: Personal data is kept only as long as necessary for the purpose for which it was collected.'
+- doc_id: donnees_personnelles
+  position: 3
+  sha256: 89e01f79e7713888f2cd4a0cabd72d7ed36aa8ddcb92e8b98827ee6d4d398803
+  context_text: 'Chunk 3/4 of “Personal data retention”. The document begins with: Personal data is kept only as long as necessary for the purpose for which it was collected.'
+- doc_id: donnees_personnelles
+  position: 4
+  sha256: a355e9db6586356b0fdbd9c5bcd3d15ce276cac54f5ce9598576c7987403bcdb
+  context_text: 'Chunk 4/4 of “Personal data retention”. The document begins with: Personal data is kept only as long as necessary for the purpose for which it was collected.'
+- doc_id: ia_generative
+  position: 1
+  sha256: a6dad983a7b82f03cb8cb876371384c74717f04422f8f0acec3289d2d455cc5d
+  context_text: 'Chunk 1/3 of “Use of generative AI”. The document begins with: It applies to chat assistants, image generators and code completion tools.'
+- doc_id: ia_generative
+  position: 2
+  sha256: 7fc757a4b502e90be898ac1296b68a1cd3da2047ab16fbee0b7b7bf2f64324d7
+  context_text: 'Chunk 2/3 of “Use of generative AI”. The document begins with: Exemplia encourages the use of generative artificial intelligence to save time on writing, summarising and translating, in line with this charter.'
+- doc_id: ia_generative
+  position: 3
+  sha256: 13b6bc6e2f8e70841fc28a3dc8ca35372fef0a1db190903b729a03b1a5de0b69
+  context_text: 'Chunk 3/3 of “Use of generative AI”. The document begins with: Exemplia encourages the use of generative artificial intelligence to save time on writing, summarising and translating, in line with this charter.'
+- doc_id: deplacements
+  position: 1
+  sha256: 99f8f75114c2e4b15c5a1bd492fcd430a5065f1a8591e03c913c38a7b5f9b9ae
+  context_text: 'Chunk 1/3 of “Business travel and expense claims”. The document begins with: A booking made outside Voyagex is reimbursed only as an exception, with a written justification.'
+- doc_id: deplacements
+  position: 2
+  sha256: b26d80def4475bf5c466ad7c443ba7bbeb128601ce285183fa56fbcb08083745
+  context_text: 'Chunk 2/3 of “Business travel and expense claims”. The document begins with: All business travel is approved in advance by the manager in the Voyagex booking tool, which automatically applies the rules below.'
+- doc_id: deplacements
+  position: 3
+  sha256: 4139d43ce2752e1c04c9656d039e1873fd593d97127ec6559d2c55e9bbaf64cd
+  context_text: 'Chunk 3/3 of “Business travel and expense claims”. The document begins with: All business travel is approved in advance by the manager in the Voyagex booking tool, which automatically applies the rules below.'
+- doc_id: sauvegardes
+  position: 1
+  sha256: 54d0f02d5bf96dddf0dec519a73d8f3c6fa557fbf163d5ff103bde9fb0e84c35
+  context_text: 'Chunk 1/3 of “Backups”. The document begins with: This rule applies to file servers, application databases and email.'
+- doc_id: sauvegardes
+  position: 2
+  sha256: f000b7ab550d82b6ef94594a2cac6d11af5e74f480270a0e76966403331901f4
+  context_text: 'Chunk 2/3 of “Backups”. The document begins with: Exemplia''s data follows the 3-2-1 rule: at least 3 copies of each piece of data, on 2 different media, with 1 copy kept away from the main site.'
+- doc_id: sauvegardes
+  position: 3
+  sha256: 2ab93c0b254ef42f6b0b2eda42a51245916a3f0c761e225018f3042621a5a14c
+  context_text: 'Chunk 3/3 of “Backups”. The document begins with: Exemplia''s data follows the 3-2-1 rule: at least 3 copies of each piece of data, on 2 different media, with 1 copy kept away from the main site.'
+- doc_id: prestataires
+  position: 1
+  sha256: 073bcef8965624df822354de399dce01e5f5aff3c7fc6caf669c34e840954a10
+  context_text: 'Chunk 1/3 of “Supplier security policy”. The document begins with: The tier is set by the supplier unit before the contract is signed, and reviewed every year.'
+- doc_id: prestataires
+  position: 2
+  sha256: 0582378b6e59b7919106f9ccd38b3163c9c836e0417d16150a6b56e8eb9c4313
+  context_text: 'Chunk 2/3 of “Supplier security policy”. The document begins with: Exemplia places every supplier who handles company information into one of two tiers: critical, when it hosts data or connects to the internal network, or standard for the others.'
+- doc_id: prestataires
+  position: 3
+  sha256: 1be1f9b218fc0c8b8f96b0f5e97a4e9db9a874b4a4a973df56adfe4458468f16
+  context_text: 'Chunk 3/3 of “Supplier security policy”. The document begins with: Exemplia places every supplier who handles company information into one of two tiers: critical, when it hosts data or connects to the internal network, or standard for the others.'
+- doc_id: clauses_contrats
+  position: 1
+  sha256: 58b770a8a2856594ed3aaa3429884b25750e82b70cf9f2b80a2bda01cd635cde
+  context_text: 'Chunk 1/2 of “Contract security clauses”. The document begins with: Notification clause: a supplier reports to Exemplia any security incident touching Exemplia''s data or systems within 24 hours of its discovery, even in case of doubt.'
+- doc_id: clauses_contrats
+  position: 2
+  sha256: 3ac46ea52d48f2ebc92d6eddc17c7ec90c611dae004e054c113b12d2e4f8c4d7
+  context_text: 'Chunk 2/2 of “Contract security clauses”. The document begins with: This model completes the supplier security policy: it lists the clauses the supplier unit inserts into every supply contract, according to the supplier''s tier.'
+- doc_id: registre_sous_traitants
+  position: 1
+  sha256: 41dcad804aba08bdf52f4acf087d9e6bf063b929e12cd2198dde07d756e6f478
+  context_text: 'Chunk 1/2 of “Subcontractor register”. The document begins with: NuageSud, hosting of the accounting servers, France, critical supplier.'
+- doc_id: registre_sous_traitants
+  position: 2
+  sha256: ed5632363a2f1f6f108fda40ef63d5967cc91848d5f133b6bc95f8c2732df982
+  context_text: 'Chunk 2/2 of “Subcontractor register”. The document begins with: This register, kept by the supplier unit and cited by the model of security clauses, lists every subcontractor used by an Exemplia supplier: its name, its function, the country where it hosts or proc…'
+- doc_id: gestion_crise
+  position: 1
+  sha256: c79c9edfcddf4ec87f7a889bf77f881bfcc7e1e311cc63512b13dc40b1550f6b
+  context_text: 'Chunk 1/3 of “Crisis management procedure”. The document begins with: The crisis unit convenes in under 2 hours, day and night, chaired by the chief executive officer or, in their absence, by the duty crisis director.'
+- doc_id: gestion_crise
+  position: 2
+  sha256: c2d6eecfe63afbf192cc5dad2d85b98ebc5be576ee0a55775b2378773adff990
+  context_text: 'Chunk 2/3 of “Crisis management procedure”. The document begins with: This procedure takes over from the incident reporting procedure as soon as a level 3 incident is declared, or when several Exemplia sites are affected at the same time.'
+- doc_id: gestion_crise
+  position: 3
+  sha256: 1de2392bcb0bc97df789bba8b83c6f1a9f6bbdd52ef3674f34494b2c98806f68
+  context_text: 'Chunk 3/3 of “Crisis management procedure”. The document begins with: This procedure takes over from the incident reporting procedure as soon as a level 3 incident is declared, or when several Exemplia sites are affected at the same time.'
+- doc_id: astreinte
+  position: 1
+  sha256: f4c0fac57209f31ac48aa6d0a6fb2ff18f389315dddbbd762bb822d46edab069
+  context_text: 'Chunk 1/2 of “On-call contacts annex”. The document begins with: Security on-call, to call first for any major incident at night or at the weekend: the single on-call number is 06 07 08 09 10, followed by an answering service that forwards to the person on duty th…'
+- doc_id: astreinte
+  position: 2
+  sha256: 220730e34e475bcb71e786eb04b67d6df6f78a229e987bce78d44e3fc0cf330c
+  context_text: 'Chunk 2/2 of “On-call contacts annex”. The document begins with: This annex of the crisis management procedure lists the contacts to reach outside working hours, day and night, depending on the area concerned.'
+- doc_id: charte_messagerie_v1
+  position: 1
+  sha256: 3af1e6254a5f073bda33e22f6232cad1f362964f8b38d5b1a7c7e8404816c4a3
+  context_text: 'Chunk 1/2 of “Email charter, version 1 (2024)”. The document begins with: Exemplia''s professional mailbox is reserved for professional use; occasional personal use is not tolerated and may lead to a reminder from the manager.'
+- doc_id: charte_messagerie_v1
+  position: 2
+  sha256: 780cc095e9ce15e9b709219eaf73116fefb6f5e5cd372101abb32cf5ab692d4b
+  context_text: 'Chunk 2/2 of “Email charter, version 1 (2024)”. The document begins with: This version of the email charter, in force since January 2024, is replaced by version 2: it is kept here as an archive, to understand past decisions.'
+- doc_id: charte_messagerie_v2
+  position: 1
+  sha256: 1b35f990dd7aa501beb3ec003684196a921a8d223584f5b21fd1a190449f1d7a
+  context_text: 'Chunk 1/2 of “Email charter, version 2 (2026)”. The document begins with: The professional mailbox remains reserved for professional use, but an occasional and reasonable personal use is now tolerated, for example a brief private message.'
+- doc_id: charte_messagerie_v2
+  position: 2
+  sha256: 940950577073f114c59b1b92fa41b6ea0ecb90a3965f974a6c1caa6afbcb79a2
+  context_text: 'Chunk 2/2 of “Email charter, version 2 (2026)”. The document begins with: This version replaces version 1 as of 1 January 2026, following the change of email provider described in the associated change note: this is the version in force.'
+- doc_id: note_changement_messagerie
+  position: 1
+  sha256: 7e8a2dd99c0c3596d6303cb4fd04f41f2fc1ec5c5cf8d18032425d85a232c64b
+  context_text: 'Chunk 1/3 of “Email change note”. The document begins with: Exemplia changed its email provider on 1 January 2026, after a tender run in 2025.'
+- doc_id: note_changement_messagerie
+  position: 2
+  sha256: 49c0609ac11d0c955ecc35c3f9047aa2f1b1301d2f7eab5283a162cbd75bfada
+  context_text: 'Chunk 2/3 of “Email change note”. The document begins with: This note explains the move from version 1 to version 2 of the email charter, effective since 1 January 2026.'
+- doc_id: note_changement_messagerie
+  position: 3
+  sha256: d28740e1763277a20f329d9a68b2541a34ba2653e96d43d92c033b6c467dba6c
+  context_text: 'Chunk 3/3 of “Email change note”. The document begins with: This note explains the move from version 1 to version 2 of the email charter, effective since 1 January 2026.'
+- doc_id: rundschreiben_usb
+  position: 1
+  sha256: 22c6745521218b7fe0b79360d9649d65b948bf8f0086ee923a72e54aff7c9bc5
+  context_text: 'Chunk 1/3 of “USB storage media circular (German-only document)”. The document begins with: Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale angeschlossen werden.'
+- doc_id: rundschreiben_usb
+  position: 2
+  sha256: e33e654a791dd0e71e1fff377539c5d32a1eb07e6008e0268e6ae2698934a8b8
+  context_text: 'Chunk 2/3 of “USB storage media circular (German-only document)”. The document begins with: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet.'
+- doc_id: rundschreiben_usb
+  position: 3
+  sha256: da54e5f6b11a183f1c06bbb2169c43dd0dd4dff76a6b5a64e4e8a8f3a42df8cc
+  context_text: 'Chunk 3/3 of “USB storage media circular (German-only document)”. The document begins with: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet.'
+- doc_id: uk_visitor_badges
+  position: 1
+  sha256: 0274b80b9831c97f4a078e1a3a440d0d483fbe28ca12217c600174e533229cec
+  context_text: 'Chunk 1/2 of “UK visitor badges”. The document begins with: Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor register.'
+- doc_id: uk_visitor_badges
+  position: 2
+  sha256: 9a89d6b07c4567adbee8ecc0ce3c93afcfd42ebf6dc7e192521d066ca2608836
+  context_text: 'Chunk 2/2 of “UK visitor badges”. The document begins with: This policy applies only to Exemplia''s United Kingdom subsidiary, in Manchester; it exists in English only, as the local reception team works in that language.'
+- doc_id: plan_continuite_lyon
+  position: 1
+  sha256: 9cffef50791b8f3145020377654a1115e134a7a8c48545bd1095c27471e92e5a
+  context_text: 'Chunk 1/2 of “Lyon site business continuity plan (French-only document)”. The document begins with: Si le site principal de Lyon devient inaccessible, pour cause d''incendie, de panne électrique prolongée ou d''évacuation, le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la d…'
+- doc_id: plan_continuite_lyon
+  position: 2
+  sha256: de022e5e6e8cac8c1f18b42a2afc33e49dbea729b6ad73469dad948d7faf6a23
+  context_text: 'Chunk 2/2 of “Lyon site business continuity plan (French-only document)”. The document begins with: Ce document concerne uniquement le site de Lyon d''Exemplia ; il n''existe qu''en français, car il relève d''une équipe locale qui travaille dans cette langue.'
+- doc_id: grille_remunerations
+  position: 1
+  sha256: 69e771117d6d1eb91cb878f31adfea9e6159a2bd8e094e62379eb95d2dc9d189
+  context_text: 'Chunk 1/2 of “Compensation grid”. The document begins with: The grid has 5 categories, from category A (entry-level roles) to category E (management), each split into 3 steps based on time in the role.'
+- doc_id: grille_remunerations
+  position: 2
+  sha256: da900e94ad82cbf9a92a089c2e8902e2a6194b0d8eec9db06bca80ebf5f21c31
+  context_text: 'Chunk 2/2 of “Compensation grid”. The document begins with: This document describes Exemplia''s compensation structure; it is classed confidential and its access is reserved to human resources and management.'
+- doc_id: dossier_disciplinaire
+  position: 1
+  sha256: b275edbe1b9825ca0fd31e462d4fa5976efddf7f5bff2bc4bf5beabab697d759
+  context_text: 'Chunk 1/2 of “Disciplinary procedure”. The document begins with: A behavioural issue or a breach leads, depending on its severity, to one of these measures: an oral reminder, a written warning placed on file, a 1- to 5-day unpaid suspension, or dismissal for misco…'
+- doc_id: dossier_disciplinaire
+  position: 2
+  sha256: 8f3cd43d83b8dd5c3f606b47652d9eea063d89717ed4f7aab9bc0fb036194380
+  context_text: 'Chunk 2/2 of “Disciplinary procedure”. The document begins with: This document describes the steps of a disciplinary procedure at Exemplia; it is classed confidential and its access is reserved to human resources, management and, for a file concerning them, the em…'
+- doc_id: entretiens_annuels
+  position: 1
+  sha256: e95149416f053604dcc11391e41e5fd8a78f2bd3864d3918b43e8c49f2b3361f
+  context_text: 'Chunk 1/2 of “Annual review procedure”. The document begins with: The review takes place every year in the first quarter, between January and March.'
+- doc_id: entretiens_annuels
+  position: 2
+  sha256: 68a5029300d28b76c2b434464d249ebfd456da6f39980deaa307584da2b5fb3b
+  context_text: 'Chunk 2/2 of “Annual review procedure”. The document begins with: This document describes Exemplia''s annual review, led by each employee''s direct manager; it is classed as a human resources document.'
+- doc_id: acces_physique
+  position: 1
+  sha256: c8502781bdf7c56d7af0b92367853b7a3fc9eaaf780d25eb1e58195c4c47e302
+  context_text: 'Chunk 1/2 of “Physical access to premises”. The document begins with: A personal badge, issued to every employee from their first day, grants access to the zones their role needs.'
+- doc_id: acces_physique
+  position: 2
+  sha256: 8bca571448657d411c34b4fa5b43b70bbb7970de77698d7d6cbca94bea6e8ef5
+  context_text: 'Chunk 2/2 of “Physical access to premises”. The document begins with: Each Exemplia site is divided into 3 zones: normal (reception, open space), restricted (sensitive meeting rooms, technical rooms) and secure (server room, crisis room).'
+- doc_id: revue_habilitations
+  position: 1
+  sha256: c1cb5c36860eef4afb59136563ce2d0dd8b4799baf987ce5d3f187a5e4324ab3
+  context_text: 'Chunk 1/2 of “Access rights review”. The document begins with: This document sets the rules for their regular review.'
+- doc_id: revue_habilitations
+  position: 2
+  sha256: 5d5fb4a02aff40b96e5fed44e15e41835a5861e8143a746c3d1c953a8b48ee8f
+  context_text: 'Chunk 2/2 of “Access rights review”. The document begins with: An access right is a permission to use an application, a shared folder or a physical zone, described in the physical access policy for premises.'
+- doc_id: formation_securite
+  position: 1
+  sha256: be0992844aed04ffd297b01160b37595fead2534c013493b0023088c265b87f7
+  context_text: 'Chunk 1/2 of “Security training”. The document begins with: A new hire takes it within their first month; it is renewed every year for everyone.'
+- doc_id: formation_securite
+  position: 2
+  sha256: c8d1d77cffe49c3aaacb0e23894b3db1fdbe29ca5d06a9fa2bf7b98901eff97b
+  context_text: 'Chunk 2/2 of “Security training”. The document begins with: Every Exemplia employee takes a 2-hour online information security training, then passes a quiz with at least 8 correct answers out of 10 to obtain it.'
