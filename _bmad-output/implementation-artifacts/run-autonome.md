@@ -366,3 +366,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:55 · 12.17 · décision · à revoir : 8 points tranchés par le relecteur Opus (cas constructed, mini-graphe illustratif, block par défaut, un seul document piégé) · 5dffbb1
 - 2026-10-25 08:55 · 12.17 · attente humaine · avant de déclarer finie (done_checkpoint) : recette visuelle fr/en/de clair et sombre, relecture des reformulations en/de, vrai verdict Prompt Guard 2, enregistrement des réponses, entrées de la page Sécurité · —
 - 2026-10-25 08:55 · 12.17 · dev · phase 2 (code) lancée · 5dffbb1
+- 2026-10-25 09:02 · 12.6 · CI · rouge Windows groupe 4 deux fois : test_rag_lab_download::test_the_files_are_read_again_before_idle (rappel _rag_caught_up absent) ; non reproduit en local, seul ni après test_rag_lab_chunking ; hors diff de 12.6 ; 3e relance · 6518c09
