@@ -268,3 +268,8 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:04 · 12.9 · décision · à revoir : CAP-2 à CAP-4 de la spec V2 marqués absorbés alors que le diagnostic en vue harnais, la synthèse A/B et les prompts suggérés sont reportés · —
 - 2026-10-25 07:04 · run · PR · agent-cost-kit #24 ouverte (0.12.0, recette de CI découpée, fusion_durees.py), non fusionnée · b7bd629
 - 2026-10-25 07:06 · run · fusion · #100 fusionnée (faux blobs creux sous Windows), via file_prs.py · 13bce6b
+- 2026-10-25 07:10 · run · blocked · panne du classifieur du mode auto : agents de 14.4 (Opus, implémentation en cours, non commitée) et 12.5 (Sonnet) arrêtés · —
+- 2026-10-25 07:18 · 13.6 · CI · #101 rouge sur Windows et Ubuntu (run 40166873731) ; base en retard sur #99 et #100 · cf08515
+- 2026-10-25 07:18 · 12.5 · dev · arrêté après 2 commits (code, E2E) ; 12 captures E2E modifiées non commitées · 05ec223
+- 2026-10-25 07:18 · 14.4 · dev · arrêté en pleine implémentation (kept dans CompactionChoice, puis front) ; 19 fichiers modifiés non commités · 30dca94
+- 2026-10-25 07:18 · run · décision · reprise : #101 (merge main, cause CI), fusion, release V1.3 ; puis 14.4 (Opus) et 12.5 (Sonnet) depuis leur worktree ; second avis de 12.9 · —
