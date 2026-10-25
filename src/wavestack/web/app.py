@@ -351,6 +351,8 @@ class RagLabRebuildIntention(BaseModel):
     model, for the chain's chunk size (the shipped chain when absent)."""
 
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+    # V1.2 story 11: what is rebuilt, the contexts (by default) or PageIndex's summaries.
+    target: Literal["contexts", "pageindex"] = "contexts"
 
 
 class RagLabValidateRequest(BaseModel):
@@ -731,7 +733,7 @@ def create_app(
         Refused (no model, a chain refused): 409."""
         try:
             chain = intention.pipelines[0] if intention.pipelines else None
-            return {"run_id": app_session.rebuild_rag_lab_contexts(chain)}
+            return {"run_id": app_session.rebuild_rag_lab_contexts(chain, intention.target)}
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
@@ -743,6 +745,17 @@ def create_app(
         run goes on."""
         try:
             return shown({"contexts": app_session.reset_rag_lab_contexts()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/pageindex/reset")
+    def rag_lab_pageindex_reset() -> dict[str, object]:
+        """V1.2 story 11: PageIndex's rebuilt summaries deleted, the shipped tree read again;
+        409 while a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_pageindex()})
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)

@@ -1,0 +1,17 @@
+{
+  "budget": {
+    "calls": 20,
+    "cap_calls": 6000,
+    "cap_model_usd": 0.33,
+    "cap_usd": 2.0,
+    "model_calls": {
+      "typesafe/jev-1.14": 20
+    },
+    "model_spent_usd": {
+      "typesafe/jev-1.14": 0.0012
+    },
+    "spent_usd": 0.0012
+  },
+  "incomplete": {},
+  "stopped": null
+}

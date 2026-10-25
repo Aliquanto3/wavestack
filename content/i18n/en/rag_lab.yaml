@@ -219,6 +219,10 @@ options:
       label_text: "Whole corpus in the prompt (long context)"
     cached_corpus:
       label_text: "Whole corpus in the model's cache (CAG)"
+    agent_loop:
+      label_text: "Agentic search (tools on the files)"
+    section_tree:
+      label_text: "Tree of sections (PageIndex)"
   generation:
     active:
       label_text: "The workshop's active model"
@@ -330,6 +334,19 @@ steps:
       the model reads only the question. This prefix is a cut in tokens of the prompt sent, up
       to the last end of line before the question. Any update of the corpus reloads it whole,
       and the state takes memory as long as it is kept.
+  # V1.2 story 11: PageIndex's tree built once, gone down at each question; the agent's calls.
+  tree_build:
+    label_text: "Tree building"
+    action_text: "Build the tree of the documents' sections"
+    explain_text: "PageIndex builds a tree of the corpus once: the root, a node per document, one per section, each with a title and a short summary. The shipped tree is computed by a rule, without a model; “Rebuild” has the active model write the summaries. Updating a document recomputes its subtree only."
+  agent_calls:
+    label_text: "Tool calls"
+    action_text: "The model picks an action, the tool reads it in the corpus"
+    explain_text: "At each round, the model answers with a line ACTION: list_files, grep <words>, read_file <name> or ANSWER. The tools read the work copy in memory, never the disk: a name outside the corpus is refused and said to the model. Each tool result becomes an element of the context. The loop stops on ANSWER, at the 6th round or after two unreadable answers."
+  tree_levels:
+    label_text: "Tree descent"
+    action_text: "The model picks, level by level, the nodes to open"
+    explain_text: "At each level, the model reads the numbered list of the children of the nodes kept (title and summary) and answers CHOICE: 3, 7 (two at most) or CHOICE: NONE. One call per level: two on the shipped corpus (the documents, then the sections). The whole text of the sections reached becomes the context."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -366,6 +383,12 @@ components:
   model_cache:
     label_text: "Model cache"
     note_text: "The model's state after the prefix (CAG)"
+  file_tools:
+    label_text: "Tools on the files"
+    note_text: "list_files, grep, read_file, confined to the corpus"
+  section_tree:
+    label_text: "Tree of sections"
+    note_text: "Documents and sections, titles and summaries"
 
 groups:
   data:
@@ -418,10 +441,24 @@ presets:
       No index, no search: the corpus is evaluated once and kept in the local model's memory;
       each request evaluates only the question. Any update reloads the whole prefix. It needs a
       local model and a window of 16,384 tokens.
+  agentic:
+    label_text: "Agentic search"
+    explain_text: >-
+      No index: the model searches the corpus by itself with three tools (list, search words,
+      read a document), one action per round, up to six. Nothing to build or update, but
+      several model calls at each query.
+  pageindex:
+    label_text: "PageIndex"
+    explain_text: >-
+      No vectors: a tree of the documents and their sections, built once, that the model goes
+      down level by level reading titles and summaries. A tree to build and to redo at each
+      update, few calls per query.
 # V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
 preset_families:
   search:
     label_text: "Search"
+  structure:
+    label_text: "Structure"
   no_index:
     label_text: "No index"
 
@@ -650,3 +687,25 @@ sheets:
     sources:
       - label_text: "Chan et al., Don't Do RAG: When Cache-Augmented Generation is All You Need for Knowledge Tasks (2024)"
         url: "https://arxiv.org/abs/2412.15605"
+  context.agent_loop:
+    purpose_text: "Index nothing: let the model search the corpus files by itself, with three tools (list_files, grep, read_file) confined to the work copy, one action per round, until ANSWER or the limit of six rounds. What the tools return becomes the context."
+    when_text: "To use on a volatile corpus that changes often: nothing to rebuild, an added document is found from the next query. To avoid when the query must be fast or cheap, and on a large corpus: the advantage fades towards 100 to 1,000 documents. A small model may not follow the protocol: the loop then stops with a warning."
+    cost_text: "No build and no update: no index. Each query costs several model calls (one per round, the prompt read again each time) then the generation: the Query time shows it, to compare with dense RAG in Compare."
+    literature_text: "Hypothesis H5, partly supported: agentic search matches RAG but costs more, 3.3 times more tokens (arXiv 2601.07711) and up to 107 s per query (arXiv 2610.05750); it wins on a volatile corpus, which was never tested. The measures on the target PC remain to be made."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2601.07711: agentic search on files, 3.3 times more tokens than a RAG"
+        url: "https://arxiv.org/html/2601.07711v2"
+      - label_text: "arXiv 2610.05750: document search agents, up to 107 s per query"
+        url: "https://arxiv.org/pdf/2610.05750"
+  context.section_tree:
+    purpose_text: "Search without vectors in a tree of sections built once (the corpus, its documents, their sections, with title and summary): the model goes down one level at a time choosing at most two nodes, and the whole text of the sections reached becomes the context."
+    when_text: "To use on long, structured documents, when the question aims at a precise section. To avoid on a corpus that changes often (the tree must be redone) or when titles and summaries say the content badly: a wrong choice at the first level loses the answer."
+    cost_text: "Building the tree is the Build cost: by the rule, a few milliseconds and no token; by the model (“Rebuild”), one call per node. Each query costs one call per level (two on the shipped corpus) then the generation. An update recomputes the subtree of the touched document."
+    literature_text: "Hypothesis H4, partly supported, mostly by the publisher: PageIndex would win on long, structured documents, at a higher LLM cost. An independent study on 50 questions measures a latency of about 1.7 times a RAG's (arXiv 2604.14222). The tree shipped here is computed by a rule, without a model."
+    bench_text: ""
+    sources:
+      - label_text: "PageIndex (Vectify AI), vectorless search by a tree of sections"
+        url: "https://github.com/VectifyAI/PageIndex"
+      - label_text: "arXiv 2604.14222: PageIndex evaluated on 50 questions, latency ~1.7 times"
+        url: "https://arxiv.org/html/2604.14222v1"

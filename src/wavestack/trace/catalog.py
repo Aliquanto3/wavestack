@@ -1628,6 +1628,85 @@ class RagLabCache(BaseModel):
     build_ms: int | None = None
 
 
+class RagLabWarning(BaseModel):
+    """V1.2 story 11: a warning of the agent's loop or of the tree's descent, by its code
+    (`agent_round_limit`, `agent_unreadable`, `no_node_chosen`…) and its text."""
+
+    code: str
+    text: str
+
+
+class RagLabAgentTurn(BaseModel):
+    """V1.2 story 11 (CAP-7): one round of the agentic search: the action the model asked for
+    (`None`: an unreadable answer), its argument, what came of it (`ok`, `refused`,
+    `unreadable`, `answer`, `cancelled`, `too_long`, `error`), the tool's result only as a cut
+    preview and its length, and the call's tokens."""
+
+    round: int
+    action: str | None = None
+    argument: str = ""
+    status: str
+    result_preview: str = ""
+    result_chars: int = 0
+    result_tokens: int = 0
+    cut: bool = False
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+    answer_preview: str = ""
+
+
+class RagLabAgent(BaseModel):
+    """V1.2 story 11: the agent's loop of a Context stage (`agent_loop`): its rounds, why it
+    stopped (`answer`, `round_limit`, `unreadable`, `cancelled`, `too_long`, `error`), the
+    tokens of the tools' results kept and its warnings."""
+
+    rounds: int
+    max_rounds: int
+    stop: str
+    turns: list[RagLabAgentTurn] = []
+    result_tokens: int = 0
+    warnings: list[RagLabWarning] = []
+
+
+class RagLabTreeChild(BaseModel):
+    number: int
+    node_id: str
+    title_text: str
+    summary_text: str = ""
+
+
+class RagLabTreeLevel(BaseModel):
+    """V1.2 story 11: one level of PageIndex's descent: the children shown to the model (title
+    and summary), the nodes it chose, how many children the window left out, its answer cut
+    and the call's tokens."""
+
+    level: int
+    shown: list[RagLabTreeChild] = []
+    chosen: list[str] = []
+    trimmed: int = 0
+    answer_preview: str = ""
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+
+
+class RagLabTree(BaseModel):
+    """V1.2 story 11 (CAP-7): the tree a Context stage (`section_tree`) went down: who wrote
+    its summaries (`shipped`/`heuristic` or `rebuilt`/`llm`), its nodes, depth and stale nodes,
+    the levels, the sections reached, why it stopped and its warnings."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    nodes: int = 0
+    depth: int = 0
+    stale: int = 0
+    levels: list[RagLabTreeLevel] = []
+    chosen: list[str] = []
+    stop: str = ""
+    warnings: list[RagLabWarning] = []
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1671,6 +1750,10 @@ class RagLabStageEndedPayload(BaseModel):
     # cache (never the engine's state itself).
     window: int | None = None
     cache: RagLabCache | None = None
+    # V1.2 story 11: the agent's rounds and the tree's descent (the documents read only as a
+    # cut preview and a length).
+    agent: RagLabAgent | None = None
+    tree: RagLabTree | None = None
 
 
 class RagLabRunEndedPayload(BaseModel):

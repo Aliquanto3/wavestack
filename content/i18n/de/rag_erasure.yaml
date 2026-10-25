@@ -34,13 +34,11 @@ architectures:
     label_text: "CAG"
     update_text: "den ganzen Cache des Modells neu laden, weil das Präfix das Dokument enthält."
   - id: agentic
-    available: false
-    story: 11
+    available: true
     label_text: "Agentische Suche"
     update_text: "keine: die Quelle wird bei jeder Anfrage neu gelesen."
   - id: pageindex
-    available: false
-    story: 11
+    available: true
     label_text: "PageIndex"
     update_text: "den Baum des geänderten Dokuments und seiner Abschnitte neu berechnen."
   - id: raptor
@@ -108,15 +106,11 @@ places:
     rebuilt_text: "Zusammenfassung Ebene 1: Die Dokumente des Korpus beschreiben die internen Richtlinien von Exemplia (Homeoffice, Sicherheit, generative KI)."
   - id: pageindex_tree
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "dem echten PageIndex-Baum, Story 11"
-    story: 11
+    measured: pageindex_tree
     architectures: [pageindex]
     label_text: "PageIndex-Baum"
     unit_text: "Knoten"
-    text: "Knoten \"Projekt Orion\": Kurzzusammenfassung, Code ORN-7731-QZ, Sentinel-Dokument von Exemplia."
-    rebuilt_text: "Wurzelknoten: der Korpus von Exemplia, nach Abschnitten, ohne das Sentinel-Dokument."
+    measured_on_text: "der heuristische Baum, im Speicher neu berechnet"
   - id: graph_communities
     erase_mode: rebuild
     provenance:

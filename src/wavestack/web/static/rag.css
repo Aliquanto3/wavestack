@@ -1762,6 +1762,79 @@ body.rag-page {
   padding-left: var(--spacing-4);
 }
 
+/* V1.2 story 11 (CAP-7): the agent's rounds, PageIndex's descent and the « Arbre » card; long
+   lines wrap (no horizontal scroll at 1280 px). */
+.rag-agent,
+.rag-tree,
+.rag-tree-card {
+  margin: var(--spacing-3) 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rag-agent-title,
+.rag-tree-title,
+.rag-tree-card-title,
+.rag-tree-level-title {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-agent-turns,
+.rag-tree-children {
+  margin: 0;
+  padding-left: var(--spacing-4);
+}
+
+.rag-agent-turn {
+  margin-bottom: var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-left: 3px solid var(--color-line);
+}
+
+.rag-agent-turn[data-status="refused"],
+.rag-agent-turn[data-status="unreadable"] {
+  border-left-color: var(--color-warning);
+}
+
+.rag-agent-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin: 0;
+}
+
+.rag-agent-round,
+.rag-agent-tokens,
+.rag-tree-child-summary,
+.rag-tree-mark {
+  color: var(--color-ink-soft);
+}
+
+.rag-agent-tokens,
+.rag-agent-result {
+  margin: var(--spacing-1) 0 0;
+}
+
+.rag-tree-child {
+  margin-bottom: var(--spacing-1);
+}
+
+.rag-tree-child-summary {
+  display: block;
+}
+
+.rag-tree-child.is-chosen .rag-tree-child-title {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.rag-tree-card {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+}
+
 /* V1.2 story 17 (CAP-13): the « Document piégé » card of the Attack tab. */
 .rag-atk-controls {
   display: flex;

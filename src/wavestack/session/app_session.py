@@ -28,8 +28,9 @@ import sys
 import threading
 import time
 from collections import OrderedDict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, replace
 from itertools import accumulate
 from pathlib import Path, PurePosixPath
@@ -214,6 +215,7 @@ from wavestack.rag import (
 )
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
+from wavestack.rag import pageindex as rag_pageindex
 from wavestack.rag import sheets as rag_sheets
 from wavestack.rag.corpus import (
     Chunk,
@@ -1070,6 +1072,9 @@ class AppSession:
         # the session's close.
         self._cag_cache: _CagEntry | None = None
         self._cag_pending: _CagEntry | None = None
+        # V1.2 story 11: the main context's engine state saved once around a stage's model
+        # calls (the agent's rounds, the descent's levels): each call leaves it alone.
+        self._rag_lab_held = False
         # Lot 5c-1: the `[[rag_lab.embeddings]]` entries left out, traced once each.
         self._rag_lab_rejected_traced: set[str] = set()
         # Story 6 of 2026-09-30 (the MCP workshop): its exchanges, numbered (`mcp{n}`), the
@@ -10778,6 +10783,11 @@ class AppSession:
             # stage is skipped and the question goes on as typed.
             for option in rag_lab.OPTIONS["query"]:
                 options[("query", option)].note_text = Message("session.rag_lab.query_no_model")
+            # V1.2 story 11: the agent and the descent ask it too; they stay applicable.
+            for option in ("agent_loop", "section_tree"):
+                options[("context", option)].note_text = Message(
+                    "session.rag_lab.searchless_no_model"
+                )
         # V1.2 story 7: `compress` borrows the Compression card's compressor; without one it can
         # still be chosen, the step builds the context as `order` does (the note says why).
         compressor, why = self._rag_lab_compressor()
@@ -11052,11 +11062,16 @@ class AppSession:
         )
         return run_id
 
-    def rebuild_rag_lab_contexts(self, pipeline: rag_lab.Pipeline | None = None) -> str:
+    def rebuild_rag_lab_contexts(
+        self, pipeline: rag_lab.Pipeline | None = None, target: str = "contexts"
+    ) -> str:
         """Intention `rag_lab_rebuild` (V1.2 story 6, CAP-4), class (b): accepted in `idle`
         only, as a run of its own (`ctx{n}`): the contexts of the contextual chunking are
         rewritten by the workshop's active model, one call per chunk, into the data folder.
-        Without a model: refused, with the reason. Returns the run's id."""
+        V1.2 story 11: `target` « pageindex », the summaries of PageIndex's tree, one call per
+        node. Without a model: refused, with the reason. Returns the run's id."""
+        if target not in rag_lab.RebuildRun.TARGETS:
+            raise SendRefused(Message("session.rag_lab.rebuild_target", target=target))
         texts, error_text = self._rag_lab_content()
         if texts is None:
             raise SendRefused(error_text or Message("session.rag_lab.texts_unreadable"))
@@ -11071,7 +11086,9 @@ class AppSession:
         rebuild_blocked = self._rag_lab_rebuild_blocked()
         if rebuild_blocked is not None:
             raise SendRefused(rebuild_blocked)
-        label = rag_lab._t("contexts.run_label", self._language)
+        label = rag_lab._t(
+            "tree.run_label" if target == "pageindex" else "contexts.run_label", self._language
+        )
         with self._lock:
             if self.state != "idle":
                 raise SendRefused(self._refusal_reason())
@@ -11090,9 +11107,19 @@ class AppSession:
             catalog,
             cancel,
             previous,
-            rebuild=True,
+            rebuild=target,
         )
         return run_id
+
+    def reset_rag_lab_pageindex(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/pageindex/reset` (V1.2 story 11): PageIndex's summaries rebuilt in
+        the data folder are deleted, the shipped tree is read again (never `content/`). Refused
+        while a run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_pageindex.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
 
     def reset_rag_lab_contexts(self) -> dict[str, Any]:
         """`POST /api/rag_lab/contexts/reset`: the contexts rebuilt in the data folder are
@@ -11120,6 +11147,7 @@ class AppSession:
         header = book.header
         blocked = self._rag_lab_rebuild_blocked()
         return {
+            "pageindex": self._rag_lab_pageindex(blocked),
             "author": header.author if header else None,
             "method": header.method if header else None,
             "model": header.model if header else None,
@@ -11144,6 +11172,51 @@ class AppSession:
                 "session.rag_lab.rebuild_expected",
                 chunks=book.shipped.chunks if book.shipped else (header.chunks if header else 0),
             ),
+        }
+
+    def _rag_lab_pageindex(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 11: what the page's « Arbre » card shows: who wrote the tree read (the
+        shipped rule, or the model of a rebuild), its nodes, the nodes stale against the work
+        copy, the rebuild's measure, and why « Reconstruire » is not available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        tree = rag_pageindex.load_tree(documents, lang, config.rag_lab_dir())
+        rebuilt = tree.rebuilt
+        mark = (
+            rag_lab._t("tree.mark_rebuilt", lang, model=rebuilt.model)
+            if rebuilt is not None
+            else rag_lab._t("tree.mark_shipped", lang)
+        )
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_pageindex.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_pageindex.HEURISTIC,
+            "mark_text": mark,
+            "nodes": len(tree.nodes),
+            "stale": tree.stale,
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "summary_text": rag_lab._t(
+                "tree.summary",
+                lang,
+                mark=mark,
+                nodes=rag_lab.lang_int(len(tree.nodes), lang),
+                stale=rag_lab.lang_int(tree.stale, lang),
+            ),
+            "measure_text": rag_lab._t(
+                "tree.measure",
+                lang,
+                tokens=rag_lab.lang_int(rebuilt.tokens or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": tree.error,
         }
 
     def _rag_lab_unavailable(self) -> str | None:
@@ -11241,7 +11314,7 @@ class AppSession:
         previous: str | None,
         update: tuple[workcopy.WorkCopy, workcopy.WorkCopy] | None = None,
         history: tuple[str, ...] = (),
-        rebuild: bool = False,
+        rebuild: str | None = None,
     ) -> None:
         """On the worker, in series with the turns and `_sync_rag`: a model the brick holds
         cannot be closed meanwhile. What the run loads is closed and freed at its end (AD-8),
@@ -11250,8 +11323,8 @@ class AppSession:
         lab_run: rag_lab.LabRun | None = None
         try:
             deps = self._rag_lab_deps(texts, catalog, cancel, loans, history)
-            if rebuild:
-                lab_run = rag_lab.RebuildRun(run_id, question, chain, deps)
+            if rebuild:  # V1.2 story 11: the contexts, or PageIndex's summaries
+                lab_run = rag_lab.RebuildRun(run_id, question, chain, deps, target=rebuild)
             elif update is None:
                 lab_run = rag_lab.LabRun(run_id, question, chain, deps)
             else:
@@ -11587,7 +11660,30 @@ class AppSession:
             cag=lambda context_text, question: self._rag_lab_cag_update(
                 context_text, question, cancel
             ),
+            # V1.2 story 11: the final prompt's reserve, and the engine's state saved once
+            # around the agent's rounds and the descent's levels.
+            reserve=self._reserve_of(self.build_turn_state()),
+            model_scope=self._rag_lab_hold,
         )
+
+    @contextmanager
+    def _rag_lab_hold(self) -> Iterator[None]:
+        """V1.2 story 11: a stage's several calls of the local model (the agent's rounds, the
+        descent's levels, the summaries rewritten) under one copy of the main context's engine
+        state, as `_rag_lab_generate` makes around one call: saved before the first, put back
+        after the last (a cloud model has none). Nested: the outer frame holds it."""
+        with self._lock:
+            local, held = self._cloud is None and self._engine is not None, self._rag_lab_held
+        if held or not local:
+            yield
+            return
+        saved = self._save_main_state()
+        self._rag_lab_held = True
+        try:
+            yield
+        finally:
+            self._rag_lab_held = False
+            self._lab_restore(saved, "rag_lab")
 
     def _rag_lab_keep_copy(self, copy: workcopy.WorkCopy) -> None:
         """An update measured `ok`: the copy saved; V1.2 story 10, the prefix it rebuilt
@@ -11727,7 +11823,9 @@ class AppSession:
             ask.progress(0, reserve)  # the prompt being read: « 0 / 1 024 tokens »
             cag: tuple[rag_lab.CagPrefix, bool, bool] | None = None
             if cloud is None:
-                saved = self._save_main_state()
+                # V1.2 story 11: a stage that holds the state (`_rag_lab_hold`) saved it once.
+                held = self._rag_lab_held
+                saved = None if held else self._save_main_state()
                 try:
                     if ask.cached_prefix:  # V1.2 story 10: within the main context's copy
                         assert isinstance(rendered, RenderedContext)
@@ -11753,7 +11851,8 @@ class AppSession:
                     )
                     self._error(got.error_text, exc, Message("session.rag_lab.generation_stops"))
                 finally:
-                    self._lab_restore(saved, "rag_lab")
+                    if not held:
+                        self._lab_restore(saved, "rag_lab")
             else:
                 failed: dict[str, Any] = {}
                 trace = self._sampling_trace(None, reasons)

@@ -1,0 +1,983 @@
+# PageIndex's tree of sections (V1.2 story 11). Built by tools/build_pageindex.py, not by
+# hand: computed by a rule, without a model; a node belongs to a text by its sha256.
+author: shipped
+method: heuristic
+model: heuristic
+nodes:
+- id: corpus
+  kind: root
+  title_text: corpus
+  summary_text: Password policy; Remote work agreement; Information classification; Security incidents; Personal data retention; Use of…
+  sha256: 5fb19b9ddefe9240ae2b616f07353eafc133b356f93305a83811d73f27f73d76
+- id: mots_de_passe
+  parent: corpus
+  kind: document
+  title_text: Password policy
+  summary_text: At Exemplia, a user account password has at least 14 characters.
+  sha256: 9f328e849cd6992a3165c5dc20cf0828dd800542954a2c2567b4c8174175532c
+- id: mots_de_passe#1
+  parent: mots_de_passe
+  kind: section
+  title_text: At Exemplia, a user account password has at…
+  summary_text: At Exemplia, a user account password has at least 14 characters.
+  sha256: 7cc86ac6285b71005bf9ad9ecac7c6e1415c0fcfac69f6d8370655f314453ded
+- id: mots_de_passe#2
+  parent: mots_de_passe
+  kind: section
+  title_text: A password no longer expires on a fixed…
+  summary_text: A password no longer expires on a fixed date.
+  sha256: a06c5083fd63a71c4245ab0441650c2f10553242e6624d1d884207f0aa61a8c5
+- id: mots_de_passe#3
+  parent: mots_de_passe
+  kind: section
+  title_text: The official password manager is called Coffrix. It…
+  summary_text: The official password manager is called Coffrix.
+  sha256: a0044b52919168146c64d2b83e92ac324f4a3a3c3281d3440f88ef932ea453f5
+- id: mots_de_passe#4
+  parent: mots_de_passe
+  kind: section
+  title_text: Two-factor authentication is mandatory for email, remote access…
+  summary_text: Two-factor authentication is mandatory for email, remote access and all online tools.
+  sha256: 582ed5a0a4ac67c2179b9227040d2ad2f85cb5bced4e474a91222a6cbcb4f034
+- id: mots_de_passe#5
+  parent: mots_de_passe
+  kind: section
+  title_text: After 5 failed login attempts, an account is…
+  summary_text: After 5 failed login attempts, an account is locked for 15 minutes.
+  sha256: f2b6fc592922a34a9615969c4e918af83df1df0499ac6d104493fa583b5f8d51
+- id: mots_de_passe#6
+  parent: mots_de_passe
+  kind: section
+  title_text: An automatic check compares each new password with…
+  summary_text: 'An automatic check compares each new password with a list of 100,000 common or already leaked passwords: a password on…'
+  sha256: d9914c78745a8291396a90549c72e02b4a3ce8a94e46926dffb2bed72e5ad91a
+- id: mots_de_passe#7
+  parent: mots_de_passe
+  kind: section
+  title_text: IT support never asks for a password, whether…
+  summary_text: IT support never asks for a password, whether by phone or by email.
+  sha256: c4ef2e86b3d95af82252a91df9afc5070937aee5032b17ad73df615fed522ec2
+- id: teletravail
+  parent: corpus
+  kind: document
+  title_text: Remote work agreement
+  summary_text: Any employee on a permanent contract may work remotely up to 3 days a week, after an onboarding period of 2 months.
+  sha256: 65d149131f4d386c571c5b9bdaaa37fce717b636716d78051aee052f5b6165f7
+- id: teletravail#1
+  parent: teletravail
+  kind: section
+  title_text: Any employee on a permanent contract may work…
+  summary_text: Any employee on a permanent contract may work remotely up to 3 days a week, after an onboarding period of 2 months.
+  sha256: 1961a9f2d81f546aab56a71df1a7118407a80cb58bd091dae7c228f471cd140f
+- id: teletravail#2
+  parent: teletravail
+  kind: section
+  title_text: Remote work days are declared in the HR…
+  summary_text: Remote work days are declared in the HR tool by the previous Friday at the latest.
+  sha256: e27a9a7df0799c49987f119a69cdc2296afaa7905cef4c8d7e6cf25231918494
+- id: teletravail#3
+  parent: teletravail
+  kind: section
+  title_text: Exemplia pays an allowance of €2.50 per day…
+  summary_text: Exemplia pays an allowance of €2.50 per day worked remotely, up to 55 euros a month.
+  sha256: bcd1b3a06242c321bb9b2a89b5a87af93552f4c071a37ee7ad3e55cfaf9693d1
+- id: teletravail#4
+  parent: teletravail
+  kind: section
+  title_text: The workstation connects to Exemplia's network through the…
+  summary_text: The workstation connects to Exemplia's network through the company VPN as soon as it is off site.
+  sha256: 22f77d10b7d458e9885bdefc181270a04f5ceb0daac5339107bd0a56ff1b5f68
+- id: teletravail#5
+  parent: teletravail
+  kind: section
+  title_text: Remote work from abroad is limited to 20…
+  summary_text: Remote work from abroad is limited to 20 days per calendar year, with the written agreement of the manager and of the h…
+  sha256: 34295b8a3e255a91d0d2fb24160c9266e38db39789030524a0a0731f75732072
+- id: teletravail#6
+  parent: teletravail
+  kind: section
+  title_text: Availability hours are the same as at the…
+  summary_text: 'Availability hours are the same as at the office: from 9:30 am to 12 noon and from 2 pm to 5 pm.'
+  sha256: feb4631bf667485abcf2f223379625ef1518df80d2949bb578d9fb74ef5ddf4c
+- id: teletravail#7
+  parent: teletravail
+  kind: section
+  title_text: The agreement is revised every 3 years with…
+  summary_text: The agreement is revised every 3 years with the staff representatives.
+  sha256: f72f4c87520e7c7b7c0b43d1defe58a9fb0d667b333d4e707e36f0859508a19e
+- id: classification
+  parent: corpus
+  kind: document
+  title_text: Information classification
+  summary_text: 'All information produced or received by Exemplia carries one of the following 4 classification levels: Public, Internal…'
+  sha256: 1857640dcb1cb56f51887fa70150dd3655c5d86d7f0bb4f98e53315bbb5664af
+- id: classification#1
+  parent: classification
+  kind: section
+  title_text: All information produced or received by Exemplia carries…
+  summary_text: 'All information produced or received by Exemplia carries one of the following 4 classification levels: Public, Internal…'
+  sha256: bccc542ab09e8626bc7e78d20466129746f2c7ed6abd6a10c08fadd908b5c0ea
+- id: classification#2
+  parent: classification
+  kind: section
+  title_text: The Public level covers what can be published…
+  summary_text: 'The Public level covers what can be published without harm: sales brochures, job offers, press releases.'
+  sha256: c7e3e1ecabcd0338fa509d0ff4c23a948c87c282d2f952c8e450dadc9f414baa
+- id: classification#3
+  parent: classification
+  kind: section
+  title_text: The level is chosen by the document's author…
+  summary_text: The level is chosen by the document's author and shown in the footer of every page, as well as in the subject line of e…
+  sha256: e43e507211da33e4768a6309decc4f37b973bcb95defe6f8ad894ab411f69fdd
+- id: classification#4
+  parent: classification
+  kind: section
+  title_text: A Confidential document leaves Exemplia's network only encrypted,…
+  summary_text: A Confidential document leaves Exemplia's network only encrypted, through the secure sharing tool Transvault; the shari…
+  sha256: 49cffcb88ae872c2daea1dbcce4bfb025215322ec917ed464e8222e92aec1653
+- id: classification#5
+  parent: classification
+  kind: section
+  title_text: Confidential and Secret paper documents are stored in…
+  summary_text: Confidential and Secret paper documents are stored in a locked cabinet and destroyed with a level P-5 shredder.
+  sha256: 829d4a0cb86b6c0279e02a4a74a6394ec3e5e00cb487f37bad0fd8cb58b5a2fd
+- id: classification#6
+  parent: classification
+  kind: section
+  title_text: Every year, in January, the head of each…
+  summary_text: Every year, in January, the head of each department reviews the classification of the 20 most consulted documents in th…
+  sha256: 323c985d38d11c7d2d643d2c05a7e2a125bd963f2ffd90e0fcf2080a48614389
+- id: incidents
+  parent: corpus
+  kind: document
+  title_text: Security incidents
+  summary_text: A security incident is any event that threatens the confidentiality, integrity or availability of Exemplia's informatio…
+  sha256: 9ed20c3ef461b63a6bb7f11df2fd174fc2252034adc32f0e088eaae38bc50e78
+- id: incidents#1
+  parent: incidents
+  kind: section
+  title_text: A security incident is any event that threatens…
+  summary_text: A security incident is any event that threatens the confidentiality, integrity or availability of Exemplia's informatio…
+  sha256: ffe257ede5747dfb643977347a8b2c67a269065975e53ca92ec1d61b724a4d1a
+- id: incidents#2
+  parent: incidents
+  kind: section
+  title_text: Any employee who notices or suspects an incident…
+  summary_text: Any employee who notices or suspects an incident reports it within 30 minutes to the response team, CERT-Ex.
+  sha256: 09d712e4d02a84697af75140f0175ec7f55b98c77e45596185d2f6a588162273
+- id: incidents#3
+  parent: incidents
+  kind: section
+  title_text: While waiting for CERT-Ex to respond, the suspect…
+  summary_text: While waiting for CERT-Ex to respond, the suspect workstation is disconnected from the network, cable unplugged and Wi-…
+  sha256: 743d594bb97b956c714d4645f4ad268ec92fe0e2a7fa0eb122909d48ecaa91f1
+- id: incidents#4
+  parent: incidents
+  kind: section
+  title_text: CERT-Ex classifies each incident on 3 severity levels.…
+  summary_text: CERT-Ex classifies each incident on 3 severity levels.
+  sha256: 3d09684fb0b99157cc8b4eeb8e61e577fe995e5ec3700e8388de97ddf04748f5
+- id: incidents#5
+  parent: incidents
+  kind: section
+  title_text: When an incident affects personal data, the data…
+  summary_text: 'When an incident affects personal data, the data protection officer is notified without delay: the supervisory authorit…'
+  sha256: 202168816c6dddb341cc619507196272aa21069114f3310a0850dbfe6a62ffda
+- id: incidents#6
+  parent: incidents
+  kind: section
+  title_text: Each level 2 or 3 incident gives rise…
+  summary_text: Each level 2 or 3 incident gives rise to a written lessons-learned report, drafted within 15 working days, which descri…
+  sha256: d8ca6b19e24a10335bb1483f761ebc3a78bec21b0d3f05a323eccd7489e4eff8
+- id: donnees_personnelles
+  parent: corpus
+  kind: document
+  title_text: Personal data retention
+  summary_text: Personal data is kept only as long as necessary for the purpose for which it was collected.
+  sha256: 39200edfa5c90819e591ac892ba9684ec42f2e0ea5287bb57fd51a587da42985
+- id: donnees_personnelles#1
+  parent: donnees_personnelles
+  kind: section
+  title_text: Personal data is kept only as long as…
+  summary_text: Personal data is kept only as long as necessary for the purpose for which it was collected.
+  sha256: f72166f205fd8dc2bb5577908b6f38e932ede447e1b4dcebe5189630581d4d9e
+- id: donnees_personnelles#2
+  parent: donnees_personnelles
+  kind: section
+  title_text: Unsuccessful job applications are kept for 2 years…
+  summary_text: Unsuccessful job applications are kept for 2 years after the last contact with the applicant, who is informed of this a…
+  sha256: 1f3ab5b1ba1823703f668a64d74cccd5d1001a53f6cd01ec6aef93487beffe1f
+- id: donnees_personnelles#3
+  parent: donnees_personnelles
+  kind: section
+  title_text: Application login logs are kept for 12 months,…
+  summary_text: Application login logs are kept for 12 months, CCTV recordings of the premises for 30 days, and deactivated access badg…
+  sha256: db1120f2819ab06758f8891006a4039779cbdab54b35ffe58a881dca36ce6008
+- id: donnees_personnelles#4
+  parent: donnees_personnelles
+  kind: section
+  title_text: An automatic purge runs every quarter, on the…
+  summary_text: An automatic purge runs every quarter, on the first Monday of January, April, July and October.
+  sha256: 7fb03e43fec1eba536219c394e11d9dbdeb60681403e35f3ad6203bf7f520991
+- id: donnees_personnelles#5
+  parent: donnees_personnelles
+  kind: section
+  title_text: Anyone can exercise their rights of access, rectification…
+  summary_text: Anyone can exercise their rights of access, rectification and erasure by writing to the data protection officer.
+  sha256: 9f579708e82443c5cabf9d07ea43e59e8d742fbd125ef27f03c96a2803b9f068
+- id: donnees_personnelles#6
+  parent: donnees_personnelles
+  kind: section
+  title_text: Working copies, such as spreadsheet extracts or files…
+  summary_text: Working copies, such as spreadsheet extracts or files sent by email, follow the same periods as the original processing…
+  sha256: a355e9db6586356b0fdbd9c5bcd3d15ce276cac54f5ce9598576c7987403bcdb
+- id: ia_generative
+  parent: corpus
+  kind: document
+  title_text: Use of generative AI
+  summary_text: Exemplia encourages the use of generative artificial intelligence to save time on writing, summarising and translating,…
+  sha256: 5e94ea46f10a5dabd43c49b78ad0629c6de39102cb655fc4f2e1be8fa700de3c
+- id: ia_generative#1
+  parent: ia_generative
+  kind: section
+  title_text: Exemplia encourages the use of generative artificial intelligence…
+  summary_text: Exemplia encourages the use of generative artificial intelligence to save time on writing, summarising and translating,…
+  sha256: f2165876f3c4c897711eff5fb3573d2dd07ac34872f0d12584dbbc38fb8622d7
+- id: ia_generative#2
+  parent: ia_generative
+  kind: section
+  title_text: The reference tool is ExempliaGPT, an assistant hosted…
+  summary_text: 'The reference tool is ExempliaGPT, an assistant hosted in Exemplia''s data centre: the texts entrusted to it do not leav…'
+  sha256: 5d3b709ed11687256f3d2682eb7be001edf1da2f497cfac059b5c20f7c5f5b27
+- id: ia_generative#3
+  parent: ia_generative
+  kind: section
+  title_text: Public AI services, accessed from a browser, receive…
+  summary_text: Public AI services, accessed from a browser, receive only Public-level information.
+  sha256: 604c96e47ea02275bf53d6decc0cc59691872aba8bd0613a7a19617526ca8fb1
+- id: ia_generative#4
+  parent: ia_generative
+  kind: section
+  title_text: Content produced by an AI is always reviewed…
+  summary_text: Content produced by an AI is always reviewed by a human before being shared, and the person who shares it remains respo…
+  sha256: 8ef481165c79076d9f0d6a7028493accc28d7896b05b18d09b37e0837e3dfdb1
+- id: ia_generative#5
+  parent: ia_generative
+  kind: section
+  title_text: Before getting access to ExempliaGPT, each employee takes…
+  summary_text: Before getting access to ExempliaGPT, each employee takes a 3-hour online training course, then passes a quiz with at l…
+  sha256: 6ef665fad71758e0f3b4c0f1a550e656b76eb01b2602cbb3eec0ef279880c5df
+- id: ia_generative#6
+  parent: ia_generative
+  kind: section
+  title_text: The AI committee, made up of 6 members…
+  summary_text: The AI committee, made up of 6 members from security, legal, human resources and the business units, reviews each new t…
+  sha256: f367d9f4016946a837927434755e1ac826d2102fba54f3072748095a502f99c7
+- id: deplacements
+  parent: corpus
+  kind: document
+  title_text: Business travel and expense claims
+  summary_text: All business travel is approved in advance by the manager in the Voyagex booking tool, which automatically applies the…
+  sha256: 70cfc812f66e6d02141cb05169db5fff9c94b090a4fe9a342bbff49417930db9
+- id: deplacements#1
+  parent: deplacements
+  kind: section
+  title_text: All business travel is approved in advance by…
+  summary_text: All business travel is approved in advance by the manager in the Voyagex booking tool, which automatically applies the…
+  sha256: d47080afcd4591c2eb87489381c3190c23646a0b13ae76c3f6acdd0e8046cc57
+- id: deplacements#2
+  parent: deplacements
+  kind: section
+  title_text: The train is mandatory for any journey of…
+  summary_text: The train is mandatory for any journey of less than 4 and a half hours, in second class.
+  sha256: dbc2a343764a4bc3b74ca81507bea5d8def79a0eb591b8df7de458b0262b89cf
+- id: deplacements#3
+  parent: deplacements
+  kind: section
+  title_text: A hotel night is reimbursed up to 130…
+  summary_text: A hotel night is reimbursed up to 130 euros in Paris and 95 euros in other cities, breakfast included.
+  sha256: 1b402983fb0163f846a1e315c851bd02cf0a60f1b69467a870455050450475e2
+- id: deplacements#4
+  parent: deplacements
+  kind: section
+  title_text: Using a personal vehicle entitles the employee to…
+  summary_text: Using a personal vehicle entitles the employee to mileage allowances at the current scale, on a route calculated by Voy…
+  sha256: e1149750c812eebec7e14451c4e6c88dbf4919625b79c47b14dd534837cb9061
+- id: deplacements#5
+  parent: deplacements
+  kind: section
+  title_text: Expense claims are entered in the NotaFrais app…
+  summary_text: Expense claims are entered in the NotaFrais app no later than 30 days after the expense, with a photo of each receipt.
+  sha256: beb95c478e57b908ab088d359dee3bc407f145f5b2c7f6aee03beada2f16ede5
+- id: deplacements#6
+  parent: deplacements
+  kind: section
+  title_text: For a trip of more than 5 days,…
+  summary_text: For a trip of more than 5 days, an expense advance may be requested, up to 800 euros.
+  sha256: 96838ec27e286bdb386acf67715445686e281c59cf79a80a20df68828af81ece
+- id: sauvegardes
+  parent: corpus
+  kind: document
+  title_text: Backups
+  summary_text: 'Exemplia''s data follows the 3-2-1 rule: at least 3 copies of each piece of data, on 2 different media, with 1 copy kept…'
+  sha256: 82a9cde3d595b16901b7e81f186e0e5aa9f51452c23cb1970447ce714f60b9d3
+- id: sauvegardes#1
+  parent: sauvegardes
+  kind: section
+  title_text: 'Exemplia''s data follows the 3-2-1 rule: at least…'
+  summary_text: 'Exemplia''s data follows the 3-2-1 rule: at least 3 copies of each piece of data, on 2 different media, with 1 copy kept…'
+  sha256: d54c8a44c4d2225baf5e8d290edb76c05a3a6182699f0bb30b6e2daca6ad27f9
+- id: sauvegardes#2
+  parent: sauvegardes
+  kind: section
+  title_text: The full backup of the servers takes place…
+  summary_text: The full backup of the servers takes place every Sunday at 2 am.
+  sha256: eb09865ab752c270a88f6b874291090db0d5e1d88f41899862d125da9bfe6354
+- id: sauvegardes#3
+  parent: sauvegardes
+  kind: section
+  title_text: Daily backups are kept for 35 days, weekly…
+  summary_text: Daily backups are kept for 35 days, weekly backups for 12 weeks, and one monthly backup is kept for 7 years for account…
+  sha256: db2c2f7af492c17c9d119db54fd51d2febfbd49513ceb5c3d7621268703bddcf
+- id: sauvegardes#4
+  parent: sauvegardes
+  kind: section
+  title_text: Recovery objectives are set per application. For critical…
+  summary_text: Recovery objectives are set per application.
+  sha256: d66dfa6418294a97a65c651070a8032a33481133058063e26590a550312990e9
+- id: sauvegardes#5
+  parent: sauvegardes
+  kind: section
+  title_text: A restore test is carried out every month…
+  summary_text: A restore test is carried out every month on a sample of 10 randomly chosen files, and every six months on a complete a…
+  sha256: 99df7644876f1f79d7fe0f143b73c2bd715c4286cdf7a35f6a28ae66612bfdcb
+- id: sauvegardes#6
+  parent: sauvegardes
+  kind: section
+  title_text: 'Workstations are not backed up: each employee saves…'
+  summary_text: 'Workstations are not backed up: each employee saves their documents in their network space or in their team''s space, wh…'
+  sha256: f5e7c01769cba1740fe40457f02de748ac2dfcdedd8d1c5913e7c40a0ae5a810
+- id: prestataires
+  parent: corpus
+  kind: document
+  title_text: Supplier security policy
+  summary_text: 'Exemplia places every supplier who handles company information into one of two tiers: critical, when it hosts data or c…'
+  sha256: e5c4295a7d86f190f1759d33a5220be732493e089d6fe801627d5c1ab51e86b8
+- id: prestataires#1
+  parent: prestataires
+  kind: section
+  title_text: Exemplia places every supplier who handles company information…
+  summary_text: 'Exemplia places every supplier who handles company information into one of two tiers: critical, when it hosts data or c…'
+  sha256: 6315073b9f166508c29eaa90aa0338d871700fb3f4f89c8e7d62ce2044911e9f
+- id: prestataires#2
+  parent: prestataires
+  kind: section
+  title_text: A critical supplier is audited before signature, then…
+  summary_text: A critical supplier is audited before signature, then every 3 years, and must hold an ISO 27001 certification or equiva…
+  sha256: 83c54ca0ee507590d3890fc741384a629bfa8bb2128cf17785f38bc7e7231d2c
+- id: prestataires#3
+  parent: prestataires
+  kind: section
+  title_text: Data entrusted to a supplier stays hosted within…
+  summary_text: Data entrusted to a supplier stays hosted within the European Union, unless a written exception is approved by the secu…
+  sha256: 2a9fa0c37e6b18073a4231ef761756ffa0701ef4131bfe8861a65b446a7c9041
+- id: prestataires#4
+  parent: prestataires
+  kind: section
+  title_text: Any security incident at a supplier must be…
+  summary_text: Any security incident at a supplier must be reported to Exemplia, within the delay set in its contract.
+  sha256: 387da9ec920566deecd358ef24c2ffe43068e5a156266505be7c6affcb0214fc
+- id: prestataires#5
+  parent: prestataires
+  kind: section
+  title_text: At the end of a contract, the supplier…
+  summary_text: At the end of a contract, the supplier erases Exemplia's data and confirms it in writing within the delay set by the co…
+  sha256: 1be1f9b218fc0c8b8f96b0f5e97a4e9db9a874b4a4a973df56adfe4458468f16
+- id: clauses_contrats
+  parent: corpus
+  kind: document
+  title_text: Contract security clauses
+  summary_text: 'This model completes the supplier security policy: it lists the clauses the supplier unit inserts into every supply con…'
+  sha256: aebeeea7acf0222120eaf61466d4ef8a8ce2e60302204d6dd8653352e2985a38
+- id: clauses_contrats#1
+  parent: clauses_contrats
+  kind: section
+  title_text: 'This model completes the supplier security policy: it…'
+  summary_text: 'This model completes the supplier security policy: it lists the clauses the supplier unit inserts into every supply con…'
+  sha256: aeb169ca35b3bdd5b8f0b70f7b1e1d9f480693163b6e9f28fa17f8bc98dd5965
+- id: clauses_contrats#2
+  parent: clauses_contrats
+  kind: section
+  title_text: 'Notification clause: a supplier reports to Exemplia any…'
+  summary_text: 'Notification clause: a supplier reports to Exemplia any security incident touching Exemplia''s data or systems within 24…'
+  sha256: 6e75bcb8754f0252d67e5d01de21d5d1334e7a3b75b8f37f732cfb78dcab636b
+- id: clauses_contrats#3
+  parent: clauses_contrats
+  kind: section
+  title_text: 'Audit clause: Exemplia, or an auditor it appoints,…'
+  summary_text: 'Audit clause: Exemplia, or an auditor it appoints, may check on site or remotely that the security clauses are respecte…'
+  sha256: 8587668ba859c65fee565de8bc73fac480453ba785743d0341619159b6ffc358
+- id: clauses_contrats#4
+  parent: clauses_contrats
+  kind: section
+  title_text: 'Encryption clause: any Exemplia data stored by the…'
+  summary_text: 'Encryption clause: any Exemplia data stored by the supplier is encrypted at rest with an algorithm of at least 256 bits…'
+  sha256: 125c7a0ca6188c5a0a1fb07802ebfc7e18926cbb7b646b3d43f0d41a61aba680
+- id: clauses_contrats#5
+  parent: clauses_contrats
+  kind: section
+  title_text: 'Return and erasure clause: at the end of…'
+  summary_text: 'Return and erasure clause: at the end of the contract, or on Exemplia''s request, the supplier returns the data in a usa…'
+  sha256: a468e591618b696ebb4d7027d7f32b8eee34a308bec37c93af40e122228063da
+- id: clauses_contrats#6
+  parent: clauses_contrats
+  kind: section
+  title_text: 'Subcontracting clause: the supplier informs Exemplia before using…'
+  summary_text: 'Subcontracting clause: the supplier informs Exemplia before using a subcontractor, who is then added to the subcontract…'
+  sha256: d3692e35f1416ad5add94db83b80254c8170d206b94017f1c34cb30f1b3095c5
+- id: clauses_contrats#7
+  parent: clauses_contrats
+  kind: section
+  title_text: A clause not respected, flagged twice by an…
+  summary_text: A clause not respected, flagged twice by an audit, lets Exemplia terminate the contract without compensation for the su…
+  sha256: 659bff20f0962e5e3a3973a63766cfb55cc0f8c7d88c777e695248dd98434a55
+- id: registre_sous_traitants
+  parent: corpus
+  kind: document
+  title_text: Subcontractor register
+  summary_text: This register, kept by the supplier unit and cited by the model of security clauses, lists every subcontractor used by…
+  sha256: b4c958b44b8091c5d0472cce53ba549a6cbb2fc8696cd8b0873cadf6a342c858
+- id: registre_sous_traitants#1
+  parent: registre_sous_traitants
+  kind: section
+  title_text: This register, kept by the supplier unit and…
+  summary_text: This register, kept by the supplier unit and cited by the model of security clauses, lists every subcontractor used by…
+  sha256: 8f722003b810287dad0f13272ac165111ae402fd20c8eeb94810f127d0551271
+- id: registre_sous_traitants#2
+  parent: registre_sous_traitants
+  kind: section
+  title_text: NuageSud, hosting of the accounting servers, France, critical…
+  summary_text: NuageSud, hosting of the accounting servers, France, critical supplier.
+  sha256: 58e8cf651f8b8fa8e46dd4e3cc595b78590ca771b75dee668bdc3dcfc0d89e5b
+- id: registre_sous_traitants#3
+  parent: registre_sous_traitants
+  kind: section
+  title_text: Each entry of the register is reviewed every…
+  summary_text: 'Each entry of the register is reviewed every quarter by the supplier unit: a subcontractor no longer in use is removed,…'
+  sha256: c78b3dca357c8c2098381d2c86ed076252864e20c1c150f360e7c1b97b0fce80
+- id: registre_sous_traitants#4
+  parent: registre_sous_traitants
+  kind: section
+  title_text: The register is given to the supervisory authority…
+  summary_text: The register is given to the supervisory authority on request, as part of a check on personal data protection, and to t…
+  sha256: 07954807bc5a84b8bff64ae30d2d29d1b22c5e7af00f9f357ac3192b728fded7
+- id: registre_sous_traitants#5
+  parent: registre_sous_traitants
+  kind: section
+  title_text: A subcontractor hosted outside the European Union only…
+  summary_text: A subcontractor hosted outside the European Union only appears in the register with the written exception set by the su…
+  sha256: 1676fd50a8bb2f7675807580b91cee5623cd55956fc64e1131c24f15296ff064
+- id: gestion_crise
+  parent: corpus
+  kind: document
+  title_text: Crisis management procedure
+  summary_text: This procedure takes over from the incident reporting procedure as soon as a level 3 incident is declared, or when seve…
+  sha256: 6925fe43acb13b97c9cc8f99d766027dec1220c83f531bbf80c60faf667f2a15
+- id: gestion_crise#1
+  parent: gestion_crise
+  kind: section
+  title_text: This procedure takes over from the incident reporting…
+  summary_text: This procedure takes over from the incident reporting procedure as soon as a level 3 incident is declared, or when seve…
+  sha256: e168f5489ebb5c54fbfca17ef0e3e5f010fa7f9f76be7d4b58244c0f9167063e
+- id: gestion_crise#2
+  parent: gestion_crise
+  kind: section
+  title_text: The crisis unit convenes in under 2 hours,…
+  summary_text: The crisis unit convenes in under 2 hours, day and night, chaired by the chief executive officer or, in their absence,…
+  sha256: 5d0dac1a5d94411219b518e496ae82acf0206b6e4e01d5b74d1db8cb50f556e2
+- id: gestion_crise#3
+  parent: gestion_crise
+  kind: section
+  title_text: The crisis unit includes, at minimum, the chief…
+  summary_text: The crisis unit includes, at minimum, the chief information security officer, the communications director, the data pro…
+  sha256: b8c83320663ea2c4580165d077a8694550409a1a38c9befd1f3da002fa0a09e6
+- id: gestion_crise#4
+  parent: gestion_crise
+  kind: section
+  title_text: A crisis log is opened at the first…
+  summary_text: 'A crisis log is opened at the first meeting: it records every decision, its author and its time, and serves as the basi…'
+  sha256: 4ecd14d7b0af38781ff1d5b5a9ec290582def4134a91d51d262a538dc27d5b1f
+- id: gestion_crise#5
+  parent: gestion_crise
+  kind: section
+  title_text: The crisis is closed once the unit finds…
+  summary_text: The crisis is closed once the unit finds the situation under control and corrective measures under way; the closure is…
+  sha256: 1de2392bcb0bc97df789bba8b83c6f1a9f6bbdd52ef3674f34494b2c98806f68
+- id: astreinte
+  parent: corpus
+  kind: document
+  title_text: On-call contacts annex
+  summary_text: This annex of the crisis management procedure lists the contacts to reach outside working hours, day and night, dependi…
+  sha256: bcc0e6df4e51c7abcd2bdbb6573658c6acdd8183a86e63d3022f6969e8028ce7
+- id: astreinte#1
+  parent: astreinte
+  kind: section
+  title_text: This annex of the crisis management procedure lists…
+  summary_text: This annex of the crisis management procedure lists the contacts to reach outside working hours, day and night, dependi…
+  sha256: 1c5dca2505b24a042dfdffb162d958b441492c38298800f8fc39ba2aefe27ade
+- id: astreinte#2
+  parent: astreinte
+  kind: section
+  title_text: Security on-call, to call first for any major…
+  summary_text: 'Security on-call, to call first for any major incident at night or at the weekend: the single on-call number is 06 07 0…'
+  sha256: 0d2021a891049b3412dc20d3229b180a68782983712852fe890f7eed8f93191b
+- id: astreinte#3
+  parent: astreinte
+  kind: section
+  title_text: Infrastructure on-call, for a server or network failure:…
+  summary_text: 'Infrastructure on-call, for a server or network failure: extension 4100, then 06 11 12 13 14 if there is no answer with…'
+  sha256: 052231ecffc1cf2a3cdd6d4249a53ce2a04f0453516d5392e2fcec9505206dfa
+- id: astreinte#4
+  parent: astreinte
+  kind: section
+  title_text: If the security on-call person does not answer…
+  summary_text: If the security on-call person does not answer within 30 minutes, the call is escalated directly to the chief informati…
+  sha256: 75c60c424c8e01a5887f2c096d44eb1c8cf9dc9ebed958650d75ef8889d24dc6
+- id: astreinte#5
+  parent: astreinte
+  kind: section
+  title_text: Every on-call call is logged, with the time,…
+  summary_text: Every on-call call is logged, with the time, the reason and the person reached, in the register kept by the operations…
+  sha256: 9dc1504a7f698619fdd021f60475aec00e3cadbe0f75c6c9606fe11cfe060b09
+- id: charte_messagerie_v1
+  parent: corpus
+  kind: document
+  title_text: Email charter, version 1 (2024)
+  summary_text: 'This version of the email charter, in force since January 2024, is replaced by version 2: it is kept here as an archive…'
+  sha256: 7c740fff4f1b77955353ff539a44dcd858de1d6392f415464be2af351420e31f
+- id: charte_messagerie_v1#1
+  parent: charte_messagerie_v1
+  kind: section
+  title_text: This version of the email charter, in force…
+  summary_text: 'This version of the email charter, in force since January 2024, is replaced by version 2: it is kept here as an archive…'
+  sha256: f9ad7d89ca6e0733b243d43681053f501e218ab60e473f62df3fb9c8e865ca7f
+- id: charte_messagerie_v1#2
+  parent: charte_messagerie_v1
+  kind: section
+  title_text: Exemplia's professional mailbox is reserved for professional use;…
+  summary_text: Exemplia's professional mailbox is reserved for professional use; occasional personal use is not tolerated and may lead…
+  sha256: a9aff9e432b25f1bbd4a9831a55729160fbe9cf3c84f3f6a938b4aed80db762d
+- id: charte_messagerie_v1#3
+  parent: charte_messagerie_v1
+  kind: section
+  title_text: Sent and received messages are kept for 1…
+  summary_text: Sent and received messages are kept for 1 year in the mailbox, then automatically archived and removed from the main ma…
+  sha256: 1bf9df46fd942e9ad69ff419a87462f7db0d46e65e5a75aa1474e7860933efb1
+- id: charte_messagerie_v1#4
+  parent: charte_messagerie_v1
+  kind: section
+  title_text: A message sent by mistake to the wrong…
+  summary_text: A message sent by mistake to the wrong external recipient is reported to the incident response team within the hour, es…
+  sha256: 413ecd80ce49b0710798a314c838b023156ad6ed2a96161b9d0a2df5e46934f2
+- id: charte_messagerie_v1#5
+  parent: charte_messagerie_v1
+  kind: section
+  title_text: Automatically forwarding a professional mailbox to a personal…
+  summary_text: Automatically forwarding a professional mailbox to a personal address is forbidden, as is using a personal mailbox for…
+  sha256: 2ac1fcef530b018e135fae182d37f1dddee12b4eb8c65871b6b1fdb24c2a4da3
+- id: charte_messagerie_v2
+  parent: corpus
+  kind: document
+  title_text: Email charter, version 2 (2026)
+  summary_text: This version replaces version 1 as of 1 January 2026, following the change of email provider described in the associate…
+  sha256: 179653f959988509da7d5557742e1b4dbdbebceb9603c6056d222bbcf4f9d79a
+- id: charte_messagerie_v2#1
+  parent: charte_messagerie_v2
+  kind: section
+  title_text: This version replaces version 1 as of 1…
+  summary_text: This version replaces version 1 as of 1 January 2026, following the change of email provider described in the associate…
+  sha256: 40f83717923dd008c1dedf4e02c831be4bcbe106a8513539eea2f3746b79d95b
+- id: charte_messagerie_v2#2
+  parent: charte_messagerie_v2
+  kind: section
+  title_text: The professional mailbox remains reserved for professional use,…
+  summary_text: The professional mailbox remains reserved for professional use, but an occasional and reasonable personal use is now to…
+  sha256: dc7a60737443020f32e00acdf6e4a8b406cfe5498af79481d42c477707b92b1a
+- id: charte_messagerie_v2#3
+  parent: charte_messagerie_v2
+  kind: section
+  title_text: Messages are kept for 3 years in the…
+  summary_text: 'Messages are kept for 3 years in the mailbox before archiving, against 1 year in the previous version: this change answ…'
+  sha256: f1f994134b639c967835113236ddf86a69afb1a698ede88039c7cb3df50bea89
+- id: charte_messagerie_v2#4
+  parent: charte_messagerie_v2
+  kind: section
+  title_text: A message sent by mistake to the wrong…
+  summary_text: A message sent by mistake to the wrong external recipient is still reported to the incident response team within the ho…
+  sha256: 146d0090ec049fbd0cd7e2beceb5e809f5e91a4f49f03ed326416193f2423ef5
+- id: charte_messagerie_v2#5
+  parent: charte_messagerie_v2
+  kind: section
+  title_text: Automatic forwarding to a personal address remains forbidden,…
+  summary_text: Automatic forwarding to a personal address remains forbidden, as is using a personal mailbox for a professional exchang…
+  sha256: 02d9de406333c8880625fabdca67ec0defdbbda0bf88202f7f0c3f653f6d4b52
+- id: note_changement_messagerie
+  parent: corpus
+  kind: document
+  title_text: Email change note
+  summary_text: This note explains the move from version 1 to version 2 of the email charter, effective since 1 January 2026.
+  sha256: 4ab4fa14f9aef623ba4630901bde754624a1dc9360b86a68ce29f6ffbc08b5fa
+- id: note_changement_messagerie#1
+  parent: note_changement_messagerie
+  kind: section
+  title_text: This note explains the move from version 1…
+  summary_text: This note explains the move from version 1 to version 2 of the email charter, effective since 1 January 2026.
+  sha256: e7ae601e50f8b96b60ced936feb4424198c7f9052bb45401b6d4b224d2209d26
+- id: note_changement_messagerie#2
+  parent: note_changement_messagerie
+  kind: section
+  title_text: Exemplia changed its email provider on 1 January…
+  summary_text: Exemplia changed its email provider on 1 January 2026, after a tender run in 2025.
+  sha256: a491734475238be386dda24e3b0ad3e1c5492adc7e4d353ac59ca0a9dc2c62fa
+- id: note_changement_messagerie#3
+  parent: note_changement_messagerie
+  kind: section
+  title_text: Three main differences are worth remembering. First, the…
+  summary_text: Three main differences are worth remembering.
+  sha256: 8e9b0d326cd9fe79b96ede1d770f00fcebb16d1fcb4ca9480d905c31d298744b
+- id: note_changement_messagerie#4
+  parent: note_changement_messagerie
+  kind: section
+  title_text: The migration of mailboxes took place over three…
+  summary_text: The migration of mailboxes took place over three weekends in December 2025, with no message loss reported.
+  sha256: 39c2a4a96e8a5f09ae2cc75d50f2bef7ce4e68bff7b5200e58e02be753ca1645
+- id: note_changement_messagerie#5
+  parent: note_changement_messagerie
+  kind: section
+  title_text: Version 1 of the charter remains available as…
+  summary_text: Version 1 of the charter remains available as an archive, to understand decisions made before this change, but it no lo…
+  sha256: d28740e1763277a20f329d9a68b2541a34ba2653e96d43d92c033b6c467dba6c
+- id: rundschreiben_usb
+  parent: corpus
+  kind: document
+  title_text: USB storage media circular (German-only document)
+  summary_text: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es…
+  sha256: fc03641184a236d808049e4aa3b99d9b01335e38ea39dbc1f295c6def8891bef
+- id: rundschreiben_usb#1
+  parent: rundschreiben_usb
+  kind: section
+  title_text: Dieses Rundschreiben der deutschen Zentrale von Exemplia in…
+  summary_text: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es…
+  sha256: 402b91e04cbeb77840706e1df8b86fc575aa7efafb013e20df59a85b6d60ac11
+- id: rundschreiben_usb#2
+  parent: rundschreiben_usb
+  kind: section
+  title_text: Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale…
+  summary_text: Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale angeschlossen werden.
+  sha256: 7ecd3deba8f7a4376c0630c72b4de033431ac683939e434192a6244fdbf62563
+- id: rundschreiben_usb#3
+  parent: rundschreiben_usb
+  kind: section
+  title_text: Ein von der IT-Abteilung ausgegebener USB-Stick wird nach…
+  summary_text: Ein von der IT-Abteilung ausgegebener USB-Stick wird nach spätestens 2 Jahren gegen ein neues Modell ausgetauscht, unab…
+  sha256: 7c0adff412cf4afd55ec4f96fc295a2f04a8ed162bf8100d0ed661de7492866b
+- id: rundschreiben_usb#4
+  parent: rundschreiben_usb
+  kind: section
+  title_text: Nicht von der IT-Abteilung ausgegebene USB-Speichermedien werden an…
+  summary_text: Nicht von der IT-Abteilung ausgegebene USB-Speichermedien werden an jedem Arbeitsplatz der Zentrale automatisch durch d…
+  sha256: e329d186aa40589801ccef6ad4c20d1fae0378910f20370ea27aa709fe863b56
+- id: rundschreiben_usb#5
+  parent: rundschreiben_usb
+  kind: section
+  title_text: Externe Besucher und Lieferanten dürfen an der Zentrale…
+  summary_text: Externe Besucher und Lieferanten dürfen an der Zentrale keinen eigenen USB-Speicher anschließen; für einen Datenaustaus…
+  sha256: da54e5f6b11a183f1c06bbb2169c43dd0dd4dff76a6b5a64e4e8a8f3a42df8cc
+- id: uk_visitor_badges
+  parent: corpus
+  kind: document
+  title_text: UK visitor badges
+  summary_text: This policy applies only to Exemplia's United Kingdom subsidiary, in Manchester; it exists in English only, as the loca…
+  sha256: 215c9b86c125ae410cce3c0fa38da6557a816b4f17a9b534f0b4f933eee4c3ef
+- id: uk_visitor_badges#1
+  parent: uk_visitor_badges
+  kind: section
+  title_text: This policy applies only to Exemplia's United Kingdom…
+  summary_text: This policy applies only to Exemplia's United Kingdom subsidiary, in Manchester; it exists in English only, as the loca…
+  sha256: b896e1969341f7b18659d1767fdd42a49a78e9e4855b95ce4acaf0f4cf850021
+- id: uk_visitor_badges#2
+  parent: uk_visitor_badges
+  kind: section
+  title_text: Every visitor to the Manchester office receives a…
+  summary_text: Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signin…
+  sha256: 641921512ee1c6169a45e46ee7b846150dcbad7751de6b8dcb81acb6697f9e00
+- id: uk_visitor_badges#3
+  parent: uk_visitor_badges
+  kind: section
+  title_text: A visitor badge is valid only for the…
+  summary_text: A visitor badge is valid only for the day it is issued and the specific floor stated on it.
+  sha256: 72535ac653dd52f5f3f46ee478ce9ed55d654e90e40b08a6b196ec3521fb68de
+- id: uk_visitor_badges#4
+  parent: uk_visitor_badges
+  kind: section
+  title_text: The visitor register, with the visitor's name, company,…
+  summary_text: The visitor register, with the visitor's name, company, host and times of arrival and departure, is kept for 90 days, i…
+  sha256: fb4f5fee7b24baefb290def24cf813d3c8a9cae4d86f81066fec99481355f744
+- id: uk_visitor_badges#5
+  parent: uk_visitor_badges
+  kind: section
+  title_text: Contractors working on site for more than one…
+  summary_text: Contractors working on site for more than one day receive a longer-term contractor badge instead, issued under the supp…
+  sha256: 383e3ceb4c6c2ba417ea34eda555405cdf5101643f81b2622c2d509c5d786e2e
+- id: plan_continuite_lyon
+  parent: corpus
+  kind: document
+  title_text: Lyon site business continuity plan (French-only document)
+  summary_text: Ce document concerne uniquement le site de Lyon d'Exemplia ; il n'existe qu'en français, car il relève d'une équipe loc…
+  sha256: c7cec5cb0d1033f9c67e7072770a0c5bdd795745ce1fa13505aff4b51e1a9002
+- id: plan_continuite_lyon#1
+  parent: plan_continuite_lyon
+  kind: section
+  title_text: Ce document concerne uniquement le site de Lyon…
+  summary_text: Ce document concerne uniquement le site de Lyon d'Exemplia ; il n'existe qu'en français, car il relève d'une équipe loc…
+  sha256: b98ae666272f38c05bd3b54bc4262fb3c5e90ffb035b5854d95518475281816f
+- id: plan_continuite_lyon#2
+  parent: plan_continuite_lyon
+  kind: section
+  title_text: Si le site principal de Lyon devient inaccessible,…
+  summary_text: Si le site principal de Lyon devient inaccessible, pour cause d'incendie, de panne électrique prolongée ou d'évacuation…
+  sha256: 79138b0c55d9a82e18b65810c052169e66dac1443fa3c06cf0efd165a36c5aec
+- id: plan_continuite_lyon#3
+  parent: plan_continuite_lyon
+  kind: section
+  title_text: L'activation du plan est décidée par le directeur…
+  summary_text: L'activation du plan est décidée par le directeur de site de Lyon, ou par la cellule de crise si l'incident dépasse ce…
+  sha256: 41fc09fad3c5bc1a12b4a36848378b562c7b1abcfab2fa733344d3c5ebe85847
+- id: plan_continuite_lyon#4
+  parent: plan_continuite_lyon
+  kind: section
+  title_text: Un exercice de bascule vers le site de…
+  summary_text: Un exercice de bascule vers le site de repli est organisé une fois par an, sans prévenir les équipes à l'avance, pour m…
+  sha256: bfc250f844bb4fae25171978cf567dae637f5c8d4181ea3c96d447b7e0d23d4d
+- id: plan_continuite_lyon#5
+  parent: plan_continuite_lyon
+  kind: section
+  title_text: Le retour au site principal n'intervient qu'après la…
+  summary_text: Le retour au site principal n'intervient qu'après la validation écrite du directeur de site, une fois la cause de l'inc…
+  sha256: b32a31d660365e0747c95b610987310c949f82b8e54d50e34007c69579a4fce7
+- id: grille_remunerations
+  parent: corpus
+  kind: document
+  title_text: Compensation grid
+  summary_text: This document describes Exemplia's compensation structure; it is classed confidential and its access is reserved to hum…
+  sha256: c5a6af624ccbb6f02164eb51d9f0fbf75faeba3ef4a7a70b6a30726a30b2b7cd
+- id: grille_remunerations#1
+  parent: grille_remunerations
+  kind: section
+  title_text: This document describes Exemplia's compensation structure; it is…
+  summary_text: This document describes Exemplia's compensation structure; it is classed confidential and its access is reserved to hum…
+  sha256: 9431d63f9cc23f5735c47bce659a4986e021c798e70f308e426741b01399a346
+- id: grille_remunerations#2
+  parent: grille_remunerations
+  kind: section
+  title_text: The grid has 5 categories, from category A…
+  summary_text: The grid has 5 categories, from category A (entry-level roles) to category E (management), each split into 3 steps base…
+  sha256: c9e33e3ecd5b56b2def6ea5e9a38a4bdf98eb011aff781c97d64907cf6b34232
+- id: grille_remunerations#3
+  parent: grille_remunerations
+  kind: section
+  title_text: Each category matches a gross annual salary range,…
+  summary_text: Each category matches a gross annual salary range, revised once a year by the compensation committee, made up of genera…
+  sha256: ef7b3b0e1a78910e348242422ca57df2efdeb793728bae486041babaae86313d
+- id: grille_remunerations#4
+  parent: grille_remunerations
+  kind: section
+  title_text: An annual bonus, calculated on individual performance and…
+  summary_text: An annual bonus, calculated on individual performance and Exemplia's results, is added to the base salary for categorie…
+  sha256: 7ba842c81a319e5950fe45f64582f84c2a189a5879ebb4b75172e40559291a87
+- id: grille_remunerations#5
+  parent: grille_remunerations
+  kind: section
+  title_text: Any question about one's own position in the…
+  summary_text: Any question about one's own position in the grid is addressed to one's human resources manager; the full grid, with am…
+  sha256: 87720bb13aa01810eadc23aaa20b1d89ff0d1f24c4253d631e09319b05b58c0d
+- id: dossier_disciplinaire
+  parent: corpus
+  kind: document
+  title_text: Disciplinary procedure
+  summary_text: This document describes the steps of a disciplinary procedure at Exemplia; it is classed confidential and its access is…
+  sha256: a2f4c58a953d71c1437a81ea7e506232adae31540d66d590f9f19b4132eee121
+- id: dossier_disciplinaire#1
+  parent: dossier_disciplinaire
+  kind: section
+  title_text: This document describes the steps of a disciplinary…
+  summary_text: This document describes the steps of a disciplinary procedure at Exemplia; it is classed confidential and its access is…
+  sha256: 413384a5a12b031f6a664ed8c585a86909df2f2c43400c6f18340ac7dafb3c23
+- id: dossier_disciplinaire#2
+  parent: dossier_disciplinaire
+  kind: section
+  title_text: A behavioural issue or a breach leads, depending…
+  summary_text: 'A behavioural issue or a breach leads, depending on its severity, to one of these measures: an oral reminder, a written…'
+  sha256: 4fc60e7fa9da07f061383780bd0d3ba1447b58fc1d5cb1589de7da093ccce45a
+- id: dossier_disciplinaire#3
+  parent: dossier_disciplinaire
+  kind: section
+  title_text: The meeting is called in writing at least…
+  summary_text: The meeting is called in writing at least 5 working days before its date, with the reason for the meeting.
+  sha256: 0d6362f98a4f0b476e30ff9fb1d07d844a71bd2308510baf1d1c97fca016b104
+- id: dossier_disciplinaire#4
+  parent: dossier_disciplinaire
+  kind: section
+  title_text: A written warning stays on file for 3…
+  summary_text: A written warning stays on file for 3 years; past that delay, it is no longer taken into account for a later measure, u…
+  sha256: ed3da4dee0fd9580d3bfbc968003eda2b83fd7b2e1cba92dc4891e70fc639696
+- id: dossier_disciplinaire#5
+  parent: dossier_disciplinaire
+  kind: section
+  title_text: An employee's full disciplinary file is kept for…
+  summary_text: An employee's full disciplinary file is kept for 5 years after they leave Exemplia, then anonymised, in line with the p…
+  sha256: 6779ce29e663e39d543310f35e7f613ffda2de0575371f289b085456c057340c
+- id: entretiens_annuels
+  parent: corpus
+  kind: document
+  title_text: Annual review procedure
+  summary_text: This document describes Exemplia's annual review, led by each employee's direct manager; it is classed as a human resou…
+  sha256: bf4f39795089c6b422b7d5d55d3bc953b6d8abd4b6336d53471ab734e99eaa6a
+- id: entretiens_annuels#1
+  parent: entretiens_annuels
+  kind: section
+  title_text: This document describes Exemplia's annual review, led by…
+  summary_text: This document describes Exemplia's annual review, led by each employee's direct manager; it is classed as a human resou…
+  sha256: a14878dc38366a1d7f172e1e8c7c7a477cb388a925b18646da53375d4df5ac17
+- id: entretiens_annuels#2
+  parent: entretiens_annuels
+  kind: section
+  title_text: The review takes place every year in the…
+  summary_text: The review takes place every year in the first quarter, between January and March.
+  sha256: 643333812cb1bcad7148a1a235f845dbbeb9ab09f8a10aadd92bf6f7e394e771
+- id: entretiens_annuels#3
+  parent: entretiens_annuels
+  kind: section
+  title_text: The review covers how the past year's goals…
+  summary_text: The review covers how the past year's goals were met, training needs, and the goals for the coming year, set by common…
+  sha256: 68dfe0b3ffce0987ccb6f7811103fd4e2e2208dee7f0c5dd14d467ea9dac1a36
+- id: entretiens_annuels#4
+  parent: entretiens_annuels
+  kind: section
+  title_text: The minutes, written by the manager and reviewed…
+  summary_text: The minutes, written by the manager and reviewed by the employee, are signed by both parties within 10 working days aft…
+  sha256: 6ff6d5b4826e22b899f88cf0785a2e389d6fc6c6b176c3235c33e261fa960b8c
+- id: entretiens_annuels#5
+  parent: entretiens_annuels
+  kind: section
+  title_text: Minutes are kept for 3 years by human…
+  summary_text: Minutes are kept for 3 years by human resources, to track how an employee's goals and training needs evolve over severa…
+  sha256: e37c0419e643e53e6296bdd7d55cc8d2bdcab17629983e195a3faa131c0ecc85
+- id: acces_physique
+  parent: corpus
+  kind: document
+  title_text: Physical access to premises
+  summary_text: 'Each Exemplia site is divided into 3 zones: normal (reception, open space), restricted (sensitive meeting rooms, techni…'
+  sha256: 5ae8d0ef562f1a47be4b3a8c287e780bc2082bbf9d2d2e4d1e3d829b48d94f02
+- id: acces_physique#1
+  parent: acces_physique
+  kind: section
+  title_text: Each Exemplia site is divided into 3 zones:…
+  summary_text: 'Each Exemplia site is divided into 3 zones: normal (reception, open space), restricted (sensitive meeting rooms, techni…'
+  sha256: 4265795ad278d62cc7553c2e0e4eeac8a004c871cd8350b415192e33957e2fb5
+- id: acces_physique#2
+  parent: acces_physique
+  kind: section
+  title_text: Access to a restricted zone requires the zone…
+  summary_text: Access to a restricted zone requires the zone manager's approval, recorded in the badge system; access to a secure zone…
+  sha256: c6e3a19dea4f298638d83cd19f0c63bbace56022cfaa1a4a0aea1febc21bcba0
+- id: acces_physique#3
+  parent: acces_physique
+  kind: section
+  title_text: Every visitor receives a temporary badge at reception,…
+  summary_text: Every visitor receives a temporary badge at reception, after an ID check, and must be escorted by an employee in any re…
+  sha256: 211f309585446431d88761297e8fb81cb90f3df3a79f54d66a85033f7f13c134
+- id: acces_physique#4
+  parent: acces_physique
+  kind: section
+  title_text: A lost badge is reported immediately to reception,…
+  summary_text: A lost badge is reported immediately to reception, which deactivates it within the hour; a new badge is issued after an…
+  sha256: 0f0b97a654e24ce85e9f19c12d0e92091ad9f357ee0b2bf47c85b45359831624
+- id: acces_physique#5
+  parent: acces_physique
+  kind: section
+  title_text: Every access, badge accepted or refused, is logged…
+  summary_text: Every access, badge accepted or refused, is logged and kept for 6 months, consulted during a security investigation or…
+  sha256: 5c48c4e12a264b135d0638b79bf5ed0ba6c9d94d5d626f20ef58aaa72aef8318
+- id: revue_habilitations
+  parent: corpus
+  kind: document
+  title_text: Access rights review
+  summary_text: An access right is a permission to use an application, a shared folder or a physical zone, described in the physical ac…
+  sha256: 28c0760666a00a5fa2d4bf3e922ce173148c5ac9298a5870818499f04b1fed1e
+- id: revue_habilitations#1
+  parent: revue_habilitations
+  kind: section
+  title_text: An access right is a permission to use…
+  summary_text: An access right is a permission to use an application, a shared folder or a physical zone, described in the physical ac…
+  sha256: 9ef4f1ff51b5d744c7f5255e9ecfb857a635d528e3f950502d57c381907ae906
+- id: revue_habilitations#2
+  parent: revue_habilitations
+  kind: section
+  title_text: Every manager reviews, each quarter, the list of…
+  summary_text: 'Every manager reviews, each quarter, the list of access rights of their team: they confirm those still needed and flag…'
+  sha256: 0a990c632ed2165ca124bdc03731ff6caec6300a720e88af7747e7e2c8da47b2
+- id: revue_habilitations#3
+  parent: revue_habilitations
+  kind: section
+  title_text: An employee's account is deactivated the day they…
+  summary_text: An employee's account is deactivated the day they leave Exemplia, and their access rights are withdrawn within 48 hours…
+  sha256: cf877a86f126729fa181e552bd004675b67d2b27c03966ac61d84d31ee922062
+- id: revue_habilitations#4
+  parent: revue_habilitations
+  kind: section
+  title_text: Once a year, the security team runs a…
+  summary_text: Once a year, the security team runs a full review of every sensitive access right, those that grant access to personal…
+  sha256: 4a56f9fb9a65d11686b6706ab400c02697a5b7307c2284ee848202c26059658b
+- id: revue_habilitations#5
+  parent: revue_habilitations
+  kind: section
+  title_text: An external audit may cover the access rights…
+  summary_text: An external audit may cover the access rights review; the register of reviews for the past two years is then presented…
+  sha256: 914a80ec0ff59ba63f0c855854f01438cc712dea460b9aeb1a9dc87bc3276004
+- id: formation_securite
+  parent: corpus
+  kind: document
+  title_text: Security training
+  summary_text: Every Exemplia employee takes a 2-hour online information security training, then passes a quiz with at least 8 correct…
+  sha256: e47cb73ae74819d86a1edbc7421b4e46578bf3ebcc476a0a5a75565f3502dfdd
+- id: formation_securite#1
+  parent: formation_securite
+  kind: section
+  title_text: Every Exemplia employee takes a 2-hour online information…
+  summary_text: Every Exemplia employee takes a 2-hour online information security training, then passes a quiz with at least 8 correct…
+  sha256: 55d61f3651f04e045267fc1795c5735ba26a5dd1bd74b649f3256d8219a88a4d
+- id: formation_securite#2
+  parent: formation_securite
+  kind: section
+  title_text: The training covers reporting incidents, the password policy,…
+  summary_text: The training covers reporting incidents, the password policy, information classification, and good practices for email…
+  sha256: cdb726ebd232fd68579e95c633751386a9f6339db8de8d61a65ed41f7418dabb
+- id: formation_securite#3
+  parent: formation_securite
+  kind: section
+  title_text: A phishing simulation campaign is run every quarter,…
+  summary_text: A phishing simulation campaign is run every quarter, on a sample drawn at random among employees.
+  sha256: c0933ba82c8752614a6e1632d66a75dc6d7bfe3b837e7cdbb121fe5c4f87c1a0
+- id: formation_securite#4
+  parent: formation_securite
+  kind: section
+  title_text: The quiz pass rate and the click rate…
+  summary_text: The quiz pass rate and the click rate on simulations are presented every quarter to the security committee, without nam…
+  sha256: 20b479ff8d2a9b5998b7c3b3fd0c6c8677fabc66289287be77c7facdb7b2200b
+- id: formation_securite#5
+  parent: formation_securite
+  kind: section
+  title_text: Human resources keeps the list of trainings taken,…
+  summary_text: Human resources keeps the list of trainings taken, useful for the access rights review and for the annual review's futu…
+  sha256: 930b9236df3a8689f9c172e8636b62d467a87ce3e90ffee2ff7db9ee126c2d2d
