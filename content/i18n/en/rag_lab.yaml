@@ -223,6 +223,8 @@ options:
       label_text: "Agentic search (tools on the files)"
     section_tree:
       label_text: "Tree of sections (PageIndex)"
+    wiki_pages:
+      label_text: "Pages of the LLM Wiki (index read by the model)"
   generation:
     active:
       label_text: "The workshop's active model"
@@ -347,6 +349,19 @@ steps:
     label_text: "Tree descent"
     action_text: "The model picks, level by level, the nodes to open"
     explain_text: "At each level, the model reads the numbered list of the children of the nodes kept (title and summary) and answers CHOICE: 3, 7 (two at most) or CHOICE: NONE. One call per level: two on the shipped corpus (the documents, then the sections). The whole text of the sections reached becomes the context."
+  # V1.2 story 14: the LLM Wiki compiled once, linted, its index read at each question.
+  wiki_build:
+    label_text: "Wiki compilation"
+    action_text: "Compile the sources into linked wiki pages"
+    explain_text: "The LLM Wiki compiles the documents once into Markdown pages: a page per document (synthesis, key facts, concepts), a page per concept several documents name, and the index of every page, linked by [[page]] links. The shipped wiki is compiled by a rule, without a model; “Rebuild” makes the active model write the syntheses. Updating a document recompiles only the pages it feeds."
+  wiki_lint:
+    label_text: "Wiki lint"
+    action_text: "Check the wiki: links, orphan pages, concepts"
+    explain_text: "After each compilation, a lint pass reads the wiki again: links to a missing page, pages no other page links to, concepts named by a single source or by none any more, concepts the corpus calls for without a page, stale syntheses. It says what a full recompilation would mend; it fixes nothing itself."
+  wiki_lookup:
+    label_text: "Wiki lookup"
+    action_text: "The model reads the index and picks the pages to read"
+    explain_text: "The model reads the numbered index of the pages (title and synthesis) and answers PAGES: 2, 5 (three at most) or PAGES: NONE. A single call; the whole text of the pages picked becomes the context, with their sources."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -389,6 +404,9 @@ components:
   section_tree:
     label_text: "Tree of sections"
     note_text: "Documents and sections, titles and summaries"
+  wiki:
+    label_text: "Wiki"
+    note_text: "Markdown pages compiled from the sources, and their index"
 
 groups:
   data:
@@ -453,6 +471,13 @@ presets:
       No vectors: a tree of the documents and their sections, built once, that the model goes
       down level by level reading titles and summaries. A tree to build and to redo at each
       update, few calls per query.
+  llm_wiki:
+    label_text: "LLM Wiki"
+    explain_text: >-
+      No vectors: the sources are compiled once into a wiki of Markdown pages (one per
+      document, one per shared concept, an index), checked by a lint pass; at each
+      question, the model picks in the index the pages to read. Pages to compile and to
+      recompile at each update, one call per query.
 # V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
 preset_families:
   search:
@@ -854,3 +879,12 @@ sheets:
         url: "https://github.com/VectifyAI/PageIndex"
       - label_text: "arXiv 2604.14222: PageIndex evaluated on 50 questions, latency ~1.7 times"
         url: "https://arxiv.org/html/2604.14222v1"
+  context.wiki_pages:
+    purpose_text: "Compile the sources once into a wiki of Markdown pages (a page per document, one per concept several documents share, an index of every page, linked by [[page]] links), check it with a lint pass, then answer from the pages the model picks in the index: Andrej Karpathy's LLM Wiki pattern, implemented here by hand."
+    when_text: "To use for a stable knowledge base of a few hundred documents, read by humans: a concept page gathers what several sources say about one subject. To avoid if the sources change fast (each update recompiles pages) or if grounding matters: the page is a synthesis, not the source."
+    cost_text: "Build: compile every page; by the shipped rule, a few milliseconds and no token; by the model (“Rebuild”), one call per page, whose estimate is shown apart, out of the sums. Update: recompile the pages the touched document feeds (its page, those of its concepts, the index), then run the lint. Query: one call to pick the pages in the index, then the generation."
+    literature_text: "Hypothesis H3, not studied on volume: the LLM Wiki would match RAG on a few hundred documents, then fall behind. A study (24 papers, 13 questions) finds the wiki better at synthesis and RAG better at grounding, for about 21 times more tokens (arXiv 2605.18490). Hypothesis H13, partly supported: it costs more at indexing and at update. The wiki shipped here is compiled by a rule, without a model."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2605.18490: LLM Wiki and RAG on 24 papers and 13 questions, about 21 times more tokens"
+        url: "https://arxiv.org/html/2605.18490v1"

@@ -376,6 +376,16 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         shape = [(n["id"], n.get("parent"), n["kind"]) for n in fr["nodes"]]
         assert [(n["id"], n.get("parent"), n["kind"]) for n in tr["nodes"]] == shape
         assert tr["nodes"] != fr["nodes"]
+    elif rel == "rag_wiki.yaml":  # V1.2 story 14: its own corpus's wiki, the same sources
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model"):
+            assert tr[key] == fr[key]
+
+        def sources(file):
+            return [(p["id"], p["sources"]) for p in file["pages"] if p["kind"] == "source"]
+
+        assert sources(tr) == sources(fr) and tr["pages"][0]["id"] == "index"
+        assert tr["concepts"] and tr["pages"] != fr["pages"]
     elif rel == "rag_questions.yaml":  # story 1: same ids, types and doc_ids, texts translated
         fr, tr = load_rag_questions("fr"), load_rag_questions(lang)
 

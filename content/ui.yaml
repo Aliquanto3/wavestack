@@ -1228,6 +1228,17 @@ rag:
   tree_reset: "Rétablir l'arbre livré"
   tree_stale: "{count} nœud(s) périmé(s) : résumé recalculé par la règle"
   tree_progress: "Reconstruction : {done} / {total} nœuds"
+  # V1.2 story 14: the LLM Wiki's index read by the model, its lint, its card.
+  wiki_title: "Index du wiki montré au modèle : {pages} page(s)"
+  wiki_chosen: "Pages choisies par le modèle : {pages}"
+  wiki_hr: "audience RH"
+  wiki_lint_title: "Vérification du wiki : {findings} constat(s)"
+  wiki_card_title: "LLM Wiki"
+  wiki_stale: "{count} page(s) périmée(s) : synthèse recalculée par la règle"
+  wiki_hr_pages: "{count} page(s) d'audience RH : l'atelier les montre sans filtre, comme toutes ses architectures."
+  wiki_rebuild: "Recompiler le wiki"
+  wiki_reset: "Rétablir le wiki livré"
+  wiki_progress: "Recompilation : {done} / {total} pages"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`); its
 # pedagogical texts are in mcp_lab.yaml.

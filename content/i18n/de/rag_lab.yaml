@@ -229,6 +229,8 @@ options:
       label_text: "Agentische Suche (Werkzeuge auf den Dateien)"
     section_tree:
       label_text: "Abschnittsbaum (PageIndex)"
+    wiki_pages:
+      label_text: "Seiten des LLM Wiki (Index vom Modell gelesen)"
   generation:
     active:
       label_text: "Aktives Modell der Werkstatt"
@@ -357,6 +359,19 @@ steps:
     label_text: "Tree descent"
     action_text: "Das Modell wählt Ebene für Ebene die zu öffnenden Knoten"
     explain_text: "Auf jeder Ebene liest das Modell die nummerierte Liste der Kinder der behaltenen Knoten (Titel und Zusammenfassung) und antwortet CHOICE: 3, 7 (höchstens zwei) oder CHOICE: NONE. Ein Aufruf je Ebene: zwei beim mitgelieferten Korpus (die Dokumente, dann die Abschnitte). Der ganze Text der erreichten Abschnitte wird der Kontext."
+  # V1.2 story 14: the LLM Wiki compiled once, linted, its index read at each question.
+  wiki_build:
+    label_text: "Wiki compilation"
+    action_text: "Die Quellen zu verknüpften Wiki-Seiten kompilieren"
+    explain_text: "Das LLM Wiki kompiliert die Dokumente einmal zu Markdown-Seiten: eine Seite je Dokument (Synthese, Kernpunkte, Begriffe), eine Seite je Begriff, den mehrere Dokumente nennen, und den Index aller Seiten, verknüpft durch [[Seite]]-Verweise. Das ausgelieferte Wiki wird nach einer Regel kompiliert, ohne Modell; „Neu aufbauen“ lässt das aktive Modell die Synthesen schreiben. Ein Dokument zu aktualisieren kompiliert nur die Seiten neu, die es speist."
+  wiki_lint:
+    label_text: "Wiki lint"
+    action_text: "Das Wiki prüfen: Verweise, verwaiste Seiten, Begriffe"
+    explain_text: "Nach jeder Kompilierung liest eine Prüfung das Wiki erneut: Verweise auf eine fehlende Seite, Seiten, auf die keine andere verweist, Begriffe, die nur eine oder keine Quelle mehr nennt, Begriffe, die der Korpus ohne Seite verlangt, veraltete Synthesen. Sie sagt, was eine vollständige Neukompilierung beheben würde; selbst korrigiert sie nichts."
+  wiki_lookup:
+    label_text: "Wiki lookup"
+    action_text: "Das Modell liest den Index und wählt die zu lesenden Seiten"
+    explain_text: "Das Modell liest den nummerierten Index der Seiten (Titel und Synthese) und antwortet PAGES: 2, 5 (höchstens drei) oder PAGES: NONE. Ein einziger Aufruf; der ganze Text der gewählten Seiten wird der Kontext, mit ihren Quellen."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -399,6 +414,9 @@ components:
   section_tree:
     label_text: "Abschnittsbaum"
     note_text: "Dokumente und Abschnitte, Titel und Zusammenfassungen"
+  wiki:
+    label_text: "Wiki"
+    note_text: "Aus den Quellen kompilierte Markdown-Seiten und ihr Index"
 
 groups:
   data:
@@ -464,6 +482,13 @@ presets:
       Keine Vektoren: ein Baum der Dokumente und ihrer Abschnitte, einmal aufgebaut, den das
       Modell Ebene für Ebene hinabsteigt und dabei Titel und Zusammenfassungen liest. Ein Baum
       zum Aufbauen und bei jeder Aktualisierung neu, wenige Aufrufe je Anfrage.
+  llm_wiki:
+    label_text: "LLM Wiki"
+    explain_text: >-
+      Keine Vektoren: die Quellen werden einmal zu einem Wiki aus Markdown-Seiten kompiliert
+      (eine je Dokument, eine je gemeinsamem Begriff, ein Index), durch eine Prüfung
+      kontrolliert; bei jeder Frage wählt das Modell im Index die zu lesenden Seiten. Seiten
+      zum Kompilieren und bei jeder Aktualisierung neu, ein Aufruf je Anfrage.
 # V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
 preset_families:
   search:
@@ -865,3 +890,12 @@ sheets:
         url: "https://github.com/VectifyAI/PageIndex"
       - label_text: "arXiv 2604.14222: PageIndex an 50 Fragen bewertet, Latenz ~1,7-fach"
         url: "https://arxiv.org/html/2604.14222v1"
+  context.wiki_pages:
+    purpose_text: "Die Quellen einmal zu einem Wiki aus Markdown-Seiten kompilieren (eine Seite je Dokument, eine je Begriff, den mehrere Dokumente teilen, ein Index aller Seiten, verknüpft durch [[Seite]]-Verweise), es mit einer Prüfung kontrollieren und dann aus den Seiten antworten, die das Modell im Index wählt: das LLM-Wiki-Muster von Andrej Karpathy, hier von Hand umgesetzt."
+    when_text: "Zu verwenden für eine stabile Wissensbasis von einigen hundert Dokumenten, die Menschen lesen: eine Begriffsseite sammelt, was mehrere Quellen über ein Thema sagen. Zu vermeiden, wenn sich die Quellen schnell ändern (jede Aktualisierung kompiliert Seiten neu) oder wenn die Verankerung zählt: die Seite ist eine Synthese, nicht die Quelle."
+    cost_text: "Aufbau: alle Seiten kompilieren; nach der ausgelieferten Regel wenige Millisekunden und kein Token; durch das Modell („Neu aufbauen“) ein Aufruf je Seite, dessen Schätzung gesondert angezeigt wird, außerhalb der Summen. Aktualisierung: die Seiten neu kompilieren, die das betroffene Dokument speist (seine Seite, die seiner Begriffe, den Index), dann die Prüfung. Anfrage: ein Aufruf, um die Seiten im Index zu wählen, dann die Generierung."
+    literature_text: "Hypothese H3, zum Umfang nicht untersucht: das LLM Wiki erreiche RAG bei einigen hundert Dokumenten und falle dann zurück. Eine Studie (24 Artikel, 13 Fragen) findet das Wiki besser bei der Synthese und RAG besser bei der Verankerung, für etwa 21-mal mehr Tokens (arXiv 2605.18490). Hypothese H13, teilweise gestützt: es kostet mehr bei der Indexierung und der Aktualisierung. Das hier ausgelieferte Wiki wird nach einer Regel kompiliert, ohne Modell."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2605.18490: LLM Wiki und RAG an 24 Artikeln und 13 Fragen, etwa 21-mal mehr Tokens"
+        url: "https://arxiv.org/html/2605.18490v1"

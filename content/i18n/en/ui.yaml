@@ -1212,6 +1212,17 @@ rag:
   tree_reset: "Restore the shipped tree"
   tree_stale: "{count} stale node(s): summary recomputed by the rule"
   tree_progress: "Rebuild: {done} / {total} nodes"
+  # V1.2 story 14: the LLM Wiki's index read by the model, its lint, its card.
+  wiki_title: "Wiki index shown to the model: {pages} page(s)"
+  wiki_chosen: "Pages picked by the model: {pages}"
+  wiki_hr: "HR audience"
+  wiki_lint_title: "Wiki lint: {findings} finding(s)"
+  wiki_card_title: "LLM Wiki"
+  wiki_stale: "{count} stale page(s): synthesis recomputed by the rule"
+  wiki_hr_pages: "{count} HR audience page(s): the workshop shows them unfiltered, as all its architectures do."
+  wiki_rebuild: "Recompile the wiki"
+  wiki_reset: "Restore the shipped wiki"
+  wiki_progress: "Recompilation: {done} / {total} pages"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

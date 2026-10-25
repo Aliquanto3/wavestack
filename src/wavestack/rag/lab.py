@@ -41,6 +41,7 @@ from wavestack.models.reranker import RerankCancelled, Reranker
 from wavestack.rag import agent_tools, pageindex, workcopy
 from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import index as rag_index
+from wavestack.rag import wiki as llm_wiki  # V1.2 story 14
 from wavestack.rag.corpus import (
     Chunk,
     DocText,
@@ -105,6 +106,8 @@ OPTIONS: dict[str, tuple[str, ...]] = {
         "cached_corpus",
         "agent_loop",
         "section_tree",
+        # V1.2 story 14 (CAP-7): the LLM Wiki, its pages compiled from the sources.
+        "wiki_pages",
     ),
     # Lot 5c-3: the workshop's active model generates (the shipped one), or nothing is sent.
     "generation": ("active", "not_run"),
@@ -182,6 +185,14 @@ AGENT_RESULT_MAX_TOKENS = agent_tools.AGENT_RESULT_MAX_TOKENS
 PAGEINDEX_BREADTH = pageindex.PAGEINDEX_BREADTH
 TREE_SUMMARY_MAX_CHARS = pageindex.TREE_SUMMARY_MAX_CHARS
 TREE_SOURCE_MAX_TOKENS = 1500  # what a summary's rewrite reads of a node's text
+# V1.2 story 14: the LLM Wiki searches by itself too (the model picks pages in its index);
+# the pages it may pick, what a synthesis's rewrite reads of a page's material, the lint's
+# findings an event keeps, and the two parts of its update (recompile, then lint).
+SEARCHLESS_OPTIONS = (*SEARCHLESS_OPTIONS, "wiki_pages")
+WIKI_BREADTH = llm_wiki.WIKI_BREADTH
+WIKI_SOURCE_MAX_TOKENS = 1500
+WIKI_FINDINGS_SHOWN = 20
+WIKI_UPDATE_PARTS = ("wiki_build", "wiki_lint")
 PREVIEW_CHARS = 200  # the characters of a tool's result or a model's answer the event keeps
 STATUSES = ("ok", "error", "skipped", "cancelled", "not_run")
 EMBED_BATCH = 8  # passages embedded at a time: « Arrêter » and the progress between batches
@@ -213,6 +224,8 @@ COMPONENTS: dict[str, tuple[str, str, str | None]] = {
     # V1.2 story 11: the agent's tools on the corpus files, and PageIndex's tree of sections.
     "file_tools": ("models", "🛠️", None),
     "section_tree": ("data", "🌳", None),
+    # V1.2 story 14: the LLM Wiki's pages, compiled from the documents.
+    "wiki": ("data", "📚", None),
 }
 
 
@@ -317,6 +330,32 @@ STEPS: dict[str, SequenceStep] = {
         calls=("llm",),
         options=("section_tree",),
     ),
+    # V1.2 story 14: the LLM Wiki compiled once from the documents, then linted (its cost:
+    # `build`); at each question, the model reads its index and picks the pages to read.
+    "wiki_build": SequenceStep(
+        "build",
+        "context",
+        own=False,
+        reads=("documents",),
+        writes=("wiki",),
+        options=("wiki_pages",),
+    ),
+    "wiki_lint": SequenceStep(
+        "build",
+        "context",
+        own=False,
+        reads=("wiki",),
+        writes=("wiki",),
+        options=("wiki_pages",),
+    ),
+    "wiki_lookup": SequenceStep(
+        "run",
+        "context",
+        own=False,
+        reads=("wiki", "question"),
+        calls=("llm",),
+        options=("wiki_pages",),
+    ),
 }
 
 # ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
@@ -334,6 +373,7 @@ PRESETS: dict[str, tuple[tuple[str, str], ...]] = {
     # V1.2 story 11: no search segment either, the Context searches by itself.
     "agentic": (),
     "pageindex": (),
+    "llm_wiki": (),  # V1.2 story 14: the Context reads the wiki's pages
 }
 # V1.2 story 10: the Context option a preset sets (the others keep the chain's Context).
 PRESET_CONTEXT: dict[str, str] = {
@@ -341,12 +381,13 @@ PRESET_CONTEXT: dict[str, str] = {
     "cag": "cached_corpus",
     "agentic": "agent_loop",  # V1.2 story 11
     "pageindex": "section_tree",
+    "llm_wiki": "wiki_pages",  # V1.2 story 14
 }
 # V1.2 story 10 (vues.md): the presets' families, drawn in this order; each preset is in one.
 # V1.2 story 11: « Structure » between « Recherche » and « Sans index » (the mock-up's order).
 PRESET_FAMILIES: dict[str, tuple[str, ...]] = {
     "search": ("dense", "hybrid", "rerank"),
-    "structure": ("pageindex",),
+    "structure": ("pageindex", "llm_wiki"),  # V1.2 story 14: the LLM Wiki after PageIndex
     "no_index": ("long_context", "cag", "agentic"),
 }
 
@@ -1620,6 +1661,18 @@ def _keyed(text: str) -> Message:
     return text if isinstance(text, Message) else Message("common.verbatim", text=text)
 
 
+def wiki_estimate_tokens(
+    book: llm_wiki.Wiki, instruction: str, estimate: Callable[[str], int]
+) -> int:
+    """V1.2 story 14: the tokens a compilation of `book` by a model would read (an estimate,
+    never a measure): per page but the index, its instruction and its material, at most
+    `WIKI_SOURCE_MAX_TOKENS` (what « Reconstruire » reads of it)."""
+    return sum(
+        estimate(instruction) + min(estimate(page.material), WIKI_SOURCE_MAX_TOKENS)
+        for page in book.listed()
+    )
+
+
 class StageFailed(KeyedError):
     """A stage cannot do its work: its reason, a `Message` (French as `str()` and
     `message_text`, `render(lang)` in the session's) or a text kept as it is. `soft`: the
@@ -1935,6 +1988,8 @@ class _Result:
     # V1.2 story 11: the agent's rounds (`agent_loop`) and the descent's levels (`section_tree`).
     agent: dict[str, Any] | None = None
     tree: dict[str, Any] | None = None
+    # V1.2 story 14: the LLM Wiki (its pages, its lint, the pages the model picked).
+    wiki: dict[str, Any] | None = None
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -2292,6 +2347,7 @@ class LabRun:
                 "cache": result.cache,
                 "agent": result.agent,
                 "tree": result.tree,
+                "wiki": result.wiki,
             },
             step_id,
             component,
@@ -3374,6 +3430,8 @@ class LabRun:
             return self._context_agent(chain, step_id, tick)
         if stage.option == "section_tree":
             return self._context_tree(chain, step_id, tick)
+        if stage.option == "wiki_pages":  # V1.2 story 14
+            return self._context_wiki(chain, step_id, tick)
         if stage.option in CORPUS_OPTIONS:
             return self._context_corpus(chain, stage)
         ranked = chain.ranked
@@ -4131,6 +4189,257 @@ class LabRun:
                 progress(done, len(nodes))
         return status, entries, tokens, failed, model
 
+    # -- V1.2 story 14: the LLM Wiki, compiled from the sources, linted, its index read --
+
+    def _audiences(self) -> dict[str, str]:
+        """Each document's audience (story 18): a document added to the work copy is `all`."""
+        return {d.id: d.audience for d in self.deps.content.documents}
+
+    def _wiki_build_cost(self, book: llm_wiki.Wiki, built_ms: int) -> StageCost:
+        """The wiki's compilation, in `build`: the rule's, measured by this run (no token); the
+        model's, read from the rebuilt file's header (its tokens, its duration)."""
+        if book.rebuilt is not None:
+            return StageCost(
+                "build",
+                "wiki_pages",
+                book.rebuilt.tokens,
+                book.rebuilt.duration_ms,
+                None,
+                None,
+                measured_at_build=True,
+                note_text=Message("rag_lab.costs.wiki_measure", model=book.rebuilt.model),
+            )
+        return StageCost("build", "wiki_pages", 0, built_ms, 0.0, None)
+
+    def wiki_mark(self, book: llm_wiki.Wiki) -> str:
+        """« wiki livré, compilé par une règle, sans modèle » or « wiki recompilé par le
+        modèle X »."""
+        if book.rebuilt is not None:
+            return self._text("wiki.mark_rebuilt", model=book.rebuilt.model)
+        return self._text("wiki.mark_shipped")
+
+    def wiki_estimate(self, book: llm_wiki.Wiki) -> tuple[int, int]:
+        """What compiling the wiki with a model would take (an estimate, never a measure, in no
+        sum): one call per page but the index, and the tokens each call would read (its
+        instruction and its material, cut as « Reconstruire » cuts it)."""
+        instruction = self._text("wiki.rewrite_instruction", max=llm_wiki.SYNTHESIS_MAX_CHARS)
+        tokens = wiki_estimate_tokens(book, instruction, self.deps.estimate_tokens)
+        return len(book.listed()), tokens
+
+    def _findings(self, findings: Sequence[llm_wiki.Finding]) -> list[dict[str, Any]]:
+        say = self._text
+        return [
+            {
+                "code": f.code,
+                "page_id": f.page_id,
+                "text": say(f"wiki.lint.{f.code}", page=f.page_id, detail=f.detail),
+            }
+            for f in findings[:WIKI_FINDINGS_SHOWN]
+        ]
+
+    def _index_fit(
+        self, pages: list[llm_wiki.Page], room: int | None
+    ) -> tuple[list[llm_wiki.Page], int]:
+        """The pages the index shown to the model holds in `room`: the last ones left out."""
+        listed = list(pages)
+        if room is None:
+            return listed, 0
+        while len(listed) > 1 and self.deps.estimate_tokens(llm_wiki.index_list(listed)) > room:
+            listed.pop()
+        return listed, len(pages) - len(listed)
+
+    def _context_wiki(
+        self, chain: _Chain, step_id: str, tick: Callable[[int, int], None]
+    ) -> _Result:
+        """`wiki_pages` (V1.2 story 14, CAP-7, LLM Wiki): the wiki of the chain's documents
+        (compiled pages, the vocabulary and the syntheses of the file read) is linted, then the
+        model reads its index (each page's title and synthesis, numbered) and answers `PAGES: 2,
+        5` (at most `WIKI_BREADTH`) or `PAGES: NONE`; each page picked is an element of the
+        context (its whole Markdown, its sources). One call, then the generation."""
+        deps, say, count = self.deps, self._text, self._int
+        copy = deps.work_copy if self._reads_work_copy() else None
+        docs = self._corpus_documents(copy)
+        source = say("chunking.source_work_copy" if copy else "chunking.source_corpus")
+        began = time.perf_counter()
+        book = llm_wiki.load_wiki(docs, self._lang, deps.lab_dir, self._audiences())
+        findings = llm_wiki.lint(book, docs, self._lang)
+        built_ms = math.ceil((time.perf_counter() - began) * 1000)
+        listed_all = book.listed()
+        result = _Result(
+            input_text=say(
+                "wiki.input",
+                pages=self._count(len(listed_all), "page"),
+                documents=self._count(len(docs), "document"),
+                source=source,
+            ),
+            costs=[self._wiki_build_cost(book, built_ms)],
+        )
+        calls, estimated = self.wiki_estimate(book)
+        estimate_text = (
+            None
+            if book.rebuilt is not None
+            else say("wiki.estimate", calls=count(calls), tokens=count(estimated))
+        )
+        result.facts = [
+            (say("fact.wiki"), self.wiki_mark(book)),
+            (say("fact.wiki_pages"), count(len(book.pages))),
+            (say("fact.wiki_concepts"), count(book.count("concept"))),
+            (say("fact.wiki_links"), count(book.links())),
+            (say("fact.wiki_stale"), count(book.stale)),
+            (say("fact.wiki_findings"), count(len(findings))),
+            (
+                say("fact.wiki_hr"),
+                count(sum(1 for p in book.pages.values() if p.audience == "hr")),
+            ),
+        ]
+        if estimate_text:
+            result.facts.append((say("fact.wiki_estimate"), estimate_text))
+        payload: dict[str, Any] = {
+            "author": book.header.author if book.header else "shipped",
+            "method": book.header.method if book.header else llm_wiki.HEURISTIC,
+            "model": book.header.model if book.header else llm_wiki.HEURISTIC,
+            "mark_text": self.wiki_mark(book),
+            "pages": len(book.pages),
+            "concepts": book.count("concept"),
+            "links": book.links(),
+            "stale": book.stale,
+            "findings": len(findings),
+            "lint": self._findings(findings),
+            "estimate_text": estimate_text,
+            "shown": [],
+            "chosen": [],
+            "trimmed": 0,
+            "answer_preview": "",
+            "prompt_tokens": 0,
+            "output_tokens": 0,
+            "stop": "no_model",
+            "warnings": [],
+        }
+        result.wiki = payload
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.generation.no_model"), result=result)
+        instruction = say("wiki.instruction", breadth=WIKI_BREADTH)
+        user = say("wiki.user", question=self.question)
+        warnings: list[tuple[str, str]] = []
+        listed, cut = self._index_fit(listed_all, self._room(instruction, user))
+        if cut:
+            warnings.append(("wiki_index_trimmed", say("wiki.index_trimmed", count=count(cut))))
+        payload["trimmed"] = cut
+        payload["shown"] = [
+            {
+                "number": n,
+                "page_id": p.id,
+                "kind": p.kind,
+                "title_text": p.title_text,
+                "summary_text": ""
+                if p.kind == "concept"
+                else llm_wiki.short(p.synthesis_text, llm_wiki.INDEX_SUMMARY_MAX_CHARS),
+                "audience": p.audience,
+            }
+            for n, p in enumerate(listed, start=1)
+        ]
+        stop, error, picked_pages = "done", None, []
+        model = ""
+        if deps.cancelled():
+            stop = "cancelled"
+        else:
+            with deps.model_scope():
+                got = self._ask(step_id, instruction, llm_wiki.index_list(listed), user)
+            result.costs.append(self._call_cost("query", "wiki_pages", got))  # type: ignore[union-attr]
+            model = got.model_label or ""
+            payload |= {
+                "answer_preview": self._preview(got.answer_text),
+                "prompt_tokens": got.prompt_tokens,
+                "output_tokens": got.output_tokens,
+            }
+            tick(1, 1)
+            if got.status not in ("completed", "limit"):
+                stop = got.status if got.status in ("cancelled", "too_long") else "error"
+                error = got.error_text
+            else:
+                picked = llm_wiki.parse_pages(got.answer_text, len(listed))
+                if picked is None:
+                    stop = "unreadable"
+                    warnings.append(("wiki_unreadable", say("wiki.unreadable")))
+                elif not picked:
+                    stop = "none"
+                    warnings.append(("no_page_chosen", say("wiki.no_page_chosen")))
+                else:
+                    picked_pages = [listed[n - 1] for n in picked]
+        if stop == "too_long":
+            warnings.append(("wiki_too_long", say("agent.too_long")))
+        found = []
+        for rank, page in enumerate(picked_pages, start=1):
+            doc_id = page.sources[0] if page.kind == "source" else "wiki"
+            source_ref = {
+                "kind": "wiki_pages",
+                "label_text": page.id,
+                "rank": rank,
+                "score": None,
+            }
+            found.append((doc_id, page.title_text, page.text, False, source_ref))
+        self._searchless_end(chain, result, self._searchless_items(found), warnings)
+        result.facts[:0] = [(say("fact.model"), model or "—")]
+        result.facts.append((say("fact.wiki_chosen"), ", ".join(p.id for p in picked_pages) or "—"))
+        payload |= {
+            "chosen": [p.id for p in picked_pages],
+            "stop": stop,
+            "warnings": [{"code": c, "text": t} for c, t in warnings],
+        }
+        if stop == "cancelled":
+            raise LabCancelled(result)
+        if stop == "error":
+            raise StageFailed(error or Message("rag_lab.agent.model_error"), result=result)
+        return result
+
+    def _rewrite_syntheses(
+        self,
+        pages: Sequence[llm_wiki.Page],
+        step_id: str,
+        phase: str,
+        progress: Callable[[int, int], None] = lambda *_: None,
+    ) -> tuple[str, list[llm_wiki.WikiEntry], int, int, str]:
+        """The syntheses of `pages` written by the active model, one call each (its cost in
+        `phase`, added to the run's): `(status, entries written, tokens, failures, model)`. A
+        page the model fails on, or leaves empty, keeps the rule's synthesis."""
+        deps, say = self.deps, self._text
+        entries: list[llm_wiki.WikiEntry] = []
+        failed = tokens = 0
+        model, status = "", "ok"
+        instruction = say("wiki.rewrite_instruction", max=llm_wiki.SYNTHESIS_MAX_CHARS)
+        with deps.model_scope():
+            for done, page in enumerate(pages, start=1):
+                if deps.cancelled():
+                    status = "cancelled"
+                    break
+                text, _ = agent_tools.cut_to_tokens(
+                    page.material, WIKI_SOURCE_MAX_TOKENS, deps.estimate_tokens
+                )
+                got = self._ask(
+                    step_id,
+                    instruction,
+                    say("wiki.rewrite_source", title=page.title_text, text=text),
+                    say("wiki.rewrite_user"),
+                )
+                self.costs.append(self._call_cost(phase, "wiki_pages", got))
+                model = got.model_label or model
+                if got.status == "cancelled":
+                    status = "cancelled"
+                    break
+                synthesis = (
+                    llm_wiki.clean_synthesis(got.answer_text)
+                    if got.status in ("completed", "limit")
+                    else ""
+                )
+                if synthesis:
+                    page.synthesis_text, page.source = synthesis, "rebuilt"
+                    entries.append(page.entry())
+                    tokens += got.prompt_tokens + got.output_tokens
+                else:
+                    failed += 1
+                progress(done, len(pages))
+        return status, entries, tokens, failed, model
+
     def _kept_fact(self, kept: int, total: int) -> tuple[str, str]:
         say = self._text
         return (
@@ -4576,6 +4885,8 @@ class UpdateRun(LabRun):
     def _label_of(self, stage: Stage, kind: str) -> str:
         if kind == "lexical_index":
             return self.deps.texts.steps["lexical_index"].label_text
+        if kind in WIKI_UPDATE_PARTS:  # V1.2 story 14: « Wiki compilation », « Wiki lint »
+            return self.deps.texts.steps[kind].label_text
         return self._label(stage)
 
     def _ref(self, stage: Stage, kind: str) -> dict[str, Any]:
@@ -4597,6 +4908,11 @@ class UpdateRun(LabRun):
             return []  # V1.2 story 11: the agent reads the source at each question too
         if context is not None and context.option == "section_tree":
             return [(context, "section_tree", self._update_tree)]
+        if context is not None and context.option == "wiki_pages":  # V1.2 story 14
+            return [
+                (context, "wiki_build", self._update_wiki),
+                (context, "wiki_lint", self._update_wiki_lint),
+            ]
         if context is not None and context.option == "cached_corpus":
             return [(context, "cache_prefix", self._update_prefix)]
         chunking = pipeline.find("chunking")
@@ -4819,6 +5135,124 @@ class UpdateRun(LabRun):
         result.facts.append((say("fact.tree"), say("tree.by_model", model=model or "—")))
         return result
 
+    def _update_wiki(self, stage: Stage) -> _Result:
+        """V1.2 story 14 (LLM Wiki): only the pages the touched document feeds are compiled
+        again (its page, the pages of the concepts it names, before or after; a deletion removes
+        its page and the concepts no document names any more), then the index; the vocabulary
+        stays the file's. It follows the wiki in use: recompiled by a model and a model loaded,
+        the touched pages' syntheses are rewritten by the model (its tokens and seconds, kept in
+        the rebuilt file); else by the rule (milliseconds, no token). The lint follows."""
+        deps, say, count = self.deps, self._text, self._int
+        before = self._corpus_documents(self.before)
+        after = self._corpus_documents(self.after)
+        if not after:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        shipped, rebuilt, _ = llm_wiki.load_files(self._lang, deps.lab_dir)
+        concepts = llm_wiki.vocabulary(before, self._lang, shipped, rebuilt)
+        old = {d.doc_id for d in before}
+        new = {d.doc_id: d for d in after}
+        removed = sorted(old - set(new))
+        changed = sum(
+            1 for i, d in new.items() if i not in old or d.text != self._text_of(before, i)
+        )
+        began = time.perf_counter()
+        touched, gone = llm_wiki.touched_pages(before, after, self._lang, concepts)
+        pages = llm_wiki.build_wiki(after, self._lang, concepts, self._audiences(), touched)
+        total = len(llm_wiki.build_wiki(after, self._lang, concepts)) - 1
+        redone = [pages[i] for i in sorted(touched)]
+        by_model = rebuilt is not None and deps.generator is not None and bool(redone)
+        result = _Result(
+            input_text=say(
+                "update.wiki_input",
+                documents=self._count(changed + len(removed), "document"),
+            ),
+            facts=[
+                (
+                    say("fact.pages_redone"),
+                    say("wiki.redone", redone=count(len(redone)), total=count(total)),
+                ),
+                (say("fact.pages_removed"), count(len(gone))),
+            ],
+        )
+        if not by_model:
+            # A deleted document's pages leave the rebuilt file (story 18: erased).
+            llm_wiki.forget(self._lang, removed, deps.lab_dir)
+            ms = math.ceil((time.perf_counter() - began) * 1000)
+            result.output_text = say(
+                "update.wiki_rule", redone=count(len(redone)), removed=count(len(gone))
+            )
+            result.costs = [StageCost("update", "wiki_pages", 0, ms, 0.0, None)]
+            result.facts.append((say("fact.wiki"), say("wiki.by_rule")))
+            return result
+        step_id = f"{self.run_id}.wiki"
+        mark = len(self.costs)
+        started = time.monotonic()
+        status, entries, tokens, failed, model = self._rewrite_syntheses(redone, step_id, "update")
+        duration = _ms(time.monotonic() - started)
+        costs, self.costs = self.costs[mark:], self.costs[:mark]  # the part's, said by `_ended`
+        result.costs = costs
+        if status == "cancelled":
+            raise LabCancelled(result)
+        llm_wiki.forget(self._lang, removed, deps.lab_dir)
+        if entries:
+            llm_wiki.write_rebuilt(
+                self._lang,
+                entries,
+                concepts=concepts,
+                model=model or "?",
+                tokens=tokens,
+                duration_ms=duration,
+                merge=True,
+                folder=deps.lab_dir,
+            )
+        result.output_text = say(
+            "update.wiki_model",
+            redone=count(len(entries)),
+            failed=count(failed),
+            removed=count(len(gone)),
+            model=model or "—",
+        )
+        result.facts.append((say("fact.wiki"), say("wiki.by_model", model=model or "—")))
+        return result
+
+    @staticmethod
+    def _text_of(documents: Sequence[DocText], doc_id: str) -> str | None:
+        return next((d.text for d in documents if d.doc_id == doc_id), None)
+
+    def _update_wiki_lint(self, stage: Stage) -> _Result:
+        """V1.2 story 14: the lint of the wiki after the recompilation, by the rule (broken links,
+        orphan pages, thin, empty or missing concepts, stale syntheses): measured in `update`,
+        no token. Its findings say what a full compilation (« Reconstruire ») would mend."""
+        deps, say, count = self.deps, self._text, self._int
+        after = self._corpus_documents(self.after)
+        began = time.perf_counter()
+        book = llm_wiki.load_wiki(after, self._lang, deps.lab_dir, self._audiences())
+        findings = llm_wiki.lint(book, after, self._lang)
+        ms = math.ceil((time.perf_counter() - began) * 1000)
+        result = _Result(
+            input_text=say("update.wiki_lint_input", pages=count(len(book.pages))),
+            output_text=say(
+                "wiki.lint_output", findings=count(len(findings)), pages=count(len(book.pages))
+            ),
+            facts=[(say("fact.wiki_findings"), count(len(findings)))]
+            + [(say("fact.wiki"), f["text"]) for f in self._findings(findings)[:3]],
+            costs=[StageCost("update", "wiki_lint", 0, ms, 0.0, None)],
+        )
+        result.wiki = {
+            "author": book.header.author if book.header else "shipped",
+            "method": book.header.method if book.header else llm_wiki.HEURISTIC,
+            "model": book.header.model if book.header else llm_wiki.HEURISTIC,
+            "mark_text": self.wiki_mark(book),
+            "pages": len(book.pages),
+            "concepts": book.count("concept"),
+            "links": book.links(),
+            "stale": book.stale,
+            "findings": len(findings),
+            "lint": self._findings(findings),
+            "stop": "lint",
+        }
+        return result
+
     # -- the parts --
 
     @staticmethod
@@ -4988,7 +5422,7 @@ class RebuildRun(LabRun):
     made."""
 
     SUMMARY_PHASES = ("build",)
-    TARGETS = ("contexts", "pageindex")
+    TARGETS = ("contexts", "pageindex", "wiki")  # V1.2 story 14: the LLM Wiki
 
     def __init__(
         self,
@@ -5008,6 +5442,10 @@ class RebuildRun(LabRun):
             context = self.pipeline.find("context")
             assert context is not None  # `check_pipeline` keeps the fixed tail
             return context, "section_tree"
+        if self.target == "wiki":  # V1.2 story 14
+            context = self.pipeline.find("context")
+            assert context is not None
+            return context, "wiki_build"
         stage = self.pipeline.find("chunking")
         assert stage is not None  # `check_pipeline` keeps the fixed head
         return stage, "chunking"
@@ -5063,6 +5501,8 @@ class RebuildRun(LabRun):
         try:
             if self.target == "pageindex":
                 status, result = self._rewrite_tree(step_id, component, base)
+            elif self.target == "wiki":  # V1.2 story 14
+                status, result = self._rewrite_wiki(step_id, component, base)
             else:
                 status, result = self._rewrite(stage, step_id, component, base)
         except StageSkipped as skipped:
@@ -5114,6 +5554,60 @@ class RebuildRun(LabRun):
                 "tree.rebuild_output",
                 done=count(len(entries)),
                 total=count(len(nodes)),
+                failed=count(failed),
+            ),
+            facts=[
+                (text("fact.model"), model or "—"),
+                (text("contexts.fact_rebuilt"), count(len(entries))),
+                (text("contexts.fact_kept"), count(failed)),
+                (text("contexts.fact_tokens"), count(tokens)),
+            ],
+        )
+        return status, result
+
+    def _rewrite_wiki(
+        self, step_id: str, component: str, base: dict[str, Any]
+    ) -> tuple[str, _Result]:
+        """V1.2 story 14 (LLM Wiki): the whole wiki compiled again from the chain's documents,
+        its vocabulary recomputed, and every page's synthesis written by the active model, page
+        by page, into the data folder (`method: llm`). « Arrêter » keeps the earlier state:
+        nothing is written (the file is replaced whole or not at all)."""
+        deps, text, count = self.deps, self._text, self._int
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.contexts.no_model"))
+        copy = deps.work_copy if self._reads_work_copy() else None
+        documents = workcopy.documents(deps.content, deps.lang, copy)
+        concepts = llm_wiki.select_concepts(documents, deps.lang)
+        pages = [
+            p
+            for p in llm_wiki.build_wiki(documents, deps.lang, concepts, self._audiences()).values()
+            if p.id != llm_wiki.INDEX_ID
+        ]
+        if not pages:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        progress = self._progress(step_id, component, base)
+        began = time.monotonic()
+        status, entries, tokens, failed, model = self._rewrite_syntheses(
+            pages, step_id, "build", progress
+        )
+        if status == "ok" and entries:
+            llm_wiki.write_rebuilt(
+                deps.lang,
+                entries,
+                concepts=concepts,
+                model=model or "?",
+                tokens=tokens,
+                duration_ms=_ms(time.monotonic() - began),
+                merge=False,
+                folder=deps.lab_dir,
+            )
+        result = _Result(
+            costs=[],  # the per-page costs are in the run's sum
+            input_text=text("wiki.rebuild_input", pages=self._count(len(pages), "page")),
+            output_text=text(
+                "wiki.rebuild_output",
+                done=count(len(entries)),
+                total=count(len(pages)),
                 failed=count(failed),
             ),
             facts=[

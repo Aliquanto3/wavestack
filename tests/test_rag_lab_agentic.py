@@ -78,6 +78,7 @@ def test_the_two_presets_their_families_and_their_context(index):
         "cached_corpus",
         "agent_loop",
         "section_tree",
+        "wiki_pages",  # V1.2 story 14
     ]
     assert [f["label_text"] for f in state["preset_families"]] == [
         "Recherche",

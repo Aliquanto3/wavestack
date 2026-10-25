@@ -1212,6 +1212,17 @@ rag:
   tree_reset: "Mitgelieferten Baum wiederherstellen"
   tree_stale: "{count} veraltete(r) Knoten: Zusammenfassung nach der Regel neu berechnet"
   tree_progress: "Neuaufbau: {done} / {total} Knoten"
+  # V1.2 story 14: the LLM Wiki's index read by the model, its lint, its card.
+  wiki_title: "Dem Modell gezeigter Wiki-Index: {pages} Seite(n)"
+  wiki_chosen: "Vom Modell gewählte Seiten: {pages}"
+  wiki_hr: "HR-Zielgruppe"
+  wiki_lint_title: "Prüfung des Wikis: {findings} Befund(e)"
+  wiki_card_title: "LLM Wiki"
+  wiki_stale: "{count} veraltete Seite(n): Synthese nach der Regel neu berechnet"
+  wiki_hr_pages: "{count} Seite(n) mit HR-Zielgruppe: die Werkstatt zeigt sie ungefiltert, wie alle ihre Architekturen."
+  wiki_rebuild: "Wiki neu kompilieren"
+  wiki_reset: "Ausgeliefertes Wiki wiederherstellen"
+  wiki_progress: "Neukompilierung: {done} / {total} Seiten"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

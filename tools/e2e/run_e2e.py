@@ -18324,7 +18324,7 @@ def s_rag_lab_agentic(r: Run) -> None:
         )
         r.check(
             families == ["search", "structure", "no_index"]
-            and _family_buttons(r, "structure") == ["pageindex"]
+            and _family_buttons(r, "structure")[0] == "pageindex"  # V1.2 story 14: then the wiki
             and _family_buttons(r, "no_index") == ["long_context", "cag", "agentic"],
             "familles Recherche, Structure (PageIndex), Sans index (… recherche agentique)",
             str(families),
@@ -18511,6 +18511,169 @@ def s_rag_lab_agentic(r: Run) -> None:
             r.check(False, "retour au faux cloud A, à 4 096 et au corpus livré", repr(exc))
 
 
+def s_rag_lab_wiki(r: Run) -> None:
+    """V1.2 story 14 (CAP-7), after `rag` and `rag_rerank`, no real model: the fake llama-server
+    answers the workshop's short tasks by its script (`workshop_plan`: `PAGES:` of the télétravail
+    page, a fixed synthesis). (1) « LLM Wiki » (family « Structure », after PageIndex) applied: the
+    lines « Wiki compilation », « Wiki lint », « Wiki lookup », no question embedding; the run
+    picks the télétravail page, the focus shows the index and the « Wiki » card « compilé par une
+    règle, sans modèle » with its estimate; (2) « Ajouter un document »: the update's two parts
+    (the pages recompiled, the lint), 0 token; (3) « Recompiler » by the fake model: « recompilé
+    par le modèle », « Rétablir » gives it back; (4) Effacement: `wiki_pages` measured, « effacé »
+    once the wiki is rebuilt; in English and German, the labels follow. Back to A, 4 096, the
+    shipped corpus."""
+    page = r.page
+    page.set_viewport_size({"width": 1280, "height": 1000})
+    r.goto_app()
+    r.wait_idle()
+    try:
+        ok, _ = r.poll(lambda: _picker_options(r).get(LLAMA_OPTION) is False, 10)
+        seq = r.ev.mark()
+        page.select_option("#model-picker", label=LLAMA_OPTION)
+        page.click("#model-picker-apply")
+        ended = r.ev.wait("model_load_ended", seq, timeout=30)
+        r.check(ok and ended["payload"]["status"] == "ok", "faux llama-server chargé")
+        r.wait_idle()
+        if (r.state().get("context_window_state") or {}).get("configured") != 8192:
+            _apply_window(r, 8192)
+
+        # (1) « LLM Wiki ».
+        _goto_rag_lab(r)
+        _rag_mode(r, "compose")
+        r.check(
+            _family_buttons(r, "structure")[-1] == "llm_wiki",
+            "« LLM Wiki » dans la famille Structure, après PageIndex",
+            str(_family_buttons(r, "structure")),
+        )
+        _apply_preset(r, "llm_wiki")
+        r.check(
+            _pressed_preset(r) == ["llm_wiki"]
+            and _chain_kinds(r)[3:] == ["context", "generation"]
+            and all(
+                page.locator(f'#rag-seq .rag-seq-step[data-step="{key}"]').count() == 1
+                for key in ("wiki_build", "wiki_lint", "wiki_lookup")
+            )
+            and page.locator('#rag-seq .rag-seq-step[data-step="embed_query"]').count() == 0,
+            "« LLM Wiki » appliqué : lignes « Wiki compilation », « Wiki lint », « Wiki lookup »",
+            str(_chain_kinds(r)),
+        )
+        ended, seq = _rag_lab_run(r)
+        wiki = _stage_ended(r, seq, "context").get("wiki") or {}
+        generation = _stage_ended(r, seq, "generation")
+        _focus_of(r, "wiki_lookup")
+        card = page.locator("#rag-focus .rag-wiki-card-summary")
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and wiki.get("chosen") == ["source/teletravail"]
+            and page.locator("#rag-focus .rag-wiki-index .rag-tree-child").count()
+            == len(wiki.get("shown", []))
+            and "compilé par une règle, sans modèle" in card.inner_text()
+            and page.locator("#rag-focus .rag-wiki-estimate").count() == 1
+            and generation.get("status") == "ok",
+            "le modèle choisit la page du télétravail dans l'index ; carte « compilé par une "
+            "règle, sans modèle » et son estimation",
+            str({k: wiki.get(k) for k in ("chosen", "stop", "trimmed", "answer_preview")}),
+        )
+        r.shot("88-atelier-rag-wiki", full_page=True)
+
+        # (2) A document added: the pages it feeds recompiled, then the lint.
+        _rag_mode(r, "compose")
+        seq = r.ev.mark()
+        page.locator('#rag-copy button[data-op="add"]').click()
+        expect(page.locator("#rag-copy-form")).to_be_visible()
+        page.fill("#rag-copy-id", "note_wiki")
+        page.fill("#rag-copy-title", "Note de télétravail")
+        page.fill("#rag-copy-body", "Le télétravail est suivi. Le manager valide le télétravail.")
+        page.click("#rag-copy-apply")
+        ended = r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+        (update,) = ended["payload"]["cost_summary"]
+        kinds = [
+            e["payload"]["kind"]
+            for e in r.ev.since(seq)
+            if e["kind"] == "rag_lab_stage_ended" and e["payload"].get("status") == "ok"
+        ]
+        r.check(
+            update["tokens"] == 0 and kinds == ["wiki_build", "wiki_lint"],
+            "« Ajouter » : pages recompilées par la règle, puis la vérification du wiki",
+            f"{update} {kinds}",
+        )
+        r.api("POST", "/api/rag_lab/copy/reset")
+
+        # (3) « Recompiler » by the fake model, then « Rétablir ».
+        _goto_rag_lab(r)
+        _focus_of(r, "wiki_lookup")
+        seq = r.ev.mark()
+        page.click("#rag-wiki-rebuild")
+        r.ev.wait(
+            "rag_lab_run_ended",
+            seq,
+            lambda p: str(p.get("run_id", "")).startswith("ctx"),
+            timeout=180,
+        )
+        r.poll(lambda: (r.state().get("session_state") or {}).get("state") == "idle", 30)
+        time.sleep(0.5)  # the page reads the contexts again once the rebuild ended
+        _focus_of(r, "wiki_lookup")
+        expect(page.locator("#rag-focus .rag-wiki-card-summary")).to_contain_text(
+            "recompilé par le modèle", timeout=10_000
+        )
+        page.click("#rag-wiki-reset")
+        expect(page.locator("#rag-focus .rag-wiki-card-summary")).to_contain_text(
+            "compilé par une règle", timeout=10_000
+        )
+        r.check(True, "« Recompiler » : wiki recompilé par le modèle ; « Rétablir » : livré")
+
+        # (4) Effacement: the wiki's pages are measured.
+        def row(place: str):
+            return page.locator(f'#rag-era-table tr[data-place="{place}"]').first
+
+        page.click("#rag-tab-attack")
+        expect(page.locator("#rag-era-title")).to_have_text("Effacement", timeout=10_000)
+        page.locator("#rag-era-sentinel").check()
+        page.click("#rag-era-build")
+        expect(row("wiki_pages")).to_contain_text("présent", timeout=10_000)
+        page.click("#rag-era-erase")
+        expect(row("wiki_pages")).to_contain_text("à reconstruire", timeout=10_000)
+        page.locator('#rag-era-rebuild [data-architecture="llm_wiki"]').click()
+        expect(row("wiki_pages")).to_contain_text("effacé", timeout=10_000)
+        r.check(
+            "illustratif" not in row("wiki_pages").inner_text(),
+            "Effacement : les pages du wiki mesurées, « effacé » après sa recompilation",
+            row("wiki_pages").inner_text()[:200],
+        )
+        page.locator("#rag-era-sentinel").uncheck()
+
+        # In English and German: the labels follow.
+        page.set_viewport_size({"width": 1600, "height": 1000})
+        r.goto_app()
+        _pick_model(r, A_LABEL)
+        _clear_conversation(r)  # a conversation started locks the language
+        _goto_rag_lab(r)
+        for language in ("en", "de"):
+            _rag_pick_language(r, language)
+            _rag_mode(r, "compose")
+            _apply_preset(r, "llm_wiki")
+            r.check(
+                page.locator('#rag-seq .rag-seq-step[data-step="wiki_lookup"]').count() == 1
+                and "Wiki lookup" in page.inner_text("#rag-seq")
+                and "LLM Wiki" in page.inner_text("#rag-presets"),
+                f"en {language} : « LLM Wiki », ligne « Wiki lookup »",
+            )
+        _rag_pick_language(r, "fr")
+    finally:
+        try:
+            page.keyboard.press("Escape")
+            r.api("POST", "/api/rag_lab/copy/reset")
+            r.api("POST", "/api/rag_lab/wiki/reset")
+            r.goto_app()
+            page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+            if (r.state().get("active_model") or {}).get("ref") != MODEL_ENTRY_ID:
+                _pick_model(r, A_LABEL)
+            if (r.state().get("context_window_state") or {}).get("configured") != 4096:
+                _apply_window(r, 4096)
+        except Exception as exc:  # noqa: BLE001 - reported, the scenario's own error kept
+            r.check(False, "retour au faux cloud A, à 4 096 et au corpus livré", repr(exc))
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -18556,6 +18719,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18
     ("rag_lab_sheets", s_rag_lab_sheets),  # V1.2 story 19
     ("rag_lab_mcp", s_rag_lab_mcp),  # V1.2 story 20
+    ("rag_lab_wiki", s_rag_lab_wiki),  # V1.2 story 14
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

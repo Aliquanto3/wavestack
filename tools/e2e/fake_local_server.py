@@ -117,6 +117,15 @@ def workshop_plan(prompt: str, message: str) -> str | None:
         r"Le résumé, en une phrase|The summary, in one sentence|Die Zusammenfassung", message
     ):
         return "Résumé écrit par le faux llama-server."
+    # V1.2 story 14: the LLM Wiki's index (`PAGES: NONE` in its system prompt): the télétravail
+    # page; a synthesis to write: a fixed sentence.
+    if "PAGES: NONE" in prompt:
+        for line in (line for line in lines if re.match(r"^\d+\. ", line)):
+            if re.search(r"télétravail|telework|telearbeit", line, re.I):
+                return f"PAGES: {line.split('.', 1)[0]}"
+        return "PAGES: 1"
+    if re.search(r"La synthèse de la page|The page's synthesis|Die Synthese der Seite", message):
+        return "Synthèse écrite par le faux llama-server."
     return None
 
 

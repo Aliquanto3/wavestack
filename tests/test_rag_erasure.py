@@ -40,7 +40,16 @@ STORY_OF = {
 }
 # V1.2 story 10 brought long_context and cag into the workshop (`lab.PRESETS`); their places
 # stay constructed, with the story 10 that will record the real cache.
-IN_WORKSHOP = ("dense", "hybrid", "rerank", "long_context", "cag", "agentic", "pageindex")
+IN_WORKSHOP = (
+    "dense",
+    "hybrid",
+    "rerank",
+    "long_context",
+    "cag",
+    "agentic",
+    "pageindex",
+    "llm_wiki",  # V1.2 story 14
+)
 
 
 @pytest.fixture(autouse=True)
@@ -99,6 +108,7 @@ def test_start_the_measured_places_hold_the_code(lang):
     assert hits["chunks"] == 2 and hits["bm25"] == 2 and hits["contexts"] == 1
     assert hits["shipped_contexts"] == 0 and hits["source"] == 1
     assert hits["pageindex_tree"] >= 1  # V1.2 story 11: measured on the rule's tree
+    assert hits["wiki_pages"] >= 1  # V1.2 story 14: measured on the rule's wiki
     assert body["corpus"]["sentinel_passages"] == 2
     assert [p["position"] for p in body["results"]["ranking"]] == [2, 1]
     assert [p["rank"] for p in body["results"]["ranking"]] == [1, 2]
@@ -159,6 +169,22 @@ def test_a_cache_turns_erased_by_its_own_architecture_only():
     assert found["long_context_prefix"] == "to_reload"
 
 
+@pytest.mark.parametrize("lang", LANGS)
+def test_the_wiki_pages_are_measured_and_erased_once_the_wiki_is_rebuilt(lang):
+    """V1.2 story 14: the pages of the rule's wiki hold the code while the sentinel is active,
+    still after its deletion (« à reconstruire »), none once the wiki is compiled again."""
+    session = make_session(lang)
+    start = ask(session, sentinel_active=True, step="start")
+    place = next(p for p in start["places"] if p["id"] == "wiki_pages")
+    assert place["kind"] == "measured" and place["hits"] >= 1 and place["status"] == "present"
+    erased = ask(session, sentinel_active=True, step="erase")
+    assert statuses(erased)["wiki_pages"] == "to_rebuild"
+    body = ask(session, sentinel_active=True, step="rebuild", rebuilt=["llm_wiki"])
+    place = next(p for p in body["places"] if p["id"] == "wiki_pages")
+    assert place["status"] == "erased" and place["hits"] == 0
+    assert place["status_text"] == rebuilt_measured_text(lang)
+
+
 def rebuilt_measured_text(lang: str) -> str:
     return erasure.load_erasure(lang).texts["status"]["erased"]
 
@@ -216,7 +242,8 @@ def test_the_displayed_marks_illustrative_and_upcoming():
         assert places[pid]["illustrative_text"].startswith("illustratif · cas construit")
     assert places["pageindex_tree"]["kind"] == "measured"  # V1.2 story 11
     assert places["pageindex_tree"]["illustrative_text"] is None
-    assert places["wiki_pages"]["illustrative_text"].endswith("story 14)")
+    assert places["wiki_pages"]["kind"] == "measured"  # V1.2 story 14
+    assert places["wiki_pages"]["illustrative_text"] is None
     assert places["chunks"]["illustrative_text"] is None
     rows = {r["architecture"]: r for r in places["bm25"]["rows"]}
     assert rows["hybrid"]["upcoming_text"] is None
@@ -310,7 +337,6 @@ def test_constructed_places_cite_the_code_and_name_their_story(lang):
         "raptor_summaries",
         "graph_communities",
         "graph_entities",
-        "wiki_pages",
         "cag_cache",
         "long_context_prefix",
     }
@@ -370,6 +396,7 @@ def test_the_module_imports_only_the_permitted_names():
         ("wavestack.rag.attack", "provenance_text"),
         ("wavestack.rag.contexts", "heuristic_entries"),
         ("wavestack.rag.pageindex", "build_tree"),  # V1.2 story 11: the rule's tree, pure
+        ("wavestack.rag.wiki", "build_wiki"),  # V1.2 story 14: the rule's wiki, pure
         ("wavestack.rag.contexts", "load_book"),
         ("wavestack.rag.corpus", "Chunk"),
         ("wavestack.rag.corpus", "DocText"),

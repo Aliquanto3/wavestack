@@ -1835,6 +1835,24 @@ body.rag-page {
   border-radius: var(--rounded-md);
 }
 
+/* V1.2 story 14 (CAP-7): the LLM Wiki's index, its lint and its card (the tree's layout). */
+.rag-wiki-findings {
+  margin: 0;
+  padding-left: var(--spacing-4);
+  overflow-wrap: anywhere;
+}
+
+.rag-wiki-finding {
+  margin-bottom: var(--spacing-1);
+  color: var(--color-ink-soft);
+}
+
+.rag-wiki-audience {
+  margin-left: var(--spacing-2);
+  color: var(--color-warning);
+  font-size: 0.85em;
+}
+
 /* V1.2 story 17 (CAP-13): the « Document piégé » card of the Attack tab. */
 .rag-atk-controls {
   display: flex;

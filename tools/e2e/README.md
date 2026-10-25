@@ -852,3 +852,10 @@ d'autres (story 21) :
   « Arbre » « calculé par une règle, sans modèle » ; « Reconstruire » puis « Rétablir » ; Comparer
   (les trois temps des deux) ; Effacement (`pageindex_tree` mesuré, « effacé » après sa
   reconstruction) ; en puis de ; captures `84-atelier-rag-agentique.jpg`, `85-atelier-rag-pageindex.jpg`.
+- `rag_lab_wiki`, V1.2 story 14 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le faux
+  llama-server répond `PAGES:` de la page du télétravail et une synthèse fixe (`workshop_plan`).
+  « LLM Wiki » dans la famille Structure, après PageIndex ; lignes « Wiki compilation », « Wiki
+  lint », « Wiki lookup » ; la page du télétravail choisie dans l'index ; carte « Wiki » « compilé
+  par une règle, sans modèle » et son estimation ; « Ajouter » : pages recompilées puis
+  vérification, 0 token ; « Recompiler » puis « Rétablir » ; Effacement (`wiki_pages` mesuré,
+  « effacé » après la recompilation) ; en puis de ; capture `88-atelier-rag-wiki.jpg`.

@@ -534,7 +534,6 @@ architectures:
     regulatory:
       text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the entities, relations and community summaries? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that extracts and summarises?'
 - id: llm_wiki
-  story: 14
   hypotheses:
   - H3
   - H12

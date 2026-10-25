@@ -37,6 +37,7 @@ from wavestack.rag.corpus import (
 from wavestack.rag.index import passage_text
 from wavestack.rag.lab import bm25, bm25_terms, lexical_index
 from wavestack.rag.pageindex import build_tree
+from wavestack.rag.wiki import build_wiki
 
 FILE = "rag_erasure.yaml"
 ARCHITECTURES = (
@@ -67,8 +68,10 @@ Architecture = Literal[
 ]
 STEPS = ("idle", "start", "erase", "rebuild")
 MEASURED = ("chunks", "bm25", "contexts", "shipped_contexts", "source", "pageindex_tree")
+MEASURED = (*MEASURED, "wiki_pages")  # V1.2 story 14: the rule's wiki, recompiled in memory
 MODE_OF_MEASURED = {
     "pageindex_tree": "rebuild",  # V1.2 story 11: the rule's tree, recomputed in memory
+    "wiki_pages": "rebuild",  # V1.2 story 14
     "chunks": "delete",
     "bm25": "delete",
     "contexts": "rebuild",
@@ -132,7 +135,16 @@ class Place(_Strict):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     erase_mode: Literal["delete", "rebuild", "reload", "none"]
     measured: (
-        Literal["chunks", "bm25", "contexts", "shipped_contexts", "source", "pageindex_tree"] | None
+        Literal[
+            "chunks",
+            "bm25",
+            "contexts",
+            "shipped_contexts",
+            "source",
+            "pageindex_tree",
+            "wiki_pages",  # V1.2 story 14
+        ]
+        | None
     ) = None
     provenance: Provenance | None = None
     story: int | None = None
@@ -267,6 +279,10 @@ class Copies(NamedTuple):
     # what the tree copies of the documents), with the sentinel and without it.
     tree_with: list[str] = []
     tree_without: list[str] = []
+    # V1.2 story 14: the LLM Wiki compiled by the rule, a page each (its whole Markdown, what
+    # the wiki copies of the documents), with the sentinel and without it.
+    wiki_with: list[str] = []
+    wiki_without: list[str] = []
 
 
 def build_copies(content: ErasureContent, lang: str) -> Copies:
@@ -301,6 +317,8 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         terms=bm25_terms(content.code, lang),
         tree_with=tree(docs_with),
         tree_without=tree(docs_without),
+        wiki_with=[p.text for p in build_wiki(docs_with, lang).values()],
+        wiki_without=[p.text for p in build_wiki(docs_without, lang).values()],
     )
 
 
@@ -318,6 +336,8 @@ def _items(place: Place, copies: Copies, erased: bool, rebuilt: set[str]) -> lis
         return copies.shipped_contexts
     if place.measured == "pageindex_tree":  # V1.2 story 11
         return copies.tree_without if rebuilding else copies.tree_with
+    if place.measured == "wiki_pages":  # V1.2 story 14
+        return copies.wiki_without if rebuilding else copies.wiki_with
     if place.measured == "source":
         return [d.text for d in (copies.docs_without if erased else copies.docs_with)]
     assert place.text and place.rebuilt_text  # noqa: S101 - validated at the load
