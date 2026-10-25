@@ -54,7 +54,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - Lire ce fichier en entier, puis `sprint-status.yaml` ; l'état réel prime : `gh pr list --state open`, `git -C ../wavestack-v15-s<n> log -3 --oneline` pour chaque story en cours.
 - Une story dont le dev a commité sans rapport : relancer la chaîne à partir de `second-avis` sur son dernier commit.
 - E2E : `TEMP` et `TMP` en chemin long (`C:\Users\Utilisateur\AppData\Local\Temp`).
-- Fichiers temporaires des agents : chacun dans `scratchpad\s<story>`.
+- Fichiers temporaires des agents : chacun dans `C:\Users\Utilisateur\AppData\Local\Temp\wavestack-v15\s<story>` (le scratchpad de session a expiré).
 - Fin de run : `rapport-run-v1-5.md` (fusionné, bloqué, reporté, « à revoir », tests manuels), mémoire du projet, suppression des worktrees.
 
 ## Journal
