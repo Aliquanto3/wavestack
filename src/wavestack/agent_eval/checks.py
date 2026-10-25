@@ -5,8 +5,10 @@ disk, the model nor the clock. The texts come from `messages.yaml` in `lang`, as
 
 Envelopes read: those of the turns the case started (the prompt's turn, the compaction turn
 if any, and the message sent again after it), every context (`main` and `sub{n}`). The
-witness is the `turn_ended` of the last message turn: without it, every check fails
-(« tour incomplet »). An expected event that is absent fails the check.
+witness is the `turn_ended` of the last message turn: without it, or when it is not
+`completed` (cancelled, error, limit, overflow, blocked: the session always emits it), every
+check fails (« tour incomplet »). A tool blocked or refused by a hook does not end the turn:
+its status stays `completed`. An expected event that is absent fails the check.
 """
 
 from __future__ import annotations
@@ -257,19 +259,25 @@ def verify(
 ) -> CaseVerdict:
     """The case's verdict on its envelopes: its checks in order, then `model_calls_max`
     (every `model_call_started`, the sub-agent's included). Without the witness, every check
-    fails with « tour incomplet » and `seq` `None`."""
+    fails with « tour incomplet » and `seq` `None`; with a witness not `completed`, every
+    check fails with « tour incomplet » and its status, `seq` the witness's."""
     j = _Journal(envelopes)
     calls = j.of("model_call_started")
-    if j.witness is None:
-        reason = msg("agent_eval.incomplete", lang)
-        verdicts = [_verdict(c, False, reason, None) for c in case.checks]
+    status = j.witness.payload.get("status") if j.witness is not None else None
+    if j.witness is None or status != "completed":
+        if j.witness is None:
+            reason, seq = msg("agent_eval.incomplete", lang), None
+        else:
+            reason = msg("agent_eval.incomplete_status", lang, status=status)
+            seq = j.witness.seq
+        verdicts = [_verdict(c, False, reason, seq) for c in case.checks]
         verdicts.append(
             CheckVerdict(
                 kind="model_calls_max",
                 params={"max": case.max_model_calls},
                 passed=False,
                 reason_text=reason,
-                seq=None,
+                seq=seq,
             )
         )
         return CaseVerdict(case_id=case.id, passed=False, checks=verdicts, model_calls=len(calls))

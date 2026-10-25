@@ -377,10 +377,12 @@ def test_turn_completed_passes_when_every_turn_completes():
 
 
 @pytest.mark.parametrize("status", ["limit", "error", "blocked", "overflow"])
-def test_turn_completed_fails_on_another_status(status):
+def test_turn_completed_fails_on_another_status_of_an_earlier_turn(status):
     j = J()
-    j.start()
-    end = j.end(status=status)
+    j.start("t1", kind="compaction")
+    end = j.end("t1", status=status)
+    j.start("t2")
+    j.end("t2")
     v = only(case({"kind": "turn_completed"}), j)
     assert (v.passed, v.seq, v.reason_text) == (False, end, f"un tour a fini en « {status} »")
 
@@ -443,6 +445,37 @@ def test_without_the_witness_every_check_fails_incomplete():
         ("argument_never", False, None, "tour incomplet"),
         ("model_calls_max", False, None, "tour incomplet"),
     ]
+
+
+@pytest.mark.parametrize("status", ["cancelled", "limit", "error", "blocked", "overflow"])
+def test_a_witness_not_completed_makes_every_check_fail_incomplete(status):
+    # The session always emits `turn_ended` (its `finally`): a cancelled turn has a witness.
+    j = J()
+    j.start()
+    j.call(text="Il est midi.")
+    j.tool("get_datetime")
+    end = j.end(status=status)
+    checks = [*ALL_CHECKS[:2], {"kind": "answer_contains", "text": "midi"}]
+    verdict = verify(case(*checks), j.envs)
+    reason = f"tour incomplet (fini en « {status} »)"
+    assert not verdict.passed
+    assert [(v.passed, v.seq, v.reason_text) for v in verdict.checks] == [(False, end, reason)] * 4
+
+
+def test_a_tool_blocked_by_a_hook_keeps_the_turn_complete():
+    # H1 blocks the tool without `tool_started`, the turn goes on and ends `completed`.
+    j = J()
+    j.start()
+    j.call()
+    j.hook("h1", "block")
+    j.call(text="Accès refusé.")
+    j.end()
+    checks = [
+        {"kind": "hook_decided", "hook": "h1", "decision": "block"},
+        {"kind": "argument_never", "tool": "read_file", "argument": "path", "contains": "confid"},
+        {"kind": "turn_completed"},
+    ]
+    assert verify(case(*checks), j.envs).passed
 
 
 def test_the_witness_is_the_last_message_turns_end():

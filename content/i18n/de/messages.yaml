@@ -2323,6 +2323,7 @@ security:
 # V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
 agent_eval:
   incomplete: "unvollständige Runde"
+  incomplete_status: "unvollständige Runde (endete mit „{status}“)"
   decisions:
     block: "blockieren"
     ask_human: "Zustimmung einholen"

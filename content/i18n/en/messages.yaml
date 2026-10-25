@@ -2320,6 +2320,7 @@ security:
 # V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
 agent_eval:
   incomplete: "incomplete turn"
+  incomplete_status: "incomplete turn (ended as “{status}”)"
   decisions:
     block: "block"
     ask_human: "ask for approval"

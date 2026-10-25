@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -39,7 +40,8 @@ def read_session_cases(path: Path | None = None) -> list[AgentCase]:
         raise SessionCasesUnreadable(f"{path}: {exc}") from exc
     try:
         data = json.loads(text)
-        if not isinstance(data, dict) or data.get("version") != VERSION:
+        version = data.get("version") if isinstance(data, dict) else None
+        if type(version) is not int or version != VERSION:  # `true` is not 1
             raise ValueError(f"expected an object of version {VERSION}")
         if set(data) - {"version", "cases"}:
             raise ValueError(f"unexpected keys {sorted(set(data) - {'version', 'cases'})}")
@@ -60,9 +62,15 @@ def write_session_cases(cases: Iterable[AgentCase], path: Path | None = None) ->
     path = _path(path)
     data = {"version": VERSION, "cases": [c.model_dump(mode="json") for c in cases]}
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.replace(tmp, path)
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    tmp = Path(name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(json.dumps(data, ensure_ascii=False, indent=2))
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 def add_session_case(

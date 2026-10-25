@@ -2360,6 +2360,7 @@ security:
 # V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
 agent_eval:
   incomplete: "tour incomplet"
+  incomplete_status: "tour incomplet (fini en « {status} »)"
   decisions:
     block: "bloquer"
     ask_human: "demander l'accord"

@@ -11,10 +11,11 @@ the same model for both.
 from __future__ import annotations
 
 import secrets
+from datetime import date, datetime
 from typing import Annotated, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator, model_validator
 
 from wavestack import config
 from wavestack.trace.catalog import ActiveModel
@@ -111,6 +112,20 @@ class Provenance(BaseModel):
     system_prompt_text: str | None = None
     fixed_in: str | None = None  # « corrigé dans »
 
+    @field_validator("date")
+    @classmethod
+    def _iso_date(cls, value: str) -> str:
+        try:
+            (date if len(value) == 10 else datetime).fromisoformat(value)
+        except ValueError:
+            raise ValueError(f"provenance date is not ISO: {value!r}") from None
+        return value
+
+
+# A check that only an event present satisfies (SPEC Constraints): an idle fake engine never
+# passes it. `turn_completed` and the negatives pass on an idle turn.
+POSITIVE_KINDS = frozenset({"tool_called", "answer_contains", "hook_decided", "subagent_called"})
+
 
 class AgentCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -192,8 +207,8 @@ def load_provided_cases(
 ) -> list[AgentCase]:
     """The provided cases in `lang` (the setting's language when `None`): the translated file
     when it exists, else the French one. No file: no case. Raises on an invalid file, an id
-    twice, a case without `brick`, with a `system_prompt` or a `séance` provenance, or (with
-    `known`) an unknown id."""
+    twice, a case without `brick`, with a `system_prompt` or a `séance` provenance, without a
+    check of `POSITIVE_KINDS`, or (with `known`) an unknown id."""
     path = config.content_file(PROVIDED_FILE, lang)
     if not path.is_file():
         return []
@@ -202,11 +217,15 @@ def load_provided_cases(
     wrong = [
         c.id
         for c in cases
-        if c.brick is None or c.system_prompt is not None or c.provenance.source == "séance"
+        if c.brick is None
+        or c.system_prompt is not None
+        or c.provenance.source == "séance"
+        or not any(k.kind in POSITIVE_KINDS for k in c.checks)
     ]
     if wrong:
         raise ValueError(
-            f"{path}: provided cases need a brick, no system prompt, no session provenance: {wrong}"
+            f"{path}: provided cases need a brick, no system prompt, no session provenance and"
+            f" a check on an event present ({sorted(POSITIVE_KINDS)}): {wrong}"
         )
     check_unique_ids(cases)
     if known is not None:
