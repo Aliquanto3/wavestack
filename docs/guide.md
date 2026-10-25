@@ -76,8 +76,8 @@ l'empreinte estimées sont dans le bouton **Dépense** de la barre de navigation
 
 ## Programme de formation
 
-Le sélecteur de scénario de la barre du bas liste sept modules, dans l'ordre des briques, soit
-6 h au total, à répartir sur plusieurs séances :
+Le sélecteur de scénario de la barre du bas liste huit modules, dans l'ordre des briques, soit
+6 h 45 au total, à répartir sur plusieurs séances :
 
 | Module | Durée | Scénarios |
 |---|---|---|
@@ -88,6 +88,7 @@ Le sélecteur de scénario de la barre du bas liste sept modules, dans l'ordre d
 | 5. Skills et hooks | 60 min | skills, Caveman, hooks |
 | 6. Sous-agent | 45 min | sous-agent |
 | 7. Contexte long et carte | 45 min | compression du contexte, carte du harnais |
+| 8. Cache | 45 min | lire le cache, casser le préfixe, faire expirer le cache, cache de Claude (facultatif), lire un bilan d'agent-cost-kit |
 
 Lancer le premier scénario d'un module active les briques des modules précédents et restaure la
 mémoire globale de démonstration : on peut reprendre la formation à n'importe quel module, dans
@@ -230,6 +231,23 @@ uv run wavestack
   Un texte plus court que
   `[compression] min_chars` (300 caractères) n'est pas compressé. La brique n'a d'effet
   qu'avec Outils, MCP ou RAG : sans eux, rien à compresser.
+
+## Cache de prompt
+
+Le module 8 du programme (« Cache ») fait vivre le cache, du modèle local au bilan
+d'agent-cost-kit, en cinq scénarios de 45 minutes en tout :
+
+| Scénario | Geste | Ce qu'on voit |
+|---|---|---|
+| Lire le cache | Envoyer deux ou trois prompts de suite | La jauge « Cache du dernier appel », à côté de celle du contexte, passe de « écrit » à « lu » |
+| Casser le préfixe | Éteindre la brique Prompt système entre deux prompts | Tout est réécrit ; la cause « message système modifié » et l'étape « Cache non réutilisé » dans Orchestration |
+| Faire expirer le cache | Cliquer « Vider le cache » en haut du volet « Vue humain » | L'appel suivant réécrit tout, cause « cache vidé » ; la conversation reste intacte |
+| Le cache de Claude (facultatif) | Avec une clé : « Fenêtre », « Cache de prompt de Claude », 5 minutes puis 1 heure, avec un texte long collé | Écriture au premier appel, lecture ensuite ; ×1,25 ou ×2 sur l'écriture. Sans clé, le formateur décrit le geste ; aucun appel payant n'est lancé par le scénario |
+| Lire un bilan d'agent-cost-kit | Ouvrir « Dépense » | Les colonnes « Cette conversation » et « Depuis le lancement » : lecture, écriture, non caché, mêmes mots que le bilan d'agent-cost-kit |
+
+Aucun geste n'est scripté : la consigne de chaque scénario le décrit. La fiche
+[Le cache de prompt](cache-de-prompt.md) explique les trois cases (lecture, écriture, non
+caché), ce qui casse un cache et sa durée de vie ; elle se projette en fin de module.
 
 ## Atelier LLM
 
