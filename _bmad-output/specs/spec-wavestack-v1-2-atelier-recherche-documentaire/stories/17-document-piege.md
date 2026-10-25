@@ -145,7 +145,24 @@ context:
   - relire les reformulations D4 en en et de, et les réponses enregistrées (réponse obéissante sans aucun mot de passe, mention de liste factice) ;
   - avec Prompt Guard 2 installé (jeton, licence acceptée) puis chargé par la brique Garde-fous : vérifier le vrai verdict sur le passage d'injection dans les trois langues (s'il ne le détecte pas au seuil, le noter dans la carte comme limite au lieu de changer le seuil), et que la carte n'a rien téléchargé ;
   - enregistrer les réponses « sans » et « avec » des scénarios 1 et 2 avec le générateur par défaut et le vrai verdict, puis passer `provenance` à `recorded` avec date et modèle ;
-  - vérifier dans la page Sécurité que les entrées « Démonstration Document piégé » se distinguent des tours réels, et que les blocages de démonstration comptés dans « bloqués » sont acceptables.
+  - vérifier dans la page Sécurité que les entrées « Démonstration Document piégé » se distinguent des tours réels, et qu'elles ne bougent ni le badge rouge ni « bloqués » (revue, passe 1 : `counted=False`).
 - Reprise après la story 13 (GraphRAG) : brancher le scénario 3 sur le vrai index (entités, relations, résumés de communautés) à la place du mini-graphe, vérifier que l'effet persiste après retrait du document tant que le graphe n'est pas reconstruit, et mettre à jour `brownfield.md` ainsi que la fiche conformité GraphRAG (axe Injection, CAP-16).
 - Relance live de la question cible avec le modèle actif (intention de classe (b), AD-3) et affichage dans le focus de Construire (vues.md) : story ultérieure.
 - Pré-existant, hors story : `_guardrail_check` journalise un verdict `not_installed` comme `passed` (« Rien détecté ») dans les tours réels ; la décision `not_installed` ajoutée ici pourrait y être reprise.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu c7de993)
+
+Base : fusion de `origin/integration/v1-2-atelier` (#108, 12.15), sans conflit.
+
+- Important, medium, second avis 1 : corrigé. Sans Prompt Guard chargé, le verdict enregistré écartait le passage en mode Bloquer (on montrait un blocage qui n'a pas eu lieu, contre la décision 2). Seul le verdict réel agit : `not_installed` ou `error` n'écartent rien, la réponse « avec » obéit ; le verdict enregistré reste à côté, libellé « montré à côté et non appliqué » (fr, en, de). Tests et E2E alignés.
+- Important, medium, second avis 2 : corrigé. Chaque POST avec garde-fou ajoutait au journal des « blocked » comptés dans le badge rouge et « bloqués ». `SecurityJournal.record(..., counted=False)` (ajout à mot-clé, défaut inchangé) : les entrées de démonstration sont gardées et affichées (critère 4) mais hors compteurs ; test et E2E.
+- Important, medium, second avis 3 : corrigé. `remove` atteint sans injection montrait une relation fausse présente et « à reconstruire ». Champ `graph_from` (étape effective précédente, tenue par la page, session pure) ; `remove` sans `inject` avant est refusé avec le message `remove_needs_injection` (fr, en, de) et le graphe reste tel quel ; tests sur `start` et `rebuild`.
+- Important, low, second avis 6 : corrigé. Entre `loaded_classifier` et `classify`, un déchargement par la brique aurait fait passer `classify` par `ensure_loaded` (chargement, voire téléchargement). La carte emprunte une copie superficielle (`attack.LoadedOnly`) qui garde les références du modèle chargé, et dit `not_installed` si la copie n'est pas chargée ; test avec le vrai `PromptGuardGuardrail` et `ensure_loaded` qui échoue s'il charge.
+- Nit, low, second avis 4 : corrigé. Assertion vacueuse en en et de (`or lang != "fr"`) : préfixe de démonstration vérifié dans les trois langues.
+- Nit, low, second avis 5 : corrigé. `_rag_lab_tabs` exigeait encore un onglet Attaquer « à venir » : retiré de la boucle.
+- Nit, low, second avis 7 : corrigé. Capture renommée `68-atelier-rag-attaquer-document-piege.jpg` ; `22-rag-recherche-et-extraits.jpg`, `01-…` et `01b-…` rétablies (régénérées par l'E2E, sans rapport).
+- Nit, low, reviewer : non corrigé. `test_the_card_works_without_a_model_an_index_or_a_key` finit par `session.state == "idle" or session.state`, vacueux ; les 200 suffisent au critère 14.
+- Complexité : 0 constat (journal en `deque` borné, compteurs O(1), rien de parcouru par événement).
+

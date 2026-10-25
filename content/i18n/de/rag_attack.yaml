@@ -115,7 +115,7 @@ texts:
     clean_text: "nichts erkannt (Wert {score}, Schwelle {threshold})"
     error_text: "Fehler der Leitplanke: {detail}"
     not_installed_text: "Leitplanke nicht geladen: {detail}"
-    recorded_text: "aufgezeichnetes Urteil, konstruierter Fall: {verdict}"
+    recorded_text: "aufgezeichnetes Urteil, daneben gezeigt und nicht angewendet: {verdict}"
     live_text: "echtes Urteil von Prompt Guard 2"
   outcome:
     removed_text: "aus dem Kontext entfernt"
@@ -160,6 +160,7 @@ texts:
     messages:
       inject_needs_document: "Aktivieren Sie zuerst das präparierte Dokument, um es einzuschleusen."
       remove_needs_uncheck: "Entfernen Sie den Haken beim präparierten Dokument, um es zu entfernen."
+      remove_needs_injection: "Nichts zu entfernen: Fügen Sie das Dokument zuerst in den Graphen ein."
       rebuild_document_still_there: "Das Dokument ist noch im Korpus: Der Neuaufbau behält die falsche Relation. Entfernen Sie es zuerst."
   story18_text: "Löschung und Rechte: kommen in Story 18."
   unknown_text: "Unbekanntes Szenario."

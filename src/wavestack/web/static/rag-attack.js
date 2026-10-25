@@ -50,7 +50,7 @@ async function run() {
   if (!at.body) return;
   at.asked += 1;
   const asked = at.asked;
-  const payload = { scenario: at.scenario, trap_active: at.trap, guardrails: at.guard, mode: at.mode, graph_step: at.step };
+  const payload = { scenario: at.scenario, trap_active: at.trap, guardrails: at.guard, mode: at.mode, graph_step: at.step, graph_from: at.result?.graph?.effective_step ?? "start" };
   let answer = null;
   try {
     const response = await fetch("/api/rag_lab/attack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });

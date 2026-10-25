@@ -115,7 +115,7 @@ texts:
     clean_text: "nothing detected (score {score}, threshold {threshold})"
     error_text: "guardrail error: {detail}"
     not_installed_text: "guardrail not loaded: {detail}"
-    recorded_text: "recorded verdict, constructed case: {verdict}"
+    recorded_text: "recorded verdict, shown beside and not applied: {verdict}"
     live_text: "real Prompt Guard 2 verdict"
   outcome:
     removed_text: "dropped from the context"
@@ -160,6 +160,7 @@ texts:
     messages:
       inject_needs_document: "Activate the trapped document first to inject it."
       remove_needs_uncheck: "Untick the trapped document to remove it."
+      remove_needs_injection: "Nothing to remove: inject the document into the graph first."
       rebuild_document_still_there: "The document is still in the corpus: the rebuild keeps the false relation. Remove it first."
   story18_text: "Erasure and Rights: coming in story 18."
   unknown_text: "Unknown scenario."

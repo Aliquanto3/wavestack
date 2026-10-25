@@ -14900,6 +14900,7 @@ def s_rag_lab_attack(r: Run) -> None:
         corpus_before = json.dumps(
             before.get("corpus", before.get("documents", "")), sort_keys=True
         )
+        before_denied = r.api("GET", "/api/security_journal").json().get("denied_count", 0)
         page.click("#rag-tab-attack")
         banner = page.locator("#rag-atk-banner")
         expect(banner).to_have_text("Démonstration : aucune donnée réelle ne sort", timeout=10_000)
@@ -14934,14 +14935,18 @@ def s_rag_lab_attack(r: Run) -> None:
             "avec garde-fou non chargé : not_installed, verdict enregistré à côté, cas construit",
         )
         r.check(
-            with_column.locator('[data-outcome="removed"]').count() == 1,
-            "mode Bloquer : le passage détecté (verdict enregistré) est écarté du contexte",
+            with_column.locator('[data-outcome="removed"]').count() == 0
+            and "non appliqué" in with_column.inner_text()
+            and with_column.locator('[data-kind="obeys"]').count() == 1,
+            "mode Bloquer, garde-fou non chargé : rien n'est écarté, le verdict enregistré "
+            "n'est pas appliqué, la réponse obéit",
         )
         page.locator("#rag-atk-mode-flag").check()
-        expect(with_column.locator('[data-outcome="flagged"]')).to_have_count(1, timeout=10_000)
+        expect(with_column.locator('[data-outcome="flagged"]')).to_have_count(0, timeout=10_000)
+        expect(with_column.locator('[data-kind="obeys"]')).to_have_count(1, timeout=10_000)
         r.check(
-            with_column.locator('[data-kind="obeys"]').count() == 1,
-            "mode Signaler : le passage reste dans le contexte, la réponse obéit toujours",
+            with_column.locator('[data-outcome="kept"]').count() == 3,
+            "mode Signaler, garde-fou non chargé : les passages restent, la réponse obéit",
         )
 
         page.locator('#rag-atk-scenarios [data-scenario="poisoning"]').click()
@@ -14968,7 +14973,7 @@ def s_rag_lab_attack(r: Run) -> None:
             and "illustratif" in page.inner_text("#rag-atk-graph-note"),
             "graphe : après le retrait la relation fausse persiste, marquée « à reconstruire »",
         )
-        r.shot("atelier-rag-attaquer-document-piege", full_page=True)
+        r.shot("68-atelier-rag-attaquer-document-piege", full_page=True)
         page.locator('#rag-atk-graph-steps [data-step="rebuild"]').click()
         expect(summary).to_contain_text("14 caractères", timeout=10_000)
         r.check(
@@ -14982,6 +14987,10 @@ def s_rag_lab_attack(r: Run) -> None:
             len(mine) >= 6 and {e["decision"] for e in mine} == {"not_installed"},
             "Journal de sécurité : les entrées de la démonstration, décision not_installed",
             str(len(mine)),
+        )
+        r.check(
+            r.api("GET", "/api/security_journal").json().get("denied_count", 0) == before_denied,
+            "Journal de sécurité : la démonstration ne compte dans aucun compteur de refus",
         )
         r.check(
             not [e for e in r.ev.since(seq) if e["kind"].startswith(("rag_lab_", "model_"))],
@@ -15014,7 +15023,7 @@ def _rag_lab_tabs(r: Run) -> None:
         "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
         str(tabs.all_inner_texts()),
     )
-    for tab in ("attack", "sheets"):  # V1.2 story 15: Évaluer has its own scenario
+    for tab in ("sheets",):  # V1.2 stories 15 and 17: Évaluer and Attaquer have their own
         page.click(f"#rag-tab-{tab}")
         r.check(
             "à venir" in page.locator(f"#rag-panel-{tab} .rag-soon").inner_text()
