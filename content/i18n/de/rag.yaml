@@ -146,8 +146,8 @@ documents:
     file: corpus/faq_mots_de_passe.md
     audience: all
     active: false
-  - id: projet_orion
-    title_text: Projekt Orion (Sentinel-Dokument, inaktiv)
-    file: corpus/projet_orion.md
+  - id: projet_talvane
+    title_text: Projekt Talvane (Sentinel-Dokument, inaktiv)
+    file: corpus/projet_talvane.md
     audience: all
     active: false

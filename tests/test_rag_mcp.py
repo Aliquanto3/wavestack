@@ -410,11 +410,11 @@ def test_the_work_copy_the_trap_and_the_sentinel_never_reach_the_client(index):
     session, _ = ready(index)
     content = load_rag_content()
     planted = {}
-    for doc_id in ("faq_mots_de_passe", "projet_orion"):
+    for doc_id in ("faq_mots_de_passe", "projet_talvane"):
         doc = next(d for d in content.documents if d.id == doc_id)
         text = config.content_file(doc.file).read_text(encoding="utf-8")
         planted[f"copie_{doc_id}"] = workcopy.WorkDoc(title_text=doc.title_text, text=text)
-    sentinel = planted["copie_projet_orion"].text.split("\n\n")[-1][:300]
+    sentinel = planted["copie_projet_talvane"].text.split("\n\n")[-1][:300]
 
     async def scenario(app: App) -> None:
         assert (await app.start(preset(session, "hybrid"))).status_code == 200
@@ -422,7 +422,7 @@ def test_the_work_copy_the_trap_and_the_sentinel_never_reach_the_client(index):
         async with app.client() as client:
             found = await client.call_tool("search_documents", {"question": sentinel, "top_k": 10})
         ids = {p["doc_id"] for p in found.structured_content["passages"]}
-        assert not ids & {"faq_mots_de_passe", "projet_orion", *planted}
+        assert not ids & {"faq_mots_de_passe", "projet_talvane", *planted}
 
     serve(session, scenario)
     wait_idle(session)

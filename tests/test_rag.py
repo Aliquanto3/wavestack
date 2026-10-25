@@ -179,7 +179,7 @@ def test_corpus_is_25_to_30_documents_of_150_to_450_words():
     assert 25 <= len(content.documents) <= 30
     assert "fictifs" in content.notice_text
     inactive = {d.id for d in content.documents if not d.active}
-    assert inactive == {"faq_mots_de_passe", "projet_orion"}  # story 1: trapped and sentinel
+    assert inactive == {"faq_mots_de_passe", "projet_talvane"}  # story 1: trapped and sentinel
     for doc in content.documents:
         text = (config.content_dir() / doc.file).read_text(encoding="utf-8-sig")
         assert "<!-- " in text  # kept, never indexed (a comment, French or translated)

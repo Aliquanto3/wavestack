@@ -92,7 +92,7 @@ Proposition de documents à ajouter (19, pour 27 au total), à valider :
 - **Monolingues** : `rundschreiben_usb` (de, circulaire du siège allemand), `uk_visitor_badges` (en, filiale britannique), `plan_continuite_lyon` (fr).
 - **RH** (`audience: hr`) : `grille_remunerations`, `dossier_disciplinaire`, `entretiens_annuels`.
 - **Autres** : `acces_physique`, `revue_habilitations`, `formation_securite`.
-- **Inactifs** : `faq_mots_de_passe` (piégé : une instruction cachée, et une fausse longueur minimale qui vise une question factuelle) et `projet_orion` (sentinelle, code fictif `ORN-7731-QZ`).
+- **Inactifs** : `faq_mots_de_passe` (piégé : une instruction cachée, et une fausse longueur minimale qui vise une question factuelle) et `projet_talvane` (sentinelle, code fictif `TLV-7731-QZ`).
 - **Sans réponse** : stationnement, mutuelle, restauration (thèmes absents).
 
 Schéma d'une question (fr) :
@@ -115,7 +115,7 @@ Schéma d'une question (fr) :
 
 ## Implementation Notes
 
-- 19 nouveaux documents (27 au total, 25 actifs, 2 inactifs : `faq_mots_de_passe` piégé, `projet_orion` sentinelle), 3 monolingues (`rundschreiben_usb` de, `uk_visitor_badges` en, `plan_continuite_lyon` fr) exemptés du miroir i18n via `languages`.
+- 19 nouveaux documents (27 au total, 25 actifs, 2 inactifs : `faq_mots_de_passe` piégé, `projet_talvane` sentinelle), 3 monolingues (`rundschreiben_usb` de, `uk_visitor_badges` en, `plan_continuite_lyon` fr) exemptés du miroir i18n via `languages`.
 - `incidents.md` (fr/en/de) retouché pour renvoyer explicitement à `gestion_crise`/`astreinte` (chaîne multi-sauts 1).
 - 21 questions (3 × 7 types) en fr/en/de dans `content/rag_questions.yaml` ; chaque `anchor_text` vérifié par script contre le fichier réel de sa langue avant d'écrire le test ; parité `id`/`type`/doc_id` entre langues vérifiée.
 - Tokens `cl100k_base` du corpus actif (mesurés avec `uv run --extra compression`) : fr 9762, en 7099, de 10622 -- sous le plafond de 15000 ; en est sous la cible d'~12000 mais aucun ajustement n'a été demandé pour ça.

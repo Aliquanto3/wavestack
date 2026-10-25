@@ -10,7 +10,7 @@ workshop's data folder (`rag_lab_dir()/graph/{lang}.yaml`, `method: llm`, read f
 passage), « Rétablir » deletes that file.
 
 The rule. Entities: per document its `TERMS_PER_DOC` best key terms (words and pairs of words,
-tf × log(N / df), the vocabulary frozen at the construction), acronyms, codes (`ORN-7731-QZ`, kept
+tf × log(N / df), the vocabulary frozen at the construction), acronyms, codes (`TLV-7731-QZ`, kept
 from one mention), proper names of two words or more, quoted terms; an entity other than a code
 mentioned in a single passage is dropped. Relations: two entities in one sentence (weight: the
 sentences), no label (« apparaît avec »). Each entity and relation keeps its evidence: the
@@ -142,7 +142,7 @@ def grams(sentence: str, stop: frozenset[str]) -> dict[str, str]:
 
 def specials(sentence: str) -> dict[str, tuple[str, str]]:
     """The entities a sentence names by their form, normalized -> (surface, type): codes
-    (`ORN-7731-QZ`), acronyms, proper names of two words or more (not at the sentence's start:
+    (`TLV-7731-QZ`), acronyms, proper names of two words or more (not at the sentence's start:
     its first word is dropped), quoted terms."""
     out: dict[str, tuple[str, str]] = {}
 

@@ -2,15 +2,15 @@
 # sentinel survives and the constructed contents of the derivatives that do not exist yet. Ids,
 # erase modes, provenances and stories are shared by the three languages; only the texts differ.
 #
-# The code ORN-7731-QZ is fictitious (shipped text of the sentinel document). A "measured" place
+# The code TLV-7731-QZ is fictitious (shipped text of the sentinel document). A "measured" place
 # is rebuilt here without any model; a "constructed" place is written by the developer for the
 # demonstration, marked illustrative, with the story that will replace it (10 to 14). No cost or
 # duration figure: bringing a copy back into compliance is said in words.
 
 chunk_max_chars: 700
 top_k: 3
-doc_id: projet_orion
-code: ORN-7731-QZ
+doc_id: projet_talvane
+code: TLV-7731-QZ
 
 architectures:
   - id: dense
@@ -133,7 +133,7 @@ places:
     architectures: [cag]
     label_text: "Prompt cache (CAG)"
     unit_text: "Cached prefixes"
-    text: "Cached prefix: the whole corpus preloaded, including the sentinel document and its code ORN-7731-QZ."
+    text: "Cached prefix: the whole corpus preloaded, including the sentinel document and its code TLV-7731-QZ."
     rebuilt_text: "Cached prefix: the whole corpus preloaded, without the sentinel document."
   - id: long_context_prefix
     erase_mode: reload
@@ -144,7 +144,7 @@ places:
     architectures: [long_context]
     label_text: "Cached prefix of the long context"
     unit_text: "Cached prefixes"
-    text: "Cached prefix: the whole corpus put in the prompt, including the sentinel document's code ORN-7731-QZ."
+    text: "Cached prefix: the whole corpus put in the prompt, including the sentinel document's code TLV-7731-QZ."
     rebuilt_text: "Cached prefix: the whole corpus put in the prompt, without the sentinel document."
   - id: source
     erase_mode: none

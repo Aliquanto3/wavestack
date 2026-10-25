@@ -139,7 +139,7 @@ def test_the_shipped_corpus_is_untouched_and_no_trap_or_sentinel_is_read():
     body = ask(session, profile="all", mode="after")
     assert (config.repo_root() / "content" / "rag.yaml").read_bytes() == before
     read = {p["doc_id"] for p in body["seen_before_filter"]}
-    assert not read & {"projet_orion", "faq_mots_de_passe"}
+    assert not read & {"projet_talvane", "faq_mots_de_passe"}
     active = [d for d in load_rag_content("fr").documents if d.active]
     assert body["corpus"]["documents"] == len(active)
 
