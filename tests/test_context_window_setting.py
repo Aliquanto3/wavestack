@@ -14,7 +14,7 @@ from pathlib import Path
 import httpx
 import pytest
 from fake_engine import FakeEngine
-from gguf_writer import write_gguf
+from gguf_writer import make_sparse, write_gguf
 from pydantic import SecretStr
 from starlette.testclient import TestClient
 from test_model_servers import OLLAMA_NAME, FakeServer, _candidate, _factory
@@ -550,8 +550,7 @@ def _ollama_blob(monkeypatch, tmp_path, header: dict | None, size: int) -> Path:
         blob.write_bytes(b"GGUF" + b"\0" * 60)
     else:
         write_gguf(blob, header)
-    with open(blob, "r+b") as f:
-        f.truncate(size)
+    make_sparse(blob, size)
     layer = {"mediaType": "application/vnd.ollama.image.model", "digest": "sha256:abc"}
     manifest.write_text(json.dumps({"layers": [layer]}), encoding="utf-8")
     return blob
