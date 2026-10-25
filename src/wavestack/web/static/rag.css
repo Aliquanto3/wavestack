@@ -1387,5 +1387,5 @@ body.rag-page {
 
 .rag-copy-error {
   margin: 0;
-  color: var(--color-error, #b00020);
+  color: var(--color-danger);
 }
