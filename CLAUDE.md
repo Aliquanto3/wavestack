@@ -16,5 +16,5 @@ Démonstrateur pédagogique local qui montre, brique par brique, ce qu'un harnai
 
 ## Commandes
 - Contrôle rapide de fin de story (lint et format, 3 s) : `uv run python .claude/cost-kit/controle_rapide.py`
-- Tests ciblés : `uv run pytest -q --tb=short tests/test_<module>.py` ; suite complète en quatre quarts, jamais deux suites à la fois (16 Go de RAM).
+- Tests ciblés : `uv run pytest -q --tb=short tests/test_<module>.py` ; suite complète en quatre quarts, jamais deux suites à la fois (32 Go de RAM, mais un run d’agents en parallèle avec leurs E2E en prend l’essentiel).
 - E2E : `uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py --channel msedge --only <scénarios>`, par tranches de 4 à 6 scénarios (`tools/e2e/README.md`).
