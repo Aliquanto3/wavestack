@@ -1,0 +1,648 @@
+# Überlagerung von content/rag_sheets.yaml: gleiche Kennungen, Stufen, Klassen, Demos, Stories, Hypothesen und URLs; nur die Texte unterscheiden sich.
+
+texts:
+  title_text: Komponenten- und Architekturblätter
+  hint_text: 'Zu jeder Komponente oder Architektur: wofür sie dient, was sie kostet, was die Literatur sagt und bei einer Architektur ihre Konformitätsrisiken auf sieben Achsen.'
+  banner_text: Didaktisches Raster, keine Rechtsberatung; mit der Rechtsabteilung oder dem Datenschutzbeauftragten Ihrer Organisation zu prüfen.
+  levels_note_text: 'Expositionsstufen: Vorschlag, zu prüfen.'
+  level_hint_text: 'Die Stufe benennt eine Exposition (niedrig: wenig exponiert, hoch: stark exponiert), nie ein Konformitätsurteil.'
+  bench_empty_text: Noch nicht gemessen
+  upcoming_text: Architektur kommt in die Werkstatt (Story {story})
+  pending_text: 'Blätter folgen (Story 19b): {kinds}'
+  components_title_text: Komponenten
+  architectures_title_text: Architekturen
+  list_label_text: Verfügbare Blätter
+  error_text: Blatt nicht verfügbar.
+  sources_title_text: Quellen
+  compliance_title_text: Konformitätsblatt
+  places_title_text: Zum Löschen neu aufzubauende Stellen
+  update_title_text: Um die Kopien wieder in Ordnung zu bringen
+  update_unmeasured_text: Dauer und Kosten noch nicht gemessen.
+  components_located_text: Komponenten und Ort der Daten
+  no_level_text: keine Stufe (Fragen)
+  before_yes_text: Für diese Architektur ist eine Prüfung vor der Suche möglich.
+  before_no_text: Für diese Architektur ist eine Prüfung vor der Suche schwierig.
+  blocks:
+    purpose: Wofür sie dient
+    when: Wann einsetzen oder meiden
+    cost: Was sie kostet (Aufbau, Aktualisierung, Anfrage)
+    literature: Was die Literatur sagt
+    bench: Was die Bank gemessen hat
+  axes:
+    location: Ort der Daten
+    copies: Erzeugte Kopien
+    erasure: Löschung
+    rights: Zugriffsrechte
+    injection: Injection und Werkzeuge
+    traceability: Nachvollziehbarkeit
+    regulatory: Regulatorischer Rahmen
+  columns:
+    axis: Achse
+    level: Stufe
+    text: Einordnung
+    link: Demonstration
+  classes:
+    local: lokal (in der Werkstatt)
+    cloud_eu: Cloud in der EU
+    secnumcloud: SecNumCloud-qualifizierte Cloud
+    outside_eu: außerhalb der EU
+    depends_on_provider: beim Anbieter zu prüfen
+  components:
+    documents: Dokumente
+    index: Index
+    derived: Abgeleitete Inhalte
+    cache: Modell-Cache
+    generation: Generierung
+    judge: Richter oder Entscheidungsmodell
+    trace_export: Trace-Export
+  demo:
+    erasure: Karte Löschung im Reiter Angreifen ansehen
+    rights: Karte Zugriffsrechte im Reiter Angreifen ansehen
+    injection: Karte Präpariertes Dokument im Reiter Angreifen ansehen
+architectures:
+- id: dense
+  hypotheses:
+  - H1
+  - H12
+  purpose_text: Die Passagen suchen, deren Vektor dem der Frage am nächsten liegt, und sie dem Modell geben.
+  when_text: 'Als Ausgangspunkt geeignet: einfach, günstig, ein einziger Index. Zu vermeiden, wenn Fragen auf exakte Begriffe (Codes, Namen) zielen, die der Sinn nicht findet.'
+  cost_text: 'Aufbau: Korpus zerlegen und vektorisieren. Aktualisierung: Passagen des Dokuments entfernen und hinzufügen. Anfrage: Frage vektorisieren und einmal suchen.'
+  literature_text: 'H1 (Hybrid mit Reranker schlägt Dense allein): teilweise gestützt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2604.01733
+    url: https://arxiv.org/html/2604.01733
+  - label_text: arXiv 2609.22770
+    url: https://arxiv.org/abs/2609.22770
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Dokumente, Index und Vektoren laufen in der Werkstatt. Die Generierung nutzt das aktive Modell: Bei einem Cloud-Modell gehen Passagen und Frage zum Anbieter.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'Jede Passage existiert zweimal: Text und Vektor im Speicher. Eine Kopie mehr, aber jede lässt sich per Kennung entfernen.'
+    erasure:
+      level: mid
+      text: 'Es genügt, die Passagen des Dokuments zu entfernen: Der Vektor verschwindet mit seiner Passage. Kopien außerhalb der Architektur (neu berechnete Kontexte, Sicherungen) sind zu prüfen.'
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Ohne Prüfung vor der Suche werden verbotene Passagen gelesen und dann entfernt: Sie haben das Ranking schon beeinflusst. Ein Filter auf dem Index vor der Suche ist möglich.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: Eine präparierte Passage, die die Suche findet, gelangt unverändert in den Prompt. Es gibt kein Werkzeug zu kapern, aber das Modell liest die versteckte Anweisung.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Die behaltenen Passagen und ihre Scores stehen im Journal des Laufs: Man kann sagen, welche Quellen die Antwort gespeist haben.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die Vektoren und Passagen im Speicher ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Generierungsmodell?'
+- id: hybrid
+  hypotheses:
+  - H1
+  - H12
+  purpose_text: Suche nach Sinn und Suche nach exakten Wörtern (BM25) kombinieren und beide Rankings per Reciprocal Rank zusammenführen.
+  when_text: 'Geeignet, wenn der Korpus Fließtext und exakte Begriffe (Codes, Kürzel) mischt. Zu vermeiden, wenn ein Index genügt: Eine ungetunte Fusion kann schlechter sein als Dense.'
+  cost_text: 'Aufbau: Vektorindex und BM25-Index. Aktualisierung: Passagen aus beiden entfernen. Anfrage: zwei Suchen und eine Fusion, ohne zusätzlichen Modellaufruf.'
+  literature_text: 'H1 (Hybrid mit Reranker schlägt Dense allein): teilweise gestützt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2604.01733
+    url: https://arxiv.org/html/2604.01733
+  - label_text: arXiv 2609.22770
+    url: https://arxiv.org/abs/2609.22770
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: Dokumente, beide Indizes und die Fusion laufen in der Werkstatt. Nur die Generierung kann zu einem Anbieter gehen, wenn das aktive Modell ein Cloud-Modell ist.
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'Der Text liegt in zwei Indizes: dem der Vektoren und dem der Wörter. Zwei Stellen zu pflegen, beide per Kennung entfernbar.'
+    erasure:
+      level: mid
+      text: Das Dokument muss aus beiden Indizes entfernt werden; vergisst man einen, bleibt der Text durchsuchbar. Das Aufräumen bleibt günstig.
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Wie bei Dense: Ohne Prüfung vor der Suche lesen beide Rankings verbotene Passagen. Der Filter muss auf beide Indizes wirken.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: Eine präparierte Passage kann über beide Rankings auftauchen, und die Suche nach exakten Wörtern findet leicht einen Text, der die Wörter der Frage zitiert.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Beide Rankings und die Fusion sind im Lauf sichtbar: Man kann sagen, auf welchem Weg eine Quelle kam.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die beiden Indizes (Vektoren und Wörter) ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Generierungsmodell?'
+- id: rerank
+  hypotheses:
+  - H1
+  - H12
+  purpose_text: Breit nach Sinn suchen, dann die Kandidaten mit einem Modell neu ordnen, das Frage und Passage gemeinsam liest.
+  when_text: Geeignet, wenn die richtigen Passagen unter den ersten Kandidaten, aber schlecht sortiert sind. Zu vermeiden, wenn die Antwortzeit wichtiger ist als die Präzision.
+  cost_text: 'Aufbau: wie Dense. Aktualisierung: Passagen entfernen, der Reranker behält nichts. Anfrage: eine Suche plus ein Reranker-Durchlauf je Kandidat.'
+  literature_text: 'H1 (Hybrid mit Reranker schlägt Dense allein): teilweise gestützt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2604.01733
+    url: https://arxiv.org/html/2604.01733
+  - label_text: arXiv 2609.22770
+    url: https://arxiv.org/abs/2609.22770
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: Dokumente, Index und Reranker laufen in der Werkstatt. Die Generierung kann zu einem Anbieter gehen, wenn das aktive Modell ein Cloud-Modell ist.
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: Dieselben Kopien wie bei Dense; der Reranker speichert nichts, er bewertet die Kandidaten zur Anfragezeit.
+    erasure:
+      level: mid
+      text: Es genügt, die Passagen aus dem Speicher zu entfernen, der Reranker behält nichts. Kopien außerhalb der Architektur sind zu prüfen.
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Der Reranker liest die Kandidaten vor jedem Zielgruppenfilter, wenn es keine Prüfung vor der Suche gibt: Eine verbotene Passage kann also gelesen und dann verworfen werden.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: Eine gut formulierte präparierte Passage kann im Reranking aufsteigen, weil das Modell ihre Nähe zur Frage beurteilt.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Die Ränge vor und nach dem Reranking stehen im Lauf: Man sieht, was der Reranker geändert hat.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die Vektoren und Passagen im Speicher ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Generierungsmodell?'
+- id: long_context
+  story: 10
+  hypotheses:
+  - H11
+  - H12
+  purpose_text: 'Nicht suchen: den ganzen Korpus in den Prompt legen und das Modell die Antwort darin finden lassen.'
+  when_text: 'Geeignet für einen kleinen Korpus, der ins Fenster passt: nichts aufzubauen. Zu vermeiden, sobald der Korpus wächst oder das Modell klein ist: Alles wird bei jeder Anfrage neu gelesen.'
+  cost_text: 'Aufbau: keiner. Aktualisierung: keine. Anfrage: der ganze Korpus im Prompt, etwa 12 000 Tokens bei jeder Frage.'
+  literature_text: 'H11 (langer Kontext ist bei kleinem Korpus eine schwer zu schlagende Baseline): mit starkem Modell gestützt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2407.16833
+    url: https://arxiv.org/html/2407.16833v1
+  - label_text: LaRA
+    url: https://arxiv.org/html/2502.09977v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Dokumente und Präfix-Cache laufen in der Werkstatt. Der gesamte Korpus geht mit jeder Frage zum aktiven Modell: zu einem Anbieter, wenn es ein Cloud-Modell ist.'
+      components:
+      - id: documents
+        class: local
+      - id: cache
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: low
+      text: 'Kein Index, keine Ableitung: Der einzige Zustand ist das vom Motor zwischengespeicherte Präfix. Wenige Kopien, aber der ganze Korpus reist mit.'
+    erasure:
+      level: low
+      text: Außer dem zwischengespeicherten Präfix, das neu geladen wird, ist nichts neu aufzubauen. Wird das Dokument aus der Quelle entfernt, fehlt es im nächsten Prompt.
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'Alle Dokumente stehen im Prompt: Ohne Vorauswahl ist kein Filter nach Zielgruppe möglich. Das Modell sieht alles.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: 'Ein präpariertes Dokument wird mit allem anderen gelesen, ohne dass eine Suche es sortiert hätte: Die Angriffsfläche ist der gesamte Korpus.'
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'Man kann nicht sagen, welche Passage genutzt wurde: Alles stand im Prompt. Die Quellennachverfolgung beschränkt sich auf „den ganzen Korpus“.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf das zwischengespeicherte Präfix ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das den ganzen Korpus liest?'
+- id: cag
+  story: 10
+  hypotheses:
+  - H11
+  - H12
+  purpose_text: Den Korpus einmal in den Cache des Modells vorladen und danach nur noch die Frage hinter diesem Präfix stellen.
+  when_text: 'Geeignet für einen kleinen, stabilen Korpus, der oft abgefragt wird: Die Anfrage kostet fast nichts. Zu vermeiden, wenn sich Dokumente ändern: Der ganze Cache wird neu geladen.'
+  cost_text: 'Aufbau: Korpus in den Cache vorgeladen (Präfix). Aktualisierung: den ganzen Cache neu laden. Anfrage: nur die Frage hinter dem zwischengespeicherten Präfix.'
+  literature_text: 'H11 (langer Kontext ist bei kleinem Korpus eine schwer zu schlagende Baseline): mit starkem Modell gestützt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2407.16833
+    url: https://arxiv.org/html/2407.16833v1
+  - label_text: LaRA
+    url: https://arxiv.org/html/2502.09977v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Dokumente und Modell-Cache laufen in der Werkstatt. Das Präfix wird dem aktiven Modell erneut übergeben: bei einem Anbieter, wenn es ein Cloud-Modell ist.'
+      components:
+      - id: documents
+        class: local
+      - id: cache
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'Der Modell-Cache enthält den Korpus in einer Form, die niemand liest: eine abgeleitete Kopie des gesamten Korpus.'
+    erasure:
+      level: high
+      text: 'Der ganze Cache muss neu geladen werden, weil das Präfix das Dokument enthält: Wer einen einzigen Text entfernt, muss alles neu berechnen.'
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'Ein einziger Cache für alle: Alles darin kann jede Frage beantworten, egal welches Profil. Ein Cache je Profil vervielfacht die Kosten.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: Ein präpariertes Dokument gelangt ins Präfix und bleibt dort für alle folgenden Fragen, bis der Cache neu geladen wird.
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: Wie beim langen Kontext lässt sich nicht sagen, welche Passage genutzt wurde; zudem ist der Cache ein verborgener Zustand zwischen zwei Anfragen.
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf den Modell-Cache, der den ganzen Korpus enthält ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das das Präfix erneut verarbeitet?'
+- id: agentic
+  story: 11
+  hypotheses:
+  - H5
+  - H12
+  purpose_text: Das Modell selbst in den Korpusdateien mit Werkzeugen suchen lassen (auflisten, Muster suchen, lesen), in einer Schleife, bis es antwortet.
+  when_text: 'Geeignet, wenn sich Dokumente oft ändern: Die Quelle wird bei jeder Anfrage neu gelesen. Zu vermeiden, wenn Latenz und Tokens zählen: Die Schleife kostet mehr als RAG.'
+  cost_text: 'Aufbau: keiner. Aktualisierung: keine. Anfrage: eine Schleife aus Werkzeug- und Modellaufrufen über mehrere Runden, weit mehr Tokens als eine einfache Suche.'
+  literature_text: 'H5 (agentische Suche hält mit RAG mit, kostet aber mehr): teilweise gestützt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2601.07711
+    url: https://arxiv.org/html/2601.07711v2
+  - label_text: arXiv 2610.05750
+    url: https://arxiv.org/pdf/2610.05750
+  - label_text: LlamaIndex
+    url: https://www.llamaindex.ai/blog/did-filesystem-tools-kill-vector-search
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Die Dokumente bleiben in der Werkstatt. Jeder von einem Werkzeug gelesene Auszug geht in jeder Runde zum aktiven Modell: zu einem Anbieter, wenn es ein Cloud-Modell ist.'
+      components:
+      - id: documents
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: low
+      text: 'Keine Kopie und keine Ableitung: Die Quelle wird unverändert gelesen. Der Zustand beschränkt sich auf den Verlauf der Schleife, je Anfrage.'
+    erasure:
+      level: low
+      text: 'Nichts neu aufzubauen: Es genügt, das Dokument aus der Quelle zu entfernen, die nächste Anfrage findet es nicht mehr.'
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Die Rechte beruhen auf den Berechtigungen der Werkzeuge: Ein Werkzeug, das den ganzen Ordner liest, liest auch die verbotenen Dokumente. Eine Prüfung vor dem Werkzeug ist möglich.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: high
+      text: 'Das ist die am stärksten exponierte Architektur: Ein von einem Werkzeug gelesener präparierter Text kann das Modell dazu bringen, weitere Werkzeuge aufzurufen oder Daten abfließen zu lassen.'
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Jeder Werkzeugaufruf und jedes Lesen ist ein Ereignis im Journal: Der gesamte Leseweg lässt sich rekonstruieren.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf den Verlauf der Werkzeugschleife ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das die Auszüge in jeder Runde liest?'
+- id: pageindex
+  story: 11
+  hypotheses:
+  - H4
+  - H12
+  purpose_text: Einen Baum der Abschnitte des Dokuments (Überschriften, Kurzzusammenfassungen) aufbauen und das Modell bis zum passenden Abschnitt absteigen lassen, ohne Vektoren.
+  when_text: 'Geeignet für lange, strukturierte Dokumente (Berichte, Verträge). Zu vermeiden bei kurzen oder überschriftenlosen Texten: Der Baum bringt nichts und kostet Modellaufrufe.'
+  cost_text: 'Aufbau: der Abschnittsbaum mit vom Modell geschriebenen Zusammenfassungen. Aktualisierung: den Baum des geänderten Dokuments neu berechnen. Anfrage: ein Abstieg durch den Baum, durch das Modell.'
+  literature_text: 'H4 (PageIndex gewinnt bei langen, strukturierten Dokumenten): teilweise gestützt, vor allem vom Anbieter. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: PageIndex
+    url: https://github.com/VectifyAI/PageIndex
+  - label_text: arXiv 2604.14222
+    url: https://arxiv.org/html/2604.14222v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Dokumente und Baum laufen in der Werkstatt. Die Zusammenfassungen des Baums und der Abstieg stammen vom aktiven Modell: bei einem Anbieter, wenn es ein Cloud-Modell ist.'
+      components:
+      - id: documents
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'Die Zusammenfassungen des Baums sind abgeleitete Kopien des Textes, von einem Modell geschrieben: Sie können Informationen behalten, die das Dokument nicht mehr enthält.'
+    erasure:
+      level: mid
+      text: Der Baum des geänderten Dokuments und seiner Abschnitte muss neu berechnet und geprüft werden, damit die Zusammenfassungen den entfernten Inhalt nicht mehr behalten.
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Der Baum gehört zu jedem Dokument: Man kann ihn für ein Profil ungeöffnet lassen. Doch eine Zusammenfassung auf hoher Ebene mischt Abschnitte mit unterschiedlichen Rechten.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: 'Eine präparierte Überschrift oder Zusammenfassung im Baum lenkt den Abstieg des Modells: Sie kann es in den falschen Abschnitt schicken.'
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Der im Baum gegangene Weg ist eine lesbare Folge von Entscheidungen: Man sieht, welche Abschnitte geöffnet wurden.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf den Abschnittsbaum und seine Zusammenfassungen ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das die Zusammenfassungen schreibt und den Baum absteigt?'
+- id: raptor
+  story: 12
+  hypotheses:
+  - H12
+  purpose_text: Die Passagen gruppieren, jede Gruppe zusammenfassen, dann die Zusammenfassungen zusammenfassen und über alle Ebenen dieses Baums suchen.
+  when_text: 'Geeignet für Fragen, die einen Überblick über den Korpus brauchen. Zu vermeiden, wenn sich Dokumente oft ändern: Jede Änderung erzwingt Zusammenfassungen in Kaskade.'
+  cost_text: 'Aufbau: Gruppierung und rekursive Zusammenfassungen, viele Modellaufrufe. Aktualisierung: die Zusammenfassungen der betroffenen Zweige neu erstellen. Anfrage: eine Suche über alle Ebenen.'
+  no_source_text: Zu RAPTOR wurde noch keine Primärquelle geöffnet und gelesen; sie wird in einer Sitzung mit Netzzugang ergänzt.
+  literature_text: 'RAPTOR hat im Rahmenpapier keine eigene Hypothese; nur H12 gilt für das Konformitätsblatt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Dokumente, Index und Zusammenfassungsbaum laufen in der Werkstatt. Die Zusammenfassungen schreibt das aktive Modell: bei einem Anbieter, wenn es ein Cloud-Modell ist.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: high
+      text: 'Jede Zusammenfassungsebene ist eine abgeleitete Kopie, die mehrere Dokumente mischt: Die Information eines Dokuments überlebt in Zusammenfassungen, die seinen Namen nicht tragen.'
+    erasure:
+      level: high
+      text: 'Die Zusammenfassungen der betroffenen Zweige müssen neu erstellt werden, dann die, die sie zusammenfassen: Eine Entfernung reicht bis zur Wurzel des Baums.'
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'Eine Zusammenfassung mischt Dokumente mit unterschiedlichen Rechten: Sie nach Zielgruppe zu filtern ist ohne Neuaufbau des Baums je Profil unmöglich.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: mid
+      text: Ein präparierter Text kann in eine Zusammenfassung kopiert und so auf den oberen Ebenen erneut gelesen werden. Es gibt kein Werkzeug zu kapern.
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'Eine Zusammenfassung zitiert ihre Quellen schlecht: Man findet den Zweig, nicht immer die ursprüngliche Passage.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die rekursiven Zusammenfassungen ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das die Zusammenfassungen schreibt?'
+- id: graphrag
+  story: 13
+  hypotheses:
+  - H2
+  - H12
+  - H13
+  purpose_text: Entitäten und ihre Beziehungen in einen Graphen extrahieren, zusammengefasste Gemeinschaften bilden und aus den Nachbarn einer Entität oder aus den Zusammenfassungen antworten.
+  when_text: 'Geeignet für globale oder Multi-Hop-Fragen auf einem stabilen Korpus. Zu vermeiden bei einfachen Fakten oder einem sich ändernden Korpus: Es verliert bei einfachen Fakten, und seine Aktualisierung ist teuer.'
+  cost_text: 'Aufbau: Extraktion von Entitäten und Beziehungen, Gemeinschaften und Zusammenfassungen, am aufwendigsten. Aktualisierung: neu extrahieren, zusammenführen, Gemeinschaften neu berechnen. Anfrage: lokal oder global, die globale liest viele Zusammenfassungen.'
+  literature_text: 'H2 (GraphRAG gewinnt nur bei globalen und Multi-Hop-Fragen): gestützt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt. H13 (GraphRAG und das LLM Wiki kosten mehr bei Indexierung und Aktualisierung): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: GraphRAG-Bench
+    url: https://arxiv.org/html/2506.05690v3
+  - label_text: arXiv 2502.11371
+    url: https://arxiv.org/html/2502.11371v2
+  - label_text: EraRAG
+    url: https://arxiv.org/pdf/2506.20963v1.pdf
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Dokumente, Index, Graph und Zusammenfassungen laufen in der Werkstatt. Extraktion und Zusammenfassungen schreibt das aktive Modell: bei einem Anbieter, wenn es ein Cloud-Modell ist.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: high
+      text: 'Entitäten, Beziehungen und Gemeinschaftszusammenfassungen sind drei vom Text abgeleitete Schichten: Die Information eines Dokuments verteilt sich im Graphen.'
+    erasure:
+      level: high
+      text: 'Entitäten müssen neu extrahiert, zusammengeführt und dann die Gemeinschaften samt Zusammenfassungen neu berechnet werden: Das Entfernen eines Dokuments berührt mehrere Schichten.'
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'Eine Entität oder Gemeinschaft mischt Dokumente mit unterschiedlichen Rechten: Eine Prüfung je Dokument genügt nicht, der Graph kann verraten, was er gelesen hat. Stufe bei der Durchsicht zu klären.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: 'Sehr wenig vergifteter Text kann die Genauigkeit einbrechen lassen: Eine präparierte Beziehung wird extrahiert, zusammengeführt und in den Zusammenfassungen erneut gelesen.'
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'Beziehungen nennen ihren Ursprung, aber eine Gemeinschaftszusammenfassung verliert die Details der Passagen: Man kommt bis zur Gemeinschaft, nicht immer bis zum Satz.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die Entitäten, Beziehungen und Gemeinschaftszusammenfassungen ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das extrahiert und zusammenfasst?'
+- id: llm_wiki
+  story: 14
+  hypotheses:
+  - H3
+  - H12
+  - H13
+  purpose_text: Das Modell aus den Quellen ein Wiki aus Markdown-Seiten kompilieren lassen und dann in den Seiten des Wikis suchen.
+  when_text: 'Geeignet für eine von Menschen durchgesehene Wissensbasis mit einigen hundert Dokumenten. Zu vermeiden, wenn sich Quellen schnell ändern oder die Verankerung zählt: Das Wiki schreibt die Fakten um.'
+  cost_text: 'Aufbau: Seitenkompilierung durch das Modell, viele Tokens. Aktualisierung: die betroffenen Seiten neu kompilieren und die Wiki-Prüfung durchlaufen. Anfrage: Suche über die Seiten.'
+  literature_text: 'H3 (das LLM Wiki hält bei einigen hundert Dokumenten mit RAG mit, fällt dann zurück): in dieser Größe nicht untersucht. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt. H13 (GraphRAG und das LLM Wiki kosten mehr bei Indexierung und Aktualisierung): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2605.18490
+    url: https://arxiv.org/html/2605.18490v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  - label_text: GraphRAG-Bench
+    url: https://arxiv.org/html/2506.05690v3
+  axes:
+    location:
+      level: low
+      text: 'Dokumente und Wiki-Seiten laufen in der Werkstatt. Kompilierung und Prüfung laufen über das aktive Modell: bei einem Anbieter, wenn es ein Cloud-Modell ist.'
+      components:
+      - id: documents
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: judge
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: high
+      text: 'Die Wiki-Seiten schreiben die Quellen um und zitieren einander: Eine Information kann in mehreren Seiten in unterschiedlicher Form leben.'
+    erasure:
+      level: high
+      text: Die betroffenen Seiten müssen neu kompiliert und die Wiki-Prüfung durchlaufen werden, damit in den zitierenden Seiten nichts bleibt.
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'Eine Zusammenfassungsseite mischt Quellen mit unterschiedlichen Rechten: Rechte je Seite zu prüfen sagt nichts über die gelesenen Quellen.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: 'Ein präparierter Text kann in eine kompilierte Seite kopiert und dann als gesicherter Fakt erneut gelesen werden: Das Wiki macht ihn zu vertrauenswürdigem Wissen.'
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'Jede Seite kann ihre Quellen nennen, aber aufeinanderfolgende Umschreibungen entfernen den Text vom Original: Der Bezug geht unterwegs verloren.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die kompilierten Wiki-Seiten ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das die Seiten kompiliert und prüft?'
+- id: crag
+  story: 12
+  hypotheses:
+  - H7
+  - H12
+  purpose_text: Nach einer hybriden Suche jede Passage beurteilen; reichen sie nicht, die Frage umschreiben und erneut suchen oder „Ich weiß es nicht“ antworten.
+  when_text: 'Geeignet, wenn eine falsche Antwort teuer ist und eine Ablehnung vorgezogen wird. Zu vermeiden, wenn das Entscheidungsmodell unbelegte Aussagen durchlässt: Der Filter wiegt zu Unrecht in Sicherheit.'
+  cost_text: 'Aufbau: wie beim hybriden RAG. Aktualisierung: wie beim hybriden RAG. Anfrage: die hybride Suche, ein Urteil je Passage, bei Bedarf Umschreiben und zweite Suche.'
+  literature_text: 'H7 (ein Entscheidungsmodell ersetzt LLM-Richter ohne Verlust): nicht belegt. H12 (abgeleitete Architekturen erschweren Löschung und Zugriffsrechte und vergrößern die Angriffsfläche): teilweise gestützt.'
+  bench_text: ''
+  sources:
+  - label_text: Towards AI
+    url: https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Dokumente und Indizes laufen in der Werkstatt. Jev, das genannte Entscheidungsmodell, ist proprietär ohne lokales Hosting: Ein Aufruf sendet die Passagen an seinen Anbieter. Auch die Generierung kann zu einem Anbieter gehen.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: judge
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: Dieselben Kopien wie bei Hybrid, plus das für jede Passage im Lauf gespeicherte Urteil.
+    erasure:
+      level: mid
+      text: 'Wie beim hybriden RAG: Passagen aus dem Speicher und dem BM25-Index entfernen. Der Richter behält zwischen zwei Anfragen nichts.'
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Der Richter liest die Passagen vor der Entscheidung: Ohne Prüfung vor der Suche liest er verbotene Passagen. Der Filter muss vor der Suche bleiben.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: Eine präparierte Passage wird auch vom Richter gelesen, der beeinflusst werden kann; der Rückfall (Umschreiben, neue Suche) gibt dem präparierten Text eine zweite Chance.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Das Urteil über jede Passage und das Auslösen des Rückfalls stehen im Lauf: Man sieht, warum eine Passage behalten oder verworfen wurde.'
+    regulatory:
+      text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die beiden Indizes und die gespeicherten Urteile ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Generierungsmodell und vom Entscheidungsmodell (Jev)?'

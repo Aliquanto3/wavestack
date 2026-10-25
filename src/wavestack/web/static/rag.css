@@ -1800,3 +1800,65 @@ body.rag-page {
   border-left-color: var(--color-danger);
   border-left-style: dashed;
 }
+
+/* V1.2 story 19: the « Fiches » tab, a list beside the sheet; the level in a word and a chip. */
+.rag-sh-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) 1fr;
+  gap: var(--spacing-4);
+  align-items: start;
+}
+
+.rag-sh-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.rag-sh-entry {
+  text-align: left;
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rag-sh-entry[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.rag-sh-block {
+  margin: var(--spacing-3) 0;
+}
+
+.rag-sh-upcoming {
+  display: inline-block;
+}
+
+.rag-sh-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rag-sh-table th,
+.rag-sh-table td {
+  padding: var(--spacing-2);
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rag-sh-components {
+  margin: 0;
+  padding-left: var(--spacing-4);
+}
+
+@media (width < 900px) {
+  .rag-sh-layout {
+    grid-template-columns: 1fr;
+  }
+}

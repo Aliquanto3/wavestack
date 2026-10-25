@@ -15127,6 +15127,106 @@ def s_rag_lab_rights(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_sheets(r: Run) -> None:
+    """V1.2 story 19 (CAP-16, CAP-17), after `rag` and `rag_rerank`: the Fiches tab, no model, no
+    index, no key. The list (8 components, 11 architectures, the pending families), a component
+    sheet (five blocks, « Pas encore mesuré »), the hybrid architecture (seven axes, levels in a
+    word, « proposition, à relire », « pas un avis juridique »), the link of the Droits axis to the
+    card of the Attaquer tab (focus, not Construire), an upcoming architecture (story 13), the three
+    languages, light and dark contrast, nothing leaving 127.0.0.1. Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    outside: list[str] = []
+
+    def listener(request) -> None:  # noqa: ANN001
+        if not request.url.startswith(("http://127.0.0.1", "data:", "blob:")):
+            outside.append(request.url)
+
+    page.on("request", listener)
+    page.goto(f"{r.stack.app_url}/rag#sheets")
+    expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
+    try:
+        entries = page.locator("#rag-sh-list .rag-sh-entry")
+        expect(entries).to_have_count(19, timeout=10_000)
+        r.check(
+            page.locator("#rag-sh-list").inner_text().count("story 19b") == 1
+            and "pas un avis juridique" in page.inner_text("#rag-sh-banner"),
+            "Fiches : 8 composants et 11 architectures, familles en attente (story 19b), bandeau",
+        )
+        page.locator('#rag-sh-list [data-sheet-id="chunking.semantic"]').click()
+        expect(page.locator("#rag-sh-sheet")).to_have_attribute(
+            "data-sheet", "component.chunking.semantic", timeout=10_000
+        )
+        expect(page.locator("#rag-sh-sheet .rag-sh-block")).to_have_count(5, timeout=10_000)
+        r.check(
+            "Pas encore mesuré" in page.inner_text('#rag-sh-sheet [data-block="bench"]')
+            and page.locator("#rag-sh-sheet .rag-sh-source-list a").count() >= 1,
+            "composant chunking.semantic : cinq blocs, « Pas encore mesuré », une source",
+        )
+        page.locator('#rag-sh-list [data-sheet-id="hybrid"]').click()
+        expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
+        sheet = page.inner_text("#rag-sh-sheet")
+        copies_chip = page.locator('#rag-sh-sheet tr[data-axis="copies"] .status-chip')
+        r.check(
+            page.locator("#rag-sh-sheet .status-chip").count() == 6
+            and copies_chip.inner_text() == "moyen"
+            and page.locator('#rag-sh-sheet tr[data-axis="regulatory"] .status-chip').count() == 0
+            and "proposition, à relire" in sheet
+            and "pas un avis juridique" in page.inner_text(".rag-sh-legal")
+            and "Index BM25" in page.inner_text('#rag-sh-sheet tr[data-axis="erasure"]')
+            and "architecture à venir" not in sheet,
+            "hybrid : sept axes, six niveaux en mot, réglementaire sans niveau, endroits",
+        )
+        page.locator('#rag-sh-sheet tr[data-axis="rights"] a.rag-sh-demo').click()
+        expect(page.locator("#rag-panel-attack")).to_be_visible(timeout=10_000)
+        expect(page.locator("#rag-access-card")).to_be_in_viewport(timeout=10_000)
+        focused = page.evaluate("() => document.activeElement && document.activeElement.id")
+        r.check(
+            page.locator("#rag-panel-build").is_hidden() and focused == "rag-access-card",
+            "lien de l'axe Droits : onglet Attaquer, carte Droits à l'écran avec le focus",
+        )
+        page.click("#rag-tab-sheets")
+        expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
+        page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
+        expect(page.locator("#rag-sh-sheet .rag-sh-upcoming")).to_contain_text(
+            "architecture à venir dans l'atelier (story 13)", timeout=10_000
+        )
+        r.check(
+            page.locator("#rag-sh-sheet tr[data-axis]").count() == 7
+            and page.locator("#rag-sh-sheet .rag-sh-block").count() == 6,
+            "graphrag : fiche complète avec l'étiquette « à venir »",
+        )
+        r.shot("70-atelier-rag-fiches", full_page=True)
+        light = _contrast_sweep(r, ["main"])
+        _pick_theme(page, "dark")
+        dark = _contrast_sweep(r, ["main"])
+        r.shot("70-atelier-rag-fiches-sombre", full_page=True)
+        _pick_theme(page, "system")
+        r.check(not light and not dark, "Fiches : contrastes AA clair et sombre", str(light + dark))
+        for language, legal, upcoming in (
+            ("en", "not legal advice", "architecture coming to the workshop (story 13)"),
+            ("de", "keine Rechtsberatung", "Architektur kommt in die Werkstatt (Story 13)"),
+        ):
+            _pick_language(r, language)
+            expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
+            page.click("#rag-tab-sheets")
+            expect(entries).to_have_count(19, timeout=10_000)
+            page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
+            expect(page.locator("#rag-sh-sheet .rag-sh-upcoming")).to_contain_text(
+                upcoming, timeout=10_000
+            )
+            r.check(
+                legal in page.inner_text("#rag-sh-banner")
+                and legal in page.inner_text(".rag-sh-legal"),
+                f"Fiches en {language} : bandeau de non-avis juridique, étiquette traduite",
+            )
+        _pick_language(r, "fr")
+        r.check(not outside, "Fiches : aucune requête hors de 127.0.0.1", str(outside[:3]))
+    finally:
+        page.remove_listener("request", listener)
+        r.goto_app()
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -15142,13 +15242,14 @@ def _rag_lab_tabs(r: Run) -> None:
         "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
         str(tabs.all_inner_texts()),
     )
-    for tab in ("sheets",):  # V1.2 stories 15 and 17: Évaluer and Attaquer have their own
-        page.click(f"#rag-tab-{tab}")
-        r.check(
-            "à venir" in page.locator(f"#rag-panel-{tab} .rag-soon").inner_text()
-            and page.locator("#rag-panel-build").is_hidden(),
-            f"onglet {tab} : vide, « à venir »",
-        )
+    # V1.2 story 19: Fiches shows its list (8 components, 11 architectures), its note stays hidden.
+    page.click("#rag-tab-sheets")
+    expect(page.locator("#rag-sh-list .rag-sh-entry")).to_have_count(19, timeout=10_000)
+    r.check(
+        page.locator("#rag-panel-sheets .rag-soon").is_hidden()
+        and page.locator("#rag-panel-build").is_hidden(),
+        "onglet sheets : la liste des fiches, la note « à venir » reste cachée",
+    )
     page.click("#rag-tab-evaluate")  # V1.2 story 15: no longer « à venir »
     expect(page.locator("#rag-eval-banner")).to_contain_text("Démonstration, pas un banc")
     page.click("#rag-tab-build")
@@ -17658,6 +17759,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18
+    ("rag_lab_sheets", s_rag_lab_sheets),  # V1.2 story 19
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

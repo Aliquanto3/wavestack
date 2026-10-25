@@ -204,6 +204,7 @@ from wavestack.rag import erasure as rag_erasure
 from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
+from wavestack.rag import sheets as rag_sheets
 from wavestack.rag import workcopy
 from wavestack.rag.corpus import (
     Chunk,
@@ -11991,6 +11992,18 @@ class AppSession:
         """`POST /api/rag_lab/access`: what the pipeline read before the filter, recomputed.
         Pure, accepted in any state."""
         return rag_access.run(request, self._language)
+
+    def rag_lab_sheets(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/sheets` (V1.2 story 19): the sheets on offer, declared."""
+        return rag_sheets.listing(self._language)
+
+    def rag_lab_sheet_component(self, key: str) -> dict[str, Any]:
+        """The sheet of a component (`kind.option`); `rag_sheets.UnknownSheet` if there is none."""
+        return rag_sheets.component(self._language, key)
+
+    def rag_lab_sheet_architecture(self, arch_id: str) -> dict[str, Any]:
+        """The sheet of an architecture; `rag_sheets.UnknownSheet` if there is none."""
+        return rag_sheets.architecture(self._language, arch_id)
 
     # ---------- the MCP workshop (context `mcp_lab`): story 6 of 2026-09-30, lot 4 of 2026-10-04 --
 
