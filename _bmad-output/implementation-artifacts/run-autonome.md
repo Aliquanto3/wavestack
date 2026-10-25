@@ -509,3 +509,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:38 · 12.2 · CI · verte · e91bdca
 - 2026-10-25 12:38 · 12.2 · fusion · #115 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; banc réel encore à lancer (critères 6 et 8 ouverts), story gardée in-progress · 30bbfc1
 - 2026-10-25 12:38 · 12.2 · attente humaine · ordre d'Anaël pour la partie en ligne (possible avec agents en cours) ; partie locale et mémoire quand le poste est libre · —
+- 2026-10-25 12:40 · 12.2 · décision · snapshot Strands 31a83e0 téléchargé (onnx_data 1,80 Go) et paquets du banc local en cache (onnxruntime 1.31.0, tokenizers 0.23.3, AnyJev 35311c5) ; le banc réel n'a plus besoin du réseau que pour OpenRouter · —
