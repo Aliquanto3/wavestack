@@ -6,7 +6,7 @@ Lancé le 2026-10-24 à la demande d'Anaël, après le run SLM A/B (archivé dan
 
 | Périmètre | Epics | Note |
 |---|---|---|
-| Dans le run | V1.3, V1.4, V1.2 | priorité stricte par lot ; V1.2 : PR #79 (story 1) puis stories 2 à 21 |
+| Dans le run | Epics 12 à 14 | epic 13 = V1.3, 14 = V1.4, 12 = V1.2 ; priorité stricte 13, 14, 12 ; story 12.1 = PR #79 |
 | Hors run | V2, SLM C | spec V2 en brouillon ; SLM C en attente du benchmark |
 
 Specs : `_bmad-output/specs/spec-wavestack-cache-visible/` (V1.3), `spec-wavestack-etat-de-l-art-harnais/` (V1.4), `spec-wavestack-v1-2-atelier-recherche-documentaire/` (V1.2).
@@ -17,29 +17,31 @@ Au plus 2 stories en développement à la fois
 
 | Vague | Stories en parallèle | Après |
 |---|---|---|
-| V0 | 1.3-1 ★ | — |
-| V1 | 1.3-2 · 1.3-5 | 1.3-2 ← 1.3-1 ; 1.3-5 ← 1.3-1 |
-| V2 | 1.3-3 · 1.3-4 | 1.3-3 ← 1.3-2 ; 1.3-4 ← 1.3-1 |
-| V3 | 1.3-6 | 1.3-6 ← 1.3-2 ; 1.3-6 ← 1.3-3 ; 1.3-6 ← 1.3-4 |
+| V0 | 13.1 ★ | — |
+| V1 | 13.2 · 13.5 | 13.2 ← 13.1 ; 13.5 ← 13.1 |
+| V2 | 13.3 · 13.4 | 13.3 ← 13.2 ; 13.4 ← 13.1 |
+| V3 | 13.6 | 13.6 ← 13.2 ; 13.6 ← 13.3 ; 13.6 ← 13.4 |
 
 ## Sprint 2 — V1.4 état de l'art des harnais
 
 | Vague | Stories en parallèle | Après |
 |---|---|---|
-| V0 | 1.4-1 · 1.4-3 | 1.4-3 ← 1.2-1 (PR #79) |
-| V1 | 1.4-2 | 1.4-2 ← 1.4-1 |
-| V2 | 1.4-4 ★ | 1.4-4 ← 1.4-2 ; 1.4-4 ← 1.3-3 |
+| V4 | 14.1 · 14.3 | 14.3 ← 12.1 (PR #79) |
+| V5 | 14.2 | 14.2 ← 14.1 |
+| V6 | 14.4 ★ | 14.4 ← 14.2 ; 14.4 ← 13.3 |
 
 ## Sprint 3 — V1.2 atelier recherche documentaire
 
 | Vague | Stories en parallèle | Après |
 |---|---|---|
-| V0 | 1.2-1 | PR #79 : rebase, CI, fusion (revue déjà faite) |
-| V1 | stories 2 à 21 | vagues fixées à l'entrée du sprint d'après stories.yaml de la V1.2 |
+| V7 | 12.1 | PR #79 : rebase, CI, fusion (revue déjà faite) |
+| V8 | 12.2 (humaine) · 12.3 | 12.3 ← 12.1 |
+| V9 | 12.4 | 12.4 ← 12.3 (même page) |
+| V10 | 12.5 · 12.6 · 12.7 · 12.8 · 12.9 · 12.10 · 12.11 · 12.12 · 12.13 · 12.14 · 12.15 · 12.16 · 12.17 · 12.18 · 12.19 · 12.20 · 12.21 | à découper d'après stories.yaml de la V1.2 ; 12.8 ← 12.2 |
 
 ## Règles du run
 
-- Par story : `dev-story` (Sonnet ; Opus pour 1.4-4), `second-avis` (Haiku), `reviewer` (Opus, avec la liste du second avis, rebasé sur `origin/main`), PR, CI verte, fusion, vérification `MERGED`, journal.
+- Par story : `dev-story` (Sonnet ; Opus pour 14.4), `second-avis` (Haiku), `reviewer` (Opus, avec la liste du second avis, rebasé sur `origin/main`), PR, CI verte, fusion, vérification `MERGED`, journal.
 - Points de contrôle (décision d'Anaël du 2026-10-24) : `done_checkpoint` levés. `spec_checkpoint` : `dev-story` écrit la spec de story et s'arrête ; `reviewer` la relit contre SPEC.md, maquettes et brownfield.md, tranche les points ouverts ; `dev-story` reprend. Chaque choix fait à la place d'Anaël : ligne `décision · à revoir`.
 - Local : contrôle rapide et tests ciblés seulement ; la CI de la PR (Windows, Ubuntu) sert de suite complète.
 - `gh run watch <id> --interval 60` ; worktrees `../wavestack-<lot>-s<n>`, `git worktree prune` avant chaque lancement, suppression en fin de run.
@@ -54,131 +56,131 @@ Au plus 2 stories en développement à la fois
 ## Journal
 
 - 2026-10-24 23:10 · run · décision · run de nuit V1.3, V1.4, V1.2 lancé ; PR #87 (spec V1.4) MERGED 8174efc · —
-- 2026-10-24 23:10 · 1.2-1 · CI · PR #79 rebasée sur main, CI lancée · 13453c9
-- 2026-10-24 23:11 · 1.2-1 · fusion · #79 MERGED · 72cfdf0
-- 2026-10-24 23:11 · 1.3-1 · dev · lancé (phase spec) · 72cfdf0
-- 2026-10-24 23:12 · 1.4-1 · dev · lancé (créneau libre pendant la V1.3-1) · 72cfdf0
-- 2026-10-24 23:13 · 1.3-1 · dev · spec prête (phase 1) · dd32e23
-- 2026-10-24 23:13 · 1.3-1 · review · relecture de la spec lancée · dd32e23
-- 2026-10-24 23:15 · 1.3-1 · review · spec approuvée après 4 corrections importantes (lecture locale sans last_cache_reuse, collision cache_savings, règle d'écriture par pivot, tests listés) · 23e84c8
-- 2026-10-24 23:15 · 1.3-1 · décision · à revoir : non caché local = None « sans objet », distingué par cache_origin · 23e84c8
-- 2026-10-24 23:15 · 1.3-1 · décision · à revoir : champ cache_write_1h_tokens ajouté dès la story 1 (Anthropic ephemeral_1h) pour les stories 4 et 5 · 23e84c8
-- 2026-10-24 23:15 · 1.3-1 · décision · à revoir : cache_origin None seulement pour une trace antérieure ; usage estimé = provider, cases None · 23e84c8
-- 2026-10-24 23:15 · 1.3-1 · dev · phase 2 (code) lancée · 23e84c8
-- 2026-10-24 23:17 · 1.4-1 · dev · fini ; E2E disciplines 52 OK (PYTHONUTF8=1 requis sous Windows) ; skills tiers dans hooks, échafaudage dans native_tools · f916b57
-- 2026-10-24 23:17 · 1.4-1 · décision · à revoir : scénario de sécurité des skills tiers = hooks · f916b57
-- 2026-10-24 23:17 · 1.4-1 · second-avis · lancé · f916b57
-- 2026-10-24 23:18 · 1.4-3 · dev · lancé · 72cfdf0
-- 2026-10-24 23:21 · 1.3-1 · dev · fini ; contrat : cache_origin, cache_read_tokens, cache_write_tokens, cache_write_1h_tokens, cache_uncached_tokens (int | None) · ab89fb3
-- 2026-10-24 23:21 · 1.3-1 · second-avis · lancé · ab89fb3
-- 2026-10-24 23:22 · 1.4-1 · second-avis · 1 medium (consigne d'échafaudage fausse : prompts de native_tools ne nomment pas l'outil), 5 low · f916b57
-- 2026-10-24 23:22 · 1.4-1 · review · lancé (avec E2E compression et subagent) · f916b57
-- 2026-10-24 23:24 · 1.3-1 · second-avis · 0 high/medium, 3 low ; orchestrateur : lecture OpenAI absente = None (CAP-1), traité comme important · ab89fb3
-- 2026-10-24 23:24 · 1.3-1 · review · lancé · ab89fb3
-- 2026-10-24 23:27 · 1.3-1 · review · 1 medium corrigé (lecture non déclarée = None, pivots Anthropic et Responses), contrat mis à jour · c03250c
-- 2026-10-24 23:27 · 1.3-1 · décision · à revoir : réponse Anthropic sans champs de cache = rien déclaré (None) · c03250c
-- 2026-10-24 23:27 · 1.3-1 · PR · ouverte, CI lancée · c03250c
-- 2026-10-24 23:27 · 1.4-1 · review · 1 medium corrigé (échafaudage déplacé dans skills), E2E subagent 58/58, compression 43/43 · 1ccca2d
-- 2026-10-24 23:27 · 1.4-1 · décision · à revoir : consigne d'échafaudage portée par le scénario skills · 1ccca2d
-- 2026-10-24 23:27 · 1.4-1 · PR · ouverte, CI lancée · 1ccca2d
-- 2026-10-24 23:27 · 1.3-5 · dev · lancé (phase spec, empilé sur 1.3-1) · c03250c
-- 2026-10-24 23:30 · 1.3-5 · dev · spec prête (réglage [cloud] claude_cache, points system et outils, 1 h déclaré ou ×2) · 5440690
-- 2026-10-24 23:30 · 1.3-5 · review · relecture de la spec lancée (seuil minimal du cache Anthropic) · 5440690
-- 2026-10-24 23:31 · 1.4-3 · dev · fini ; documents inactifs exclus, search_documents décoché au lancement (default_enabled), E2E rag_agentic 20 OK · 73ecedf
-- 2026-10-24 23:31 · 1.4-3 · décision · à revoir : search_documents décoché par défaut, le scénario le fait cocher · 73ecedf
-- 2026-10-24 23:31 · 1.4-3 · second-avis · lancé · 73ecedf
-- 2026-10-24 23:31 · 1.3-2 · dev · lancé (empilé sur 1.3-1) · c03250c
-- 2026-10-24 23:34 · 1.4-3 · second-avis · 1 high (test casse-sensible rouge sous Ubuntu), 1 medium (languages ignoré, comme chunk_corpus), 6 low ; confinement sans défaut · 73ecedf
-- 2026-10-24 23:34 · 1.4-3 · review · lancé · 73ecedf
-- 2026-10-24 23:35 · 1.3-5 · review · spec approuvée ; préfixe stable mesuré ≈ 1 000 tokens, sous le seuil du fournisseur · e193a0f
-- 2026-10-24 23:35 · 1.3-5 · décision · à revoir : 3e point de cache sur le dernier message (sinon rien n'est mis en cache) ; la story 6 doit faire dépasser le seuil · e193a0f
-- 2026-10-24 23:35 · 1.3-5 · décision · à revoir : cache_control seulement pour le chat (_render_chat), pas les ateliers ni Tester ; clé via config.cloud_key · e193a0f
-- 2026-10-24 23:35 · 1.3-5 · dev · phase 2 (code) lancée · e193a0f
-- 2026-10-24 23:39 · 1.4-3 · review · high corrigé (casse CORPUS/ sous Linux), mots vides, notice masquée, E2E par id ; rag_agentic 20/20 · 2d30c34
-- 2026-10-24 23:39 · 1.4-3 · décision · à revoir : search_documents garde la règle languages du RAG (même corpus pour la comparaison) · 2d30c34
-- 2026-10-24 23:39 · 1.4-3 · PR · #91 ouverte, CI lancée · 2d30c34
-- 2026-10-24 23:39 · 1.3-1 · CI · Ubuntu verte, Windows en cours (#89) · c03250c
-- 2026-10-24 23:40 · 1.3-2 · dev · fini ; E2E local_server 50 OK ; faux llama-server garde le préfixe (lecture locale non nulle) · eae59ca
-- 2026-10-24 23:40 · 1.3-2 · second-avis · lancé · eae59ca
-- 2026-10-24 23:43 · 1.3-2 · second-avis · 3 medium (« non déclaré » en local, barre du haut à 1 280 px, non caché sans écriture), 5 low · eae59ca
-- 2026-10-24 23:43 · 1.3-2 · review · lancé · eae59ca
-- 2026-10-24 23:44 · 1.4-1 · CI · verte (Windows, Ubuntu) · 1ccca2d
-- 2026-10-24 23:44 · 1.4-1 · fusion · #90 MERGED · d9f223e
-- 2026-10-24 23:44 · 1.4-3 · CI · PR #91 rebasée sur main (avec 1.4-1), CI relancée · —
-- 2026-10-24 23:44 · 1.4-2 · dev · lancé (phase spec) · d9f223e
-- 2026-10-24 23:46 · 1.3-1 · CI · verte (Windows, Ubuntu) · c03250c
-- 2026-10-24 23:46 · 1.3-1 · fusion · #89 MERGED (aucun fichier commun avec #90) · e15cc3e
-- 2026-10-24 23:48 · 1.3-5 · dev · fini, rebasé sur main ; E2E claude_cache 29/29 (avant rebase) · e802bd0
-- 2026-10-24 23:48 · 1.3-5 · second-avis · lancé · e802bd0
-- 2026-10-24 23:48 · 1.4-2 · dev · spec prête · aca8e38
-- 2026-10-24 23:48 · 1.4-2 · décision · libellés des 7 sous-systèmes vérifiés sur arXiv 2609.00006 (tableau 1) : Tools & actions, Safety & permissions corrigés · aca8e38
-- 2026-10-24 23:48 · 1.4-2 · review · relecture de la spec lancée · aca8e38
-- 2026-10-24 23:48 · 1.3-4 · dev · lancé (phase spec) · e15cc3e
-- 2026-10-24 23:49 · 1.3-2 · review · 2 medium corrigés (« non mesuré » en local, barre à 1 280 et 1 366 px vérifiée), 2 écartés · 1b0fdb5
-- 2026-10-24 23:49 · 1.3-2 · décision · à revoir : seuil de 1 700 px du texte court de la jauge (spec de story, absent de DESIGN.md) · 1b0fdb5
-- 2026-10-24 23:49 · 1.3-2 · PR · rebasée sur main, ouverte, CI lancée · c81b6d5
-- 2026-10-24 23:49 · 1.3-3 · dev · lancé (empilé sur 1.3-2) · c81b6d5
-- 2026-10-24 23:50 · 1.3-4 · dev · spec prête (cases partielles, anneau SVG, registre _spend_conv) · e229269
-- 2026-10-24 23:50 · 1.3-4 · review · relecture de la spec lancée · e229269
-- 2026-10-24 23:51 · 1.3-5 · second-avis · 0 high/medium, 5 low (dont un mock de config.cloud_key) · e802bd0
-- 2026-10-24 23:51 · 1.3-5 · review · lancé · e802bd0
-- 2026-10-24 23:53 · 1.4-2 · review · spec approuvée après 2 high et 3 medium corrigés (libellés du papier, compte de scénarios, état des briques, grisé, légende) · a818d6b
-- 2026-10-24 23:53 · 1.4-2 · décision · à revoir : sous-agent = 3e exception AD-9 (compression + subagent dépasse 3 584 tokens en CI) · a818d6b
-- 2026-10-24 23:53 · 1.4-2 · décision · à revoir : harness_map a un prompt neutre (schéma min 1 prompt) ; carte servie par bricks_changed, sans route · a818d6b
-- 2026-10-24 23:53 · 1.4-2 · dev · phase 2 (code) lancée · a818d6b
-- 2026-10-24 23:54 · 1.3-4 · review · spec approuvée ; signal corrigé (écriture du 1er appel retirée), cost_ring, appels sans prix comptés · fb60884
-- 2026-10-24 23:54 · 1.3-4 · décision · à revoir : signal = écriture hors 1er appel > lecture ; appels hors tour seulement dans « Depuis le lancement » · fb60884
-- 2026-10-24 23:54 · 1.3-4 · report · phase 2 en attente d'un créneau (2 stories en développement) · fb60884
-- 2026-10-24 23:56 · 1.3-3 · dev · fini ; E2E local_server 53 OK, cause cache_cleared · 95c0450
-- 2026-10-24 23:56 · 1.3-3 · second-avis · lancé · 95c0450
-- 2026-10-24 23:56 · 1.3-4 · dev · phase 2 (code) lancée · fb60884
-- 2026-10-24 23:57 · 1.3-5 · review · 1 medium corrigé (dégrisage à la saisie de clé), mock remplacé ; E2E claude_cache et context_window 55 OK · 3a11e05
-- 2026-10-24 23:57 · 1.3-5 · report · story 6 : dire que changer mémoire, skills ou prompt réécrit tout le cache · 3a11e05
-- 2026-10-24 23:57 · 1.3-5 · PR · ouverte, CI lancée · 3a11e05
-- 2026-10-25 00:00 · 1.3-3 · second-avis · 3 medium (course vidage/tour, vidage pendant préremplissage, slot 0 seul), 4 low · 95c0450
-- 2026-10-25 00:00 · 1.3-3 · review · lancé · 95c0450
-- 2026-10-25 00:00 · 1.4-3 · CI · rouge sur Ubuntu après rebase sur 1.4-1 ; 371 tests ciblés verts en local, journal attendu · 21515b7
-- 2026-10-25 00:00 · 1.4-3 · CI · échec Ubuntu = test_engine_candidates (probabilités, hors diff, instable présumé) ; job relancé · 21515b7
-- 2026-10-25 00:05 · 1.4-2 · dev · fini ; E2E harness_map, programme, subagent, disciplines verts ; écart : H3 non reconduit au module 7, test_program assoupli · 0daec7d
-- 2026-10-25 00:05 · 1.4-2 · second-avis · lancé · 0daec7d
-- 2026-10-25 00:05 · 1.2-2 · attente humaine · banc de modèles réels (candidats System One, Qwen3.5-2B 16 384 / 4 Go) : à lancer par Anaël, hors run parallèle · —
-- 2026-10-25 00:05 · 1.2-3 · dev · lancé (créneau libre, V1.3 et V1.4 restantes bloquées par des fusions) · e15cc3e
-- 2026-10-25 00:06 · 1.3-2 · CI · verte (Windows, Ubuntu) · c81b6d5
-- 2026-10-25 00:06 · 1.3-2 · fusion · #92 MERGED · 8b1245f
-- 2026-10-25 00:06 · 1.3-5 · CI · PR #93 rebasée sur main (avec 1.3-2), CI relancée · —
-- 2026-10-25 00:07 · 1.4-2 · second-avis · 1 high (test_compression cherche l'ancien module 6), 3 défauts à la fusion avec #91 (22 scénarios, 6 h, conflit run_e2e.py), 3 low · 0daec7d
-- 2026-10-25 00:10 · 1.3-4 · dev · fini, rebasé sur main ; E2E cache_bilan et bar_panels 30 OK · 806554a
-- 2026-10-25 00:10 · 1.3-4 · second-avis · lancé · 806554a
-- 2026-10-25 00:13 · 1.4-3 · CI · relance encore rouge sur Ubuntu (test_engine_candidates, même assertion) ; non reproduit sous Windows ; diagnostic délégué · 21515b7
-- 2026-10-25 00:13 · 1.3-4 · second-avis · 1 medium (anneau 1 h à brancher après #93), 4 low · 806554a
-- 2026-10-25 00:13 · 1.3-4 · review · lancé · 806554a
-- 2026-10-25 00:14 · 1.3-3 · review · 3 medium corrigés (vidage en file sur le worker, attente du préremplissage, tous les slots), 4 low ; E2E local_server 53/53 · 9e09b49
-- 2026-10-25 00:14 · 1.3-3 · décision · à revoir : cause cache_cleared prioritaire sur reset et replay tant que le moteur reste vide · 9e09b49
-- 2026-10-25 00:14 · 1.3-3 · PR · ouverte, CI lancée · 9e09b49
-- 2026-10-25 00:16 · 1.4-3 · CI · cause : premier jeton tiré = fin de génération (température 1, sans graine), probabiliste sous Ubuntu ; test rendu robuste (jusqu'à 30 tirages), poussé · 4be2138
-- 2026-10-25 00:18 · 1.3-4 · review · 3 low corrigés (appel local hors « sans prix », remise à zéro sous verrou, tests) ; E2E 30/30 ; branchement 1 h à faire après #93 · f06671c
-- 2026-10-25 00:18 · 1.3-4 · décision · à revoir : appel local exclu de « sans prix déclaré » (contre une ligne de la spec de story) · f06671c
-- 2026-10-25 00:23 · 1.3-5 · CI · verte (Windows, Ubuntu) · bdb5f81
-- 2026-10-25 00:23 · 1.3-5 · fusion · #93 MERGED · 5c677fb
-- 2026-10-25 00:23 · 1.3-4 · review · reprise : rebase sur main (avec #93) et branchement de la part 1 h dans cost_ring · f06671c
-- 2026-10-25 00:23 · 1.3-3 · CI · PR #94 rebasée sur main (avec #93), CI relancée · —
-- 2026-10-25 00:23 · 1.3-3 · CI · PR #94 en conflit avec main après #93 ; fusion de main dans la branche (sans réécriture) déléguée · 9e09b49
-- 2026-10-25 00:25 · 1.3-4 · review · rebasée sur #93, part 1 h branchée dans cost_ring ; E2E 30/30 · b53a301
-- 2026-10-25 00:25 · 1.3-4 · PR · ouverte, CI lancée · b53a301
-- 2026-10-25 00:26 · 1.3-3 · CI · main fusionnée dans la branche sans conflit, tests ciblés et E2E verts, poussée, CI relancée · 02d4662
-- 2026-10-25 00:28 · 1.2-3 · dev · fini, rebasé sur main ; E2E rag, rag_rerank, rag_lab 153 OK ; copie de travail dans le dossier de données · 6a1b3d3
-- 2026-10-25 00:28 · 1.2-3 · second-avis · lancé · 6a1b3d3
-- 2026-10-25 00:33 · 1.4-3 · CI · verte (Windows, Ubuntu) après correctif du test · 4be2138
-- 2026-10-25 00:33 · 1.4-3 · CI · conflits avec main (#89, #92, #93) ; fusion de main dans la branche déléguée · 4be2138
-- 2026-10-25 00:33 · 1.2-3 · second-avis · 6 medium (Probe non arrêtée, tokens estimés non marqués, coûts périmés, génération en erreur, index livré sans coût, mise à jour sans effet sur les questions), 7 low · 6a1b3d3
-- 2026-10-25 00:33 · 1.2-3 · review · lancé (décision : la chaîne lit la copie de travail si raisonnable) · 6a1b3d3
-- 2026-10-25 00:35 · 1.4-3 · CI · main fusionnée (conflits run_e2e.py et une capture résolus), tests et E2E verts, poussée · 983883d
-- 2026-10-25 00:43 · 1.3-4 · CI · rouge (Windows, Ubuntu) : test_llm_lab, consumption_updated émis avant model_call_ended sur LLM nu ; correctif renvoyé au reviewer · b53a301
-- 2026-10-25 00:44 · 1.2-3 · review · 6 medium traités (5 corrigés, 1 en attente humaine), 8 low ; E2E 154/154 · 0f79d92
-- 2026-10-25 00:44 · 1.2-3 · décision · à revoir : la chaîne lit la copie de travail quand elle diffère du livré (Never de la spec de story levé) ; Modifier = ajout d'un paragraphe · 0f79d92
-- 2026-10-25 00:44 · 1.2-3 · attente humaine · reconstruire les 3 index réels (build_rag_index.py --lang fr|en|de) pour leurs fichiers de coût · 0f79d92
-- 2026-10-25 00:44 · 1.2-3 · PR · ouverte, CI lancée · 0f79d92
-- 2026-10-25 00:44 · 1.2-4 · dev · lancé (empilé sur 1.2-3, même page) · 0f79d92
-- 2026-10-25 00:44 · 1.3-4 · CI · cause : assertion de test_llm_lab sur l'ancien ordre (bilan désormais émis pour un appel local) ; test réaligné, code inchangé, poussé · b5386c5
-- 2026-10-25 00:45 · 1.3-3 · CI · verte (Windows, Ubuntu) · 02d4662
-- 2026-10-25 00:45 · 1.3-3 · fusion · #94 MERGED · c8d0a50
+- 2026-10-24 23:10 · 12.1 · CI · PR #79 rebasée sur main, CI lancée · 13453c9
+- 2026-10-24 23:11 · 12.1 · fusion · #79 MERGED · 72cfdf0
+- 2026-10-24 23:11 · 13.1 · dev · lancé (phase spec) · 72cfdf0
+- 2026-10-24 23:12 · 14.1 · dev · lancé (créneau libre pendant la V1.3-1) · 72cfdf0
+- 2026-10-24 23:13 · 13.1 · dev · spec prête (phase 1) · dd32e23
+- 2026-10-24 23:13 · 13.1 · review · relecture de la spec lancée · dd32e23
+- 2026-10-24 23:15 · 13.1 · review · spec approuvée après 4 corrections importantes (lecture locale sans last_cache_reuse, collision cache_savings, règle d'écriture par pivot, tests listés) · 23e84c8
+- 2026-10-24 23:15 · 13.1 · décision · à revoir : non caché local = None « sans objet », distingué par cache_origin · 23e84c8
+- 2026-10-24 23:15 · 13.1 · décision · à revoir : champ cache_write_1h_tokens ajouté dès la story 1 (Anthropic ephemeral_1h) pour les stories 4 et 5 · 23e84c8
+- 2026-10-24 23:15 · 13.1 · décision · à revoir : cache_origin None seulement pour une trace antérieure ; usage estimé = provider, cases None · 23e84c8
+- 2026-10-24 23:15 · 13.1 · dev · phase 2 (code) lancée · 23e84c8
+- 2026-10-24 23:17 · 14.1 · dev · fini ; E2E disciplines 52 OK (PYTHONUTF8=1 requis sous Windows) ; skills tiers dans hooks, échafaudage dans native_tools · f916b57
+- 2026-10-24 23:17 · 14.1 · décision · à revoir : scénario de sécurité des skills tiers = hooks · f916b57
+- 2026-10-24 23:17 · 14.1 · second-avis · lancé · f916b57
+- 2026-10-24 23:18 · 14.3 · dev · lancé · 72cfdf0
+- 2026-10-24 23:21 · 13.1 · dev · fini ; contrat : cache_origin, cache_read_tokens, cache_write_tokens, cache_write_1h_tokens, cache_uncached_tokens (int | None) · ab89fb3
+- 2026-10-24 23:21 · 13.1 · second-avis · lancé · ab89fb3
+- 2026-10-24 23:22 · 14.1 · second-avis · 1 medium (consigne d'échafaudage fausse : prompts de native_tools ne nomment pas l'outil), 5 low · f916b57
+- 2026-10-24 23:22 · 14.1 · review · lancé (avec E2E compression et subagent) · f916b57
+- 2026-10-24 23:24 · 13.1 · second-avis · 0 high/medium, 3 low ; orchestrateur : lecture OpenAI absente = None (CAP-1), traité comme important · ab89fb3
+- 2026-10-24 23:24 · 13.1 · review · lancé · ab89fb3
+- 2026-10-24 23:27 · 13.1 · review · 1 medium corrigé (lecture non déclarée = None, pivots Anthropic et Responses), contrat mis à jour · c03250c
+- 2026-10-24 23:27 · 13.1 · décision · à revoir : réponse Anthropic sans champs de cache = rien déclaré (None) · c03250c
+- 2026-10-24 23:27 · 13.1 · PR · ouverte, CI lancée · c03250c
+- 2026-10-24 23:27 · 14.1 · review · 1 medium corrigé (échafaudage déplacé dans skills), E2E subagent 58/58, compression 43/43 · 1ccca2d
+- 2026-10-24 23:27 · 14.1 · décision · à revoir : consigne d'échafaudage portée par le scénario skills · 1ccca2d
+- 2026-10-24 23:27 · 14.1 · PR · ouverte, CI lancée · 1ccca2d
+- 2026-10-24 23:27 · 13.5 · dev · lancé (phase spec, empilé sur 13.1) · c03250c
+- 2026-10-24 23:30 · 13.5 · dev · spec prête (réglage [cloud] claude_cache, points system et outils, 1 h déclaré ou ×2) · 5440690
+- 2026-10-24 23:30 · 13.5 · review · relecture de la spec lancée (seuil minimal du cache Anthropic) · 5440690
+- 2026-10-24 23:31 · 14.3 · dev · fini ; documents inactifs exclus, search_documents décoché au lancement (default_enabled), E2E rag_agentic 20 OK · 73ecedf
+- 2026-10-24 23:31 · 14.3 · décision · à revoir : search_documents décoché par défaut, le scénario le fait cocher · 73ecedf
+- 2026-10-24 23:31 · 14.3 · second-avis · lancé · 73ecedf
+- 2026-10-24 23:31 · 13.2 · dev · lancé (empilé sur 13.1) · c03250c
+- 2026-10-24 23:34 · 14.3 · second-avis · 1 high (test casse-sensible rouge sous Ubuntu), 1 medium (languages ignoré, comme chunk_corpus), 6 low ; confinement sans défaut · 73ecedf
+- 2026-10-24 23:34 · 14.3 · review · lancé · 73ecedf
+- 2026-10-24 23:35 · 13.5 · review · spec approuvée ; préfixe stable mesuré ≈ 1 000 tokens, sous le seuil du fournisseur · e193a0f
+- 2026-10-24 23:35 · 13.5 · décision · à revoir : 3e point de cache sur le dernier message (sinon rien n'est mis en cache) ; la story 6 doit faire dépasser le seuil · e193a0f
+- 2026-10-24 23:35 · 13.5 · décision · à revoir : cache_control seulement pour le chat (_render_chat), pas les ateliers ni Tester ; clé via config.cloud_key · e193a0f
+- 2026-10-24 23:35 · 13.5 · dev · phase 2 (code) lancée · e193a0f
+- 2026-10-24 23:39 · 14.3 · review · high corrigé (casse CORPUS/ sous Linux), mots vides, notice masquée, E2E par id ; rag_agentic 20/20 · 2d30c34
+- 2026-10-24 23:39 · 14.3 · décision · à revoir : search_documents garde la règle languages du RAG (même corpus pour la comparaison) · 2d30c34
+- 2026-10-24 23:39 · 14.3 · PR · #91 ouverte, CI lancée · 2d30c34
+- 2026-10-24 23:39 · 13.1 · CI · Ubuntu verte, Windows en cours (#89) · c03250c
+- 2026-10-24 23:40 · 13.2 · dev · fini ; E2E local_server 50 OK ; faux llama-server garde le préfixe (lecture locale non nulle) · eae59ca
+- 2026-10-24 23:40 · 13.2 · second-avis · lancé · eae59ca
+- 2026-10-24 23:43 · 13.2 · second-avis · 3 medium (« non déclaré » en local, barre du haut à 1 280 px, non caché sans écriture), 5 low · eae59ca
+- 2026-10-24 23:43 · 13.2 · review · lancé · eae59ca
+- 2026-10-24 23:44 · 14.1 · CI · verte (Windows, Ubuntu) · 1ccca2d
+- 2026-10-24 23:44 · 14.1 · fusion · #90 MERGED · d9f223e
+- 2026-10-24 23:44 · 14.3 · CI · PR #91 rebasée sur main (avec 14.1), CI relancée · —
+- 2026-10-24 23:44 · 14.2 · dev · lancé (phase spec) · d9f223e
+- 2026-10-24 23:46 · 13.1 · CI · verte (Windows, Ubuntu) · c03250c
+- 2026-10-24 23:46 · 13.1 · fusion · #89 MERGED (aucun fichier commun avec #90) · e15cc3e
+- 2026-10-24 23:48 · 13.5 · dev · fini, rebasé sur main ; E2E claude_cache 29/29 (avant rebase) · e802bd0
+- 2026-10-24 23:48 · 13.5 · second-avis · lancé · e802bd0
+- 2026-10-24 23:48 · 14.2 · dev · spec prête · aca8e38
+- 2026-10-24 23:48 · 14.2 · décision · libellés des 7 sous-systèmes vérifiés sur arXiv 2609.00006 (tableau 1) : Tools & actions, Safety & permissions corrigés · aca8e38
+- 2026-10-24 23:48 · 14.2 · review · relecture de la spec lancée · aca8e38
+- 2026-10-24 23:48 · 13.4 · dev · lancé (phase spec) · e15cc3e
+- 2026-10-24 23:49 · 13.2 · review · 2 medium corrigés (« non mesuré » en local, barre à 1 280 et 1 366 px vérifiée), 2 écartés · 1b0fdb5
+- 2026-10-24 23:49 · 13.2 · décision · à revoir : seuil de 1 700 px du texte court de la jauge (spec de story, absent de DESIGN.md) · 1b0fdb5
+- 2026-10-24 23:49 · 13.2 · PR · rebasée sur main, ouverte, CI lancée · c81b6d5
+- 2026-10-24 23:49 · 13.3 · dev · lancé (empilé sur 13.2) · c81b6d5
+- 2026-10-24 23:50 · 13.4 · dev · spec prête (cases partielles, anneau SVG, registre _spend_conv) · e229269
+- 2026-10-24 23:50 · 13.4 · review · relecture de la spec lancée · e229269
+- 2026-10-24 23:51 · 13.5 · second-avis · 0 high/medium, 5 low (dont un mock de config.cloud_key) · e802bd0
+- 2026-10-24 23:51 · 13.5 · review · lancé · e802bd0
+- 2026-10-24 23:53 · 14.2 · review · spec approuvée après 2 high et 3 medium corrigés (libellés du papier, compte de scénarios, état des briques, grisé, légende) · a818d6b
+- 2026-10-24 23:53 · 14.2 · décision · à revoir : sous-agent = 3e exception AD-9 (compression + subagent dépasse 3 584 tokens en CI) · a818d6b
+- 2026-10-24 23:53 · 14.2 · décision · à revoir : harness_map a un prompt neutre (schéma min 1 prompt) ; carte servie par bricks_changed, sans route · a818d6b
+- 2026-10-24 23:53 · 14.2 · dev · phase 2 (code) lancée · a818d6b
+- 2026-10-24 23:54 · 13.4 · review · spec approuvée ; signal corrigé (écriture du 1er appel retirée), cost_ring, appels sans prix comptés · fb60884
+- 2026-10-24 23:54 · 13.4 · décision · à revoir : signal = écriture hors 1er appel > lecture ; appels hors tour seulement dans « Depuis le lancement » · fb60884
+- 2026-10-24 23:54 · 13.4 · report · phase 2 en attente d'un créneau (2 stories en développement) · fb60884
+- 2026-10-24 23:56 · 13.3 · dev · fini ; E2E local_server 53 OK, cause cache_cleared · 95c0450
+- 2026-10-24 23:56 · 13.3 · second-avis · lancé · 95c0450
+- 2026-10-24 23:56 · 13.4 · dev · phase 2 (code) lancée · fb60884
+- 2026-10-24 23:57 · 13.5 · review · 1 medium corrigé (dégrisage à la saisie de clé), mock remplacé ; E2E claude_cache et context_window 55 OK · 3a11e05
+- 2026-10-24 23:57 · 13.5 · report · story 6 : dire que changer mémoire, skills ou prompt réécrit tout le cache · 3a11e05
+- 2026-10-24 23:57 · 13.5 · PR · ouverte, CI lancée · 3a11e05
+- 2026-10-25 00:00 · 13.3 · second-avis · 3 medium (course vidage/tour, vidage pendant préremplissage, slot 0 seul), 4 low · 95c0450
+- 2026-10-25 00:00 · 13.3 · review · lancé · 95c0450
+- 2026-10-25 00:00 · 14.3 · CI · rouge sur Ubuntu après rebase sur 14.1 ; 371 tests ciblés verts en local, journal attendu · 21515b7
+- 2026-10-25 00:00 · 14.3 · CI · échec Ubuntu = test_engine_candidates (probabilités, hors diff, instable présumé) ; job relancé · 21515b7
+- 2026-10-25 00:05 · 14.2 · dev · fini ; E2E harness_map, programme, subagent, disciplines verts ; écart : H3 non reconduit au module 7, test_program assoupli · 0daec7d
+- 2026-10-25 00:05 · 14.2 · second-avis · lancé · 0daec7d
+- 2026-10-25 00:05 · 12.2 · attente humaine · banc de modèles réels (candidats System One, Qwen3.5-2B 16 384 / 4 Go) : à lancer par Anaël, hors run parallèle · —
+- 2026-10-25 00:05 · 12.3 · dev · lancé (créneau libre, V1.3 et V1.4 restantes bloquées par des fusions) · e15cc3e
+- 2026-10-25 00:06 · 13.2 · CI · verte (Windows, Ubuntu) · c81b6d5
+- 2026-10-25 00:06 · 13.2 · fusion · #92 MERGED · 8b1245f
+- 2026-10-25 00:06 · 13.5 · CI · PR #93 rebasée sur main (avec 13.2), CI relancée · —
+- 2026-10-25 00:07 · 14.2 · second-avis · 1 high (test_compression cherche l'ancien module 6), 3 défauts à la fusion avec #91 (22 scénarios, 6 h, conflit run_e2e.py), 3 low · 0daec7d
+- 2026-10-25 00:10 · 13.4 · dev · fini, rebasé sur main ; E2E cache_bilan et bar_panels 30 OK · 806554a
+- 2026-10-25 00:10 · 13.4 · second-avis · lancé · 806554a
+- 2026-10-25 00:13 · 14.3 · CI · relance encore rouge sur Ubuntu (test_engine_candidates, même assertion) ; non reproduit sous Windows ; diagnostic délégué · 21515b7
+- 2026-10-25 00:13 · 13.4 · second-avis · 1 medium (anneau 1 h à brancher après #93), 4 low · 806554a
+- 2026-10-25 00:13 · 13.4 · review · lancé · 806554a
+- 2026-10-25 00:14 · 13.3 · review · 3 medium corrigés (vidage en file sur le worker, attente du préremplissage, tous les slots), 4 low ; E2E local_server 53/53 · 9e09b49
+- 2026-10-25 00:14 · 13.3 · décision · à revoir : cause cache_cleared prioritaire sur reset et replay tant que le moteur reste vide · 9e09b49
+- 2026-10-25 00:14 · 13.3 · PR · ouverte, CI lancée · 9e09b49
+- 2026-10-25 00:16 · 14.3 · CI · cause : premier jeton tiré = fin de génération (température 1, sans graine), probabiliste sous Ubuntu ; test rendu robuste (jusqu'à 30 tirages), poussé · 4be2138
+- 2026-10-25 00:18 · 13.4 · review · 3 low corrigés (appel local hors « sans prix », remise à zéro sous verrou, tests) ; E2E 30/30 ; branchement 1 h à faire après #93 · f06671c
+- 2026-10-25 00:18 · 13.4 · décision · à revoir : appel local exclu de « sans prix déclaré » (contre une ligne de la spec de story) · f06671c
+- 2026-10-25 00:23 · 13.5 · CI · verte (Windows, Ubuntu) · bdb5f81
+- 2026-10-25 00:23 · 13.5 · fusion · #93 MERGED · 5c677fb
+- 2026-10-25 00:23 · 13.4 · review · reprise : rebase sur main (avec #93) et branchement de la part 1 h dans cost_ring · f06671c
+- 2026-10-25 00:23 · 13.3 · CI · PR #94 rebasée sur main (avec #93), CI relancée · —
+- 2026-10-25 00:23 · 13.3 · CI · PR #94 en conflit avec main après #93 ; fusion de main dans la branche (sans réécriture) déléguée · 9e09b49
+- 2026-10-25 00:25 · 13.4 · review · rebasée sur #93, part 1 h branchée dans cost_ring ; E2E 30/30 · b53a301
+- 2026-10-25 00:25 · 13.4 · PR · ouverte, CI lancée · b53a301
+- 2026-10-25 00:26 · 13.3 · CI · main fusionnée dans la branche sans conflit, tests ciblés et E2E verts, poussée, CI relancée · 02d4662
+- 2026-10-25 00:28 · 12.3 · dev · fini, rebasé sur main ; E2E rag, rag_rerank, rag_lab 153 OK ; copie de travail dans le dossier de données · 6a1b3d3
+- 2026-10-25 00:28 · 12.3 · second-avis · lancé · 6a1b3d3
+- 2026-10-25 00:33 · 14.3 · CI · verte (Windows, Ubuntu) après correctif du test · 4be2138
+- 2026-10-25 00:33 · 14.3 · CI · conflits avec main (#89, #92, #93) ; fusion de main dans la branche déléguée · 4be2138
+- 2026-10-25 00:33 · 12.3 · second-avis · 6 medium (Probe non arrêtée, tokens estimés non marqués, coûts périmés, génération en erreur, index livré sans coût, mise à jour sans effet sur les questions), 7 low · 6a1b3d3
+- 2026-10-25 00:33 · 12.3 · review · lancé (décision : la chaîne lit la copie de travail si raisonnable) · 6a1b3d3
+- 2026-10-25 00:35 · 14.3 · CI · main fusionnée (conflits run_e2e.py et une capture résolus), tests et E2E verts, poussée · 983883d
+- 2026-10-25 00:43 · 13.4 · CI · rouge (Windows, Ubuntu) : test_llm_lab, consumption_updated émis avant model_call_ended sur LLM nu ; correctif renvoyé au reviewer · b53a301
+- 2026-10-25 00:44 · 12.3 · review · 6 medium traités (5 corrigés, 1 en attente humaine), 8 low ; E2E 154/154 · 0f79d92
+- 2026-10-25 00:44 · 12.3 · décision · à revoir : la chaîne lit la copie de travail quand elle diffère du livré (Never de la spec de story levé) ; Modifier = ajout d'un paragraphe · 0f79d92
+- 2026-10-25 00:44 · 12.3 · attente humaine · reconstruire les 3 index réels (build_rag_index.py --lang fr|en|de) pour leurs fichiers de coût · 0f79d92
+- 2026-10-25 00:44 · 12.3 · PR · ouverte, CI lancée · 0f79d92
+- 2026-10-25 00:44 · 12.4 · dev · lancé (empilé sur 12.3, même page) · 0f79d92
+- 2026-10-25 00:44 · 13.4 · CI · cause : assertion de test_llm_lab sur l'ancien ordre (bilan désormais émis pour un appel local) ; test réaligné, code inchangé, poussé · b5386c5
+- 2026-10-25 00:45 · 13.3 · CI · verte (Windows, Ubuntu) · 02d4662
+- 2026-10-25 00:45 · 13.3 · fusion · #94 MERGED · c8d0a50
