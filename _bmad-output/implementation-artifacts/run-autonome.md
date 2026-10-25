@@ -11,13 +11,13 @@ Lancé le 2026-10-25 à la demande d'Anaël, après le run V1.3, V1.4, V1.2 (arc
 
 Spec : `_bmad-output/specs/spec-wavestack-evaluer-l-agent/` (SPEC.md, contrat-des-cas.md, brownfield.md, vues.md, maquette), PR #134.
 
-Au plus 2 stories en développement à la fois
+Au plus 3 stories en développement à la fois (3e créneau seulement pour une story sans fichier commun avec les deux autres ; décision d'Anaël du 2026-10-25)
 
 ## Sprint 1 — V1.5 évaluer l'agent
 
 | Vague | Stories en parallèle | Après |
 |---|---|---|
-| V0 | 15.1 ★ · 15.6 | — |
+| V0 | 15.1 ★ · 15.6 · 15.2 | 15.2 : phase spec seulement, code ← 15.1 |
 | V1 | 15.2 · 15.3 | 15.2 ← 15.1 ; 15.3 ← 15.1 |
 | V2 | 15.4 ★ | 15.4 ← 15.1 ; 15.4 ← 15.3 |
 | V3 | 15.5 | 15.5 ← 15.2 ; 15.5 ← 15.4 ; 15.5 ← 15.6 |
@@ -40,6 +40,7 @@ Au plus 2 stories en développement à la fois
 
 ## Décisions
 
+- 2026-10-25 : 3e créneau autorisé par Anaël pour une story largement indépendante ; seule 15.2 l'est (phase spec, fichiers propres), son code attend la fusion de 15.1. 15.3 partage le front avec 15.6.
 - 2026-10-25 : points `spec_checkpoint` tranchés par le reviewer, comme au run précédent ; à confirmer par Anaël.
 
 ## Reprise après /clear
@@ -56,3 +57,5 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 20:58 · run · fusion · #134 MERGED dans main (squash) : spec V1.5 · 3214fec5
 - 2026-10-25 20:58 · 15.1 · dev · lancé (Opus, ../wavestack-v15-s1) · —
 - 2026-10-25 20:58 · 15.6 · dev · lancé (Sonnet, ../wavestack-v15-s6) · —
+- 2026-10-25 21:03 · run · décision · 3e créneau (Anaël) : phase spec de 15.2 avancée en V0 · —
+- 2026-10-25 21:03 · 15.2 · dev · lancé (Sonnet, phase spec, ../wavestack-v15-s2) · —
