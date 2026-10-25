@@ -491,3 +491,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:50 · 12.20 · dev · lancé (phase spec, worktree ../wavestack-v12-s20 depuis l'intégration 5d74aff) · 5d74aff
 - 2026-10-25 11:57 · 12.20 · dev · spec prête (16 critères, 12 points ouverts : streamable HTTP monté sur le port de l'application, 2 outils en lecture seule, chaîne figée, jeton porteur par démarrage, dense / hybrid / rerank seuls exposables ; aucune dépendance nouvelle) · 5a11c7c
 - 2026-10-25 11:57 · 12.20 · review · relecture de la spec lancée · 5a11c7c
+- 2026-10-25 11:59 · 12.2 · second-avis · 0 high, 4 medium (401/402/403 pris pour « modèle inconnu », budget global incomplet à la reprise, corps d'erreur brut hors liste blanche, items tout en erreur sortis des métriques), 3 low ; CI sans dépendance manquante · 1621e21
+- 2026-10-25 11:59 · 12.2 · review · lancé (Opus ; fusion de l'intégration, lecture des cartes de Strands Decider 2B et AnyJev) · 1621e21
