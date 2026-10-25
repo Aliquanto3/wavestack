@@ -193,3 +193,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 05:52 · 14.2 · décision · à revoir : capture 01b reprise de main, à regénérer par l'E2E · —
 - 2026-10-25 05:52 · 14.2 · décision · à revoir : vidéo de démo non regénérée (compose.py : 7 modules · 6 h) · —
 - 2026-10-25 05:52 · 14.2 · décision · à revoir : brique éteinte à opacity 0.45 (contraste 3,2:1) gardée, état aussi en texte · —
+- 2026-10-25 05:53 · 14.2 · CI · E2E harness_map et rag_agentic verts en local, capture 01b regénérée · fec1aa6
