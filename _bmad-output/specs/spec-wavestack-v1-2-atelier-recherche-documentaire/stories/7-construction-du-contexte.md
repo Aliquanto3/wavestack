@@ -126,3 +126,17 @@ context:
 
 - Tâche humaine optionnelle, non bloquante : avec l'extra `compression` sur le PC cible, mesurer les tokens avant/après de `compress` sur le corpus Exemplia et reporter le constat dans la fiche (repli enregistré : faux compresseur en test, indisponibilité dite sinon).
 - Hors périmètre : routeur, filtre de passages, contrôle d'ancrage (story 8) ; lien « Fiche » du focus et contenu de l'onglet Fiches ; tokenizer du modèle actif pour le budget ; ordre ou budget par passage.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu c0af8ae)
+
+Base : fusion de `origin/integration/v1-2-atelier` (15 commits, #108 et 12.15), conflits `rag.css`, `tools/e2e/README.md`, `run_e2e.py` résolus en gardant les deux côtés.
+
+- Rejeté · medium · second avis 1 (compresseur emprunté fermé pendant un run) : `_release_compressor` n'est appelé que par `_sync_compression`, soumis au worker unique (`ThreadPoolExecutor(max_workers=1)`), comme `_run_rag_lab` ; la libération attend donc la fin du run, et la fermeture de session vient après `executor.shutdown(wait=True)`. Prouvé par `test_the_card_switched_off_during_a_run_releases_the_compressor_after_it` (carte éteinte depuis le compresseur, au premier extrait : jamais fermé pendant le run, libéré après).
+- Rejeté · low · second avis 2 (`hf_offline` sans verrou) : le tour du chat et l'atelier tournent sur ce même worker unique et l'atelier exige l'état `idle` ; deux compressions simultanées sont impossibles. Code d'avant la story, inchangé.
+- Nit · low · second avis 3 (`excerpts` non comparé à un texte figé, critère 1) : corrigé. Sortie de `excerpts` capturée sur la base d'avant la story puis sur la branche (identiques), figée dans le test : chunks, longueur, sha256 du texte, faits.
+- Nit · low · second avis 4 (test du vrai Headroom limité au type) : corrigé. Il vérifie désormais l'absence d'échec, le libellé du compresseur, le décompte avant → après, `tokens_after` égal à l'estimation du texte envoyé, le budget utilisé. Exécuté vert avec `uv run --with headroom-ai==0.38.0` (la CI n'installe pas l'extra : sauté).
+- Nit · low · second avis 5 (`_smallest_cut` dépasse le budget) : conforme à la spec (« hors ce dernier cas »), mais aucun texte ne le disait. Corrigé : avertissement `context.budget_over` (fr, en, de) quand le contexte dépasse le budget, et test (`chars_per_token` = 1).
+- Nit · low · second avis 6 (branche E2E « avec l'extra » jamais exécutée, chiffres non vérifiés) : chiffres vérifiés sur le corpus réel par l'E2E sans l'extra (défaut 450, deux entiers, un coupé, deux écartés, positions 1, 5, 2, 4, 3). Branche « avec l'extra » reportée : `uv sync --extra compression` puis `--only rag rag_rerank rag_lab_context`.
+- Complexité : 0 constat (boucle de budget en O(top_k²) estimations, `top_k` ≤ 20 ; recherche binaire de coupe en O(log n)).

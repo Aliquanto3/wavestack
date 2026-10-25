@@ -1188,6 +1188,7 @@ rag_lab:
     parents_short: "{kept} distinct parents of the {top_k} asked: the {read} best children cover no more. Raise the search's candidates to get more."
     budget_cut: "The budget of {budget} estimated tokens does not let everything through: whole {whole}, cut {cut}, dropped {dropped}."
     budget_tiny: "The budget is smaller than the introduction and the best excerpt: the excerpt is cut all the same, the context is never empty."
+    budget_over: "Even cut to its first sentence, the best excerpt goes over the budget: {used} estimated tokens out of {budget}."
     budget_used: "{used} of {budget}"
     cut_some: "1 (−{tokens} estimated tokens)"
     cut_none: none

@@ -14901,6 +14901,150 @@ def _rag_lab_context(r: Run, headroom: bool) -> None:
         )
 
 
+def s_rag_lab_evaluate(r: Run) -> None:
+    """V1.2 story 15 (CAP-11), after `rag` and `rag_rerank`: the Évaluer tab without any run (the
+    banner « Démonstration, pas un banc » with n, the recorded set's table with a written-out
+    disagreement and its provenance, « trop peu pour conclure » under n = 5), the four traps
+    replayed, a finished run of a prepared question added to n, the refusal of a cloud judge
+    (409, nothing sent), nothing leaving 127.0.0.1, and no mean in Comparer. Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    outside: list[str] = []
+
+    def listener(request) -> None:  # noqa: ANN001
+        if not request.url.startswith(("http://127.0.0.1", "data:", "blob:")):
+            outside.append(request.url)
+
+    page.on("request", listener)
+    _goto_rag_lab(r)
+    try:
+        page.click("#rag-tab-evaluate")
+        banner = page.locator("#rag-eval-banner")
+        # A run of an earlier scenario, replayed by the page (`last_run`), may already count.
+        expect(banner).to_have_text(
+            re.compile(
+                r"Démonstration, pas un banc : n = 1[01] questions, 2 architectures, 2 juges"
+            ),
+            timeout=10_000,
+        )
+        n_before = int(re.search(r"n = (\d+)", banner.inner_text()).group(1))
+        r.check(
+            banner.is_visible() and banner.evaluate("e => !e.closest('details')"),
+            "Évaluer : le bandeau est visible en permanence, hors de tout volet repliable",
+        )
+        table = page.locator("#rag-eval-table")
+        r.check(
+            page.locator('#rag-eval-table tr[data-source="recorded"]').count() == 20
+            and "désaccord : juge" in table.inner_text()
+            and "non annoté"
+            not in page.locator('#rag-eval-table tr[data-source="recorded"]').first.inner_text(),
+            "Évaluer : 20 lignes du jeu enregistré, un désaccord écrit (pas la couleur seule)",
+        )
+        r.check(
+            "Cas construit pour la démonstration" in page.inner_text("#rag-eval-provenance")
+            and "à valider" in page.inner_text("#rag-eval-provenance"),
+            "Évaluer : provenance « cas construit » et annotation « proposée, à valider »",
+        )
+        r.check(
+            "trop peu pour conclure" in page.inner_text("#rag-eval-aggs")
+            and "n = 8" in page.inner_text("#rag-eval-aggs"),
+            "Évaluer : les agrégats portent leur n, « trop peu pour conclure » sous n = 5",
+        )
+        r.shot("67-atelier-rag-evaluer", full_page=True)
+
+        # The four traps, replayed with no model.
+        seq = r.ev.mark()
+        buttons = page.locator("#rag-eval-traps button")
+        r.check(buttons.count() == 4, "pièges : quatre cas livrés")
+        shown: dict[str, str] = {}
+        for index in range(4):
+            buttons.nth(index).click()
+            trap = buttons.nth(index).get_attribute("data-trap")
+            expect(page.locator(f'#rag-eval-trap[data-trap="{trap}"]')).to_be_visible(timeout=5000)
+            shown[trap] = page.inner_text("#rag-eval-trap")
+        r.check(
+            page.locator("#rag-eval-trap .rag-badge").count() == 1
+            and "0,6" in shown["two_tools"]
+            and "0,8" in shown["two_tools"],
+            "pièges : la fidélité de Ragas (0,6) et de DeepEval (0,8) recalculées côte à côte",
+        )
+        buttons.nth(0).click()
+        expect(page.locator("#rag-eval-trap .rag-eval-trap-verdict")).to_have_count(2, timeout=5000)
+        buttons.nth(1).click()
+        expect(page.locator("#rag-eval-trap")).to_contain_text("la température", timeout=5000)
+        buttons.nth(3).click()
+        rankings = page.locator("#rag-eval-trap .rag-eval-ranking")
+        expect(rankings).to_have_count(2, timeout=5000)
+        orders = rankings.evaluate_all(
+            "els => els.map(e => [...e.querySelectorAll('li')]"
+            ".map(l => l.textContent.split(' ')[1]))"
+        )
+        r.check(
+            orders == [["dense", "hybrid"], ["hybrid", "dense"]],
+            "pièges : le juge local classe dense avant hybrid, le juge cloud l'inverse",
+            str(orders),
+        )
+        r.check(
+            not [e for e in r.ev.since(seq) if e["kind"].startswith(("rag_lab_", "model_"))],
+            "pièges : rejoués sans événement de l'atelier (ni modèle, ni exécution)",
+        )
+
+        # A finished run of a prepared question joins the table and n.
+        questions = r.api("GET", "/api/rag_lab").json()["questions"]
+        extra = next(q for q in questions if q["id"] == "q_temporal_usage_perso")
+        page.click("#rag-tab-build")
+        _rag_mode(r, "compose")
+        page.locator("#rag-reset-chain").click()
+        _rag_lab_run(r, extra["question_text"])
+        page.click("#rag-tab-evaluate")
+        expect(banner).to_contain_text(f"n = {n_before + 1} questions", timeout=10_000)
+        row = page.locator(
+            f'#rag-eval-table tr[data-source="session"][data-question="{extra["id"]}"]'
+        )
+        r.check(
+            row.count() == 1 and "rappel@" in row.first.inner_text(),
+            "Évaluer : l'exécution de la session s'ajoute (rappel@k, MRR), n croît de 1",
+        )
+        r.check(
+            "non annoté" in row.first.inner_text(),
+            "Évaluer : une cellule sans annotation dit « non annoté »",
+        )
+
+        # A cloud judge without a key: refused, nothing sent, no spend.
+        refused = r.api(
+            "POST",
+            "/api/intentions/rag_lab_judge",
+            {
+                "run": {
+                    "run_id": "lab1",
+                    "question_id": "q_temporal_usage_perso",
+                    "preset": "dense",
+                    "stages": [],
+                    "answer_text": "Oui.",
+                },
+                "role": "cloud",
+                "judge": "mistral",
+                "criterion": "relevance",
+            },
+        )
+        r.check(
+            refused.status_code == 409 and bool(refused.json().get("detail")),
+            "juge cloud sans clé : refusé (409) avec sa raison, aucun appel",
+            refused.text[:200],
+        )
+
+        # No mean in the comparison.
+        page.click("#rag-tab-compare")
+        r.check(
+            not re.search(r"moyenne|rappel@|MRR", page.inner_text("#rag-panel-compare")),
+            "Comparer : aucune moyenne",
+        )
+        r.check(not outside, "Évaluer : aucune requête hors de 127.0.0.1", str(outside[:3]))
+    finally:
+        page.remove_listener("request", listener)
+        r.goto_app()
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -14916,13 +15060,15 @@ def _rag_lab_tabs(r: Run) -> None:
         "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
         str(tabs.all_inner_texts()),
     )
-    for tab in ("evaluate", "attack", "sheets"):
+    for tab in ("attack", "sheets"):  # V1.2 story 15: Évaluer has its own scenario
         page.click(f"#rag-tab-{tab}")
         r.check(
             "à venir" in page.locator(f"#rag-panel-{tab} .rag-soon").inner_text()
             and page.locator("#rag-panel-build").is_hidden(),
             f"onglet {tab} : vide, « à venir »",
         )
+    page.click("#rag-tab-evaluate")  # V1.2 story 15: no longer « à venir »
+    expect(page.locator("#rag-eval-banner")).to_contain_text("Démonstration, pas un banc")
     page.click("#rag-tab-build")
     expect(page.locator("#rag-panel-build")).to_be_visible()
 
@@ -17428,6 +17574,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
     ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
     ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
+    ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

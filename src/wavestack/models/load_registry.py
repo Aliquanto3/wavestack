@@ -38,6 +38,7 @@ RAG_LAB_RERANKER = "rag_lab.reranker"
 RAG_LAB_FAISS = "rag_lab.faiss"
 RAG_LAB_LANCEDB = "rag_lab.lancedb"
 RAG_LAB_FASTEMBED = "rag_lab.fastembed"  # fastembed and onnxruntime, imported once
+RAG_LAB_JUDGE = "rag_lab.judge"  # V1.2 story 15: the Evaluate tab's local judge, loaded per call
 GREENOPS_CODECARBON = "greenops.codecarbon"  # GreenOps: CodeCarbon, imported at first use
 _MIB = 1024**2
 

@@ -1207,6 +1207,7 @@ rag_lab:
     parents_short: "{kept} parents distincts sur {top_k} demandés : les {read} meilleurs enfants n'en couvrent pas plus. Augmentez les candidats de la recherche pour en avoir davantage."
     budget_cut: "Le budget de {budget} tokens estimés ne laisse pas tout passer : entiers {whole}, coupé {cut}, écartés {dropped}."
     budget_tiny: "Le budget est plus petit que l'introduction et le meilleur extrait : celui-ci est coupé quand même, le contexte n'est jamais vide."
+    budget_over: "Même coupé à sa première phrase, le meilleur extrait dépasse le budget : {used} tokens estimés sur {budget}."
     budget_used: "{used} sur {budget}"
     cut_some: "1 (−{tokens} tokens estimés)"
     cut_none: aucun

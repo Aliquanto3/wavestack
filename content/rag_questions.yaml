@@ -3,7 +3,8 @@
 # follow_up), le texte de la question (et son historique pour `follow_up`), la réponse
 # attendue, les passages attendus (`doc_id` + `anchor_text`, une phrase tirée telle quelle
 # du document) et, pour les questions temporelles, les passages piège d'une version périmée.
-# Pas de sélecteur ni d'interface ici (story 4) ; pas d'annotation humaine (story 15).
+# Pas de sélecteur ni d'interface ici (story 4). Le champ `annotation` est obsolète : les
+# annotations de référence sont dans `rag_evaluation.yaml` (story 15).
 questions:
   # ---------- factual ----------
   - id: q_fact_pwd

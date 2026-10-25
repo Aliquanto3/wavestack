@@ -70,6 +70,7 @@ class FakeEngine:
         # byte), given when the screen asks; `candidates` records how many were asked.
         self.candidates_script = candidates_script
         self.candidates: list[int] = []
+        self.grammars: list[str] = []
         # Story 5 of 2026-09-30: scripted logits, one list per token (a small vocabulary: the
         # ids are their positions), read as the in-process engine reads its own
         # (`candidates.read_logits`): the candidates and the most probable tokens (`top`); the
@@ -181,7 +182,10 @@ class FakeEngine:
         *,
         sampling=None,  # noqa: ANN001 - story 29: given by the « LLM nu » screen only
         candidates: int = 0,
+        grammar: str | None = None,  # V1.2 story 15: the RAG judge's GBNF
     ) -> Iterator[Fragment]:
+        if grammar is not None:
+            self.grammars.append(grammar)
         if sampling is not None:
             self.samplings.append(sampling)
         if candidates:

@@ -799,3 +799,12 @@ d'autres (story 21) :
   dans l'étape) ou avec lui (carte Compression activée, tokens avant et après dans le focus,
   vrai Headroom hors ligne : la pile n'a pas de compresseur factice) ; capture
   `65-atelier-rag-contexte.jpg`.
+
+- `rag_lab_evaluate`, V1.2 story 15 (CAP-11), après `rag` et `rag_rerank` : l'onglet Évaluer sans
+  exécution (bandeau « Démonstration, pas un banc : n = 10 questions, 2 architectures, 2 juges »
+  visible en permanence, 20 lignes du jeu enregistré, un désaccord écrit, provenance « cas
+  construit », « trop peu pour conclure » sous n = 5) ; les quatre pièges rejoués sans événement
+  de l'atelier (fidélité Ragas 0,6 et DeepEval 0,8, classement inversé) ; une exécution d'une
+  question préparée ajoutée (n = 11, « non annoté ») ; le juge cloud refusé sans clé (409) ;
+  aucune requête hors de `127.0.0.1` ; aucune moyenne dans Comparer ; capture
+  `67-atelier-rag-evaluer.jpg`. Le bouton « Juger » n'est pas exercé (il exige un modèle).

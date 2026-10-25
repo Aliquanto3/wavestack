@@ -1,0 +1,680 @@
+# Story 15 (CAP-11) : textes de la vue Évaluer, jeu enregistré, annotations de référence et
+# quatre pièges des juges. Les verdicts, rangs, étiquettes d'affirmations et préréglages sont
+# communs aux trois langues (le test le vérifie) ; seuls les textes et réponses sont traduits.
+# PROVENANCE : `constructed` = jeu écrit à la main pour la démonstration (aucun modèle réel n'a
+# été lancé) ; Anaël le réenregistre avec un vrai juge local non Qwen et un vrai juge cloud, puis
+# passe `provenance.kind` à `recorded` avec sa date. Les annotations (`annotated_by: draft`) sont
+# proposées par le développeur, à valider par Anaël.
+texts:
+  title_text: 'Bewerten: Richter gegen die Referenz'
+  hint_text: 'Für jede vorbereitete Frage, Architektur und jedes Kriterium: das Urteil jedes Richters,
+    die Referenzannotation, Übereinstimmung oder Abweichung. Mittelwerte gibt es nur in diesem Tab, immer
+    mit ihrem n. Live-Urteile werden einzeln angefragt, nie „alles bewerten“.'
+  banner_text: 'Demonstration, kein Benchmark: n = {n} Fragen, {a} Architekturen, {j} Richter'
+  reference_text: Referenz
+  annotation_draft_text: Referenzannotation vorgeschlagen, zu validieren
+  annotation_human_text: Annotiert von {by} am {on}
+  provenance_constructed_text: Für die Demonstration konstruierter Fall (aufzuzeichnen mit {local} und
+    {cloud})
+  provenance_recorded_text: Aufgezeichnet am {date} mit {local} und {cloud}
+  translated_text: Begründungen aus der Aufzeichnung übersetzt ({lang})
+  session_source_text: Lauf dieser Sitzung
+  recorded_source_text: Aufgezeichneter Satz
+  question_col_text: Frage
+  architecture_col_text: Architektur
+  roles:
+    local: lokal
+    cloud: Cloud
+  recall_text: Recall@{k}
+  mrr_text: MRR
+  not_applicable_text: nicht anwendbar
+  rule_text: 'Regel: Verweigerung {value}'
+  rule_values:
+    'yes': ja
+    'no': nein
+  criteria:
+    context_precision:
+      label_text: Kontextpräzision
+      explain_text: Sind die Kontextpassagen für die Frage relevant?
+    faithfulness:
+      label_text: Treue
+      explain_text: Sagt die Antwort nur, was der Kontext stützt?
+    relevance:
+      label_text: Relevanz
+      explain_text: Beantwortet die Antwort die gestellte Frage?
+    accuracy:
+      label_text: Genauigkeit
+      explain_text: Stimmt die Antwort mit der erwarteten Antwort überein?
+    correct_refusal:
+      label_text: Korrekte Verweigerung
+      explain_text: Verweigert die Antwort bei einer Frage ohne Antwort im Korpus die Auskunft?
+  verdicts:
+    'yes': ja
+    partly: teilweise
+    'no': nein
+    unreadable: unlesbar
+  agreement:
+    agree_text: Übereinstimmung
+    disagree_text: 'Abweichung: Richter {judge}, Referenz {reference}'
+    unannotated_text: nicht annotiert
+    unreadable_text: unlesbar, separat gezählt
+    none_text: kein Urteil
+  why:
+    context_precision:
+      yes_text: Die gelieferten Passagen behandeln die Frage.
+      partly_text: Ein Teil der Passagen ist themenfremd oder fehlt.
+      no_text: Die gelieferten Passagen erlauben keine Antwort.
+    faithfulness:
+      yes_text: Jede Aussage der Antwort steht im Kontext.
+      partly_text: Einige Aussagen stehen nicht im Kontext.
+      no_text: Die Antwort behauptet, was der Kontext nicht stützt.
+    relevance:
+      yes_text: Die Antwort behandelt die gestellte Frage.
+      partly_text: Die Antwort behandelt nur einen Teil.
+      no_text: Die Antwort geht an der Frage vorbei.
+    accuracy:
+      yes_text: Die Antwort stimmt mit der erwarteten überein.
+      partly_text: Die Antwort ist gegenüber der erwarteten unvollständig.
+      no_text: Die Antwort widerspricht der erwarteten.
+    correct_refusal:
+      yes_text: Die Antwort verweigert, wie es ohne nützliche Passage sein soll.
+      partly_text: Die Antwort schwankt zwischen Verweigern und Antworten.
+      no_text: Die Antwort erfindet etwas, statt zu verweigern.
+  aggregates:
+    title_text: Aggregate je Architektur
+    hint_text: Mittelwert der Urteile (ja = 1, teilweise = 0,5, nein = 0) je Richter und für die Referenz.
+      Unlesbare Urteile werden separat gezählt, außerhalb des Mittelwerts.
+    n_text: n = {n}
+    too_few_text: zu wenig für eine Aussage
+    unreadable_text: '{n} unlesbar, außerhalb des Mittelwerts'
+    agreement_text: 'Übereinstimmung mit der Referenz: {rate}'
+    who:
+      reference: Referenz
+      rule: Regel
+      local: Lokaler Richter
+      cloud: Cloud-Richter
+    none_text: Nichts zu aggregieren.
+  panel:
+    title_text: Richtergremium
+    generator_text: 'Bewertetes Modell: {model} ({family})'
+    no_generator_text: 'Kein Lauf dieser Sitzung zu bewerten: Das Gremium gilt für das generierende Modell.'
+    local_title_text: Lokaler Richter
+    cloud_title_text: Cloud-Richter
+    no_local_text: 'Kein zulässiger lokaler Richter auf diesem Rechner: Es werden nur die aufgezeichneten
+      Fälle gezeigt.'
+    cloud_choose_text: Cloud-Richter wählen
+    no_cloud_text: Kein Cloud-Modell deklariert.
+    rejected_text: 'ausgeschlossen: {reason}'
+    same_family_text: gleiche Familie wie das bewertete Modell (Selbstbevorzugung)
+    unknown_judge_text: unbekannte Familie, vorsichtshalber ausgeschlossen
+    unknown_generator_text: Familie des bewerteten Modells unbekannt, vorsichtshalber ausgeschlossen
+    no_grammar_text: keine GBNF-Grammatik (Ollama)
+    no_key_text: 'kein Schlüssel: Die Fälle werden aus der Aufzeichnung gezeigt'
+    cap_text: 'Sitzungslimit erreicht ({spent} von {cap}): Aufruf vor dem Senden abgelehnt.'
+    spend_text: 'Cloud-Ausgaben der Sitzung: {spent} von {cap}'
+    no_generator_known_text: 'Das Modell, das diesen Lauf geschrieben hat, ist unbekannt: Ein Richter
+      einer anderen Familie lässt sich nicht wählen.'
+    busy_text: 'Eine andere Aufgabe läuft: Versuchen Sie es nach ihrem Ende erneut.'
+    unknown_judge_id_text: Diesen Richter gibt es nicht.
+    no_local_reason_text: kein zulässiger lokaler Richter auf diesem Rechner
+    memory_text: 'Nicht genug Speicher, um den Richter zu laden: {reason}'
+  live:
+    title_text: Einen Lauf dieser Sitzung bewerten
+    none_text: 'Führen Sie die Kette in „Bauen“ auf einer vorbereiteten Frage aus: Der Lauf erscheint
+      hier mit seinen Maßen ohne Modell (Recall, MRR). Eine freie Frage zählt nicht in n.'
+    button_text: Diesen Lauf bewerten
+    judge_text: mit
+    criterion_text: für
+    busy_text: Bewertung läuft…
+    refused_text: 'Bewertung abgelehnt: {reason}'
+    unavailable_text: Die Auswertung ist nicht erreichbar.
+    no_answer_text: Dieser Lauf hat keine Antwort zu bewerten.
+    failed_text: 'Die Bewertung ist fehlgeschlagen: {reason}'
+  traps:
+    title_text: Vier Fallen der Richter
+    hint_text: 'Vier gelieferte Fälle, aus ihrer Aufzeichnung wiedergegeben: kein Modell, kein Netz.'
+    badge_text: Aufgezeichneter Fall, kein Modellaufruf
+    failed_text: Falle nicht gefunden.
+    judge_says_text: '{judge}: {verdict}'
+    answer_text: Bewertete Antwort
+    pass_text: Durchgang {n}
+    causes_text: 'Mögliche Ursachen: {causes}'
+    causes:
+      temperature: die Sampling-Temperatur
+      passage_order: die Reihenfolge der Passagen im Prompt
+    claims_text: Aussagen der Antwort, etikettiert
+    labels:
+      supported: gestützt
+      unsupported: nicht gestützt
+      contradicted: widerlegt
+    ragas_text: 'Treue im Sinne von Ragas: vom Kontext gestützte Aussagen / Aussagen = {value}'
+    deepeval_text: 'Treue im Sinne von DeepEval: vom Kontext nicht widerlegte Aussagen / Aussagen = {value}'
+    ranking_text: 'Aus den aufgezeichneten Urteilen neu berechnete Rangfolge, Mittelwert aller Urteile
+      des Richters zur Architektur:'
+    rank_line_text: '{rank}. {preset} ({value}, n = {n})'
+  sheet:
+    title_text: Merkblatt zur Ansicht Bewerten
+    body_text: 'Ein LLM-Richter ist ein Modell, das die Antwort eines anderen bewertet. Er irrt sich,
+      und nicht immer wie ein Mensch. Selbstpräferenz-Verzerrung: Ein Modell bewertet Antworten der eigenen
+      Familie besser, deshalb bewertet ein Richter nie ein Modell seines eigenen Herausgebers (die Familie
+      ist der Herausgeber laut Herausgebertabelle; Gemma und Gemini sind dort zwei getrennte Familien,
+      was eine Grenze ist). Der gelieferte Satz ist für die Demonstration konstruiert: n ist klein, die
+      Aggregate beweisen nichts. Eine „vorgeschlagene“ Annotation ist erst nach Validierung eine menschliche.'
+  prompts:
+    context_precision: Du bist ein Richter. Sind die folgenden Passagen relevant, um die Frage zu beantworten?
+      Antworte "yes", wenn alle es sind, "partly", wenn ein Teil es ist, "no", wenn keine es ist.
+    faithfulness: Du bist ein Richter. Sagt die Antwort nur, was der Kontext stützt? Antworte "yes", wenn
+      jede Aussage im Kontext steht, "partly", wenn einige nicht darin stehen, "no", wenn die Antwort
+      widerspricht oder erfindet.
+    relevance: Du bist ein Richter. Beantwortet die Antwort die gestellte Frage? Antworte "yes", "partly"
+      oder "no".
+    accuracy: Du bist ein Richter. Stimmt die Antwort mit der erwarteten Antwort überein? Antworte "yes",
+      "partly" (unvollständig) oder "no" (widersprüchlich).
+    correct_refusal: Du bist ein Richter. Die Dokumentation enthält die Antwort auf diese Frage nicht.
+      Verweigert die Antwort die Auskunft? Antworte "yes", wenn sie verweigert, "partly", wenn sie schwankt,
+      "no", wenn sie eine Antwort erfindet.
+    labels:
+      question: 'Frage:'
+      context: 'Kontext:'
+      answer: 'Antwort:'
+      expected: 'Erwartete Antwort:'
+    format: 'Antworte nur mit einem JSON-Objekt {"verdict": "yes|partly|no", "why": "ein Satz"}.'
+refusal_markers:
+- ich weiß es nicht
+- nicht abgedeckt
+- deckt dieses thema nicht ab
+- nicht in der dokumentation
+- keine information
+recorded:
+  provenance:
+    kind: constructed
+    recorded_on: null
+    source_lang: fr
+  annotation:
+    annotated_by: draft
+    annotated_on: null
+  generator: Qwen3 0.6B
+  judges:
+    local:
+      label: Granite 4.0 Micro
+      model: granite-4.0-micro
+    cloud:
+      label: Mistral Small
+      model: mistral-small-latest
+  runs:
+  - question_id: q_fact_pwd
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: Ein Passwort muss mindestens 14 Zeichen lang sein.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_sauvegarde
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: Exemplia bewahrt 3 Kopien seiner Daten auf, eine davon außerhalb des Hauptstandorts.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+  - question_id: q_fact_badge
+    preset: dense
+    top_k: 3
+    ranks:
+    - 4
+    answer_text: Der Ausweis wird innerhalb einer Woche deaktiviert.
+    verdicts:
+      context_precision:
+        reference: 'no'
+        local: partly
+        cloud: 'no'
+      faithfulness:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_multi_crise
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    - null
+    answer_text: Rufen Sie die Sicherheitsbereitschaft an; ihre Nummer steht im Kontaktanhang.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: 'no'
+        local: unreadable
+        cloud: 'no'
+  - question_id: q_multi_prestataire
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    - 5
+    answer_text: Der Dienstleister muss die Löschung schriftlich bestätigen, ohne genaue Frist.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_multi_messagerie
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    - 2
+    answer_text: 'Exemplia hat am 1. Januar 2026 den E-Mail-Anbieter gewechselt: Die Höchstgröße steigt
+      von 10 auf 25 MB.'
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_taille
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: Ein Anhang darf 10 MB nicht überschreiten.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: 'no'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_temporal_retention
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: Nachrichten werden 3 Jahre vor der Archivierung aufbewahrt.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_noanswer_parking
+    preset: dense
+    top_k: 3
+    ranks: []
+    answer_text: 'Ich weiß es nicht: Die Dokumentation von Exemplia deckt dieses Thema nicht ab.'
+    verdicts:
+      correct_refusal:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_noanswer_mutuelle
+    preset: dense
+    top_k: 3
+    ranks: []
+    answer_text: Angeboten wird die Krankenversicherung Alan mit 100 % Kostenübernahme.
+    verdicts:
+      correct_refusal:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_fact_pwd
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: Ein Passwort muss mindestens 14 Zeichen lang sein.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_sauvegarde
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: 'Exemplia wendet die 3-2-1-Regel an: 3 Kopien auf 2 verschiedenen Medien, davon 1 außerhalb
+      des Hauptstandorts.'
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_badge
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: Der Ausweis wird innerhalb von 24 Stunden nach dem Weggang deaktiviert.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'no'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_multi_crise
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    - 3
+    answer_text: Rufen Sie die einheitliche Bereitschaftsnummer (06 07 08 09 10) an und eskalieren Sie
+      dann an den Sicherheitsverantwortlichen.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'no'
+        cloud: 'yes'
+  - question_id: q_multi_prestataire
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    - 2
+    answer_text: Innerhalb von 30 Tagen nach Vertragsende, Sicherungen eingeschlossen, mit schriftlicher
+      Bestätigung.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: partly
+        cloud: 'yes'
+  - question_id: q_multi_messagerie
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 2
+    - 1
+    answer_text: Der Anbieterwechsel vom 1. Januar 2026 hat die Höchstgröße von 10 auf 25 MB erhöht.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_taille
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: 25 MB, seit Version 2 der Charta.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_retention
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 3
+    answer_text: Nachrichten werden 1 Jahr vor der Archivierung aufbewahrt.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'no'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'no'
+        cloud: 'no'
+  - question_id: q_noanswer_parking
+    preset: hybrid
+    top_k: 3
+    ranks: []
+    answer_text: Parkgebühren werden zu 50 % gegen Beleg erstattet.
+    verdicts:
+      correct_refusal:
+        reference: 'no'
+        local: 'no'
+        cloud: 'no'
+  - question_id: q_noanswer_mutuelle
+    preset: hybrid
+    top_k: 3
+    ranks: []
+    answer_text: Ich weiß es nicht, dieses Thema steht nicht in der Dokumentation.
+    verdicts:
+      correct_refusal:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+traps:
+- id: two_judges
+  kind: two_judges
+  question_id: q_fact_badge
+  criterion: faithfulness
+  title_text: Zwei Richter, zwei Urteile
+  explain_text: 'Gleiche Frage, gleiche Antwort: Der lokale Richter hält sie für treu, der Cloud-Richter
+    nicht. Jeder hat seine Begründung, beide sind plausibel.'
+  answer_text: Der Ausweis wird innerhalb einer Woche deaktiviert.
+  verdicts:
+    local:
+      verdict: 'yes'
+      why_text: 'Die Antwort bleibt im Thema des Kontexts: ein nach dem Weggang deaktivierter Ausweis.'
+    cloud:
+      verdict: 'no'
+      why_text: Der Kontext sagt nichts von einer Woche; die gelieferte Regel lautet 24 Stunden, die Dauer
+        ist also erfunden.
+- id: variance
+  kind: variance
+  question_id: q_temporal_taille
+  criterion: accuracy
+  title_text: Varianz desselben Richters
+  explain_text: 'Derselbe Richter, derselbe Fall, zweimal: zwei Urteile. Am Fall hat sich nichts geändert;
+    Temperatur und Passagenreihenfolge genügen.'
+  answer_text: Ein Anhang darf 10 MB nicht überschreiten.
+  causes:
+  - temperature
+  - passage_order
+  passes:
+  - verdict: 'yes'
+    why_text: Die Antwort nennt eine Anhangsgröße, wie erwartet.
+  - verdict: 'no'
+    why_text: Die genannte Größe, 10 MB, stammt aus der alten Version, nicht die erwarteten 25 MB.
+- id: two_tools
+  kind: two_tools
+  question_id: q_multi_crise
+  title_text: Zwei Werkzeuge, zwei Definitionen
+  explain_text: '„Treue“ hat keine einheitliche Definition: Ragas zählt die gestützten Aussagen, DeepEval
+    die nicht widerlegten. Bei derselben Antwort unterscheiden sich die Werte; sie werden hier aus denselben
+    etikettierten Aussagen neu berechnet.'
+  answer_text: Rufen Sie die einheitliche Bereitschaftsnummer 06 07 08 09 10 zu jeder Zeit an. Die Bereitschaft
+    antwortet innerhalb von 30 Minuten. Sie untersteht der Finanzabteilung.
+  claims:
+  - text: Es gibt eine einheitliche Bereitschaftsnummer.
+    label: supported
+  - text: Diese Nummer ist 06 07 08 09 10.
+    label: supported
+  - text: Man kann sie zu jeder Zeit anrufen.
+    label: supported
+  - text: Die Bereitschaft antwortet innerhalb von 30 Minuten.
+    label: unsupported
+  - text: Die Bereitschaft untersteht der Finanzabteilung.
+    label: contradicted
+- id: ranking
+  kind: ranking
+  title_text: Der Richter ändert die Rangfolge
+  explain_text: Auf demselben Satz stellt der lokale Richter „dense“ vor „hybrid“ und der Cloud-Richter
+    umgekehrt. Den Richter zu wählen heißt, den Gewinner zu wählen.
