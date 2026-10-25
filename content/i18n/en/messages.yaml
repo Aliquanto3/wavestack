@@ -1511,7 +1511,7 @@ rag_lab:
     cascade_on: "on (not validated by the bench)"
     cascade_off: "off"
     authors: "{classifier} by the classifier, {judge} by the judge"
-    cascade_unvalidated: "Cascade to the SLM judge not validated by the preliminary bench: the judge Qwen3.5-2B accepts 64 % of the unsupported claims there and drops only 49 % of the off-topic passages."
+    cascade_unvalidated: "Cascade to the SLM judge not validated by the preliminary bench: the judge it measured (Qwen3.5-2B with a grammar and its probability) accepted 64 % of the unsupported claims and dropped only 49 % of the off-topic passages; the judge here, the active model without grammar or probability, was not measured."
     truncated: "Pairs cut at 512 tokens: {count} (the classifier does not read their end)."
   router:
     too_few: "The router chooses among the strategies the chain can run: it needs at least two. Add BM25 and the Fusion (hybrid RAG), or the Reranking (RAG + reranking), to the dense search. The step is skipped, every search runs."

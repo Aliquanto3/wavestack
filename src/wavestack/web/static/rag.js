@@ -490,7 +490,9 @@ function renderPalette() {
   add.type = "button";
   add.addEventListener("click", () => {
     const info = store.catalog.stages.find((s) => s.kind === select.value);
-    const choice = info?.options.find((o) => o.available) ?? info?.options[0];
+    // V1.2 story 8 (CAP-6): a cloud option is only ever chosen by hand, never by default: when
+    // the local one is unavailable, it is added anyway and says why (and what to download).
+    const choice = info?.options.find((o) => o.available && o.id !== "cloud") ?? info?.options[0];
     if (!info || !choice) return;
     const used = new Set(pipeline.stages.map((s) => s.id));
     let n = pipeline.stages.length + 1;

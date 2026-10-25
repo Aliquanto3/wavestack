@@ -983,7 +983,7 @@ sheets:
     when_text: "Verwenden, um eine Antwort zu erkennen, die eine Tatsache, eine Zahl oder eine Bedingung hinzufügt oder ändert. Nicht als Garantie verwenden: Der Klassifikator lässt einen Teil der nicht gestützten Aussagen durch, und er liest nur 512 Tokens (ein langer Kontext wird gekürzt)."
     cost_text: "Nichts beim Aufbau. Bei jeder Anfrage ein Durchlauf des Klassifikators pro Satz (28 ms Median im Prüfstand); 351 MB zusätzlicher RAM."
     literature_text: "Hypothese H7, nicht belegt: Ein Entscheidungsmodell akzeptiert 23 % nicht gestützte Aussagen gegen 13 % bei einem LLM (Towards AI); keine Studie betrifft eine ganze Pipeline."
-    bench_text: "Bei der Schwelle 0,20 akzeptiert deberta-v3-xsmall 9 % der nicht gestützten Aussagen (KI 5 bis 16 %) und behält 81 % der gestützten. Der SLM-Richter Qwen3.5-2B akzeptiert 64 %: Die Kaskade zu ihm ist vom Prüfstand nicht validiert. Schwelle am Satz angepasst: optimistisch."
+    bench_text: "Bei der Schwelle 0,20 akzeptiert deberta-v3-xsmall 9 % der nicht gestützten Aussagen (KI 5 bis 16 %) und behält 81 % der gestützten. Der SLM-Richter des Prüfstands (Qwen3.5-2B mit Grammatik und Wahrscheinlichkeit) akzeptierte 64 %: Die Kaskade ist nicht validiert, und der Richter hier (das aktive Modell, ohne Grammatik) wurde nicht gemessen. Schwelle am Satz angepasst: optimistisch."
     sources:
       - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
         url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"

@@ -2,7 +2,7 @@
 title: 'Story 8 : couche de décision System One (routeur, filtre de passages, contrôle d''ancrage)'
 type: 'feature'
 created: '2026-10-25'
-status: 'review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -98,4 +98,22 @@ context:
 - Vue Comparer : la liste « Recherche » ne lit pas la sortie du filtre (`RETRIEVAL_KINDS` de `rag-compare.js`).
 - Mesure sur le PC cible : latence et RAM de deberta_xsmall avec l'extra (tâche humaine), premier appel réel des formes `choice`/`score`.
 - E2E : le poste de développement a une clé dans `HKCU\Environment` ; la branche « option cloud grisée » de `rag_lab_decision` n'est vérifiée que sans clé (la palette peut alors proposer l'option cloud par défaut pour le Grounding check quand le classifieur local manque).
-- Préexistant, hors story : `rag_lab_context` échoue sur la liste des options du contexte (huit depuis la story 11, six attendues).
+- E2E `rag_lab_context` : liste des options du contexte réalignée en revue (neuf options, une option ajoutée ensuite, comme `wiki_pages` de 12.14, est tolérée en fin de liste).
+- Premier appel réel : vérifier que `usage.cost` est rendu à chaque réponse de `/api/alpha/decisions` ; sans lui, l'appel est « non chiffré » et ne compte pas dans `[finops] max_session_usd` (même règle que le banc, qui le comptait 0).
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 76f6a095)
+
+Branche à jour de `origin/integration/v1-2-atelier` (aucun écart).
+
+- Important · high · second avis 1 · corrigé : la palette ajoutait l'option cloud quand le classifieur local manquait et que la clé était présente (`rag.js`). Une option `cloud` n'est plus jamais choisie par défaut : l'étape arrive en `local`, indisponible avec sa raison et « Télécharger » ; vérification E2E ajoutée dans `rag_lab_decision`.
+- Important · high · revue · corrigé : `DecisionApi` créait un `httpx.Client` hors de `net.factory` (AD-15, `tests/test_net_single_factory.py` rouge). Le client par défaut vient maintenant de `create_client`.
+- Important · medium · revue · corrigé : `tests/test_rag_lab_query.py` exigeait encore des fiches sans « Ce qu'a mesuré le banc » (rouge en fr, en, de) ; réaligné sur la décision 9.
+- Important · medium · second avis 4 · corrigé (texte) : l'avertissement de la cascade et la fiche d'ancrage prêtaient au juge d'ici les 64 % / 49 % du juge du banc (Qwen3.5-2B, grammaire, probabilité). Les textes fr, en, de disent maintenant que ces chiffres viennent du juge du banc et que le juge d'ici (modèle actif, sans grammaire) n'a pas été mesuré. Implémenter le juge du banc (GBNF + probabilité) n'est pas « peu de code » : passe par le moteur et sort du périmètre de la story.
+- Nit · medium · second avis 2 · rejeté, reporté : un appel sans `usage.cost` ne compte pas dans le plafond. Le banc suivait la même règle et rendait le coût ; un coût estimé serait un chiffre inventé (aucun tarif de l'endpoint alpha). L'étape le dit (« non chiffré ») ; vérification au premier appel réel en report.
+- Nit · medium · second avis 3 · rejeté : `openrouter.ai` dans `[net] allowed_hosts` est exigé par la spec (liste du client et liste globale) ; la garde AD-15 est globale par conception (GitHub, Wikipédia), et `DecisionApi.check_host` restreint déjà son client. Un autre client vers cet hôte n'a pas la clé.
+- Nit · low · second avis 5 · rejeté : une erreur en milieu de boucle du filtre cloud ne perd pas la dépense (chaque réponse est enregistrée dans la session par `CappedApi`) ; seul le tableau des coûts de l'étape, en erreur douce, ne la montre pas.
+- Pre-existing · low · second avis 6 · non corrigé : `config._message` est annoté `-> str` ; `Message` hérite de `str`, aucun défaut à l'exécution.
+- Pre-existing · medium · second avis 7 · corrigé (demande de l'orchestrateur) : l'E2E `rag_lab_context` attendait six options du contexte, il y en a neuf.
+- Complexité : 0 constat (décisions bornées par les candidats, 8 phrases au plus, 3 stratégies).

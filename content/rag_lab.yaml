@@ -982,7 +982,7 @@ sheets:
     when_text: "À utiliser pour repérer une réponse qui ajoute ou change un fait, un chiffre ou une condition. À éviter comme garantie : le classifieur laisse passer une partie des affirmations non étayées, et il ne lit que 512 tokens (un contexte long est coupé)."
     cost_text: "Rien à la construction. À chaque requête, un passage du classifieur par phrase (28 ms médian au banc) ; 351 Mo de RAM ajoutée."
     literature_text: "Hypothèse H7, non démontrée : un modèle de décision accepte 23 % d'affirmations non étayées contre 13 % pour un LLM (Towards AI) ; aucune étude ne porte sur un pipeline complet."
-    bench_text: "Au seuil 0,20, deberta-v3-xsmall accepte 9 % des affirmations non étayées (IC 5 à 16 %) en gardant 81 % des étayées. Le SLM juge Qwen3.5-2B en accepte 64 % : la cascade vers lui n'est pas validée par le banc. Seuil ajusté sur le jeu : optimiste."
+    bench_text: "Au seuil 0,20, deberta-v3-xsmall accepte 9 % des affirmations non étayées (IC 5 à 16 %) en gardant 81 % des étayées. Le SLM juge du banc (Qwen3.5-2B avec grammaire et probabilité) en acceptait 64 % : la cascade n'est pas validée, et le juge d'ici (le modèle actif, sans grammaire) n'a pas été mesuré. Seuil ajusté sur le jeu : optimiste."
     sources:
       - label_text: "Towards AI : Jev comme juge de vérification d'affirmations (23 % contre 13 %)"
         url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"

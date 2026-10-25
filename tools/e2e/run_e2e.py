@@ -14840,6 +14840,12 @@ def _rag_lab_decision(r: Run) -> None:
     r.check(
         kinds[-1] == "grounding_check", "Grounding check ajouté après la génération", str(kinds)
     )
+    chosen = _seq_row(r, "grounding_check").locator("select.rag-option").input_value()
+    r.check(
+        chosen == "local",
+        "Grounding check ajouté avec l'option locale, jamais le cloud par défaut",
+        chosen,
+    )
     local = _seq_row(r, "grounding_check").locator("select.rag-option option").first
     if local.is_disabled():
         text = _seq_row(r, "grounding_check").inner_text()
@@ -14890,9 +14896,11 @@ def _rag_lab_context(r: Run, headroom: bool) -> None:
     if page.locator("#rag-reset-chain").is_visible():
         page.locator("#rag-reset-chain").click()
     select = _seq_row(r, "context").locator("select.rag-option")
+    # V1.2 story 10: the two options without an index, unavailable at 4 096, say so. Stories
+    # 11 and 13 add three more; a later story's option (12.14) may follow them.
+    shown = [t.removesuffix(" (indisponible)") for t in select.locator("option").all_inner_texts()]
     r.check(
-        # V1.2 story 10: the two options without an index, unavailable at 4 096, say so.
-        [t.removesuffix(" (indisponible)") for t in select.locator("option").all_inner_texts()]
+        shown[:9]
         == [
             "Extraits numérotés (format de la brique RAG)",
             "Budget de contexte (tokens)",
@@ -14900,9 +14908,13 @@ def _rag_lab_context(r: Run, headroom: bool) -> None:
             "Compression (Headroom)",
             "Corpus entier dans le prompt (contexte long)",  # V1.2 story 10
             "Corpus entier en cache du modèle (CAG)",
+            "Recherche agentique (outils sur les fichiers)",  # V1.2 story 11
+            "Arbre de sections (PageIndex)",
+            "Graphe de connaissances (GraphRAG)",  # V1.2 story 13
         ],
-        "les options du contexte (les quatre de la story 7, puis les deux sans index)",
-        str(select.locator("option").all_inner_texts()),
+        "les options du contexte (les quatre de la story 7, les deux sans index, puis les trois"
+        " des stories 11 et 13)",
+        str(shown),
     )
     # Budget: the shipped 450 tokens cut the third of three excerpts; five asked, two dropped.
     _set_stage(r, "context", "budget", top_k=5)

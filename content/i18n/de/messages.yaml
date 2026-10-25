@@ -1514,7 +1514,7 @@ rag_lab:
     cascade_on: "an (vom Prüfstand nicht validiert)"
     cascade_off: "aus"
     authors: "{classifier} vom Klassifikator, {judge} vom Richter"
-    cascade_unvalidated: "Kaskade zum SLM-Richter vom Vorab-Prüfstand nicht validiert: Der Richter Qwen3.5-2B akzeptiert dort 64 % der nicht gestützten Aussagen und verwirft nur 49 % der themenfremden Passagen."
+    cascade_unvalidated: "Kaskade zum SLM-Richter vom Vorab-Prüfstand nicht validiert: Der dort gemessene Richter (Qwen3.5-2B mit Grammatik und Wahrscheinlichkeit) akzeptierte 64 % der nicht gestützten Aussagen und verwarf nur 49 % der themenfremden Passagen; der Richter hier, das aktive Modell ohne Grammatik und Wahrscheinlichkeit, wurde nicht gemessen."
     truncated: "Bei 512 Tokens gekürzte Paare: {count} (der Klassifikator liest ihr Ende nicht)."
   router:
     too_few: "Der Router wählt unter den Strategien, die die Kette kann: Es braucht mindestens zwei. Fügen Sie der dichten Suche BM25 und die Fusion (hybrides RAG) oder das Reranking (RAG + Reranking) hinzu. Der Schritt wird übersprungen, alle Suchen laufen."

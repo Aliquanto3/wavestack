@@ -972,7 +972,7 @@ sheets:
     when_text: "Use it to spot an answer that adds or changes a fact, a number or a condition. Avoid it as a guarantee: the classifier lets part of the unsupported claims through, and it reads only 512 tokens (a long context is cut)."
     cost_text: "Nothing at build time. At each query, one pass of the classifier per sentence (28 ms median at the bench); 351 MB of added RAM."
     literature_text: "Hypothesis H7, not shown: a decision model accepts 23 % of unsupported claims against 13 % for an LLM (Towards AI); no study covers a whole pipeline."
-    bench_text: "At the 0.20 threshold, deberta-v3-xsmall accepts 9 % of the unsupported claims (CI 5 to 16 %) while keeping 81 % of the supported ones. The SLM judge Qwen3.5-2B accepts 64 %: the cascade to it is not validated by the bench. Threshold fitted on the set: optimistic."
+    bench_text: "At the 0.20 threshold, deberta-v3-xsmall accepts 9 % of the unsupported claims (CI 5 to 16 %) while keeping 81 % of the supported ones. The bench's SLM judge (Qwen3.5-2B with a grammar and its probability) accepted 64 %: the cascade is not validated, and the judge here (the active model, without grammar) was not measured. Threshold fitted on the set: optimistic."
     sources:
       - label_text: "Towards AI: Jev as a judge of claim verification (23 % against 13 %)"
         url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"

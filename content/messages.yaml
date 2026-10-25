@@ -1530,7 +1530,7 @@ rag_lab:
     cascade_on: "activée (non validée par le banc)"
     cascade_off: "désactivée"
     authors: "{classifier} par le classifieur, {judge} par le juge"
-    cascade_unvalidated: "Cascade vers le SLM juge non validée par le banc préalable : le juge Qwen3.5-2B y accepte 64 % des affirmations non étayées et n'écarte que 49 % des passages hors sujet."
+    cascade_unvalidated: "Cascade vers le SLM juge non validée par le banc préalable : le juge qu'il a mesuré (Qwen3.5-2B avec une grammaire et sa probabilité) acceptait 64 % des affirmations non étayées et n'écartait que 49 % des passages hors sujet ; le juge d'ici, le modèle actif sans grammaire ni probabilité, n'a pas été mesuré."
     truncated: "Paires coupées à 512 tokens : {count} (le classifieur n'en lit pas la fin)."
   router:
     too_few: "Le routeur choisit parmi les stratégies que la chaîne sait faire : il en faut au moins deux. Ajoutez BM25 et la Fusion (RAG hybride), ou le Reranking (RAG + reranking), à la recherche dense. L'étape est sautée, toutes les recherches tournent."

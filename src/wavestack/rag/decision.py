@@ -421,8 +421,9 @@ def error_summary(status: int, payload: dict | None) -> str:
 
 class DecisionApi:
     """One POST per decision. `http`: the client (the application's traced one, `net.factory`,
-    behind the network guard); else a plain `httpx` client on `transport` (a fake in the
-    tests). The key only ever lives in the Authorization header of the request."""
+    behind the network guard); else one made by the same factory on `transport` (a fake in the
+    tests; AD-15: no HTTP client outside `net.factory`). The key only ever lives in the
+    Authorization header of the request."""
 
     def __init__(
         self,
@@ -432,13 +433,13 @@ class DecisionApi:
         clock: Callable[[], float] = time.perf_counter,
         http: Any = None,
     ) -> None:
-        import httpx
-
         check_host(url)
         self._key, self._url, self._clock = key, url, clock
-        self._http = http or httpx.Client(
-            transport=transport, timeout=REQUEST_TIMEOUT_S, follow_redirects=False
-        )
+        if http is None:
+            from wavestack.net.factory import create_client  # redirects never followed
+
+            http = create_client(timeout=REQUEST_TIMEOUT_S, transport=transport)
+        self._http = http
 
     @staticmethod
     def body(model: str, state: Mapping[str, Any], question: dict[str, Any]) -> dict[str, Any]:
