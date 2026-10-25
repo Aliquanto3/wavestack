@@ -198,6 +198,7 @@ class ExposedEndpoint:
         self._ready, self._stop, self._loop = ready, stop, loop
         self._token = token
         self.serving = asyncio.run_coroutine_threadsafe(serve(), loop)
+        self.serving.add_done_callback(lambda f: f.cancelled() or f.exception())  # always read
         self._app = app
 
     def stop(self) -> Future[None] | None:

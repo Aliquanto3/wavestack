@@ -179,3 +179,17 @@ Point de contrôle du 2026-10-25, relu contre `stories.yaml` (id 20), `SPEC.md` 
 - Tâche humaine (Anaël), avant de déclarer la story finie (`done_checkpoint`) : brancher un vrai client (Claude Code : `claude mcp add --transport http …`) sur la carte, vérifier que les passages sont cités et qu'aucun passage RH ne sort ; relire les descriptions d'outils en fr, en et de.
 - Ressource d'Anaël : un client réel (Claude Code) pour la recette ; Copilot Studio demande une adresse HTTPS publique (tunnel ou hébergement) : non fourni par l'application, non testé en CI.
 - Reportés : exposition d'une tête autre que celle de la brique (`semantic`, `parent_child`, `contextual`, `fastembed`, `faiss`, `lancedb`, `memory` : il faudrait prouver que l'index existe sans que `LabRun` l'écrive) ; étape `query` (appelle le modèle génératif) ; transport stdio (processus lancé par le client) ; ligne « exposé » dans la matrice des risques de la page Sécurité ; exposition de `pageindex`, `raptor`, `graphrag`, `llm_wiki` et `agentic` (dépend des stories 11 à 14) ; ressource `corpus://` ; limitation de débit par client.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu b6259ee)
+
+Base : `origin/integration/v1-2-atelier` à `99e71ac` (12.19b) fusionnée sans conflit ; `ui.yaml` touché par la fusion seulement.
+
+- **Important**, medium, second avis 1 : « Arrêter » l'exposition (`rag_mcp_stop`, changement de langue, `close`, `aclose_mcp`) ne levait pas l'annulation du run d'un appel en cours ; seul le délai de 30 s l'annulait, la session restait en `rag_lab` jusqu'à la fin du run. Corrigé : jeton de l'appel gardé (`_rag_mcp_call`), levé par `_rag_mcp_halt` et `_rag_mcp_aclose` ; test `test_stopping_the_server_cancels_the_call_under_way`.
+- **Important**, low, second avis 2 : `CancelledError` (arrêt du gestionnaire, client parti) non traitée : run non annulé, aucune entrée au Journal. Corrigé : annulation levée, entrée `cancelled` (`session.rag_mcp.journal_stopped`, ×3), exception relancée ; même test.
+- **Nit**, low, second avis 3 : catalogue de `_rag_mcp_run` lu dans la langue courante, corpus dans `live.lang`. Rejeté : un changement de langue arrête le serveur et annule désormais l'appel ; le catalogue ne sert qu'aux libellés et disponibilités du run.
+- **Nit**, low, second avis 4 : `removed_hr` révèle le nombre de passages RH parmi les résultats. Rejeté : exigé par l'intention gelée (« le nombre retiré dans `structuredContent` ») ; aucun texte RH ne sort. À revoir par Anaël (retirer le compte de la réponse, le garder au Journal local).
+- **Nit**, low, second avis 5 : `matrix_row_of("workshop__…")` vaut `network`. Comportement figé par `test_the_exposed_tools_fall_in_the_network_row_for_now`, à revoir avec la ligne « exposé » (D5, Anaël).
+- **Nit**, low, second avis 6 : `_rag_mcp_live` posé avant `endpoint.start`. Corrigé pour l'échec synchrone (état remis, `endpoint.stop()`), exception de la tâche du gestionnaire toujours lue ; l'échec asynchrone de `manager.run()` (503 après 5 s) reste possible, improbable (un `MCPServer` neuf par démarrage) : non corrigé.
+- Complexité : 0 constat (aucune structure parcourue en entier par événement ; le Journal est celui des autres outils).

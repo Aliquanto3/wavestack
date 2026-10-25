@@ -728,6 +728,7 @@ session:
     journal_timeout: "Für {client} abgebrochen: Frist von {seconds} s überschritten."
     journal_index: "Für {client} abgelehnt: Der Index des RAG-Bausteins fehlt oder ist veraltet."
     journal_error: "Für {client} gescheitert nach {ms} ms."
+    journal_stopped: "Für {client} abgebrochen: Aufruf nach {ms} ms unterbrochen."
     journal_denied: "Für {client} abgelehnt: Die Regel von {tool} ist nicht „erlauben“."
 
 tools:

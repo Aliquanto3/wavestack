@@ -708,6 +708,45 @@ def test_a_call_past_its_delay_is_cancelled(index):
     session.close()
 
 
+def test_stopping_the_server_cancels_the_call_under_way(index):
+    """Review, pass 1: « Arrêter » the exposure cancels the run of a call in flight; the
+    session goes back to `idle` at the run's checkpoint, the call journaled `cancelled`."""
+    gate = threading.Event()
+    session, _ = ready(index, rerankers=Rerankers(gate=gate))
+
+    async def scenario(app: App) -> None:
+        assert (await app.start(preset(session, "rerank"))).status_code == 200
+        async with app.client() as client:
+            call = asyncio.create_task(
+                client.call_tool("search_documents", {"question": "télétravail"})
+            )
+            await until(lambda: session.state == "rag_lab")
+            cancel = session._rag_mcp_call
+            assert cancel is not None and not cancel.cancelled
+            assert (await app.stop()).status_code == 200
+            assert cancel.cancelled  # at once, before the run reaches its checkpoint
+            gate.set()
+            await until(lambda: session.state == "idle")
+            assert session._rag_mcp_call is None
+            done, _ = await asyncio.wait({call}, timeout=5)
+            for task in done:  # the client's call, if it ended, never served passages
+                if not task.cancelled() and task.exception() is None:
+                    assert task.result().is_error
+            call.cancel()
+        decisions = [e["decision"] for e in security_entries(session, SEARCH)]
+        assert decisions == ["cancelled"], decisions
+
+    serve(session, scenario)
+    session.close()
+
+
+def test_the_exposed_tools_fall_in_the_network_row_for_now():
+    """Frozen, to be reviewed with the « exposed » row of the matrix (Anaël): a rule set on an
+    exposed tool shows in the « network » row of the Security page."""
+    assert policy.matrix_row_of(SEARCH) == "network"
+    assert policy.matrix_row_of(DESCRIBE) == "network"
+
+
 # ---------- cohabitation (criterion 12) ----------
 
 

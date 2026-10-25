@@ -12588,6 +12588,7 @@ class AppSession:
     _rag_mcp_endpoint: architecture_server.ExposedEndpoint | None = None
     _rag_mcp_live: _RagMcpLive | None = None
     _rag_mcp_note: Any = None  # why the server stopped by itself (the language), for the card
+    _rag_mcp_call: CancelToken | None = None  # the call under way, cancelled by the stop
 
     def attach_rag_mcp(self, endpoint: architecture_server.ExposedEndpoint) -> None:
         """The endpoint mounted by `create_app` (once, the application's port)."""
@@ -12693,7 +12694,13 @@ class AppSession:
                 self._rag_mcp_live = _RagMcpLive(frozen, exposed_texts, token, self._language)
                 self._rag_mcp_note = None
         if not running:
-            endpoint.start(server, token, loop)
+            try:
+                endpoint.start(server, token, loop)
+            except Exception:  # never a card « exposed » without a server behind it
+                with self._lock:
+                    self._rag_mcp_live = None
+                endpoint.stop()
+                raise
         return self.rag_mcp_state()
 
     def rag_mcp_stop(self) -> dict[str, Any]:
@@ -12707,6 +12714,9 @@ class AppSession:
             live, self._rag_mcp_live = self._rag_mcp_live, None
             if live is not None:
                 self._rag_mcp_note = note
+            call = self._rag_mcp_call
+        if call is not None:  # the run stops at its next checkpoint, the session back to idle
+            call.cancel()
         endpoint = self._rag_mcp_endpoint
         if live is not None and endpoint is not None:
             endpoint.stop()
@@ -12715,6 +12725,9 @@ class AppSession:
         """On the loop, at shutdown: stopped, the server's task awaited."""
         with self._lock:
             self._rag_mcp_live = None
+            call = self._rag_mcp_call
+        if call is not None:
+            call.cancel()
         endpoint = self._rag_mcp_endpoint
         if endpoint is not None:
             await endpoint.aclose()
@@ -12768,6 +12781,7 @@ class AppSession:
             if live is not None and not busy:
                 previous = self.reason_text
                 self._cancel = cancel
+                self._rag_mcp_call = cancel
                 self.state = "rag_lab"
                 self.reason_text = Message("session.rag_mcp.busy_reason")
         if live is None:
@@ -12789,6 +12803,11 @@ class AppSession:
         seconds = self.RAG_MCP_TIMEOUT_S
         try:
             found = await asyncio.wait_for(asyncio.shield(wrapped), seconds)
+        except asyncio.CancelledError:  # the server stopped, or the client went away
+            cancel.cancel()
+            ms = int((time.monotonic() - started) * 1000)
+            self._rag_mcp_journal(tool, "cancelled", "journal_stopped", client=who, ms=ms)
+            raise
         except TimeoutError:
             cancel.cancel()
             said = f"{seconds:g}" if self._language == "en" else f"{seconds:g}".replace(".", ",")
@@ -12851,6 +12870,8 @@ class AppSession:
             with self._lock:
                 if self._cancel is cancel:
                     self._cancel = None
+                if self._rag_mcp_call is cancel:
+                    self._rag_mcp_call = None
             self._set_state("idle", previous)
 
     # ---------- the MCP workshop (context `mcp_lab`): story 6 of 2026-09-30, lot 4 of 2026-10-04 --

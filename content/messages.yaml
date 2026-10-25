@@ -741,6 +741,7 @@ session:
     journal_timeout: "Annulé pour {client} : délai de {seconds} s dépassé."
     journal_index: "Refusé à {client} : index de la brique RAG absent ou périmé."
     journal_error: "Échec pour {client} après {ms} ms."
+    journal_stopped: "Annulé pour {client} : appel interrompu après {ms} ms."
     journal_denied: "Refusé à {client} : la règle de {tool} n'est pas « autoriser »."
 
 tools:

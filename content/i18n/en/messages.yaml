@@ -725,6 +725,7 @@ session:
     journal_timeout: "Cancelled for {client}: the {seconds} s delay was exceeded."
     journal_index: "Refused to {client}: the RAG brick's index is absent or stale."
     journal_error: "Failed for {client} after {ms} ms."
+    journal_stopped: "Cancelled for {client}: call interrupted after {ms} ms."
     journal_denied: "Refused to {client}: the rule of {tool} is not “allow”."
 
 tools:
