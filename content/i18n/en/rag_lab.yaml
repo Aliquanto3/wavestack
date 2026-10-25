@@ -215,6 +215,10 @@ options:
       label_text: "Passage ordering"
     compress:
       label_text: "Compression"
+    full_corpus:
+      label_text: "Whole corpus in the prompt (long context)"
+    cached_corpus:
+      label_text: "Whole corpus in the model's cache (CAG)"
   generation:
     active:
       label_text: "The workshop's active model"
@@ -317,6 +321,15 @@ steps:
     label_text: "Query understanding"
     action_text: "Produce the queries to search"
     note_text: "The workshop has no conversation: the follow-up question reads the questions asked earlier in this session (three at most)."
+  cache_prefix:
+    label_text: "Prefix caching"
+    action_text: "Keep the instruction and the whole corpus in the model's memory"
+    explain_text: >-
+      The CAG evaluates the start of the prompt once (the instruction and the whole corpus) and
+      keeps the model's state that results. At each question, this state is put back in memory:
+      the model reads only the question. This prefix is a cut in tokens of the prompt sent, up
+      to the last end of line before the question. Any update of the corpus reloads it whole,
+      and the state takes memory as long as it is kept.
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -350,6 +363,9 @@ components:
   answer:
     label_text: "Answer"
     note_text: "The LLM's answer, once generated"
+  model_cache:
+    label_text: "Model cache"
+    note_text: "The model's state after the prefix (CAG)"
 
 groups:
   data:
@@ -390,6 +406,24 @@ presets:
       Dense retrieval keeps candidates, then the Reranker reads them again with the question and
       reorders them: more accurate, slower. Only the retrieval segment goes back to the shipped
       pipeline's: your Chunking, Embedding, vector store and prompt settings are kept.
+  long_context:
+    label_text: "Long context"
+    explain_text: >-
+      No index, no search: the whole corpus goes into the prompt, at each question. Nothing to
+      build or update, but each request reads the whole corpus again. It needs a window of
+      16,384 tokens.
+  cag:
+    label_text: "CAG (model cache)"
+    explain_text: >-
+      No index, no search: the corpus is evaluated once and kept in the local model's memory;
+      each request evaluates only the question. Any update reloads the whole prefix. It needs a
+      local model and a window of 16,384 tokens.
+# V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
+preset_families:
+  search:
+    label_text: "Search"
+  no_index:
+    label_text: "No index"
 
 # V1.2 story 3 (CAP-8): the costs in three times and the work copy's buttons.
 costs:
@@ -598,3 +632,21 @@ sheets:
     sources:
       - label_text: "Headroom (headroom-ai), context compression for agents"
         url: "https://pypi.org/project/headroom-ai/"
+  context.full_corpus:
+    purpose_text: "Search nothing: put the whole corpus, document by document and whole, into the prompt of each question. The Context step reads the chain's corpus (the work copy when it differs)."
+    when_text: "Use it on a small corpus that fits in the model's window (16,384 tokens at least), for a question that needs everything read. Avoid it as soon as the corpus grows: it ends up not fitting, and the model reads the middle of a long context poorly."
+    cost_text: "Nothing to build or update: no index, no embedding. But the cost of each request grows with the corpus: the whole corpus is read again at each question, in reading time on CPU and, in the cloud, in dollars."
+    literature_text: "Liu et al. show that models use poorly a piece of information placed in the middle of a long context (“Lost in the Middle”): the answer is better when it is at the start or the end. The workshop's diagnosis notes it for the expected passage."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.cached_corpus:
+    purpose_text: "The same context as the long context, but evaluated once as the prompt's prefix and kept in the local model's cache (CAG): each question then evaluates only the question."
+    when_text: "Use it on a corpus that fits in the window and changes little, asked often: the gain rests on a stable corpus. Avoid it if the corpus changes often: any update reloads the prefix whole. It needs a local model; the workshop does not drive a cloud provider's cache."
+    cost_text: "The build evaluates the whole prefix (the instruction and the corpus); each request evaluates only the question and reads the rest from the cache. Any update reloads the whole prefix. The cache's state takes memory as long as it is kept: its size is in the step's focus."
+    literature_text: "Chan et al. propose preloading the knowledge into the model's cache rather than searching it at each question (Cache-Augmented Generation): on corpora of limited size that stay stable, they report answers as good as a RAG's, without retrieval time. The measures on the target PC remain to be made."
+    bench_text: ""
+    sources:
+      - label_text: "Chan et al., Don't Do RAG: When Cache-Augmented Generation is All You Need for Knowledge Tasks (2024)"
+        url: "https://arxiv.org/abs/2412.15605"

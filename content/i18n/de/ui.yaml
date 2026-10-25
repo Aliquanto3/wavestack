@@ -1173,6 +1173,21 @@ rag:
   dropped_title: "Vom Budget verworfen ({count})"
   prompt_title: "Endgültiger Prompt, wie er zum Modell geht (geschätzte Tokens; die Vorlage des Modells kommt bei der Generierung hinzu)"
   prompt_total: "Gesamt: {tokens} Tokens (geschätzt)"
+  # V1.2 story 10: the whole corpus against the window, and the CAG's cache.
+  window_used: "Fenster: {used} / {window} Tokens (geschätzt)"
+  cache_title: "Cache des Modells (CAG)"
+  cache_pending: "Der Zustand des Caches ist lesbar, sobald die Generierung fertig ist."
+  cache_state: "Zustand: {state}"
+  cache_state_cold: "kalt (Präfix von diesem Lauf aufgebaut)"
+  cache_state_warm: "warm (Präfix aus dem Cache gelesen)"
+  cache_state_lost: "verloren (Präfix vom Server verdrängt)"
+  cache_state_none: "ohne Cache (kein Zustand behalten)"
+  cache_state_unknown: "unbekannt (die Engine sagt nichts über ihren Cache)"
+  cache_prefix: "Präfix: {tokens} Tokens"
+  cache_read: "Aus dem Cache gelesen: {tokens} Tokens"
+  cache_evaluated: "Ausgewertet: {tokens} Tokens"
+  cache_build: "Präfix aufgebaut in {ms} ms"
+  cache_size: "Größe des Zustands: {mb} MB"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

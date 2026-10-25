@@ -221,6 +221,10 @@ options:
       label_text: "Reihenfolge der Passagen"
     compress:
       label_text: "Kompression"
+    full_corpus:
+      label_text: "Ganzer Korpus im Prompt (langer Kontext)"
+    cached_corpus:
+      label_text: "Ganzer Korpus im Cache des Modells (CAG)"
   generation:
     active:
       label_text: "Aktives Modell der Werkstatt"
@@ -326,6 +330,16 @@ steps:
     label_text: "Query understanding"
     action_text: "Die zu suchenden Anfragen erzeugen"
     note_text: "Die Werkstatt hat kein Gespräch: Die Nachfrage liest die früher in dieser Sitzung gestellten Fragen (höchstens drei)."
+  cache_prefix:
+    label_text: "Prefix caching"
+    action_text: "Die Anweisung und den ganzen Korpus im Speicher des Modells halten"
+    explain_text: >-
+      CAG wertet den Anfang des Prompts einmal aus (die Anweisung und den ganzen Korpus) und
+      behält den daraus entstehenden Zustand des Modells. Bei jeder Frage wird dieser Zustand
+      wieder in den Speicher gelegt: Das Modell liest nur noch die Frage. Dieses Präfix ist ein
+      Schnitt in Tokens des gesendeten Prompts, bis zum letzten Zeilenende vor der Frage. Jede
+      Aktualisierung des Korpus lädt es vollständig neu, und der Zustand belegt Speicher,
+      solange er behalten wird.
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -359,6 +373,9 @@ components:
   answer:
     label_text: "Antwort"
     note_text: "Die Antwort des LLM, sobald generiert"
+  model_cache:
+    label_text: "Model cache"
+    note_text: "Der Zustand des Modells nach dem Präfix (CAG)"
 
 groups:
   data:
@@ -400,6 +417,24 @@ presets:
       und ordnet sie neu: genauer, langsamer. Nur das Retrieval-Segment kehrt zu dem der
       ausgelieferten Kette zurück: Ihre Einstellungen für Chunking, Embedding, Vector store und
       Prompt bleiben erhalten.
+  long_context:
+    label_text: "Langer Kontext"
+    explain_text: >-
+      Kein Index, keine Suche: Der ganze Korpus kommt bei jeder Frage in den Prompt. Nichts
+      aufzubauen oder zu aktualisieren, aber jede Anfrage liest den ganzen Korpus erneut. Es
+      braucht ein Fenster von 16.384 Tokens.
+  cag:
+    label_text: "CAG (Cache des Modells)"
+    explain_text: >-
+      Kein Index, keine Suche: Der Korpus wird einmal ausgewertet und im Speicher des lokalen
+      Modells behalten; jede Anfrage wertet nur die Frage aus. Jede Aktualisierung lädt das
+      ganze Präfix neu. Es braucht ein lokales Modell und ein Fenster von 16.384 Tokens.
+# V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
+preset_families:
+  search:
+    label_text: "Suche"
+  no_index:
+    label_text: "Ohne Index"
 
 # V1.2 story 3 (CAP-8): the costs in three times and the work copy's buttons.
 costs:
@@ -608,3 +643,21 @@ sheets:
     sources:
       - label_text: "Headroom (headroom-ai), Kontextkompression für Agenten"
         url: "https://pypi.org/project/headroom-ai/"
+  context.full_corpus:
+    purpose_text: "Nichts suchen: den ganzen Korpus, Dokument für Dokument und vollständig, in den Prompt jeder Frage legen. Der Schritt Kontext liest den Korpus der Kette (die Arbeitskopie, wenn sie abweicht)."
+    when_text: "Für einen kleinen Korpus, der in das Fenster des Modells passt (mindestens 16.384 Tokens), bei einer Frage, die alles lesen muss. Zu vermeiden, sobald der Korpus wächst: Er passt irgendwann nicht mehr, und das Modell liest die Mitte eines langen Kontexts schlecht."
+    cost_text: "Nichts aufzubauen oder zu aktualisieren: kein Index, kein Embedding. Aber die Kosten jeder Anfrage wachsen mit dem Korpus: Der ganze Korpus wird bei jeder Frage neu gelesen, als Lesezeit auf der CPU und, in der Cloud, in Dollar."
+    literature_text: "Liu et al. zeigen, dass Modelle eine Information in der Mitte eines langen Kontexts schlecht nutzen („Lost in the Middle“): Die Antwort ist besser, wenn sie am Anfang oder am Ende steht. Die Diagnose der Werkstatt vermerkt es für die erwartete Passage."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.cached_corpus:
+    purpose_text: "Derselbe Kontext wie beim langen Kontext, aber einmal als Präfix des Prompts ausgewertet und im Cache des lokalen Modells behalten (CAG): Jede Frage wertet dann nur noch die Frage aus."
+    when_text: "Für einen Korpus, der in das Fenster passt und sich wenig ändert, aber oft befragt wird: Der Gewinn beruht auf einem stabilen Korpus. Zu vermeiden, wenn sich der Korpus oft ändert: Jede Aktualisierung lädt das Präfix vollständig neu. Braucht ein lokales Modell; die Werkstatt steuert den Cache eines Cloud-Anbieters nicht."
+    cost_text: "Der Aufbau wertet das ganze Präfix aus (die Anweisung und den Korpus); jede Anfrage wertet nur die Frage aus und liest den Rest aus dem Cache. Jede Aktualisierung lädt das ganze Präfix neu. Der Zustand des Caches belegt Speicher, solange er behalten wird: Seine Größe steht im Fokus des Schritts."
+    literature_text: "Chan et al. schlagen vor, das Wissen in den Cache des Modells vorzuladen, statt es bei jeder Frage zu suchen (Cache-Augmented Generation): Bei Korpora begrenzter Größe, die stabil bleiben, berichten sie Antworten so gut wie die eines RAG, ohne Suchzeit. Die Messungen auf dem Ziel-PC stehen noch aus."
+    bench_text: ""
+    sources:
+      - label_text: "Chan et al., Don't Do RAG: When Cache-Augmented Generation is All You Need for Knowledge Tasks (2024)"
+        url: "https://arxiv.org/abs/2412.15605"

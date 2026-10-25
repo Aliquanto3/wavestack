@@ -1189,6 +1189,21 @@ rag:
   dropped_title: "Écartés par le budget ({count})"
   prompt_title: "Prompt final, tel qu'il part au modèle (tokens estimés ; le gabarit du modèle s'ajoute à la génération)"
   prompt_total: "Total : {tokens} tokens (estimés)"
+  # V1.2 story 10: the whole corpus against the window, and the CAG's cache.
+  window_used: "Fenêtre : {used} / {window} tokens (estimés)"
+  cache_title: "Cache du modèle (CAG)"
+  cache_pending: "L'état du cache se lit une fois la génération faite."
+  cache_state: "État : {state}"
+  cache_state_cold: "froid (préfixe construit par cette exécution)"
+  cache_state_warm: "chaud (préfixe relu du cache)"
+  cache_state_lost: "perdu (préfixe évincé du serveur)"
+  cache_state_none: "sans cache (aucun état gardé)"
+  cache_state_unknown: "inconnu (le moteur ne dit rien de son cache)"
+  cache_prefix: "Préfixe : {tokens} tokens"
+  cache_read: "Lus du cache : {tokens} tokens"
+  cache_evaluated: "Évalués : {tokens} tokens"
+  cache_build: "Préfixe construit en {ms} ms"
+  cache_size: "Taille de l'état : {mb} Mo"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`); its
 # pedagogical texts are in mcp_lab.yaml.

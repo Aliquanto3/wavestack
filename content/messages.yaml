@@ -611,6 +611,16 @@ session:
       failed: "Import en échec : {label} n'a pas pu être chargé ({kind} : {cause}). Son installation est peut-être abîmée : relancez `{install}` depuis le dossier de WaveStack ; les autres options restent utilisables."
     interrupted: L'atelier RAG s'est interrompu sur une erreur.
     compress_not_wanted: "La carte Compression n'est pas activée : activez-la pour que l'option compresse les extraits."
+    # V1.2 story 10: the architectures without an index (long context, CAG).
+    window_needed: "Indisponible : il faut une fenêtre effective de {needed} tokens au moins, la session en a {effective}. {where}"
+    window_set: "Portez la fenêtre à {needed} avec le sélecteur « Fenêtre » de la barre de la page Conversation."
+    window_bound: "La fenêtre configurée est déjà de {configured}{bound} : choisissez un modèle ou un serveur qui en offre davantage."
+    cag_local_only: "Indisponible : le CAG garde le corpus dans la mémoire d'un modèle local. Chargez un modèle local (fichier GGUF ou serveur local) ; l'atelier ne pilote pas le cache d'un fournisseur nuage."
+    cag_label: "le cache CAG de l'atelier"
+    cag_memory: "Cache CAG non gardé. {reason} Aucun état n'est conservé pour les questions suivantes."
+    cag_snapshot_failed: "La copie de l'état du modèle a échoué ({error})."
+    cag_rss: "Après la copie de l'état ({size}), WaveStack occupe {rss}, au-delà du budget de {budget} : l'état est lâché aussitôt."
+    cag_lost: "Préfixe perdu : le serveur n'a relu que {read} tokens de son cache sur les {prefix} du préfixe (un autre appel, le chat par exemple, l'a évincé). La requête compte ce qu'elle a réévalué ; le serveur tient de nouveau le préfixe."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "Textes de l'atelier MCP illisibles (content/mcp_lab.yaml) : corrigez le fichier puis rechargez la page."
@@ -1031,6 +1041,7 @@ rag_lab:
     bounds: "{setting} entre {low} et {high} {unit}"
     too_few_candidates: "Étape « {stage} » : {kept}, moins que les {extracts} que le contexte doit garder. Retenez au moins {candidates}, ou gardez moins d'extraits."
     query_before: "Étape « {stage} » : elle produit les requêtes que les recherches exécutent, elle doit venir avant elles. Déplacez-la avant les recherches."
+    corpus_needs_no_search: "Étape « {stage} » : l'option « {option} » lit le corpus entier, sans recherche. Retirez les étapes de récupération, ou choisissez une autre option de contexte."
   not_installed: "Indisponible : {library} n'est pas installé. Depuis le dossier de WaveStack : `{command}`, puis relancez WaveStack. Sans `--extra compression`, Headroom serait retiré."
   folder_held: "Le dossier {folder} ne peut pas être supprimé ({error} : {cause}) : un autre programme le tient peut-être ouvert. Fermez-le, ou supprimez le dossier rag_lab WaveStack arrêté."
   load_failed: "Le {noun} {model} n'a pas pu être chargé ({error} : {cause})."
@@ -1043,6 +1054,7 @@ rag_lab:
     unknown: "Étape inconnue : {kind}."
     memory: "{mo} Mo"
     memory_during: "{memory} ({sign}{mo} Mo pendant l'étape)"
+    not_used: "Non utilisée par cette architecture : le corpus entier va dans le contexte, sans index."
   passed_on:
     input: "{candidates} de la recherche."
     output: "Ordre de la recherche gardé tel quel. {reason}"
@@ -1077,6 +1089,16 @@ rag_lab:
     compression: Compression
     compressed: Extraits compressés
     compress_failures: Échecs de compression
+    documents: Documents
+    source: Source
+    window_used: Tokens du prompt sur la fenêtre (estimés)
+    cache: Cache du modèle
+    cache_read: Tokens lus du cache
+    evaluated: Tokens évalués
+    cache_state: État du cache
+    prefix_tokens: Tokens du préfixe
+    state_size: Taille de l'état
+    prefix_duration: Durée du préfixe
   chunking:
     source_corpus: "le corpus (content/corpus), découpé pour cette exécution"
     source_index: "l'index de la brique RAG (découpé à sa construction)"
@@ -1219,6 +1241,9 @@ rag_lab:
     compress_count: "{changed} sur {total}"
     compress_failed_item: "{error} : {cause}"
     compress_failed: "{count} extrait(s) non compressé(s), gardés tels quels (premier échec : {first})."
+    corpus_input: "Tout le corpus, sans recherche : {documents} lus dans {source}."
+    window_used: "{used} / {window}"
+    cached_note: "le préfixe (consigne et corpus) est gardé dans la mémoire du modèle : chaque requête n'évalue que la question"
   prompt:
     system: Consigne système
     context: Contexte
@@ -1227,6 +1252,8 @@ rag_lab:
     build_unknown: "Coût de construction non enregistré pour ce contenu précalculé : reconstruisez-le pour le mesurer."
     generation_unpriced: "Coût en dollars non chiffré : le modèle n'a pas de tarif déclaré."
     contexts_measure: "Mesure enregistrée à la construction des contextes (modèle : {model}), non refaite à chaque exécution."
+    cache_read: "dont {tokens} tokens lus du cache, non réévalués"
+    estimated: "Tokens estimés : aucun modèle local ne les a comptés."
   update:
     op:
       add: "Ajout du document {doc}"
@@ -1244,6 +1271,25 @@ rag_lab:
     store_input: "{vectors} passages à réindexer."
     store_output: "Index reconstruit en entier (option {option}) : l'atelier ne met pas un index à jour vecteur par vecteur."
     lexical_output: "Index BM25 reconstruit en entier : {terms} termes, {occurrences} occurrences."
+    nothing_to_redo: "Rien à mettre à jour : le corpus est relu à chaque requête."
+    prefix_input: "Le préfixe de la copie modifiée : la consigne et les {documents} documents, entiers."
+    prefix_output: "Préfixe rechargé en entier ({tokens} tokens), depuis une mémoire vidée : une modification invalide tout ce qui la suit."
+    prefix_estimated: "Aucun modèle local chargé : le préfixe n'est pas reconstruit, ses {tokens} tokens sont estimés."
+  # V1.2 story 10 (CAG): the prefix kept in the model's memory.
+  cache:
+    state:
+      cold: "froid (préfixe construit par cette exécution)"
+      warm: "chaud (préfixe relu du cache)"
+      lost: "perdu (préfixe évincé du serveur)"
+      none: "sans cache (aucun état gardé)"
+      unknown: "inconnu (le moteur ne dit rien de son cache)"
+    no_model: "Aucun modèle chargé dans l'atelier : le préfixe n'est pas construit."
+    not_built: "Le préfixe n'a pas été construit."
+    too_long: "Prompt trop long pour la fenêtre : ni préfixe construit, ni état gardé."
+    input: "La consigne et le corpus entier, jusqu'à la question."
+    built: "Préfixe évalué dans la mémoire du modèle : {tokens} tokens."
+    reused: "Préfixe relu du cache ({tokens} tokens), construit par une exécution précédente."
+    update_too_long: "Prompt trop long : {tokens} tokens pour {usable} utilisables ; le préfixe n'est pas reconstruit."
   generation:
     question_only: "la question seule (aucun contexte construit)"
     with_context: "le contexte construit ({extracts}), puis la question"
@@ -1258,6 +1304,7 @@ rag_lab:
     cut: "Réponse coupée à {max} tokens : la réserve de sortie d'un tour de l'atelier est atteinte."
     empty: "Le modèle n'a rien répondu."
     model_error: "Le modèle a échoué pendant la génération : le journal des événements dit pourquoi."
+    with_corpus: "le corpus entier ({documents}), puis la question"
   query:
     input: "Question : {question}."
     input_history: "Questions précédentes de l'atelier : {history}."

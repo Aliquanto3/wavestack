@@ -576,14 +576,21 @@ function renderRefusals() {
 
 // ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
 
-// The preset whose segment (kind, option, in order) is the chain's retrieval segment, if any.
+// V1.2 story 10: the chain's Context reads the whole corpus (long context, CAG): no search.
+const corpusOption = (option) => (store.catalog?.corpus_options ?? []).includes(option);
+const contextOf = (pipeline) => (pipeline?.stages ?? []).find((s) => s.kind === "context") ?? null;
+
+// The preset whose segment (kind, option, in order) is the chain's retrieval segment, if any;
+// V1.2 story 10: a preset that sets the Context also matches on its option.
 function currentPreset() {
   const segment = (chain()?.stages ?? []).filter(isMovable);
+  const context = contextOf(chain());
   return (
     (store.catalog?.presets ?? []).find(
       (preset) =>
         preset.segment.length === segment.length &&
-        preset.segment.every((s, i) => s.kind === segment[i].kind && s.option === segment[i].option),
+        preset.segment.every((s, i) => s.kind === segment[i].kind && s.option === segment[i].option) &&
+        (preset.replaces_context ? context?.option === preset.context?.option : !corpusOption(context?.option)),
     ) ?? null
   );
 }
@@ -611,6 +618,13 @@ function applyPreset(preset) {
   });
   const before = kept.findIndex((s) => s.kind === store.catalog.insert_before);
   kept.splice(before < 0 ? kept.length : before, 0, ...segment);
+  // V1.2 story 10: a preset without an index sets the Context; a search preset gives a chain
+  // that read the whole corpus its Context back (the others keep theirs).
+  const context = kept.find((s) => s.kind === "context");
+  if (context && preset.context && (preset.replaces_context || corpusOption(context.option))) {
+    context.option = preset.context.option;
+    context.params = clone(preset.context.params ?? {});
+  }
   pipeline.stages = kept;
   changed();
   document.querySelector(`#rag-presets .rag-preset[data-preset="${preset.id}"]`)?.focus();
@@ -626,7 +640,20 @@ function renderPresets() {
   box.setAttribute("aria-label", title);
   box.append(el("span", "rag-presets-label", title));
   const current = currentPreset();
+  // V1.2 story 10 (vues.md): one section per family, in the session's order.
+  const families = store.catalog.preset_families ?? [];
+  const sections = new Map();
+  for (const family of families) {
+    const section = el("div", "doc-family rag-preset-family");
+    section.dataset.family = family.id;
+    section.setAttribute("role", "group");
+    section.setAttribute("aria-label", family.label_text);
+    section.append(el("span", "rag-preset-family-label", family.label_text));
+    sections.set(family.id, section);
+    box.append(section);
+  }
   for (const preset of presets) {
+    const target = sections.get(preset.family) ?? box;
     const label = preset.available ? preset.label_text : `${preset.label_text} (${text("unavailable_text")})`;
     const button = el("button", "rag-preset", label);
     button.type = "button";
@@ -641,7 +668,7 @@ function renderPresets() {
     button.setAttribute("aria-describedby", described.id);
     button.setAttribute("aria-pressed", String(preset.id === current?.id));
     button.addEventListener("click", () => applyPreset(preset));
-    box.append(button, described);
+    target.append(button, described);
   }
 }
 
@@ -664,12 +691,19 @@ function sequence() {
   const of = (kind) => stages.find((s) => s.kind === kind) ?? null;
   const entries = [];
   const push = (step, stage) => entries.push({ step, stage, index: stage ? stages.indexOf(stage) : -1 });
+  // V1.2 story 10: a line drawn for some options of its stage only (the CAG's prefix), or
+  // never with some Context options (the question's embedding, without any search).
+  const context = of("context");
+  const drawn = (step) =>
+    (!step.stage || of(step.stage)) &&
+    (!step.options?.length || step.options.includes(of(step.stage)?.option)) &&
+    !(step.hidden_with ?? []).includes(context?.option);
   for (const step of catalog.steps) {
-    if (step.phase !== "build" || (step.stage && !of(step.stage))) continue;
+    if (step.phase !== "build" || !drawn(step)) continue;
     push(step, step.stage ? of(step.stage) : null);
   }
   for (const step of catalog.steps) {
-    if (step.phase !== "run" || step.own || (step.stage && !of(step.stage))) continue;
+    if (step.phase !== "run" || step.own || !drawn(step)) continue;
     push(step, step.stage ? of(step.stage) : null);
   }
   for (const stage of stages) {
@@ -1058,6 +1092,11 @@ function focusRun(box, step) {
   if (step.key === "chunking" && ended.chunks?.length) box.append(chunksList(ended));
   if (step.key === "chunking" && stage.option === "contextual") box.append(contextControls());
   if (step.stage === "context" && ended.budget) box.append(budgetGauge(ended.budget));
+  // V1.2 story 10: the whole corpus against the window, and the CAG's cache (the run's).
+  if (step.stage === "context" && typeof ended.window === "number") box.append(windowGauge(ended));
+  if (step.key === "cache_prefix" || (step.stage === "context" && stage.option === "cached_corpus")) {
+    box.append(cacheBlock(runCache(ended)));
+  }
   if (step.key !== "embed_query" && ended.items?.length) box.append(itemsTable(ended.items));
   if (step.stage === "context" && ended.dropped?.length) box.append(droppedList(ended.dropped));
   if (step.stage === "context" && ended.prompt_parts?.length) box.append(promptParts(ended));
@@ -1347,8 +1386,11 @@ function applyEnvelope(envelope) {
       if (p.state === "idle" && closeStaleRun()) renderRun();
       renderBusy();
       // Lot 5c-4: a download ended (this page's or another's): the catalog read again.
+      // V1.2 story 10: a model (re)loaded, its window changed: the options' reasons too.
       if (was === "download" && p.state !== "download") {
         store.download = null;
+        reloadCatalog();
+      } else if (was === "model_load" && p.state !== "model_load") {
         reloadCatalog();
       } else {
         renderDownloads();
@@ -1359,6 +1401,13 @@ function applyEnvelope(envelope) {
     case "harness_error":
       downloadOutcome(envelope);
       return;
+    case "context_window_state": {
+      // V1.2 story 10: the long context and the CAG need a window: read again on a change.
+      const key = `${p.configured}/${p.window}/${p.model_label ?? ""}`;
+      if (store.windowSeen !== undefined && store.windowSeen !== key) reloadCatalog();
+      store.windowSeen = key;
+      return;
+    }
     case "rag_lab_run_started":
       store.run = {
         runId: p.run_id,
@@ -1788,6 +1837,52 @@ function budgetGauge(budget) {
   if (budget.before !== null && budget.before !== undefined) {
     box.append(el("p", "rag-budget-after", t("rag.budget_compressed", { before: fmtInt(budget.before), after: fmtInt(budget.used) })));
   }
+  return box;
+}
+
+// ---------- V1.2 story 10: the whole corpus against the window, the CAG's cache ----------
+
+// The prompt's estimated tokens against the session's effective window.
+function windowGauge(ended) {
+  const box = el("div", "rag-window");
+  const used = ended.prompt_tokens ?? 0;
+  box.dataset.used = String(used);
+  box.dataset.window = String(ended.window);
+  box.append(el("p", "rag-window-title", t("rag.window_used", { used: fmtInt(used), window: fmtInt(ended.window) })));
+  const gauge = el("meter", "rag-window-gauge");
+  gauge.min = 0;
+  gauge.max = Math.max(ended.window, used);
+  gauge.value = used;
+  box.append(gauge);
+  return box;
+}
+
+// The cache of the run shown: the prefix line's, else the generation's (the session's figures).
+function runCache(ended) {
+  if (ended.cache) return ended.cache;
+  const generation = store.run?.stages.find((s) => s.kind === "generation");
+  const context = store.run?.stages.find((s) => s.kind === "context");
+  return generation?.ended?.cache ?? context?.parts?.prefix?.ended?.cache ?? null;
+}
+
+// The CAG's cache: its state, the prefix's tokens, those read and evaluated, its build, its size.
+function cacheBlock(cache) {
+  const box = el("div", "rag-cache");
+  box.append(el("p", "rag-cache-title", t("rag.cache_title")));
+  if (!cache) {
+    box.append(el("p", "rag-note", t("rag.cache_pending")));
+    return box;
+  }
+  box.dataset.state = cache.state;
+  const list = el("ul", "rag-cache-figures");
+  const line = (key, values) => list.append(el("li", null, t(key, values)));
+  line("rag.cache_state", { state: t(`rag.cache_state_${cache.state}`) });
+  if (typeof cache.prefix_tokens === "number") line("rag.cache_prefix", { tokens: fmtInt(cache.prefix_tokens) });
+  if (typeof cache.read_tokens === "number") line("rag.cache_read", { tokens: fmtInt(cache.read_tokens) });
+  if (typeof cache.evaluated_tokens === "number") line("rag.cache_evaluated", { tokens: fmtInt(cache.evaluated_tokens) });
+  if (typeof cache.build_ms === "number" && cache.state === "cold") line("rag.cache_build", { ms: fmtInt(cache.build_ms) });
+  if (typeof cache.state_bytes === "number") line("rag.cache_size", { mb: fmtInt(Math.max(1, Math.round(cache.state_bytes / 1e6))) });
+  box.append(list);
   return box;
 }
 

@@ -1613,6 +1613,21 @@ class RagLabPromptPart(BaseModel):
     tokens: int
 
 
+class RagLabCache(BaseModel):
+    """V1.2 story 10 (CAG): what one run did with the prefix kept in the model's memory:
+    `cold` (built by this run), `warm` (read back), `lost` (a server evicted it meanwhile),
+    `none` (no state kept: memory, a failed copy) or `unknown` (the engine says nothing); its
+    tokens, those read from the cache and those evaluated, the state's size in bytes and the
+    prefix's build duration. A figure `None` was not measured."""
+
+    state: Literal["cold", "warm", "lost", "none", "unknown"]
+    prefix_tokens: int | None = None
+    read_tokens: int | None = None
+    evaluated_tokens: int | None = None
+    state_bytes: int | None = None
+    build_ms: int | None = None
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1652,6 +1667,10 @@ class RagLabStageEndedPayload(BaseModel):
     budget: RagLabBudget | None = None
     prompt_parts: list[RagLabPromptPart] = []
     prompt_tokens: int | None = None
+    # V1.2 story 10: the effective window a whole corpus is shown against, and the CAG's
+    # cache (never the engine's state itself).
+    window: int | None = None
+    cache: RagLabCache | None = None
 
 
 class RagLabRunEndedPayload(BaseModel):
