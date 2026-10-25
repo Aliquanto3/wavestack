@@ -41,6 +41,8 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 
 ## Décisions
 
+- 2026-10-25 : spec de 15.2 (6afc1faa) : cas de recette = boucle de `get_datetime` (R22, Mistral, corrigée R23/R25), gardé comme cas de régression bien qu'il ne se reproduise pas en local — à revoir par Anaël ; H5 plafond 2 sans marge (un appel refusé n'émet pas tool_started) ; mémoire globale vérifiée sur un fait (Pascal), pas une consigne.
+- 2026-10-25 : à reporter dans la spec de 15.4 : `tools/eval/case_player.py` (15.2, ~60 lignes) est repris par l'exécuteur de 15.4 puis supprimé.
 - 2026-10-25 : 3e créneau autorisé par Anaël pour une story largement indépendante ; seule 15.2 l'est (phase spec, fichiers propres), son code attend la fusion de 15.1. 15.3 partage le front avec 15.6.
 - 2026-10-25 : points `spec_checkpoint` tranchés par le reviewer, comme au run précédent ; à confirmer par Anaël.
 
@@ -70,3 +72,6 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:11 · 15.6 · review · lancé (Opus) · —
 - 2026-10-25 21:12 · 15.1 · second-avis · 2 medium (cas fourni sans événement exigé ; tour annulé ou bloqué jugé complet), 3 low · 214f9289
 - 2026-10-25 21:12 · 15.1 · review · lancé (Opus) · —
+- 2026-10-25 21:12 · 15.2 · review · spec ready-for-dev, 9 points tranchés · 6afc1faa
+- 2026-10-25 21:12 · 15.2 · décision · cas de recette get_datetime (Mistral) gardé comme régression · à revoir
+- 2026-10-25 21:12 · 15.2 · attente humaine · mesure des plafonds sur le PC cible (tools/eval/measure_cases.py), après fusion · —
