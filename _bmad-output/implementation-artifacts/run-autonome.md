@@ -304,3 +304,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:50 · 14.4 · review · lancé (Opus, fusion de main et totaux du programme d'abord) · c0ba396
 - 2026-10-25 07:51 · 12.6 · dev · spec prête (13 critères, 7 points ouverts : late chunking reporté, contextes heuristiques livrés, parent-enfant…) · 47c67a5
 - 2026-10-25 07:51 · 12.6 · review · relecture de la spec lancée · 47c67a5
+- 2026-10-25 07:53 · 12.15 · review · spec approuvée ; jugement par intention rag_lab_judge, exécutions envoyées par la page, grammar dans complete (engine, servers), famille = publisher_for, critère 17 ajouté · 6b1898b
+- 2026-10-25 07:53 · 12.15 · décision · à revoir : 9 points tranchés par le relecteur Opus (jeu construit dense/hybrid, juge local découvert sur le poste, pas d'extra Ragas/DeepEval, MIN_SAMPLE 5, annotations draft « à valider ») · 6b1898b
+- 2026-10-25 07:53 · 12.15 · attente humaine · valider les annotations de référence ; réenregistrer jeu et pièges avec un vrai juge local non Qwen et un juge cloud ; essayer « Juger cette exécution » sur CPU · —
+- 2026-10-25 07:53 · 12.15 · dev · phase 2 (code) lancée · 6b1898b
