@@ -325,3 +325,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:23 · 12.6 · décision · à revoir : coupe sémantique au 80e centile (gap >= seuil), reconstruction fusionnée avec l'existant, coût du contextual lu dans l'en-tête, outil sans --model, sources des fiches à vérifier · 88b9a7d
 - 2026-10-25 08:23 · 12.6 · second-avis · lancé · 88b9a7d
 - 2026-10-25 08:23 · 12.7 · dev · lancé (phase spec, empilé sur 12.6, worktree ../wavestack-v12-s7) · 88b9a7d
+- 2026-10-25 08:28 · 12.7 · dev · spec prête (15 critères, 8 points ouverts : options budget / edges / compressed, budget 450 tokens estimés, compresseur emprunté à la session…) · 9feaba7
+- 2026-10-25 08:28 · 12.7 · review · relecture de la spec lancée · 9feaba7
