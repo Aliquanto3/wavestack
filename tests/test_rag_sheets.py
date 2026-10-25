@@ -251,7 +251,7 @@ def test_invalid_sheets_are_refused_at_load(mutate):
 
 def test_a_story_is_required_outside_the_presets():
     data = copy.deepcopy(raw("fr"))
-    next(a for a in data["architectures"] if a["id"] == "graphrag").pop("story")
+    next(a for a in data["architectures"] if a["id"] == "raptor").pop("story")
     with pytest.raises(ValidationError):
         sheets.SheetsContent.model_validate(data)
 

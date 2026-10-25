@@ -1034,6 +1034,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "lexical_index",
         "cache_prefix",  # V1.2 story 10: drawn for `cached_corpus` only
         "tree_build",  # V1.2 story 11: drawn for `section_tree` only
+        "graph_build",  # V1.2 story 13: drawn for `graph_search` only
     ]
     assert steps["documents"] | {"explain_text": ""} == {
         "key": "documents",
@@ -1073,12 +1074,14 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         ("tree_build", "context"),  # V1.2 story 11
         ("agent_calls", "context"),
         ("tree_levels", "context"),
+        ("graph_build", "context"),  # V1.2 story 13
+        ("graph_query", "context"),
     ]
     components = {c["id"]: c for c in catalog["components"]}
     assert list(components) == list(rag_lab.COMPONENTS)
     labels = [c["label_text"] for c in catalog["components"]]
     assert "Decision model" in labels  # V1.2 story 8: System One's model
-    assert labels[:13] == [
+    assert [label for label in labels if label != "Decision model"] == [
         "Documents",
         "Chunks",
         "Vector store",
@@ -1092,6 +1095,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "Model cache",
         "Outils sur les fichiers",  # V1.2 story 11
         "Arbre de sections",
+        "Graphe de connaissances",  # V1.2 story 13
     ]
     assert components["reranker"]["group"] == "models"
     assert components["reranker"]["stage"] == "rerank"
@@ -1171,6 +1175,7 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
         "cag",
         "agentic",  # V1.2 story 11
         "pageindex",
+        "graphrag",  # V1.2 story 13
     ]
     assert list(presets) == list(rag_lab.PRESETS)
     search = ("dense", "hybrid", "rerank")  # V1.2 story 10: the « Recherche » family

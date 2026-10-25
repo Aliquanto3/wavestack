@@ -18418,7 +18418,7 @@ def s_rag_lab_agentic(r: Run) -> None:
         )
         r.check(
             families == ["search", "structure", "no_index"]
-            and _family_buttons(r, "structure") == ["pageindex"]
+            and _family_buttons(r, "structure") == ["pageindex", "graphrag"]  # V1.2 story 13
             and _family_buttons(r, "no_index") == ["long_context", "cag", "agentic"],
             "familles Recherche, Structure (PageIndex), Sans index (… recherche agentique)",
             str(families),
@@ -18605,6 +18605,223 @@ def s_rag_lab_agentic(r: Run) -> None:
             r.check(False, "retour au faux cloud A, à 4 096 et au corpus livré", repr(exc))
 
 
+def s_rag_lab_graphrag(r: Run) -> None:
+    """V1.2 story 13 (CAP-7), after `rag` and `rag_rerank`, no real model: the fake llama-server
+    answers GraphRAG's short tasks by its script (`workshop_plan`). (1) « GraphRAG » in the family
+    « Structure »: the « Graphe » card says « calculé par une règle, sans modèle » and its numbers,
+    the estimate labelled; (2) local mode on a multi-hop question: the focus lists the entities and
+    the evidence; (3) global mode: the focus lists the communities and their « map »; (4)
+    « Reconstruire le graphe » by the fake server: « reconstruit » and its measure; (5) « Ajouter
+    un document »: the update says its four parts; (6) Comparer, the rebuilt graph still in place:
+    GraphRAG above dense RAG in tokens at the build, the update and the query, no estimate; (7)
+    « Rétablir le graphe »: the card says again « calculé par une règle, sans modèle », the
+    estimate is back. Back to A, 4 096, the shipped corpus and the shipped graph."""
+    page = r.page
+    page.set_viewport_size({"width": 1280, "height": 1000})
+    r.goto_app()
+    r.wait_idle()
+    crisis = "Qui appeler la nuit en cas d'incident majeur ?"
+    security = "Quels sont les grands piliers de la sécurité de l'information décrits ?"
+    tokens: dict[str, int] = {}
+
+    def summed(ended: dict[str, Any], phase: str) -> int:
+        found = [s for s in ended["payload"].get("cost_summary", []) if s["phase"] == phase]
+        return int((found[0].get("tokens") or 0) if found else 0)
+
+    def card_text() -> str:
+        return page.locator("#rag-focus .rag-graph-card").inner_text()
+
+    def add(doc_id: str, title: str, body: str) -> dict[str, Any]:
+        _rag_mode(r, "compose")
+        seq = r.ev.mark()
+        page.locator('#rag-copy button[data-op="add"]').click()
+        expect(page.locator("#rag-copy-form")).to_be_visible()
+        page.fill("#rag-copy-id", doc_id)
+        page.fill("#rag-copy-title", title)
+        page.fill("#rag-copy-body", body)
+        page.click("#rag-copy-apply")
+        return r.ev.wait(
+            "rag_lab_run_ended",
+            seq,
+            lambda p: str(p.get("run_id", "")).startswith("upd"),
+            timeout=300,
+        )
+
+    try:
+        ok, _ = r.poll(lambda: _picker_options(r).get(LLAMA_OPTION) is False, 10)
+        seq = r.ev.mark()
+        page.select_option("#model-picker", label=LLAMA_OPTION)
+        page.click("#model-picker-apply")
+        ended = r.ev.wait("model_load_ended", seq, timeout=30)
+        r.check(ok and ended["payload"]["status"] == "ok", "faux llama-server chargé")
+        r.wait_idle()
+        if (r.state().get("context_window_state") or {}).get("configured") != 8192:
+            _apply_window(r, 8192)
+        r.api("POST", "/api/rag_lab/graph/reset")
+
+        # (1) « GraphRAG » in « Structure », the card of the shipped graph.
+        _goto_rag_lab(r)
+        _rag_mode(r, "compose")
+        r.check(
+            _family_buttons(r, "structure") == ["pageindex", "graphrag"],
+            "famille Structure : PageIndex puis GraphRAG",
+            str(_family_buttons(r, "structure")),
+        )
+        _apply_preset(r, "graphrag")
+        r.check(
+            _pressed_preset(r) == ["graphrag"]
+            and _chain_kinds(r)[3:] == ["context", "generation"]
+            and page.locator('#rag-seq .rag-seq-step[data-step="graph_build"]').count() == 1
+            and page.locator('#rag-seq .rag-seq-step[data-step="graph_query"]').count() == 1
+            and page.locator('#rag-seq .rag-seq-step[data-step="embed_query"]').count() == 0,
+            "« GraphRAG » appliqué : lignes « Graph building », « Graph query », sans recherche",
+            str(_chain_kinds(r)),
+        )
+        _focus_of(r, "graph_query")
+        expect(page.locator("#rag-focus .rag-graph-card")).to_be_visible(timeout=10_000)
+        card = card_text()
+        r.check(
+            "calculé par une règle, sans modèle" in card
+            and page.locator("#rag-focus .rag-graph-estimate-badge").count() == 1
+            and page.locator("#rag-focus .rag-graph-table").count() == 2,
+            "carte Graphe : « calculé par une règle, sans modèle », nombres, estimation étiquetée",
+            card[:240],
+        )
+
+        # (2) Local mode on a multi-hop question.
+        ended, seq = _rag_lab_run(r, crisis)
+        graph = _stage_ended(r, seq, "context").get("graph") or {}
+        _focus_of(r, "graph_query")
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and graph.get("mode") == "local"
+            and graph.get("calls") == 1
+            and bool(graph.get("matched"))
+            and page.locator("#rag-focus .rag-graph-entity").count() >= 1
+            and page.locator("#rag-focus .rag-graph-passage").count() >= 1,
+            "mode local : entités reconnues et passages-preuves dans le focus",
+            str([m.get("name") for m in graph.get("matched", [])]),
+        )
+        tokens["local"] = summed(ended, "query")
+        r.shot("86-atelier-rag-graphrag-local", full_page=True)
+
+        # (3) Global mode.
+        page.locator('#rag-graph-mode input[value="global"]').check()
+        ended, seq = _rag_lab_run(r, security)
+        graph = _stage_ended(r, seq, "context").get("graph") or {}
+        _focus_of(r, "graph_query")
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and graph.get("mode") == "global"
+            and 1 <= graph.get("calls", 0) <= 3
+            and page.locator("#rag-focus .rag-graph-community").count() >= 1
+            and "« map »" in page.inner_text("#rag-focus .rag-graph"),
+            "mode global : communautés classées et extraits « map » dans le focus",
+            str(graph.get("calls")),
+        )
+        tokens["global"] = summed(ended, "query")
+        page.locator('#rag-graph-mode input[value="local"]').check()
+
+        # (4) « Reconstruire le graphe » by the fake server.
+        seq = r.ev.mark()
+        page.click("#rag-graph-rebuild")
+        rebuilt = r.ev.wait(
+            "rag_lab_run_ended",
+            seq,
+            lambda p: str(p.get("run_id", "")).startswith("ctx"),
+            timeout=600,
+        )
+        r.poll(lambda: (r.state().get("session_state") or {}).get("state") == "idle", 30)
+        time.sleep(0.5)  # the page reads the contexts again once the rebuild ended
+        _focus_of(r, "graph_query")
+        expect(page.locator("#rag-focus .rag-graph-card-summary")).to_contain_text(
+            "reconstruit par le modèle", timeout=10_000
+        )
+        r.check(
+            rebuilt["payload"]["status"] == "ok"
+            and page.locator("#rag-focus .rag-graph-measure").count() == 1
+            and page.locator("#rag-focus .rag-graph-estimate-badge").count() == 0,
+            "« Reconstruire » : graphe reconstruit par le modèle, sa mesure, plus d'estimation",
+            card_text()[:240],
+        )
+        r.shot("87-atelier-rag-graphrag-reconstruit", full_page=True)
+
+        # (5) « Ajouter un document »: the four parts of the update.
+        ended = add(
+            "note_graphe",
+            "Note de crise",
+            "La cellule de crise appelle l'astreinte la nuit.\n\nL'astreinte prévient la cellule.",
+        )
+        (update,) = ended["payload"]["cost_summary"]
+        note = page.locator('#rag-cost-cards .rag-cost-card[data-phase="update"] .rag-cost-note')
+        expect(note).to_contain_text("Résumés", timeout=10_000)
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and update["parts"] >= 4
+            and all(w in note.inner_text() for w in ("Extraction", "Fusion", "Communautés")),
+            "« Ajouter » : la mise à jour dit ses quatre parties (extraction, fusion, "
+            "communautés, résumés)",
+            note.inner_text()[:240],
+        )
+        tokens["update"] = summed(ended, "update")
+        ended, seq = _rag_lab_run(r, crisis)
+        tokens["build"] = summed(ended, "build")
+        page.click("#rag-pin")  # (6) the run on the rebuilt graph, pinned for Comparer
+        expect(page.locator("#rag-pin-status")).to_be_visible(timeout=5000)
+
+        # (6) Dense RAG on the same corpus, then Comparer, the rebuilt graph still in place.
+        _apply_preset(r, "dense")
+        ended, _ = _rag_lab_run(r, crisis)
+        dense = {"build": summed(ended, "build"), "query": summed(ended, "query")}
+        ended = add(
+            "note_dense", "Note dense", "Une note pour mesurer la mise à jour du RAG dense."
+        )
+        dense["update"] = summed(ended, "update")
+        ended, _ = _rag_lab_run(r, crisis)
+        page.click("#rag-tab-compare")
+        cmp_box = page.locator("#rag-cmp")
+        expect(cmp_box.locator(".rag-cmp-row").first).to_be_visible(timeout=5000)
+        r.check(
+            tokens["build"] > dense["build"]
+            and tokens["update"] > dense["update"]
+            and tokens["global"] > tokens["local"] > dense["query"]
+            and "estimation" not in cmp_box.inner_text().lower(),
+            "Comparer, graphe reconstruit : GraphRAG au-dessus du RAG dense en tokens à la "
+            "construction, à la mise à jour et à la requête ; aucune estimation",
+            f"{tokens} / {dense}",
+        )
+        r.shot("88-atelier-rag-graphrag-comparer", full_page=True)
+
+        # (7) « Rétablir le graphe ».
+        page.click("#rag-tab-build")
+        _apply_preset(r, "graphrag")
+        _focus_of(r, "graph_query")
+        page.click("#rag-graph-reset")
+        expect(page.locator("#rag-focus .rag-graph-card-summary")).to_contain_text(
+            "calculé par une règle", timeout=10_000
+        )
+        r.check(
+            page.locator("#rag-focus .rag-graph-estimate-badge").count() == 1,
+            "« Rétablir » : le graphe livré, calculé par une règle, l'estimation étiquetée revient",
+            card_text()[:240],
+        )
+    finally:
+        try:
+            page.keyboard.press("Escape")
+            r.api("POST", "/api/rag_lab/copy/reset")
+            r.api("POST", "/api/rag_lab/graph/reset")
+            r.goto_app()
+            page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+            if (r.state().get("active_model") or {}).get("ref") != MODEL_ENTRY_ID:
+                _pick_model(r, A_LABEL)
+            if (r.state().get("context_window_state") or {}).get("configured") != 4096:
+                _apply_window(r, 4096)
+        except Exception as exc:  # noqa: BLE001 - reported, the scenario's own error kept
+            r.check(
+                False, "retour au faux cloud A, à 4 096, au corpus et au graphe livrés", repr(exc)
+            )
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -18646,6 +18863,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_decision", s_rag_lab_decision),  # V1.2 story 8
     ("rag_lab_no_index", s_rag_lab_no_index),  # V1.2 story 10
     ("rag_lab_agentic", s_rag_lab_agentic),  # V1.2 story 11
+    ("rag_lab_graphrag", s_rag_lab_graphrag),  # V1.2 story 13
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18

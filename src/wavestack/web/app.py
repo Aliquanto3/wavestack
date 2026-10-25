@@ -31,6 +31,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import (
     AliasChoices,
     BaseModel,
+    ConfigDict,
     Field,
     SecretStr,
     field_validator,
@@ -310,8 +311,13 @@ class RagLabRunIntention(BaseModel):
     """Story 30: the question the RAG workshop's chain runs on (500 characters at most), and
     the chain (the shipped one when absent). Lot 5c-1: one chain, a list of one (two: 422)."""
 
+    # V1.2 story 13: an unknown field is refused (no `profile`: the workshop filters no
+    # audience, D7); GraphRAG's mode, local (by default) or global.
+    model_config = ConfigDict(extra="forbid")
+
     question: str = Field(min_length=1, max_length=QUESTION_MAX)
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+    graph_mode: Literal["local", "global"] = "local"
 
     @field_validator("question")
     @classmethod
@@ -352,7 +358,8 @@ class RagLabRebuildIntention(BaseModel):
 
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
     # V1.2 story 11: what is rebuilt, the contexts (by default) or PageIndex's summaries.
-    target: Literal["contexts", "pageindex"] = "contexts"
+    # V1.2 story 13: or GraphRAG's graph.
+    target: Literal["contexts", "pageindex", "graph"] = "contexts"
 
 
 class RagLabValidateRequest(BaseModel):
@@ -699,7 +706,9 @@ def create_app(
         ends; « Arrêter » (`stop`) stops it. A chain refused: 409 with the reason."""
         try:
             chain = intention.pipelines[0] if intention.pipelines else None
-            return {"run_id": app_session.run_rag_lab(intention.question, chain)}
+            return {
+                "run_id": app_session.run_rag_lab(intention.question, chain, intention.graph_mode)
+            }
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
@@ -756,6 +765,17 @@ def create_app(
         409 while a run goes on."""
         try:
             return shown({"contexts": app_session.reset_rag_lab_pageindex()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/graph/reset")
+    def rag_lab_graph_reset() -> dict[str, object]:
+        """V1.2 story 13: GraphRAG's rebuilt graph deleted, the shipped graph read again; 409
+        while a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_graph()})
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)

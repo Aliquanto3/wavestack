@@ -238,6 +238,8 @@ options:
       label_text: "Recherche agentique (outils sur les fichiers)"
     section_tree:
       label_text: "Arbre de sections (PageIndex)"
+    graph_search:
+      label_text: "Graphe de connaissances (GraphRAG)"
   generation:
     active:
       label_text: "Modèle actif de l'atelier"
@@ -398,6 +400,15 @@ steps:
   grounding_check:
     label_text: "Grounding check"
     action_text: "Contrôler l'ancrage de chaque phrase de la réponse"
+  # V1.2 story 13: GraphRAG's graph built once, then queried at each question.
+  graph_build:
+    label_text: "Graph building"
+    action_text: "Construire le graphe des entités, de leurs relations et de leurs communautés"
+    explain_text: "GraphRAG construit une fois un graphe de connaissances : les entités du corpus, leurs relations, leurs communautés résumées ; chaque entité et relation garde ses preuves (le passage et son empreinte). Le graphe livré est calculé par une règle, sans modèle (termes-clés, sigles, codes, co-occurrence dans une phrase) ; « Reconstruire » le fait extraire par le modèle actif, un appel par passage puis un par communauté. Mettre à jour un document refait son extraction, la fusion, les communautés et les seuls résumés touchés."
+  graph_query:
+    label_text: "Graph query"
+    action_text: "Le modèle nomme les entités de la question, ou lit les communautés proches"
+    explain_text: "En mode local, un appel donne les entités de la question (ENTITIES: a, b) ; le graphe les relie à leurs voisins à un saut, et les passages-preuves de ces relations deviennent le contexte. En mode global, les trois communautés les plus proches de la question passent chacune par un appel « map » (POINTS: … ou POINTS: NONE) ; la génération fait le « reduce ». Aucune audience n'est filtrée : chaque élément dit la sienne."
 
 # Les tuiles de l'architecture : leur nom, et leur sous-titre quand aucune option ne le donne.
 components:
@@ -444,6 +455,9 @@ components:
   decision_model:
     label_text: "Decision model"
     note_text: "Classifieur local, reranker ou API de décision"
+  knowledge_graph:
+    label_text: "Graphe de connaissances"
+    note_text: "Entités, relations, communautés résumées"
 
 groups:
   data:
@@ -509,6 +523,13 @@ presets:
       Aucun vecteur : un arbre des documents et de leurs sections, construit une fois, que le
       modèle descend niveau par niveau en lisant titres et résumés. Un arbre à construire et à
       refaire à chaque mise à jour, peu d'appels à la requête.
+  graphrag:
+    label_text: "GraphRAG"
+    explain_text: >-
+      Aucun vecteur : un graphe des entités du corpus, de leurs relations et de leurs
+      communautés résumées, construit une fois. En local, le modèle nomme les entités de la
+      question et lit les preuves de leurs voisins ; en global, il lit les communautés proches.
+      Coûteux à construire et à mettre à jour avec un modèle, plusieurs appels à la requête.
 # V1.2 story 10 (vues.md) : les familles d'architectures, dans l'ordre de PRESET_FAMILIES.
 preset_families:
   search:
@@ -978,3 +999,20 @@ sheets:
         url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
       - label_text: "Arize : TypeSafe Jev comme juge LLM"
         url: "https://arize.com/blog/typesafe-jev-llm-judge/"
+  context.graph_search:
+    purpose_text: "Chercher sans vecteurs dans un graphe de connaissances construit une fois : les entités du corpus, leurs relations (avec leurs passages-preuves) et leurs communautés résumées. En local, les entités de la question et leurs voisins à un saut donnent les passages du contexte ; en global, les communautés proches passent chacune par un appel « map »."
+    when_text: "À utiliser pour les questions multi-sauts (relier deux procédures, deux services) et globales (une vue d'ensemble d'un thème), sur un corpus stable. À éviter pour un fait simple : il perd sur les faits simples, gagne en multi-sauts et en global. À éviter aussi sur un corpus qui change souvent : le graphe et ses résumés sont à refaire."
+    cost_text: "La construction est le coût Construction : par la règle (graphe livré), quelques millisecondes et aucun token, d'où une construction moins chère que le RAG dense ; par le modèle (« Reconstruire »), un appel par passage puis un par communauté, bien plus cher. Une mise à jour refait l'extraction du document, la fusion, les communautés et les résumés touchés. Chaque requête coûte un appel (local) ou trois appels « map » (global), puis la génération."
+    literature_text: "Hypothèses H2 et H13, soutenues : GraphRAG perd sur les faits simples, gagne en raisonnement complexe, et une requête globale coûte ~377 fois un RAG vectoriel (GraphRAG-Bench) ; il hallucine sur les questions sans réponse (arXiv 2502.11371) ; sa mise à jour coûte ~100 fois plus (EraRAG). H12 : empoisonner moins de 0,05 % du corpus fait chuter son exactitude de 95 % à 50 % (arXiv 2508.04276). Le constructeur et la requête locale de l'atelier s'inspirent de LightRAG, en plus simple ; le graphe livré est calculé par une règle, sans modèle."
+    bench_text: ""
+    sources:
+      - label_text: "GraphRAG-Bench : GraphRAG perd sur les faits simples, requête globale ~377 fois un RAG vectoriel"
+        url: "https://arxiv.org/html/2506.05690v3"
+      - label_text: "arXiv 2502.11371 : GraphRAG hallucine sur les questions sans réponse"
+        url: "https://arxiv.org/html/2502.11371v2"
+      - label_text: "arXiv 2508.04276 : empoisonner moins de 0,05 % du corpus fait chuter GraphRAG de 95 % à 50 %"
+        url: "https://arxiv.org/abs/2508.04276"
+      - label_text: "EraRAG : la mise à jour d'un graphe coûte ~100 fois plus"
+        url: "https://arxiv.org/pdf/2506.20963v1.pdf"
+      - label_text: "LightRAG (Guo et al., 2024), graphe d'entités et requête locale ou globale : l'inspiration du constructeur"
+        url: "https://arxiv.org/abs/2410.05779"
