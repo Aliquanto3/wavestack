@@ -493,3 +493,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:57 · 12.20 · review · relecture de la spec lancée · 5a11c7c
 - 2026-10-25 11:59 · 12.2 · second-avis · 0 high, 4 medium (401/402/403 pris pour « modèle inconnu », budget global incomplet à la reprise, corps d'erreur brut hors liste blanche, items tout en erreur sortis des métriques), 3 low ; CI sans dépendance manquante · 1621e21
 - 2026-10-25 11:59 · 12.2 · review · lancé (Opus ; fusion de l'intégration, lecture des cartes de Strands Decider 2B et AnyJev) · 1621e21
+- 2026-10-25 12:07 · 12.2 · attente humaine · téléchargements à ~20 Ko/s avec coupures vers Hugging Face : reranker bge-reranker-v2-m3 à 36 / 438 Mo (curl en reprise, toujours en cours), ONNX deberta_xsmall et mdeberta non téléchargés ; Qwen3.5-2B présent ; à finir sur un meilleur réseau, puis vérifier taille et sha256 du reranker · —
+- 2026-10-25 12:07 · 12.2 · décision · révisions des ONNX non épinglées dans le banc v2s6 (revision vide) : épinglage demandé au reviewer de 12.2 · —
