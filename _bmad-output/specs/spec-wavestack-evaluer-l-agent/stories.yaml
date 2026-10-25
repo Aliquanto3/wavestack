@@ -1,0 +1,67 @@
+- id: "1"
+  title: Contrat d'un cas et moteur de vérification sur le journal
+  description: >-
+    CAP-1 : modèles d'un cas, chargement des cas fournis et du fichier de séance, et verify()
+    pure sur les enveloppes d'un cas, catalogue fermé de contrat-des-cas.md ; contrat partagé
+    par les stories 2 à 5.
+  invoke_dev_with: >-
+    Opus. Module src/wavestack/agent_eval/ (cases.py, checks.py, store.py), sans route ni front.
+    Noms des champs, des kind et des statuts exactement ceux de contrat-des-cas.md ; les annoncer
+    dans le rapport. Tests sur des listes d'Envelope construites : chaque vérification dans les
+    deux sens, témoin absent, sous-agent compté dans le plafond. store.py : écriture atomique
+    comme memory.write_memory, fichier illisible signalé, reset() n'y touche pas (test).
+- id: "6"
+  title: Glossaire du harnais
+  description: >-
+    CAP-6 : 40 à 60 termes en fr, en, de, ouverts depuis la navigation commune des pages,
+    citables depuis les textes des briques et des scénarios.
+  invoke_dev_with: >-
+    Sonnet, contenu. content/glossary.yaml et surcouches ; glossary.js chargé par les six pages ;
+    content/mcp_local/glossary.yaml inchangé. Fixer la syntaxe de citation d'un terme et
+    l'annoncer dans le rapport (la story 5 s'en sert). Tests : miroir i18n, terme cité existant,
+    E2E d'ouverture.
+- id: "2"
+  title: Suite de cas fournie et contrôle dans les deux sens
+  description: >-
+    CAP-2 : environ 8 cas fournis en fr, en, de, dont un issu de recette, et le test qui joue
+    chacun avec un faux moteur scripté (réussit) et un faux moteur inactif (échoue).
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Sonnet. Cas dans content/agent_cases.yaml et content/i18n/{en,de}/. Fournir un outil
+    (tools/eval/) qui joue chaque cas 3 fois sur le modèle local et propose max + 1 comme
+    plafond ; plafonds provisoires en attendant la mesure d'Anaël sur le PC cible (point de
+    contrôle : liste finale et plafonds). Le test des deux sens passe par la session (booted_session),
+    pas seulement par verify(). Cas de recette : citer la recette d'origine dans provenance.
+- id: "3"
+  title: « En faire un cas » depuis un tour
+  description: >-
+    CAP-3 : action sur un tour de la Vue humain, formulaire pré-rempli depuis le journal,
+    verdict immédiat sur le tour d'origine et enregistrement dans agent_cases.json (vues.md).
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Sonnet. Disposition : maquette-evaluer-l-agent.html, section 1. Reconstitution du brouillon
+    (configuration, historique, outils appelés) en fonction pure au seq du turn_started d'origine.
+    Routes dans web/app.py, front dans web/static/agent-eval.js importé par app.js ; toucher
+    app.js le moins possible (story 4 le partage). Textes main.agent_eval.* en fr, en, de. E2E
+    de vues.md.
+- id: "4"
+  title: "Vue « Évaluer l'agent » : lancer, k essais, comparer"
+  description: >-
+    CAP-4 : lancement séquentiel et annulable de la suite ou d'un cas, k = 1 ou 3, trace du
+    cas, exécutions de la séance et comparaison cas par cas, « Effacer mes cas » (vues.md).
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Opus. Disposition : maquette-evaluer-l-agent.html, section 2 ; lancement : brownfield.md,
+    « Lancer un cas ». Annoncer dans le rapport le choix entre nouvel état de session et verrou.
+    Tester avec le faux moteur : arrêt en cours de suite, plafond max_session_usd atteint,
+    fenêtre exigée (non lancé, aucun rechargement), H5 refusé par le harnais, on_overflow,
+    configuration rétablie après l'exécution, résultats gardés après reset(). E2E de vues.md.
+- id: "5"
+  title: Module 9 « Évaluer l'agent » et contenus
+  description: >-
+    CAP-5 : module de 45 min et 3 ou 4 scénarios en fr, en, de, textes pédagogiques, accroche
+    du module 1, programme à 9 modules et 7 h 45 partout.
+  invoke_dev_with: >-
+    Sonnet, contenu. Gestes écrits dans description_text. Mettre à jour docs/guide.md:78-80,
+    README.md:19, tools/demo/compose.py:358, tests/test_program.py ; citer les termes du
+    glossaire de la story 6. Mettre à jour la recette (docs/recette) si un parcours change.

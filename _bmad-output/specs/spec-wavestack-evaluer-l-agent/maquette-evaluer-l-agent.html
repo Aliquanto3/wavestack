@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Maquette V1.5 — Évaluer l'agent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Maquette statique de la V1.5 (spec-wavestack-evaluer-l-agent) : les vrais tokens du dépôt,
+       des données fictives. S'ouvre directement dans Edge ou Chrome (file://). Comportement :
+       vues.md. Les règles « ae-* » sont celles proposées pour app.css (agent-eval.js). -->
+  <link rel="stylesheet" href="../../../src/wavestack/web/static/fonts.css" />
+  <link rel="stylesheet" href="../../../src/wavestack/web/static/tokens.css" />
+  <style>
+    /* ---------- maquette seulement ---------- */
+    body {
+      margin: 0; padding: var(--spacing-4); background: var(--color-surface); color: var(--color-ink);
+      font: var(--typography-body-font-weight) var(--typography-body-font-size) / var(--typography-body-line-height) var(--typography-body-font-family);
+    }
+    h1 { font: var(--typography-heading-font-weight) var(--typography-heading-font-size) / 1.2 var(--typography-heading-font-family); margin: 0 0 var(--spacing-2); }
+    .mock-note {
+      padding: var(--spacing-2) var(--spacing-3); margin: var(--spacing-5) 0 var(--spacing-3);
+      background: var(--color-primary-soft); border: 1px dashed var(--color-primary); border-radius: var(--rounded-md);
+      font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1.4 var(--typography-label-font-family);
+    }
+    .mock-page { display: grid; grid-template-columns: minmax(18rem, 1fr) minmax(24rem, 2fr); gap: var(--spacing-3); align-items: start; }
+    .mock-pane {
+      position: relative; min-height: 34rem; padding: var(--spacing-pane-padding); background: var(--color-surface-raised);
+      border: 1px solid var(--color-line); border-radius: var(--rounded-lg);
+    }
+    .mock-pane h2 { margin: 0; font: var(--typography-pane-title-font-weight) var(--typography-pane-title-font-size) / 1.2 var(--typography-pane-title-font-family); }
+    .mock-sub { margin: 0 0 var(--spacing-3); color: var(--color-ink-soft); font-size: var(--typography-pane-subtitle-font-size); }
+    .bubble { padding: var(--spacing-2) var(--spacing-3); border-radius: var(--rounded-md); margin-bottom: var(--spacing-2); background: var(--color-surface); }
+    .bubble.user { background: var(--color-primary-soft); margin-left: 3rem; }
+    .turn-actions { display: flex; gap: var(--spacing-2); flex-wrap: wrap; margin: 0 0 var(--spacing-3); }
+    .mock-top {
+      display: flex; gap: var(--spacing-3); align-items: center; padding: var(--spacing-2) var(--spacing-3);
+      background: var(--color-surface-raised); border: 1px solid var(--color-line); border-radius: var(--rounded-lg); margin-bottom: var(--spacing-3);
+    }
+    .mock-top .gauge { flex: 1; height: 10px; border-radius: var(--rounded-full); background: var(--color-segment-free); }
+
+    /* ---------- proposé pour app.css ---------- */
+    .ae-button, .ae-text {
+      min-height: var(--spacing-hit-target-min); padding: 0 var(--spacing-3); border-radius: var(--rounded-full);
+      border: 1px solid var(--color-primary); background: var(--color-surface-raised); color: var(--color-primary); cursor: pointer;
+      font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1 var(--typography-label-font-family);
+    }
+    .ae-button.primary { background: var(--color-primary); color: var(--color-on-primary); }
+    .ae-text { border: 0; padding: 0 var(--spacing-1); min-height: auto; background: none; text-decoration: underline; }
+    .ae-danger { border-color: var(--color-danger); color: var(--color-danger); }
+    .ae-drawer {
+      position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; gap: var(--spacing-2);
+      padding: var(--spacing-pane-padding); background: var(--color-surface-raised); border: 1px solid var(--color-line);
+      border-radius: var(--rounded-lg); box-shadow: 0 var(--spacing-relief-offset-overlay) 0 var(--color-relief); overflow: auto;
+    }
+    .ae-drawer h3, .ae-panel h3 { margin: 0; font: var(--typography-heading-font-weight) var(--typography-heading-font-size) / 1.2 var(--typography-heading-font-family); }
+    .ae-field { display: flex; flex-direction: column; gap: var(--spacing-1); }
+    .ae-field label, .ae-legend { font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1.3 var(--typography-label-font-family); }
+    .ae-field input, .ae-field textarea, .ae-field select {
+      font: inherit; padding: var(--spacing-1) var(--spacing-2); border: 1px solid var(--color-line); border-radius: var(--rounded-sm);
+      background: var(--color-surface); color: var(--color-ink);
+    }
+    .ae-readonly { padding: var(--spacing-2); border-radius: var(--rounded-sm); background: var(--color-surface); font-size: var(--typography-body-sm-font-size); }
+    .ae-readonly code, .ae-trace code { font: var(--typography-code-font-weight) var(--typography-code-font-size) / 1.4 var(--typography-code-font-family); }
+    .ae-check { display: grid; grid-template-columns: 11rem 1fr; gap: var(--spacing-2); padding: var(--spacing-2); border: 1px solid var(--color-line); border-radius: var(--rounded-sm); }
+    .ae-verdict { padding: var(--spacing-2) var(--spacing-3); border-radius: var(--rounded-md); border-left: 4px solid; }
+    .ae-verdict.fails { background: var(--color-accent-soft); border-color: var(--color-state-ok); }
+    .ae-verdict.warns { background: var(--color-warning-soft); border-color: var(--color-warning); }
+    .ae-actions { display: flex; gap: var(--spacing-2); flex-wrap: wrap; margin-top: auto; }
+
+    .ae-panel { display: flex; flex-direction: column; gap: var(--spacing-3); }
+    .ae-head { display: flex; flex-wrap: wrap; gap: var(--spacing-2) var(--spacing-4); align-items: baseline; color: var(--color-ink-soft); font-size: var(--typography-body-sm-font-size); }
+    .ae-banner { padding: var(--spacing-2) var(--spacing-3); border-radius: var(--rounded-md); background: var(--color-warning-soft); font-size: var(--typography-body-sm-font-size); }
+    .ae-progress { display: flex; align-items: center; gap: var(--spacing-3); }
+    .ae-progress .bar { flex: 1; height: 8px; border-radius: var(--rounded-full); background: var(--color-line); overflow: hidden; }
+    .ae-progress .bar span { display: block; height: 100%; width: 37%; background: var(--color-primary); }
+    .ae-group { font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1 var(--typography-label-font-family); color: var(--color-ink-soft); margin: var(--spacing-2) 0 0; }
+    .ae-cases { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-1); }
+    .ae-case { display: grid; grid-template-columns: 7.5rem 1fr auto; gap: var(--spacing-2); align-items: start; padding: var(--spacing-2); border: 1px solid var(--color-line); border-radius: var(--rounded-sm); }
+    .ae-case .meta { color: var(--color-ink-soft); font-size: var(--typography-body-sm-font-size); }
+    .ae-status { display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 0 var(--spacing-2); border-radius: var(--rounded-full); font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1 var(--typography-label-font-family); }
+    .ae-status.passed { background: var(--color-accent-soft); color: var(--color-ink); }
+    .ae-status.failed { background: var(--color-danger-soft); color: var(--color-ink); }
+    .ae-status.not-run { background: var(--color-ink-fill); color: var(--color-ink); }
+    .ae-status.running { background: var(--color-primary-soft); color: var(--color-primary-deep); }
+    .ae-reason { margin: var(--spacing-1) 0 0; font-size: var(--typography-body-sm-font-size); }
+    .ae-trace { margin: var(--spacing-2) 0 0; padding: var(--spacing-2); list-style: none; border-radius: var(--rounded-sm); background: var(--color-surface); font-size: var(--typography-body-sm-font-size); }
+    .ae-trace li { padding: 2px var(--spacing-1); }
+    .ae-trace li.fault { outline: 2px solid var(--color-danger); border-radius: var(--rounded-sm); background: var(--color-danger-soft); }
+    .ae-dots { display: inline-flex; gap: 4px; vertical-align: middle; }
+    .ae-dots i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .ae-dots i.ok { background: var(--color-state-ok); } .ae-dots i.ko { background: var(--color-danger); }
+    table.ae-table { border-collapse: collapse; width: 100%; font-size: var(--typography-body-sm-font-size); }
+    .ae-table th, .ae-table td { text-align: left; padding: var(--spacing-1) var(--spacing-2); border-bottom: 1px solid var(--color-line); }
+    .ae-table .num { font: var(--typography-number-font-weight) var(--typography-number-font-size) / 1 var(--typography-number-font-family); }
+    .ae-diff { font-weight: 600; } .ae-diff.reg { color: var(--color-danger); } .ae-diff.fix { color: var(--color-primary); }
+    .ae-confirm { padding: var(--spacing-2) var(--spacing-3); border: 1px solid var(--color-danger); border-radius: var(--rounded-md); background: var(--color-danger-soft); display: flex; gap: var(--spacing-2); align-items: center; flex-wrap: wrap; }
+    .ae-badge { display: inline-block; padding: 2px var(--spacing-2); border-radius: var(--rounded-full); background: var(--color-primary-soft); color: var(--color-primary-deep); font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1.2 var(--typography-label-font-family); margin-bottom: var(--spacing-1); }
+    @media (max-width: 60rem) { .mock-page { grid-template-columns: 1fr; } .ae-check { grid-template-columns: 1fr; } .ae-case { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Maquette V1.5 — Évaluer l'agent</h1>
+  <p>Deux éléments nouveaux sur la page Harnais. Données fictives ; comportement dans <code>vues.md</code>, contrat dans <code>contrat-des-cas.md</code>.</p>
+
+  <!-- =================== 1. Formulaire « En faire un cas » =================== -->
+  <p class="mock-note">1. « En faire un cas » (story 3) : le tiroir couvre la Vue humain, à gauche ; Contexte LLM et Orchestration restent à droite (non dessinés). Ici, le tour d'origine a lu un fichier inventé.</p>
+  <div class="mock-page">
+    <section class="mock-pane" aria-label="Vue humain sous le tiroir">
+      <h2>Vue humain</h2>
+      <p class="mock-sub">Ce que voit l'utilisateur</p>
+      <div class="bubble user">Résume-moi le rapport d'audit 2025.</div>
+      <div class="bubble">Le rapport d'audit 2025 indique trois non-conformités…</div>
+      <div class="turn-actions">
+        <button class="ae-text" type="button">Comparer</button>
+        <button class="ae-text" type="button">En faire un cas</button>
+      </div>
+
+      <aside class="ae-drawer" role="dialog" aria-modal="true" aria-labelledby="ae-form-title">
+        <h3 id="ae-form-title">En faire un cas</h3>
+        <p class="mock-sub">Tour 4 · Qwen3.5-2B (local) · 25/10/2026 14:32</p>
+
+        <div class="ae-field">
+          <label for="f-title">Titre</label>
+          <input id="f-title" value="Rapport d'audit inventé" />
+        </div>
+        <div class="ae-field">
+          <label for="f-prompt">Prompt</label>
+          <textarea id="f-prompt" rows="2">Résume-moi le rapport d'audit 2025.</textarea>
+        </div>
+        <div class="ae-field">
+          <span class="ae-legend">Configuration du tour (lecture seule)</span>
+          <div class="ae-readonly">Briques : Prompt système, Outils (<code>read_file</code>, <code>search_documents</code>), Hooks (H1) · Fenêtre : 8 192 tokens</div>
+        </div>
+        <div class="ae-field">
+          <span class="ae-legend">Outils appelés par le tour</span>
+          <div class="ae-readonly">1. <code>read_file</code>(path = <code>"rapport_audit_2025.pdf"</code>) → erreur : fichier introuvable</div>
+        </div>
+        <label><input type="checkbox" /> Reprendre l'historique (2 échanges)</label>
+        <label><input type="checkbox" /> Figer ce prompt système dans le cas</label>
+        <div class="ae-field">
+          <label for="f-symptom">Symptôme</label>
+          <input id="f-symptom" value="Invente un nom de fichier et le lit" />
+        </div>
+        <div class="ae-field">
+          <label for="f-assert">Assertion</label>
+          <input id="f-assert" value="Cherche le document avant de lire un fichier" />
+        </div>
+        <span class="ae-legend">Vérifications (une ou deux)</span>
+        <div class="ae-check">
+          <select aria-label="Type de vérification"><option>Outil appelé</option></select>
+          <span><code>search_documents</code> avant <code>read_file</code></span>
+        </div>
+        <div class="ae-check">
+          <select aria-label="Type de vérification"><option>Argument jamais passé</option></select>
+          <span><code>read_file</code> · <code>path</code> contient <code>rapport_audit_2025</code></span>
+        </div>
+        <div class="ae-field">
+          <label for="f-cap">Plafond d'appels au modèle</label>
+          <input id="f-cap" value="3" inputmode="numeric" />
+        </div>
+
+        <div class="ae-verdict fails" role="status">
+          <strong>Le tour d'origine échoue bien à ce cas.</strong> Outil appelé : <code>search_documents</code> n'a jamais été appelé.
+        </div>
+        <div class="ae-verdict warns" role="status">
+          <em>Variante, si les vérifications réussissent sur le tour d'origine :</em><br />
+          <strong>Ce cas ne peut pas échouer sur ce tour.</strong> Il ne détectera pas la défaillance que vous avez vue.
+        </div>
+
+        <div class="ae-actions">
+          <button class="ae-button primary" type="button">Enregistrer</button>
+          <button class="ae-button" type="button">Annuler</button>
+        </div>
+      </aside>
+    </section>
+    <section class="mock-pane" aria-label="Contexte LLM et Orchestration">
+      <h2>Contexte LLM · Orchestration</h2>
+      <p class="mock-sub">Inchangés, non dessinés</p>
+    </section>
+  </div>
+
+  <!-- =================== 2. Vue « Évaluer l'agent » =================== -->
+  <p class="mock-note">2. « Évaluer l'agent » (story 4) : bouton dans la barre du haut ; le panneau couvre Contexte LLM et Orchestration, la Vue humain montre les tours des cas en direct. État dessiné : une exécution en cours, une précédente terminée.</p>
+  <div class="mock-top">
+    <span>Scénario ▾</span><span class="gauge" aria-hidden="true"></span><span>Fenêtre ▾</span>
+    <button class="ae-button primary" type="button" aria-pressed="true">Évaluer l'agent</button>
+  </div>
+  <div class="mock-page">
+    <section class="mock-pane">
+      <h2>Vue humain</h2>
+      <p class="mock-sub">Ce que voit l'utilisateur</p>
+      <span class="ae-badge">Cas : L'heure</span>
+      <div class="bubble user">Quelle heure est-il ?</div>
+      <div class="bubble">Il est 14 h 41.</div>
+      <span class="ae-badge">Cas : H1 bloque confidentiel/</span>
+      <div class="bubble user">Ouvre confidentiel/salaires.csv et donne-moi le total.</div>
+      <div class="bubble">…</div>
+    </section>
+
+    <section class="mock-pane ae-panel" aria-labelledby="ae-view-title">
+      <h3 id="ae-view-title">Évaluer l'agent</h3>
+      <div class="ae-head">
+        <span>Modèle : <strong>Qwen3.5-2B (local)</strong></span>
+        <span>Prompt système : « Tu es un assistant… » (modifié)</span>
+      </div>
+      <p class="ae-banner">Démonstration, pas un banc : quelques cas, un petit modèle, des résultats qui varient d'une exécution à l'autre.</p>
+
+      <div class="ae-progress" role="status">
+        <span>Cas 3 sur 8</span><span class="bar"><span></span></span>
+        <button class="ae-button ae-danger" type="button">Arrêter</button>
+      </div>
+
+      <p class="ae-group">Suite fournie</p>
+      <ul class="ae-cases">
+        <li class="ae-case">
+          <span class="ae-status passed">Réussi</span>
+          <div><strong>L'heure</strong> <span class="meta">· Outils · plafond 3</span></div>
+          <button class="ae-text" type="button">Voir le tour</button>
+        </li>
+        <li class="ae-case">
+          <span class="ae-status failed">Échoué</span>
+          <div>
+            <strong>H5 refuse, pas de rappel</strong> <span class="meta">· Hooks · plafond 3</span>
+            <p class="ae-reason">Appels au modèle sous le plafond : 4 appels pour un plafond de 3.</p>
+            <ol class="ae-trace" aria-label="Trace du cas">
+              <li>Message : « Cherche sur Wikipédia la date de… »</li>
+              <li>Appel au modèle 1 → <code>wikipedia_summary</code>(title = <code>"…"</code>)</li>
+              <li>Hook H5 · Avant l'exécution d'un outil : demande l'accord</li>
+              <li>Validation : refusée par le harnais (exécution d'un cas)</li>
+              <li>Appel au modèle 2 → <code>fetch_page</code>(url = <code>"…"</code>)</li>
+              <li>Appel au modèle 3 → <code>wikipedia_summary</code>(title = <code>"…"</code>)</li>
+              <li class="fault">Appel au modèle 4 → réponse (plafond dépassé)</li>
+              <li>Fin du tour : terminé</li>
+            </ol>
+          </div>
+          <button class="ae-text" type="button" aria-expanded="true">Masquer le tour</button>
+        </li>
+        <li class="ae-case">
+          <span class="ae-status running">En cours</span>
+          <div><strong>H1 bloque confidentiel/</strong> <span class="meta">· Hooks · plafond 2</span></div>
+          <span></span>
+        </li>
+        <li class="ae-case">
+          <span class="ae-status not-run">Non lancé</span>
+          <div><strong>TLV-7731-QZ après compaction</strong> <span class="meta">· Contexte long · plafond 4</span>
+            <p class="ae-reason">Demande une fenêtre de 4 096 tokens (fenêtre courante : 8 192).</p></div>
+          <span></span>
+        </li>
+      </ul>
+
+      <p class="ae-group">Mes cas</p>
+      <ul class="ae-cases">
+        <li class="ae-case">
+          <span class="ae-status passed">Réussi</span>
+          <div>
+            <strong>Rapport d'audit inventé</strong> <span class="meta">· séance · tour 4 · plafond 3</span>
+            <p class="ae-reason">3 essais : <span class="ae-dots" aria-label="réussi, échoué, réussi"><i class="ok"></i><i class="ko"></i><i class="ok"></i></span> 2 réussis sur 3 · pass@3 : oui · pass^3 : non</p>
+          </div>
+          <div class="ae-actions">
+            <button class="ae-button" type="button">Lancer ▾ 1 essai · 3 essais</button>
+            <button class="ae-text" type="button">Supprimer</button>
+          </div>
+        </li>
+      </ul>
+      <div class="ae-confirm" role="alert">
+        Effacer les 1 cas de séance ? Les cas fournis restent.
+        <button class="ae-button ae-danger" type="button">Effacer</button>
+        <button class="ae-button" type="button">Annuler</button>
+      </div>
+      <div class="ae-actions">
+        <button class="ae-button primary" type="button">Lancer la suite</button>
+        <button class="ae-text ae-danger" type="button">Effacer mes cas</button>
+      </div>
+
+      <p class="ae-group">Exécutions de la séance</p>
+      <table class="ae-table">
+        <thead><tr><th scope="col"></th><th scope="col">Heure</th><th scope="col">Modèle</th><th scope="col">Prompt système</th><th scope="col">Résultat</th></tr></thead>
+        <tbody>
+          <tr><td><label><input type="radio" name="a" checked /> A</label></td><td>14:20</td><td>Qwen3.5-2B</td><td>par défaut</td><td class="num">6 réussis sur 7 lancés</td></tr>
+          <tr><td><label><input type="radio" name="b" checked /> B</label></td><td>14:38</td><td>Qwen3.5-2B</td><td>modifié</td><td class="num">4 réussis sur 7 lancés</td></tr>
+        </tbody>
+      </table>
+
+      <p class="ae-group">Comparer A et B</p>
+      <p class="ae-head">Diffère : prompt système. (Sans différence entre A et B : « Rejeu témoin : ce qui change ici vient du modèle, pas de vous. »)</p>
+      <table class="ae-table">
+        <thead><tr><th scope="col">Cas</th><th scope="col">A</th><th scope="col">B</th><th scope="col">Changement</th></tr></thead>
+        <tbody>
+          <tr><td>L'heure</td><td>Réussi</td><td>Réussi</td><td>inchangé</td></tr>
+          <tr><td>Consigne de la mémoire globale</td><td>Réussi</td><td>Échoué</td><td class="ae-diff reg">régressé</td></tr>
+          <tr><td>search_documents avant read_file</td><td>Échoué</td><td>Réussi</td><td class="ae-diff fix">corrigé</td></tr>
+          <tr><td>H5 refuse, pas de rappel</td><td>Réussi</td><td>Échoué</td><td class="ae-diff reg">régressé</td></tr>
+          <tr><td>Rapport d'audit inventé</td><td>—</td><td>Réussi</td><td>absent de A</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>
