@@ -121,6 +121,11 @@ def workshop_plan(prompt: str, message: str) -> str | None:
         r"Le résumé de cette communauté|The summary of this community|dieser Community", message
     ):
         return "Résumé de communauté écrit par le faux llama-server."
+    # V1.2 story 12: a summary of RAPTOR's tree.
+    if re.search(
+        r"Le résumé de ces textes|The summary of these texts|Zusammenfassung dieser Texte", message
+    ):
+        return "Résumé de RAPTOR écrit par le faux llama-server."
     if "CHOICE: NONE" in prompt:
         listed = [line for line in lines if re.match(r"^\d+\. ", line)]
         if len(listed) > 12:  # the documents

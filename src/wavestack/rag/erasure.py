@@ -38,6 +38,7 @@ from wavestack.rag.graph import build_graph
 from wavestack.rag.index import passage_text
 from wavestack.rag.lab import bm25, bm25_terms, lexical_index
 from wavestack.rag.pageindex import build_tree
+from wavestack.rag.raptor import build_tree as build_raptor
 from wavestack.rag.wiki import build_wiki
 
 FILE = "rag_erasure.yaml"
@@ -77,6 +78,7 @@ MEASURED = (
     "pageindex_tree",
     "graph_entities",
     "graph_communities",
+    "raptor_summaries",  # V1.2 story 12
     "wiki_pages",  # V1.2 story 14: the rule's wiki, recompiled in memory
 )
 MODE_OF_MEASURED = {
@@ -84,6 +86,8 @@ MODE_OF_MEASURED = {
     # V1.2 story 13: the rule's graph, recomputed in memory (its entities, its communities)
     "graph_entities": "rebuild",
     "graph_communities": "rebuild",
+    # V1.2 story 12: the rule's RAPTOR tree, recomputed in memory (its summaries)
+    "raptor_summaries": "rebuild",
     "wiki_pages": "rebuild",  # V1.2 story 14
     "chunks": "delete",
     "bm25": "delete",
@@ -157,6 +161,7 @@ class Place(_Strict):
             "pageindex_tree",
             "graph_entities",
             "graph_communities",
+            "raptor_summaries",
             "wiki_pages",  # V1.2 story 14
         ]
         | None
@@ -300,6 +305,9 @@ class Copies(NamedTuple):
     entities_without: list[str] = []
     communities_with: list[str] = []
     communities_without: list[str] = []
+    # V1.2 story 12: RAPTOR's tree by the rule, a summary each, with and without the sentinel.
+    raptor_with: list[str] = []
+    raptor_without: list[str] = []
     # V1.2 story 14: the LLM Wiki compiled by the rule, a page each (its whole Markdown, what
     # the wiki copies of the documents), with the sentinel and without it.
     wiki_with: list[str] = []
@@ -331,6 +339,10 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         ]
         return list(names.values()), communities
 
+    def raptor(documents: list[DocText]) -> list[str]:
+        built = build_raptor(documents, lang, content.chunk_max_chars)
+        return [n.summary_text for n in built.nodes.values()]
+
     graph_with, graph_without = graph(docs_with), graph(docs_without)
     shipped = load_book(lang).shipped  # the shipped file alone, never the rebuilt one
     index = lexical_index([passage_text(c) for c in chunks], lang)
@@ -352,6 +364,8 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         entities_without=graph_without[0],
         communities_with=graph_with[1],
         communities_without=graph_without[1],
+        raptor_with=raptor(docs_with),
+        raptor_without=raptor(docs_without),
         wiki_with=[p.text for p in build_wiki(docs_with, lang).values()],
         wiki_without=[p.text for p in build_wiki(docs_without, lang).values()],
     )
@@ -375,6 +389,8 @@ def _items(place: Place, copies: Copies, erased: bool, rebuilt: set[str]) -> lis
         return copies.entities_without if rebuilding else copies.entities_with
     if place.measured == "graph_communities":
         return copies.communities_without if rebuilding else copies.communities_with
+    if place.measured == "raptor_summaries":  # V1.2 story 12
+        return copies.raptor_without if rebuilding else copies.raptor_with
     if place.measured == "wiki_pages":  # V1.2 story 14
         return copies.wiki_without if rebuilding else copies.wiki_with
     if place.measured == "source":
