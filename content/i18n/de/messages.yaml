@@ -2319,3 +2319,37 @@ security:
       statement: "Die Kosten sind Schätzungen."
       reason: "In der Konfiguration angegebene Preise; „≈“, wenn die Nutzung vom Anbieter nicht gemessen wird."
       production: "Abgleich mit der Rechnung des Anbieters."
+
+# V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
+agent_eval:
+  incomplete: "unvollständige Runde"
+  decisions:
+    block: "blockieren"
+    ask_human: "Zustimmung einholen"
+  tool_called:
+    passed: "{tool} aufgerufen"
+    missing: "{tool} nie aufgerufen"
+    in_order: "{tool} vor {before} aufgerufen"
+    late: "{before} vor {tool} aufgerufen"
+  tool_not_called:
+    passed: "{tool} nie aufgerufen"
+    failed: "{tool} aufgerufen"
+  argument_never:
+    passed: "{tool} nie mit „{contains}“ in {argument} aufgerufen"
+    failed: "{tool} mit {argument} = „{value}“ aufgerufen"
+  model_calls_max:
+    one: "{count} Modellaufruf bei einer Obergrenze von {max}"
+    other: "{count} Modellaufrufe bei einer Obergrenze von {max}"
+  answer_contains:
+    passed: "die Antwort enthält „{text}“"
+    failed: "die Antwort enthält „{text}“ nicht"
+  hook_decided:
+    passed: "{hook} hat entschieden: {decision}"
+    failed: "{hook} hat nie entschieden: {decision}"
+  subagent_called:
+    passed: "Sub-Agent aufgerufen"
+    failed: "Sub-Agent nie aufgerufen"
+  turn_completed:
+    passed: "Runden ohne Fehler beendet"
+    status: "eine Runde endete mit „{status}“"
+    error: "Fehler des Harness: {message}"

@@ -1553,6 +1553,11 @@ def memory_path() -> Path:
     return data_dir() / "memory.json"
 
 
+def agent_cases_path() -> Path:
+    """The session's agent cases (V1.5 CAP-3, D4): user data, never touched by the reset."""
+    return data_dir() / "agent_cases.json"
+
+
 def audit_path() -> Path:
     """The audit log H2 feeds, written by the session only (AD-20, AD-23)."""
     return data_dir() / "audit.log"
