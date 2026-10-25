@@ -2,7 +2,7 @@
 title: 'V1.5 story 4 : vue « Évaluer l''agent » (lancer, k essais, comparer)'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: ''
 review_loop_iteration: 0
 context: ['_bmad-output/specs/spec-wavestack-evaluer-l-agent/SPEC.md', '_bmad-output/specs/spec-wavestack-evaluer-l-agent/vues.md', '_bmad-output/specs/spec-wavestack-evaluer-l-agent/brownfield.md', '_bmad-output/specs/spec-wavestack-evaluer-l-agent/contrat-des-cas.md']
@@ -669,3 +669,31 @@ Les points ouverts du dev sont tranchés ci-dessous. Ceux qui reviennent à Ana�
 12. **Interrogation de `GET /state` toutes les secondes, sans SSE** : confirmé, comme la vue Évaluer du RAG. La réponse est petite (au plus 20 résumés d'exécution), l'interrogation ne tourne que vue ouverte et pendant une exécution, et le direct passe déjà par le flux du journal (bulles et badges de la Vue humain).
 13. **Fenêtre dans les tests** : `check_window=False`, argument nommé de `start`, réservé aux tests et borné par un test de sources (voir `start`). En formation, un cas dont la fenêtre diffère est toujours « Non lancé ». Le cas Talvane (4 096) joué sur une session de test de 16 384 n'est « non lancé » que dans la contre-épreuve.
 14. **Complexité** : les enveloppes d'un essai sont collectées par l'abonné, pas par `journal.events_since`, qui parcourt tout le journal de la séance (une liste non bornée) à chaque essai. Les exécutions sont bornées à 20. Le front recharge `GET /runs/{id}` seulement quand `index` ou `trial` change.
+
+## Réalisation de la partie 4a (2026-10-25)
+
+Statut : 4a livrée, en revue ; 4b (vue) à faire. Base : `origin/main` avec les stories 1, 2, 3 et 6.
+
+**API pour 4b** (préfixe `/api/agent_eval`, erreurs `{"detail": texte}` dans la langue de la session) :
+- `GET /cases` → `{provided: [CaseSummary], session: [CaseSummary], session_error: "unreadable"|null}` ;
+- `DELETE /cases/{id}` → `{deleted: true}` ; 404 `unknown_case` ; 409 `provided_case`, `unreadable`, `running` ;
+- `DELETE /cases` → `{cleared: n}` ; 409 `running` ;
+- `POST /runs` `{case_id: str|null, k: 1|3}` (`extra="forbid"`, `k` vaut 1 par défaut) → 202 `{run_id}` ; 404 `unknown_case` ; 409 raison de session ou `no_case` ; 422 `k_suite`, 422 FastAPI ;
+- `GET /state` → `{header: {model, system_prompt: {start_text, is_default}}, current: null | {run_id, index, total, case_id, trial, k, stop_requested}, runs: [RunSummary]}` ;
+- `GET /runs/{id}` → `Run` (sans `stop_requested` ni `case_tag`) ; `GET /runs/{id}/trace?case_id=&trial=` → `{items: [{seq, context_id, text, fault}], failing, model_calls}` ; `GET /compare?a=&b=` → `Comparison`.
+
+**Écarts et précisions :**
+- `apply_case(case, session_prompt, memory=None)` : `memory`, la mémoire de l'instantané, porte la remise à l'instantané avant chaque cas (décision 6).
+- `AppSession` gagne deux lectures publiques, `system_prompt_state()` et `brick_label()`, et trois aides privées extraites de `_reconfigure` ou de la fin d'exécution : `_clear_conversation()`, `_reconfigured()` et `_end_eval_run()`.
+- L'instantané garde aussi `_sent` et `_sent_rerank` : sans eux, le `bricks_changed` final marquerait « Prend effet au prochain tour ».
+- Les briques inconnues d'un cas vont aussi dans `ignored_ids`, en tête de liste.
+- Comparaison : un cas `not_run` des deux côtés donne `unchanged` (la spec disait « n'arrive pas » ; c'est le cas de la fenêtre). *À revoir par Anaël.*
+- Un arrêt demandé après la fin normale du tour d'un essai garde son verdict ; seul un tour non `completed` passe `not_run` (`cancelled`).
+- Nouvelles clés `agent_eval.run_failed.{message,effect}` pour le `harness_error` d'une exception.
+- Trace : les statuts, limites et stratégies restent les ids bruts, faute de libellés du journal dans `messages.yaml`. Le hook utilise `hook_text` et `point_text`, la validation `hooks.h2.approval.*`.
+- Les enveloppes d'un essai sont collectées par l'abonné et filtrées sur le `run_id` : `journal_floor` n'est pas nécessaire.
+- Le garde est le *middleware* le plus externe. Pendant une exécution, un `POST` d'une autre origine reçoit donc 409 au lieu de 403 : c'est un refus dans les deux cas.
+- `measure_cases.py` : la durée par essai est la moyenne de l'exécution. Une exécution en erreur note son `error_text`.
+- La contre-épreuve de fenêtre est dans `tests/test_agent_cases_provided.py`.
+
+**Reports :** décisions 4 et 5 (plafond en cours de cas, `approve`), en vérification manuelle dans la recette du lot.

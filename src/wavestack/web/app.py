@@ -63,6 +63,7 @@ from wavestack.trace import otel as trace_otel
 from wavestack.trace.envelope import Envelope
 from wavestack.trace.journal import get_journal
 from wavestack.web.agent_case_api import register_agent_case_routes
+from wavestack.web.agent_eval_api import register_agent_eval_routes
 
 STATIC_DIR = Path(__file__).parent / "static"
 log = logging.getLogger(__name__)
@@ -1689,6 +1690,7 @@ def create_app(
         return {"started": True}
 
     register_agent_case_routes(app, app_session)  # V1.5 story 3: « En faire un cas »
+    register_agent_eval_routes(app, app_session)  # V1.5 story 4: « Évaluer l'agent »
 
     @app.post("/api/intentions/clear_cache")
     def clear_cache() -> dict[str, bool]:

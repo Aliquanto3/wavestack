@@ -97,6 +97,7 @@ SessionState = Literal[
     "llm_lab",  # story 29: the « LLM nu » screen generates
     "rag_lab",  # story 30: the RAG workshop runs its chains
     "mcp_lab",  # story 6 (2026-09-30): the MCP workshop connects or calls
+    "agent_eval",  # V1.5 story 4: a run of agent cases, at rest between two cases
 ]
 
 
@@ -199,6 +200,10 @@ class TurnStartedPayload(BaseModel):
     # V1.4 story 4 (CAP-5): a harness turn that summarizes the old exchanges (`compaction`);
     # its `message` is the summary's request.
     kind: Literal["message", "compaction"] = "message"
+    # V1.5 story 4 (CAP-4): the agent case and the run that started this turn; absent
+    # outside a run.
+    case_id: str | None = None
+    run_id: str | None = None
 
 
 class TurnEndedPayload(BaseModel):

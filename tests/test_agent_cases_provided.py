@@ -1,6 +1,7 @@
 """V1.5 story 2 (CAP-2): the eight provided agent cases, checked in both directions through
 the session (a scripted fake engine: the case passes; an idle one: it fails), and the
-measure tool (`tools/eval/`, never run on a real model)."""
+measure tool (`tools/eval/`, never run on a real model). Story 4: the cases are played by the
+session's executor (`session.agent_eval`)."""
 
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ from test_tools import QWEN, call
 
 from wavestack import config
 from wavestack.agent_eval.cases import POSITIVE_KINDS, AgentCase, load_provided_cases
-from wavestack.agent_eval.checks import verify
+from wavestack.trace.journal import get_journal
 
 ROOT = Path(__file__).resolve().parents[1]
 EVAL = ROOT / "tools" / "eval"
@@ -69,27 +70,14 @@ SCRIPTS: dict[str, list[str]] = {
 }
 
 
-@pytest.fixture(scope="module")
-def player():
-    sys.path.insert(0, str(EVAL))
-    try:
-        spec = importlib.util.spec_from_file_location("case_player", EVAL / "case_player.py")
-        module = importlib.util.module_from_spec(spec)
-        sys.modules["case_player"] = module
-        spec.loader.exec_module(module)
-        yield module
-    finally:
-        sys.path.remove(str(EVAL))
-        sys.modules.pop("case_player", None)
-
-
 def _cases(lang: str) -> dict[str, AgentCase]:
     return {c.id: c for c in load_provided_cases(lang)}
 
 
 # The fake engine counts one token per byte, a real small model about 3.5 characters per token:
-# the cases, written for a 4096-token window, are played here on a 16384 one. At 4096 the fake
-# engine overflows on a corpus document, and on the compaction case even for its summary call.
+# the cases, written for a 4096-token window, are played here on a 16384 one, without the
+# executor's window check (`check_window=False`, tests only). At 4096 the fake engine overflows
+# on a corpus document, and on the compaction case even for its summary call.
 def _session(outputs: list[str] | None = None, lang: str = "fr", window: int = 16384):
     if outputs is None:
         engine = FakeEngine(output="", template=QWEN.decode("utf-8"), architecture="qwen35")
@@ -98,10 +86,16 @@ def _session(outputs: list[str] | None = None, lang: str = "fr", window: int = 1
     return engine, booted_session(engine, window=window, values={"language": lang})
 
 
-def _play(player, case: AgentCase, outputs: list[str] | None, lang: str = "fr"):
+def _trial(session, case: AgentCase):
+    """The case played once by the executor; its try."""
+    run_id = session.agent_eval.start([case.id], 1, check_window=False)
+    return session.agent_eval.wait(run_id, timeout=60).cases[0].trials[0]
+
+
+def _play(case: AgentCase, outputs: list[str] | None, lang: str = "fr"):
     engine, session = _session(outputs, lang)
     try:
-        return engine, verify(case, player.play_case(session, case), lang)
+        return engine, _trial(session, case).verdict
     finally:
         session.close()
 
@@ -189,7 +183,7 @@ def test_compaction_case_history_overflows_a_4096_window_and_keeps_the_code_in_t
 
 
 @pytest.mark.parametrize("lang", LANGS)
-def test_compaction_case_summarizes_the_exchange_of_the_code_and_resends_without_it(player, lang):
+def test_compaction_case_summarizes_the_exchange_of_the_code_and_resends_without_it(lang):
     """The plumbing of the compaction, not the model's retention (the summary is scripted):
     at 16384 fake tokens the history overflows, the exchange holding the code leaves the
     history, the summary call reads it, and the resent call sees the code only by the
@@ -197,11 +191,13 @@ def test_compaction_case_summarizes_the_exchange_of_the_code_and_resends_without
     case = _cases(lang)["code_talvane_apres_compaction"]
     summary = "SUMMARY-MARK TLV-7731-QZ"
     engine, session = _session([summary, "TLV-7731-QZ"], lang)
+    mark = get_journal().last_seq()
     try:
-        envelopes = player.play_case(session, case)
-        verdict = verify(case, envelopes, lang)
+        trial = _trial(session, case)
     finally:
         session.close()
+    envelopes = [e for e in get_journal().events_since(mark) if e.turn_id in trial.turn_ids]
+    verdict = trial.verdict
 
     (compacted,) = [e for e in envelopes if e.kind == "history_compacted"]
     assert compacted.payload["strategy"] == "compaction"
@@ -218,10 +214,10 @@ def test_compaction_case_summarizes_the_exchange_of_the_code_and_resends_without
 
 @pytest.mark.parametrize("lang", LANGS)
 @pytest.mark.parametrize("case_id", sorted(SCRIPTS))
-def test_the_case_passes_on_a_scripted_engine(player, case_id, lang):
+def test_the_case_passes_on_a_scripted_engine(case_id, lang):
     case = _cases(lang)[case_id]
 
-    engine, verdict = _play(player, case, SCRIPTS[case_id], lang)
+    engine, verdict = _play(case, SCRIPTS[case_id], lang)
 
     failed = [(c.kind, c.reason_text) for c in verdict.checks if not c.passed]
     assert failed == [] and verdict.passed
@@ -231,20 +227,20 @@ def test_the_case_passes_on_a_scripted_engine(player, case_id, lang):
 
 @pytest.mark.parametrize("lang", LANGS)
 @pytest.mark.parametrize("case_id", sorted(SCRIPTS))
-def test_the_case_fails_on_an_idle_engine(player, case_id, lang):
+def test_the_case_fails_on_an_idle_engine(case_id, lang):
     case = _cases(lang)[case_id]
 
-    _, verdict = _play(player, case, None, lang)
+    _, verdict = _play(case, None, lang)
 
     assert not verdict.passed
     positive = [c for c in verdict.checks if c.kind in POSITIVE_KINDS]
     assert positive and any(not c.passed and c.reason_text.strip() for c in positive)
 
 
-def test_a_slow_loop_of_the_recipe_case_breaks_its_cap(player):
+def test_a_slow_loop_of_the_recipe_case_breaks_its_cap():
     case = _cases("fr")["heure_get_datetime"]
 
-    _, verdict = _play(player, case, [GD] * 3 + [think("Il est 10 h.")])
+    _, verdict = _play(case, [GD] * 3 + [think("Il est 10 h.")])
 
     cap = verdict.checks[-1]
     assert not verdict.passed and not cap.passed
@@ -252,21 +248,21 @@ def test_a_slow_loop_of_the_recipe_case_breaks_its_cap(player):
     assert all(c.passed for c in verdict.checks[:-1])  # only the cap fails
 
 
-def test_the_loop_to_the_step_limit_of_the_recipe_case_fails_every_check(player):
+def test_the_loop_to_the_step_limit_of_the_recipe_case_fails_every_check():
     case = _cases("fr")["heure_get_datetime"]
 
-    engine, verdict = _play(player, case, [GD])  # R22: never answers
+    engine, verdict = _play(case, [GD])  # R22: never answers
 
     assert verdict.model_calls == len(engine.calls) > case.max_model_calls
     assert not verdict.passed and not any(c.passed for c in verdict.checks)
     assert all("tour incomplet" in c.reason_text for c in verdict.checks)
 
 
-def test_h5_calling_the_tool_again_after_the_refusal_breaks_the_cap_of_two(player):
+def test_h5_calling_the_tool_again_after_the_refusal_breaks_the_cap_of_two():
     case = _cases("fr")["h5_refuse_sans_rappel"]
     outputs = [call("public_holidays", year="2026")] * 2 + ["Je ne sais pas."]
 
-    _, verdict = _play(player, case, outputs)
+    _, verdict = _play(case, outputs)
 
     cap = verdict.checks[-1]
     assert (cap.kind, cap.passed) == ("model_calls_max", False)
@@ -278,7 +274,7 @@ def test_h5_calling_the_tool_again_after_the_refusal_breaks_the_cap_of_two(playe
 
 
 @pytest.fixture
-def measure_module(player):
+def measure_module():
     sys.path.insert(0, str(EVAL))
     try:
         spec = importlib.util.spec_from_file_location("measure_cases", EVAL / "measure_cases.py")
@@ -326,16 +322,16 @@ def test_measure_proposes_nothing_without_a_passed_try_and_survives_an_error(
 ):
     case = _cases("fr")["heure_get_datetime"]
     _, session = _session([GD])  # a loop to the step limit, every try
-    real_play = measure_module.play_case
-    plays = iter([real_play, real_play, None])
+    real_apply = session.apply_case
+    applied = []
 
-    def play(session, case):  # noqa: ANN001
-        fn = next(plays)
-        if fn is None:
+    def apply(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202 - the third try fails
+        applied.append(1)
+        if len(applied) == 3:
             raise TimeoutError("case heure_get_datetime: the session did not come back to idle")
-        return fn(session, case)
+        return real_apply(*args, **kwargs)
 
-    monkeypatch.setattr(measure_module, "play_case", play)
+    monkeypatch.setattr(session, "apply_case", apply)
     try:
         (result,) = measure_module.measure(session, [case], runs=3)
     finally:
@@ -351,15 +347,35 @@ def test_measure_proposes_nothing_without_a_passed_try_and_survives_an_error(
 
 
 def test_measure_skips_a_case_whose_window_is_not_the_current_one(measure_module):
-    case = _cases("fr")["code_talvane_apres_compaction"].model_copy(update={"window": 8192})
-    _, session = _session(["ok"], window=4096)
-
-    (result,) = measure_module.measure(session, [case], runs=3)
+    case = _cases("fr")["code_talvane_apres_compaction"]  # 4096, on a 16384 session
+    engine, session = _session(["ok"])
+    try:
+        (result,) = measure_module.measure(session, [case], runs=3)
+    finally:
+        session.close()
 
     assert (
-        result.calls == [] and result.skipped == "non mesurable ici (fenêtre 8192, courante 4096)"
+        result.calls == [] and result.skipped == "non mesurable ici (fenêtre 4096, courante 16384)"
     )
-    assert "non mesurable ici" in measure_module.render([result], 3)
+    assert "non mesurable ici" in measure_module.render([result], 3) and engine.calls == []
+
+
+def test_the_window_check_counter_proof_plays_nothing():
+    """The compaction case (4096) on a 16384 session, with the window check: not run, with
+    its reason, and no call to the engine."""
+    engine, session = _session(["ok"])
+    try:
+        run_id = session.agent_eval.start(["code_talvane_apres_compaction"], 1)
+        run = session.agent_eval.wait(run_id, timeout=60)
+    finally:
+        session.close()
+
+    (result,) = run.cases
+    assert (result.status, result.not_run_reason) == ("not_run", "window")
+    assert result.reason_text == (
+        "demande une fenêtre de 4\u202f096 tokens (fenêtre courante : 16\u202f384)"
+    )
+    assert engine.calls == [] and run.window_checked is True
 
 
 def test_measure_main_refuses_a_missing_model(measure_module, tmp_path, capsys):

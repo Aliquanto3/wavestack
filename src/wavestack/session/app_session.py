@@ -43,6 +43,8 @@ from pydantic import SecretStr
 
 from wavestack import __version__, config, greenops
 from wavestack import memory as memory_file
+from wavestack.agent_eval.cases import AgentCase
+from wavestack.agent_eval.runs import Run
 from wavestack.bricks.contract import (
     BrickContent,
     BrickDeclaration,
@@ -854,6 +856,24 @@ def _ms(seconds: float) -> int:
     return round(seconds * 1000)
 
 
+@dataclass(frozen=True)
+class CaseConfigSnapshot:
+    """V1.5 story 4: the configuration an agent cases' run restores at its end."""
+
+    wanted: frozenset[str]
+    tools: frozenset[str]
+    mcp_servers: frozenset[str]
+    skills: frozenset[str]
+    hooks: frozenset[str]
+    mcp_lazy: bool
+    rag_rerank: bool
+    custom_prompt: str | None
+    active_scenario: str | None
+    memory: tuple[tuple[str, str], ...]  # the global memory's `(id, text)`
+    sent: tuple[Any, ...]  # what the last turn froze: « Prend effet au prochain tour »
+    sent_rerank: bool
+
+
 class AppSession:
     """The only session once WaveStack has a confirmed model."""
 
@@ -1238,6 +1258,12 @@ class AppSession:
         self._active_scenario: str | None = None
         self._load_scenarios()
         self._emit_memory()
+        # V1.5 story 4 (CAP-4): the agent cases' executor, and its run under way (read under
+        # `_lock`); neither `reset()` nor `_reconfigure` touches them.
+        from wavestack.session.agent_eval_runner import AgentEvalRunner
+
+        self._eval_run: Run | None = None
+        self.agent_eval = AgentEvalRunner(self)
 
     def _apply_launch_config(self) -> None:
         """The launch configuration, applied again by a reset or before a scenario: no
@@ -1301,6 +1327,8 @@ class AppSession:
             # Review (story 13): a job without a cancel token (`uv sync`) offers no « Arrêter ».
             jobs = ("download", "index_build")
             stoppable = self._download_cancel is not None if state in jobs else None
+            if state == "agent_eval":  # V1.5 story 4: « Arrêter » stops the run
+                stoppable = True
         self._journal().emit(
             "session_state",
             {
@@ -1904,6 +1932,9 @@ class AppSession:
         self._executor.submit(lambda: None).result()
 
     def close(self) -> None:
+        if self.agent_eval.running:  # V1.5 story 4: the run stops, its thread is waited for
+            self.stop()
+            self.agent_eval.join(5.0)
         self._cag_drop()  # V1.2 story 10: the CAG state freed with the session
         self._rag_mcp_halt(None)  # V1.2 story 20: the exposed server stops with the session
         self.stop()
@@ -5143,16 +5174,21 @@ class AppSession:
         conversational state that preceded that turn (AD-17), with the current configuration."""
         return self._start(None)
 
-    def _start(self, message: str | None, chained: bool = False) -> str:
+    def _start(self, message: str | None, chained: bool = False, *, by_run: bool = False) -> str:
         """Starts a turn: `message`, or the replay of the last turn when `None`. V1.4 story 4:
         `chained`, the refused message sent again after a strategy, from the `turn` state
-        that strategy holds (its MCP connections were waited for by `compact`)."""
+        that strategy holds (its MCP connections were waited for by `compact`). V1.5 story
+        4: `by_run`, an agent case's prompt, from the `agent_eval` state (never the API's)."""
         replay_of = None
         if not chained:
             self._wait_mcp_connections()  # #5: the tools this turn freezes include theirs
         with self._memory_lock, self._lock:  # never while a drawer write or a reset runs
             held = chained and self.state == "turn"
-            if self._engine is None or (not held and (self.state != "idle" or self.reason_text)):
+            if by_run:  # and « Arrêter » not asked meanwhile (the run's step 1 raced it)
+                ready = self._run_ready() and not self._eval_run.stop_requested  # type: ignore[union-attr]
+            else:
+                ready = held or (self.state == "idle" and not self.reason_text)
+            if self._engine is None or not ready:
                 raise SendRefused(self._refusal_reason())
             self._overflowed, self._overflow_plans = None, {}  # V1.4 story 4
             if message is None:
@@ -5167,7 +5203,7 @@ class AppSession:
             turn_id = f"t{self._turns}"
             cancel = self._cancel = CancelToken()
             # Switched under the lock, so a second `send` racing this one is refused.
-            self.state, self.reason_text = "turn", _TURN_FR
+            self.state, self.reason_text = "turn", self._turn_reason()
             # AD-3: the armed actions this turn takes; one armed from now waits for the next.
             armed = tuple(self._armed)
             self._last = (
@@ -6603,7 +6639,9 @@ class AppSession:
         with scoped(turn_id=None, context_id=None, call_id=None, step_id=None, component=None):
             self._journal().emit("compaction_state", {"choices": choices}, actor="harness")
 
-    def compact(self, strategy: str, resend_turn_id: str | None = None) -> None:
+    def compact(
+        self, strategy: str, resend_turn_id: str | None = None, *, by_run: bool = False
+    ) -> None:
         """Class (b), V1.4 story 4: applies `strategy` to the main chat's history; from an
         overflow's card (`resend_turn_id`, the refused turn), the refused message is sent
         again alone, as a new turn. Refused outside `idle`, with the short memory off,
@@ -6615,7 +6653,8 @@ class AppSession:
             self._wait_mcp_connections()  # never on the worker: the resend's tools
         effective = self._effective()
         with self._memory_lock, self._lock:
-            if self.state != "idle" or self._engine is None or self.reason_text:
+            ready = self._run_ready() if by_run else self.state == "idle" and not self.reason_text
+            if not ready or self._engine is None:
                 raise SendRefused(self._refusal_reason())
             if "short_memory" not in effective:
                 raise SendRefused(Message("session.refused.compact_short_memory"))
@@ -6638,7 +6677,7 @@ class AppSession:
                 self._turns += 1
                 turn_id = f"t{self._turns}"
             cancel = self._cancel = CancelToken()
-            self.state, self.reason_text = "turn", _TURN_FR
+            self.state, self.reason_text = "turn", self._turn_reason()
         self._emit_state()
         self._abandon_prefill()
         self._executor.submit(self._run_strategy, strategy, plan, message, cancel, turn_id)
@@ -6677,7 +6716,7 @@ class AppSession:
             if not resent:
                 with self._lock:
                     self._cancel = None
-                self._set_state("idle")
+                self._set_state(*self._rest_state())
                 self._emit_architecture()
                 self._refresh_preview()  # with `compaction_state`
 
@@ -6761,7 +6800,8 @@ class AppSession:
                         "message": request,
                         "active_model": self.active_model(),
                         "kind": "compaction",
-                    },
+                    }
+                    | self._case_tag(),
                     actor="harness",
                 ).seq
                 status, summary, dropped = self._summarize(turn_id, removed, cancel)
@@ -7238,14 +7278,7 @@ class AppSession:
                 if self.state != "idle":
                     raise SendRefused(self._refusal_reason())
                 before = set(self._mcp_enabled) if "mcp" in self._wanted else set()
-                self._history.clear()
-                self._loaded_docs.clear()
-                self._loaded_skills.clear()
-                self._last = None  # nothing left to replay (story 9b)
-                self._memory_snapshot = None  # N1: the next conversation reads it again
-                self._cache_cause = "reset"
-                self._overflowed, self._overflow_plans = None, {}  # V1.4 story 4
-                self._armed.clear()
+                self._clear_conversation()
                 self._apply_launch_config()
                 apply()
                 after = set(self._mcp_enabled) if "mcp" in self._wanted else set()
@@ -7256,6 +7289,26 @@ class AppSession:
             self._emit_spend_reset(spend_reset)
             if scenario_id is None or restore_memory:  # FR-39; story 21, a module's start
                 self._restore_memory()
+        self._reconfigured(before, after)
+        if scenario_id is not None:
+            with self._lock:
+                self._prefill_pending = scenario_id
+            self._maybe_prefill()
+
+    def _clear_conversation(self) -> None:
+        """Under `_lock`: the conversation emptied, as a reset does."""
+        self._history.clear()
+        self._loaded_docs.clear()
+        self._loaded_skills.clear()
+        self._last = None  # nothing left to replay (story 9b)
+        self._memory_snapshot = None  # N1: the next conversation reads it again
+        self._cache_cause = "reset"
+        self._overflowed, self._overflow_plans = None, {}  # V1.4 story 4
+        self._armed.clear()
+
+    def _reconfigured(self, before: set[str], after: set[str]) -> None:
+        """After a configuration changed: the armed actions, the scenario, the MCP
+        connections on the difference only (AD-15), the loads, the schema, the preview."""
         self._emit_armed()
         self._emit_scenario()
         for server_id in sorted(before - after):
@@ -7267,12 +7320,168 @@ class AppSession:
         self._emit_bricks()
         self._emit_architecture()
         self._executor.submit(self._emit_preview)  # the scenario's preview, before its prefill
-        if scenario_id is not None:
+
+    # ---------- V1.5 story 4 (CAP-4): an agent cases' run ----------
+
+    def _run_ready(self) -> bool:
+        """Under `_lock`: a run's own intention (`by_run`) is accepted at rest of that run."""
+        return self.state == "agent_eval" and self._eval_run is not None
+
+    def _rest_state(self) -> tuple[str, str | None]:
+        """Where a turn or a strategy goes back: `agent_eval` during a run, else `idle`."""
+        if self._eval_run is not None:
+            return "agent_eval", Message("session.state.agent_eval")
+        return "idle", None
+
+    def _turn_reason(self) -> str:
+        if self._eval_run is not None:
+            return Message("session.state.agent_eval")
+        return _TURN_FR
+
+    def _case_tag(self) -> dict[str, str]:
+        """The `turn_started` labels of a turn an agent case started; `{}` otherwise."""
+        run = self._eval_run
+        if run is None or run.case_tag is None:
+            return {}
+        return {"case_id": run.case_tag, "run_id": run.run_id}
+
+    def _end_eval_run(self) -> None:
+        """The run is over: the session back to `idle`."""
+        with self._lock:
+            self._eval_run = None
+            self.state, self.reason_text = "idle", None
+        self._emit_state()
+
+    def system_prompt_state(self) -> tuple[str, bool]:
+        """The system prompt of the next turn, and whether it is the default one."""
+        with self._lock:
+            custom, default = self._custom_prompt, self._default_prompt
+        return (custom or default), custom is None
+
+    def brick_label(self, brick_id: str) -> str:
+        """A brick's label in the session's language (its id when unknown)."""
+        return self._label(brick_id)
+
+    def case_config_snapshot(self) -> CaseConfigSnapshot:
+        """The configuration a run restores at its end, frozen; in `agent_eval` only."""
+        with self._lock:
+            if not self._run_ready():
+                raise SendRefused(self._refusal_reason())
+            return CaseConfigSnapshot(
+                wanted=frozenset(self._wanted),
+                tools=frozenset(self._tools_enabled),
+                mcp_servers=frozenset(self._mcp_enabled),
+                skills=frozenset(self._skills_enabled),
+                hooks=frozenset(self._hooks_enabled),
+                mcp_lazy=self._mcp_lazy,
+                rag_rerank=self._rag_rerank,
+                custom_prompt=self._custom_prompt,
+                active_scenario=self._active_scenario,
+                memory=tuple((e.id, e.text) for e in self._memory),
+                sent=self._sent,
+                sent_rerank=self._sent_rerank,
+            )
+
+    def apply_case(
+        self,
+        case: AgentCase,
+        session_prompt: str | None,
+        memory: tuple[tuple[str, str], ...] | None = None,
+    ) -> list[str]:
+        """A case's configuration, as a scenario's over the launch one, and its history;
+        in `agent_eval` only. `memory` (the snapshot's): the global memory set back to it
+        when it differs, never to the demonstration's (decision 6). Returns the case's ids
+        unknown to the session, ignored: bricks, tools, hooks, skills, MCP servers
+        (decision 1)."""
+        ignored: list[str] = []
+
+        def known(ids: list[str], valid: set[str]) -> set[str]:
+            ignored.extend(i for i in ids if i not in valid)
+            return {i for i in ids if i in valid}
+
+        def apply() -> None:
+            self._wanted = known(case.bricks, set(self._bricks))
+            for field_name, valid, attr in (
+                ("tools", set(self._registry.names), "_tools_enabled"),
+                ("hooks", set(self._hook_ids()), "_hooks_enabled"),
+                ("skills", set(self._skill_ids()), "_skills_enabled"),
+                ("mcp_servers", set(self._mcp_servers), "_mcp_enabled"),
+            ):
+                wanted = getattr(case, field_name)
+                if wanted is not None:
+                    setattr(self, attr, known(wanted, valid))
+            # `_apply_launch_config` set it back to the default: the session's again.
+            fixed = case.system_prompt is not None
+            self._custom_prompt = case.system_prompt if fixed else session_prompt
+
+        history = [
+            Exchange(f"h{n}", ex.user, ex.assistant, "") for n, ex in enumerate(case.history, 1)
+        ]
+        self._case_reconfigure(apply, history, None, memory)
+        return ignored
+
+    def restore_case_config(self, snapshot: CaseConfigSnapshot) -> None:
+        """The configuration of `snapshot` again, the conversation empty, the memory back
+        to the snapshot's when it differs; in `agent_eval` only."""
+
+        def apply() -> None:
+            self._wanted = set(snapshot.wanted)
+            self._tools_enabled = set(snapshot.tools)
+            self._mcp_enabled = set(snapshot.mcp_servers)
+            self._skills_enabled = set(snapshot.skills)
+            self._hooks_enabled = set(snapshot.hooks)
+            self._mcp_lazy = snapshot.mcp_lazy
+            self._rag_rerank = snapshot.rag_rerank
+            self._custom_prompt = snapshot.custom_prompt
+            self._sent, self._sent_rerank = snapshot.sent, snapshot.sent_rerank
+
+        self._case_reconfigure(apply, [], snapshot.active_scenario, snapshot.memory)
+
+    def _case_reconfigure(
+        self,
+        apply: Callable[[], None],
+        history: list[Exchange],
+        scenario_id: str | None,
+        memory: tuple[tuple[str, str], ...] | None,
+    ) -> None:
+        """`_reconfigure`'s path for a run: one `conversation_cleared` (never
+        `harness_reset`), no prefill, the memory set back to `memory` when given."""
+        self._abandon_prefill()
+        with self._memory_lock:
             with self._lock:
-                self._prefill_pending = scenario_id
-            self._maybe_prefill()
+                if not self._run_ready():
+                    raise SendRefused(self._refusal_reason())
+                before = set(self._mcp_enabled) if "mcp" in self._wanted else set()
+                self._clear_conversation()
+                self._apply_launch_config()
+                apply()
+                self._history[:] = history
+                after = set(self._mcp_enabled) if "mcp" in self._wanted else set()
+                self._active_scenario = scenario_id
+                spend_reset = reset_conversation_spend(self.cfg.eur_per_usd)
+            self._journal().emit("conversation_cleared", {})
+            self._emit_spend_reset(spend_reset)
+            if memory is not None:
+                self._memory_back_to(memory)
+        self._reconfigured(before, after)
+
+    def _memory_back_to(self, memory: tuple[tuple[str, str], ...]) -> None:
+        """Decision 6: the global memory set back to `memory` (its ids kept) by the single
+        applier, `trigger = user`; nothing written when it is equal."""
+        if self._memory_content is None:
+            return
+        with self._lock:
+            entries = list(self._memory)
+        if tuple((e.id, e.text) for e in entries) == memory:
+            return
+        writes = [MemoryWrite(op="delete", entry_id=e.id, text=e.text) for e in entries]
+        writes += [MemoryWrite(op="add", entry_id=i, text=text) for i, text in memory]
+        with scoped(trigger="user"):
+            self._apply_memory(writes, "user")
 
     def _refusal_reason(self) -> str:
+        if self._eval_run is not None:  # V1.5 story 4: whatever the state of the run
+            return Message("agent_eval.refused.running")
         if self.state == "turn":
             return Message("session.refused.turn")
         if self.reason_text:
@@ -7286,6 +7495,11 @@ class AppSession:
         if self._mcp_lab_stop():  # story 6 of 2026-09-30: the MCP workshop's exchange
             return True
         with self._lock:
+            run = self._eval_run
+            if run is not None:  # V1.5 story 4: the run stops; its turn, if any, below
+                run.stop_requested = True
+                if self.state == "agent_eval":  # between two cases: the executor sees it
+                    return True
             if self.state in ("download", "index_build") and self._download_cancel is not None:
                 self._download_cancel.cancel()
                 return True
@@ -7708,7 +7922,8 @@ class AppSession:
                         "replay_of": replay_of,
                         "message": message,
                         "active_model": self.active_model(),
-                    },
+                    }
+                    | self._case_tag(),
                     actor="user",
                 ).seq
                 decided = self._hook("on_user_message", state)
@@ -7765,9 +7980,10 @@ class AppSession:
                     self._cancel = None
                     if self._turn_called:  # lot A: `abandoned` only for a turn that
                         self._last_status = status  # left its output in the engine's cache
-                way_back = self._start_way_back()  # E119: straight to `model_load`
+                # E119: straight to `model_load`; never during an agent cases' run (V1.5).
+                way_back = None if self._eval_run is not None else self._start_way_back()
                 if way_back is None:
-                    self._set_state("idle")
+                    self._set_state(*self._rest_state())
                 self._emit_window_state()  # story 26: the read rate this turn measured
                 self._emit_compaction_state()  # V1.4 story 4: « Compacter ▾ »
         if way_back is not None:  # out of the turn's scope: a load of its own
@@ -8761,7 +8977,7 @@ class AppSession:
                 actor="user",
             )
         if decision != "cancelled":  # stopped: the turn ends, no flash back to `turn`
-            self._set_state("turn", _TURN_FR)
+            self._set_state("turn", self._turn_reason())
         if disable:  # off now, and for the rest of this turn despite its frozen state
             self._hooks_off.add(hook_id)
             with self._lock:
@@ -11754,10 +11970,18 @@ class AppSession:
             while len(self._rag_verdicts) > self.MAX_RAG_JUDGED:
                 self._rag_verdicts.popitem(last=False)
 
-    def _rag_finops(self) -> dict[str, Any]:
+    def _finops_spent(self) -> float:
+        return float((session_spend(self.cfg.eur_per_usd) or {}).get("total_usd") or 0.0)
+
+    def _finops_capped(self) -> tuple[bool, float]:
+        """FinOps (CAP-4): whether the session's spend reached `max_session_usd`, and that
+        cap; read by the RAG workshop and by the agent cases' run (V1.5 story 4)."""
         cap = self.cfg.max_session_usd
-        spent = float((session_spend(self.cfg.eur_per_usd) or {}).get("total_usd") or 0.0)
-        return {"max_session_usd": cap, "spent_usd": spent, "capped": spent >= cap}
+        return self._finops_spent() >= cap, cap
+
+    def _rag_finops(self) -> dict[str, Any]:
+        capped, cap = self._finops_capped()
+        return {"max_session_usd": cap, "spent_usd": self._finops_spent(), "capped": capped}
 
     def _rag_judge_panel(self, generator: tuple[str, str] | None) -> dict[str, Any]:
         """The panel for a generator: at most one local judge (a GGUF file or a llama-server

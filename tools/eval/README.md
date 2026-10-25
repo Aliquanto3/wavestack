@@ -26,5 +26,8 @@ uv run python tools/eval/measure_cases.py --model C:\chemin\modele.gguf
 - Jamais lancé en CI, jamais par un test sur un vrai modèle (les tests utilisent un faux moteur).
   Les plafonds du fichier sont **provisoires** tant que cette mesure n'a pas été faite sur le PC
   cible.
-- `case_player.py` joue un cas sur une `AppSession` (une seule fonction, partagée avec les
-  tests). La story 4 le reprend dans l'exécuteur du paquet `agent_eval` et le supprime.
+- Chaque cas est joué par l'exécuteur de la session (`session.agent_eval`, story 4 du lot V1.5),
+  comme dans la vue « Évaluer l'agent » : une exécution d'un cas, `--runs` essais (1 ou 3), avec la
+  configuration du cas, son historique, la réponse du harnais à H5 et `on_overflow`. L'outil lit
+  les appels au modèle de chaque essai. Il ne désactive jamais le contrôle de la fenêtre : il mesure
+  sur la fenêtre réelle.
