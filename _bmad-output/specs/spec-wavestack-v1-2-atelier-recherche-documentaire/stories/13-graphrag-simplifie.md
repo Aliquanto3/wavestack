@@ -2,7 +2,7 @@
 title: 'Story 13 : GraphRAG simplifié'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -110,14 +110,14 @@ S'appuient sur l'existant : `SEARCHLESS_OPTIONS`, `PRESET_FAMILIES` (famille `st
 
 ## Tasks & Acceptance
 
-- [ ] `rag/graph.py` : modèles, `build_graph`, `communities`, `match_entities`, `select_local`, `select_global`, analyses.
-- [ ] `tools/build_graph.py`, `content/rag_graph.yaml` ×3, test de non-péremption.
-- [ ] Option `graph_search`, préréglage `graphrag`, famille « Structure », `SEARCHLESS_OPTIONS`, champ `graph_mode`.
-- [ ] Étape Contexte : requêtes locale et globale, audience affichée (sans filtre), avertissements, annulation, progression.
-- [ ] Reconstruire / Rétablir le graphe (`target: graph`, route de rétablissement, écriture atomique).
-- [ ] Coûts en trois temps, mise à jour en quatre parties, estimation étiquetée.
-- [ ] Endroits d'effacement mesurés, fiche `graphrag` sans `story`, charge utile de l'événement.
-- [ ] Séquence, focus, carte « Graphe », textes fr, en, de ; tests ciblés ; scénario E2E `rag_lab_graphrag`.
+- [x] `rag/graph.py` : modèles, `build_graph`, `communities`, `match_entities`, `select_local`, `select_global`, analyses.
+- [x] `tools/build_graph.py`, `content/rag_graph.yaml` ×3, test de non-péremption.
+- [x] Option `graph_search`, préréglage `graphrag`, famille « Structure », `SEARCHLESS_OPTIONS`, champ `graph_mode`.
+- [x] Étape Contexte : requêtes locale et globale, audience affichée (sans filtre), avertissements, annulation, progression.
+- [x] Reconstruire / Rétablir le graphe (`target: graph`, route de rétablissement, écriture atomique).
+- [x] Coûts en trois temps, mise à jour en quatre parties, estimation étiquetée.
+- [x] Endroits d'effacement mesurés, fiche `graphrag` sans `story`, charge utile de l'événement.
+- [x] Séquence, focus, carte « Graphe », textes fr, en, de ; tests ciblés ; scénario E2E `rag_lab_graphrag`.
 
 **Acceptance Criteria:**
 1. Given `PRESETS` et le catalogue, then les sept préréglages existants gardent chaînes et disponibilités (tests existants verts) ; `graphrag` : segment vide, Contexte `graph_search` ; `PRESET_FAMILIES["structure"] == ("pageindex", "graphrag")` ; un préréglage hors famille ou dans deux familles fait toujours échouer `RagLabContent` ; `searchless_options` du catalogue contient `graph_search`, `corpus_options` reste `["full_corpus", "cached_corpus"]` ; si la story 20 est intégrée, son test qui parcourt `PRESETS` refuse `graphrag` par `searches_itself` sans modification de `rag/exposed.py`.
@@ -172,6 +172,17 @@ Tranchées au point de contrôle de spec (2026-10-25), sur la base rebasée sur 
 
 - 2026-10-25 : rédaction de la spec (phase spec_checkpoint), empilée sur la story 11.
 - 2026-10-25 : point de contrôle de spec, `ready-for-dev`, rebasée sur la story 11 revue (ec11ca5). Corrigé, mesures à l'appui : règle d'entités (termes-clés tf-idf et codes au lieu des titres et de `renvoie à` : 25 entités mesurées en fr, « astreinte » absente) ; communautés par déplacements de modularité au lieu de la propagation d'étiquettes (94 % des entités dans une communauté en de) ; vocabulaire gelé et départ `previous` à la mise à jour ; table `passages` pour les empreintes ; `graph.forget` à la suppression (revue de 12.11) ; aucun filtre `hr` ni champ `profile` (règle de l'atelier, revue de 12.11) ; règle d'exposition MCP retirée au profit de la D12 de la story 20 ; fiche `context.graph_search` au format de la story 19b ; E2E : Comparer avant « Rétablir » ; critères 1, 3, 5, 8, 13, 14, 19 précisés.
+- 2026-10-25, développement (statut `review`) : implémenté contre les 20 critères, intégration `integration/v1-2-atelier` refusionnée deux fois (12.11 ; puis 12.19b et 12.20 : fiche `context.graph_search` au format 19b, `graphrag` refusé par `searches_itself` dans `test_rag_mcp.py` sans toucher `rag/exposed.py`). Mesures du graphe livré (règle telle qu'écrite, figées dans `tests/test_rag_graph.py`) : entités fr 129, en 127, de 125 ; relations 826, 740, 606 ; communautés 13, 15, 20, la plus grande à 16, 20 et 11 % ; fichier 135, 121 et 113 Ko ; construction ≈ 40 ms (300 ms au premier appel, imports compris). Choix à revoir par Anaël, sans toucher au bloc d'intention :
+  (a) Lignes de séquence nommées en anglais comme les autres (« Graph building », « Graph query », convention i18n des noms techniques de la story 11) : « Requête sur le graphe » est le texte d'action de la ligne, pas son nom.
+  (b) Vocabulaire gelé = celui du corpus livré actif (recalculé depuis ses `DocText`, jamais stocké) : un document ajouté ou modifié ajoute ses termes-clés calculés contre ces fréquences ; « Reconstruire » recalcule le vocabulaire sur la copie de travail pour les seuls passages repris par la règle.
+  (c) Fichier reconstruit : seuls les passages extraits par le modèle (leurs entités et relations, une relation y pèse le nombre de passages qui la disent) et les résumés écrits par le modèle ; un passage illisible ou absent du fichier est extrait par la règle à la lecture. Les communautés partent toujours de celles du fichier lu (reconstruit, sinon livré) : la lecture refait les déplacements depuis elles.
+  (d) Mise à jour : une seule partie d'étape (`graph_search`) portant quatre coûts (`graph_extraction`, `graph_merge`, `graph_communities`, `graph_summaries`), chacun avec sa note ; la carte de mise à jour les lit dans la note de la somme (« Extraction : … Fusion : … Communautés : … Résumés : … »), sans code de page de plus. `parts` vaut 4.
+  (e) `graph.forget` est appelé par la mise à jour du graphe (comme `pageindex.forget`) et aussi à chaque copie de travail gardée (`_rag_lab_keep_copy`, documents livrés supprimés), quel que soit le préréglage : le fichier reconstruit ne garde rien d'un document supprimé.
+  (f) Requête globale : classement par mots partagés (repliés, mots vides retirés, pluriel simple en « s »/« x »), seules les communautés qui partagent au moins un mot ; deux passages-clés par appel « map ». Une réponse « map » sans `POINTS:` est ignorée et comptée (`graph_unreadable`).
+  (g) Requête locale : une entité reconnue sans relation donne ses propres mentions comme passages ; sans aucune relation retenue, le contexte n'a que l'élément « entités reconnues » et ces mentions.
+  (h) Sources de la fiche `context.graph_search` : GraphRAG-Bench, arXiv 2502.11371, arXiv 2508.04276 et EraRAG tels qu'écrits dans `litterature.md` ; LightRAG cité par sa source primaire `https://arxiv.org/abs/2410.05779` (Guo et al., 2024), lien donné de mémoire, à vérifier par Anaël (aucun accès réseau pendant le développement).
+  (i) Requête du laboratoire : `RagLabRunIntention` refuse désormais tout champ inconnu (`extra="forbid"`, 422 pour `profile`) ; `graph_mode` (`local`, `global`) est choisi sur la carte « Graphe » de la page et envoyé avec « Lancer ».
+  (j) E2E `rag_lab_graphrag` (captures 86 à 88) vert, avec `rag`, `rag_rerank` ; `rag_lab` et `rag_lab_agentic` (famille Structure à deux préréglages) verts. Le faux llama-server renvoie la même extraction pour chaque passage : le graphe reconstruit de l'E2E n'a que 2 entités, ce qui suffit à la mesure des coûts.
 
 ## Reports
 
