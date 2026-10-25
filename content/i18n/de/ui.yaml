@@ -1157,6 +1157,21 @@ rag:
   contexts_reset: "Gelieferte Kontexte wiederherstellen"
   contexts_progress: "Neuaufbau: {done} / {total} Ausschnitte"
   contexts_failed: "Der Neuaufbau ist nicht gelungen: {reason}"
+  # V1.2 story 7 (CAP-5): the focus of the Context step.
+  col_state: "Im Kontext"
+  item_whole: "ganz"
+  item_cut: "gekürzt"
+  item_dropped: "verworfen"
+  item_placed: "Position {n}"
+  item_tokens: "{tokens} Tokens"
+  item_tokens_after: "{before} → {after} Tokens"
+  item_unchanged: "unverändert"
+  item_transforms: "Transformationen: {names}"
+  budget_used: "Budget: {used} von {budget} Tokens (geschätzt)"
+  budget_compressed: "Nach der Kompression: {after} Tokens (geschätzt), gegenüber {before} davor"
+  dropped_title: "Vom Budget verworfen ({count})"
+  prompt_title: "Endgültiger Prompt, wie er zum Modell geht (geschätzte Tokens; die Vorlage des Modells kommt bei der Generierung hinzu)"
+  prompt_total: "Gesamt: {tokens} Tokens (geschätzt)"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

@@ -188,6 +188,56 @@ def test_a_passage_in_the_middle_of_the_context_is_only_noted():
     assert verdict([StageList("context", listed("a", None))])["note"] is None
 
 
+# V1.2 story 7: the context may leave out a passage of the list, whatever its rank.
+
+
+def test_a_passage_the_budget_left_out_is_cut_even_within_top_k():
+    stages = [
+        StageList("vector_search", listed("a", "b", "c", None, "d")),
+        StageList("context", listed("a", "b", "c")),
+    ]
+    assert fault_of(verdict(stages, budget=5)) == ("context", "cut")
+
+
+def test_a_passage_cut_off_with_its_anchor_is_cut_and_one_kept_whole_is_not_at_fault():
+    search = StageList("vector_search", listed(None, "a"))
+    gone = StageList("context", listed("début du passage […]", "a"))
+    assert fault_of(verdict([search, gone])) == ("context", "cut")
+    kept = StageList("context", listed(f"{PASSAGE.anchor_text} et la suite coupée […]", "a"))
+    assert fault_of(verdict([search, kept])) is None
+
+
+def test_the_middle_note_reads_the_position_in_the_context():
+    def placed(*positions: int | None) -> list[Listed]:
+        texts = [None if i == 2 else f"x{i}" for i in range(3)]
+        return [
+            Listed("d", PASSAGE.anchor_text if t is None else t, at)
+            for t, at in zip(texts, positions, strict=True)
+        ]
+
+    # The ranking says third, the order put it second, in the middle of three.
+    assert verdict([StageList("context", placed(1, 3, 2))])["note"] == "middle"
+    # The ranking says second, the order put it last: no longer in the middle.
+    texts = [Listed("d", "x"), Listed("d", PASSAGE.anchor_text, 3), Listed("d", "y", 2)]
+    assert verdict([StageList("context", texts)])["note"] is None
+    # Without positions, the position in the list.
+    assert verdict([StageList("context", listed("a", None, "b"))])["note"] == "middle"
+
+
+def test_the_page_sends_the_position_of_the_passages_it_holds():
+    request = diagnosis.LiveRequest(
+        question_id="q",
+        chunk_max_chars=700,
+        stages=[
+            diagnosis.LiveStage(
+                kind="context", items=[diagnosis.LiveItem(doc_id="d", text="t", placed=2)]
+            )
+        ],
+    )
+    assert request.stages[0].items[0].placed == 2
+    assert diagnosis.LiveItem(doc_id="d", text="t").placed is None
+
+
 # ---------- the questions ----------
 
 

@@ -75,7 +75,7 @@ const finishedWell = () => Boolean(store.run?.ended && store.run.ended.status ==
 function runLists() {
   return store.run.stages
     .filter((s) => s.status === "ok" && RANKED.has(s.kind) && Array.isArray(s.ended?.items))
-    .map((s) => ({ kind: s.kind, items: s.ended.items.map((i) => ({ doc_id: i.doc_id, text: i.text })) }));
+    .map((s) => ({ kind: s.kind, items: s.ended.items.map((i) => ({ doc_id: i.doc_id, text: i.text, placed: i.placed ?? null })) }));
 }
 
 async function askRun(question) {

@@ -605,6 +605,7 @@ session:
       refused: "Import abgelehnt: {label} konnte nicht geladen werden ({kind}: {cause}). Möglicherweise blockiert eine Sicherheitsrichtlinie (AppLocker, WDAC) seine nicht signierten Bibliotheken; die anderen Vektordatenbanken bleiben nutzbar."
       failed: "Import fehlgeschlagen: {label} konnte nicht geladen werden ({kind}: {cause}). Seine Installation ist möglicherweise beschädigt: Führen Sie `{install}` im Ordner von WaveStack erneut aus; die anderen Optionen bleiben nutzbar."
     interrupted: Die RAG-Werkstatt wurde durch einen Fehler unterbrochen.
+    compress_not_wanted: "Die Karte Kompression ist nicht aktiv: Aktivieren Sie sie, damit die Option die Auszüge komprimiert."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "Die Texte der MCP-Werkstatt sind unlesbar (content/mcp_lab.yaml): Korrigieren Sie die Datei und laden Sie die Seite neu."
@@ -1053,6 +1054,14 @@ rag_lab:
     embedded_as: Vektorisiert
     queries: Gesuchte Anfragen
     children_read: Gelesene Kinder
+    whole: Ganze Passagen
+    cut: Gekürzte Passage
+    dropped: Verworfene Passagen
+    tokens_used: Tokens des Kontexts (geschätzt)
+    order: Reihenfolge
+    compression: Kompression
+    compressed: Komprimierte Auszüge
+    compress_failures: Fehler der Kompression
   chunking:
     source_corpus: "dem Korpus (content/corpus), für diese Ausführung zerlegt"
     source_index: "dem Index des RAG-Bausteins (bei seiner Erstellung zerlegt)"
@@ -1180,6 +1189,23 @@ rag_lab:
     empty: "Kein Auszug: Das Modell würde nur die Frage erhalten."
     kept: "{kept} von {total}"
     parents_short: "{kept} verschiedene Eltern von {top_k} verlangten: Die {read} besten Kinder decken nicht mehr ab. Erhöhen Sie die Kandidaten der Suche, um mehr zu erhalten."
+    budget_cut: "Das Budget von {budget} geschätzten Tokens lässt nicht alles durch: ganz {whole}, gekürzt {cut}, verworfen {dropped}."
+    budget_tiny: "Das Budget ist kleiner als die Einleitung und der beste Auszug: Dieser wird trotzdem gekürzt, der Kontext ist nie leer."
+    budget_used: "{used} von {budget}"
+    cut_some: "1 (−{tokens} geschätzte Tokens)"
+    cut_none: keine
+    order_edges: "Ränder zuerst, Relevanzränge in der Reihenfolge des Kontexts: {ranks}"
+    order_short: "weniger als drei Auszüge: Die Reihenfolge bleibt die der Relevanz"
+    compress_off: nicht verfügbar, Kontext wie bei der Reihenfolge aufgebaut
+    compress_unavailable: "Kompression nicht verfügbar ({reason}): Der Kontext wird ohne sie aufgebaut, wie bei der Reihenfolge."
+    compress_tokens: "{before} → {after} geschätzte Tokens ({compressor})"
+    compress_count: "{changed} von {total}"
+    compress_failed_item: "{error}: {cause}"
+    compress_failed: "{count} Auszug/Auszüge nicht komprimiert, unverändert behalten (erster Fehler: {first})."
+  prompt:
+    system: Systemanweisung
+    context: Kontext
+    question: Frage
   costs:
     build_unknown: "Aufbaukosten für diesen vorberechneten Inhalt nicht aufgezeichnet: Bauen Sie ihn neu, um sie zu messen."
     generation_unpriced: "Kosten in Dollar nicht beziffert: Das Modell hat keinen deklarierten Preis."

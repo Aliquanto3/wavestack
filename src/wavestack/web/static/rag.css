@@ -1597,3 +1597,73 @@ body.rag-page {
   flex-wrap: wrap;
   gap: var(--spacing-2);
 }
+
+/* V1.2 story 7 (CAP-5): the context's budget, its passages' indicators, the final prompt. */
+.rag-budget {
+  margin: var(--spacing-3) 0;
+}
+
+.rag-budget-title,
+.rag-dropped-title,
+.rag-prompt-parts-title {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-budget-gauge {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.rag-budget-after {
+  margin: var(--spacing-1) 0 0;
+  color: var(--color-ink-soft);
+}
+
+.rag-badge {
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  white-space: nowrap;
+}
+
+.rag-badge[data-state="cut"],
+.rag-badge[data-state="dropped"] {
+  border-color: var(--color-warning);
+  color: var(--color-ink);
+}
+
+.rag-passage-state > span {
+  margin-right: var(--spacing-2);
+}
+
+.rag-passage-state .rag-tokens,
+.rag-passage-state .rag-transforms {
+  display: block;
+}
+
+.rag-dropped-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rag-dropped-item {
+  margin-bottom: var(--spacing-2);
+  overflow-wrap: anywhere;
+}
+
+.rag-dropped-item .rag-doc-text {
+  display: block;
+  color: var(--color-ink-soft);
+}
+
+.rag-prompt-part-head {
+  margin: var(--spacing-2) 0 0;
+  color: var(--color-ink-soft);
+}
+
+.rag-prompt-parts-total {
+  margin: var(--spacing-2) 0 0;
+  font-weight: 600;
+}

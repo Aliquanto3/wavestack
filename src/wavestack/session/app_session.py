@@ -10714,6 +10714,11 @@ class AppSession:
             # stage is skipped and the question goes on as typed.
             for option in rag_lab.OPTIONS["query"]:
                 options[("query", option)].note_text = Message("session.rag_lab.query_no_model")
+        # V1.2 story 7: `compress` borrows the Compression card's compressor; without one it can
+        # still be chosen, the step builds the context as `order` does (the note says why).
+        compressor, why = self._rag_lab_compressor()
+        if compressor is None:
+            options[("context", "compress")].note_text = why
         fastembed = options[("embedding", "fastembed")]
         declared, reason = self._rag_lab_fastembed()
         if declared is not None:
@@ -11207,7 +11212,61 @@ class AppSession:
             # The chain reads the work copy while it differs from the shipped corpus.
             work_copy=workcopy.load(self._language),
             history=history,
+            # V1.2 story 7 (CAP-5): the compressor the Compression card holds (borrowed), its
+            # threshold, and the prompt's parts (the generation's own function).
+            compressor=self._rag_lab_compressor,
+            compression_min_chars=self.cfg.compression_min_chars,
+            prompt_parts=self._rag_lab_prompt_parts,
         )
+
+    def _rag_lab_compressor(self) -> tuple[Compressor | None, Message | str | None]:
+        """V1.2 story 7: the compressor the Compression card loaded, to borrow for a run (the
+        workshop neither loads nor closes it), else why there is none: `_compression_unavailable`
+        (Headroom missing, loading, a failed load), or the card is not active."""
+        with self._lock:
+            compressor = self._compressor
+        if compressor is not None:
+            return compressor, None
+        return None, self._compression_unavailable() or Message(
+            "session.rag_lab.compress_not_wanted"
+        )
+
+    def _rag_lab_messages(
+        self, state: TurnState, context_text: str, question: str, instruction: str | None = None
+    ) -> tuple[list[dict[str, Any]], bool]:
+        """The messages the workshop's generation sends, and whether there is a system part:
+        the system prompt brick's text as a turn would send it (custom or default; nothing when
+        the brick is off), or the instruction of a short task, then one user message, the
+        context the chain built (its introduction and its excerpts, when there is one) and the
+        question. One function for the generation and for the Context step's preview."""
+        system = instruction is not None or (
+            "system_prompt" in state.effective and bool(state.system_prompt)
+        )
+        messages: list[dict[str, Any]] = []
+        if system:
+            prompt = Part(
+                SegmentKind.SYSTEM_PROMPT,
+                instruction if instruction is not None else state.system_prompt,
+                "system_prompt",
+                "system_prompt.prompt",
+            )
+            messages.append({"role": "system", "content": [prompt]})
+        user = [Part(SegmentKind.USER_MESSAGE, question)]
+        if context_text:  # its introduction and its excerpts, before the question
+            user.insert(0, Part(SegmentKind.RAG_EXCERPT, context_text, "rag", "rag.retriever"))
+        messages.append({"role": "user", "content": user})
+        return messages, system
+
+    def _rag_lab_prompt_parts(self, context_text: str, question: str) -> list[tuple[str, str]]:
+        """V1.2 story 7: the parts of the prompt the generation would send for this context and
+        this question, `(kind, text)` in the order sent (`system`, `context`, `question`)."""
+        messages, _ = self._rag_lab_messages(self.build_turn_state(), context_text, question)
+        kinds = {
+            SegmentKind.SYSTEM_PROMPT: "system",
+            SegmentKind.RAG_EXCERPT: "context",
+            SegmentKind.USER_MESSAGE: "question",
+        }
+        return [(kinds[part.kind], part.text) for m in messages for part in m["content"]]
 
     def _rag_lab_emit(
         self, kind: str, payload: dict[str, Any], step_id: str, component: str
@@ -11241,20 +11300,9 @@ class AppSession:
         instructed = ask.instruction is not None
         if instructed:  # V1.2 story 5: a short task, its own instruction, no reasoning
             reasons, reserve = False, min(reserve, ask.reserve or reserve)
-        system = instructed or ("system_prompt" in state.effective and bool(state.system_prompt))
-        messages: list[dict[str, Any]] = []
-        if system:
-            prompt = Part(
-                SegmentKind.SYSTEM_PROMPT,
-                ask.instruction if instructed else state.system_prompt,
-                "system_prompt",
-                "system_prompt.prompt",
-            )
-            messages.append({"role": "system", "content": [prompt]})
-        user = [Part(SegmentKind.USER_MESSAGE, ask.question)]
-        if ask.context_text:  # its introduction and its excerpts, before the question
-            user.insert(0, Part(SegmentKind.RAG_EXCERPT, ask.context_text, "rag", "rag.retriever"))
-        messages.append({"role": "user", "content": user})
+        messages, system = self._rag_lab_messages(
+            state, ask.context_text, ask.question, ask.instruction
+        )
         model = self.active_model()
         produced = 0
 

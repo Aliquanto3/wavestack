@@ -2,7 +2,7 @@
 title: 'Story 7 : construction du contexte (budget, ordre, compression, prompt final)'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -74,14 +74,14 @@ context:
 
 ## Tasks & Acceptance
 
-- [ ] Options `budget`, `order`, `compress`, réglage `budget_tokens`, bornes, `PARAM_DEFAULTS`.
-- [ ] Sélection par budget (coupe à la phrase, marque, `dropped`, décompte) ; ordre `order` ; position `placed`.
-- [ ] Compression par le port `Compressor` emprunté à la session ; indisponibilité dite (`note_text`, avertissement) ; échec doux.
-- [ ] Fonction unique des parties du prompt (session), aperçu dans le focus du Contexte, tokens par partie.
-- [ ] Champs de charge utile dans `trace/catalog.py`.
-- [ ] Diagnostic : règle `cut` élargie, `placed` pour `middle`.
-- [ ] Fiches des quatre options en fr, en, de ; `SHEETED_KINDS`.
-- [ ] Tests ciblés et scénario E2E `rag_lab_context`.
+- [x] Options `budget`, `order`, `compress`, réglage `budget_tokens`, bornes, `PARAM_DEFAULTS`.
+- [x] Sélection par budget (coupe à la phrase, marque, `dropped`, décompte) ; ordre `order` ; position `placed`.
+- [x] Compression par le port `Compressor` emprunté à la session ; indisponibilité dite (`note_text`, avertissement) ; échec doux.
+- [x] Fonction unique des parties du prompt (session), aperçu dans le focus du Contexte, tokens par partie.
+- [x] Champs de charge utile dans `trace/catalog.py`.
+- [x] Diagnostic : règle `cut` élargie, `placed` pour `middle`.
+- [x] Fiches des quatre options en fr, en, de ; `SHEETED_KINDS`.
+- [x] Tests ciblés et scénario E2E `rag_lab_context`.
 
 **Acceptance Criteria:**
 1. Given `OPTIONS["context"]`, then elle vaut `("excerpts", "budget", "order", "compress")` et `excerpts` produit exactement les éléments, le texte de contexte et les faits d'avant la story (non-régression sur un texte figé), `STEPS["context"]` inchangé.

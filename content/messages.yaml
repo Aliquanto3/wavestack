@@ -610,6 +610,7 @@ session:
       refused: "Import refusé : {label} n'a pas pu être chargé ({kind} : {cause}). Une stratégie de sécurité (AppLocker, WDAC) bloque peut-être ses bibliothèques non signées ; les autres bases vectorielles restent utilisables."
       failed: "Import en échec : {label} n'a pas pu être chargé ({kind} : {cause}). Son installation est peut-être abîmée : relancez `{install}` depuis le dossier de WaveStack ; les autres options restent utilisables."
     interrupted: L'atelier RAG s'est interrompu sur une erreur.
+    compress_not_wanted: "La carte Compression n'est pas activée : activez-la pour que l'option compresse les extraits."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "Textes de l'atelier MCP illisibles (content/mcp_lab.yaml) : corrigez le fichier puis rechargez la page."
@@ -1068,6 +1069,14 @@ rag_lab:
     embedded_as: Vectorisée
     queries: Requêtes cherchées
     children_read: Enfants lus
+    whole: Passages entiers
+    cut: Passage coupé
+    dropped: Passages écartés
+    tokens_used: Tokens du contexte (estimés)
+    order: Ordre
+    compression: Compression
+    compressed: Extraits compressés
+    compress_failures: Échecs de compression
   chunking:
     source_corpus: "le corpus (content/corpus), découpé pour cette exécution"
     source_index: "l'index de la brique RAG (découpé à sa construction)"
@@ -1196,6 +1205,23 @@ rag_lab:
     empty: "Aucun extrait : le modèle ne recevrait que la question."
     kept: "{kept} sur {total}"
     parents_short: "{kept} parents distincts sur {top_k} demandés : les {read} meilleurs enfants n'en couvrent pas plus. Augmentez les candidats de la recherche pour en avoir davantage."
+    budget_cut: "Le budget de {budget} tokens estimés ne laisse pas tout passer : entiers {whole}, coupé {cut}, écartés {dropped}."
+    budget_tiny: "Le budget est plus petit que l'introduction et le meilleur extrait : celui-ci est coupé quand même, le contexte n'est jamais vide."
+    budget_used: "{used} sur {budget}"
+    cut_some: "1 (−{tokens} tokens estimés)"
+    cut_none: aucun
+    order_edges: "extrémités d'abord, rangs de pertinence dans l'ordre du contexte : {ranks}"
+    order_short: "moins de trois extraits : l'ordre reste celui de la pertinence"
+    compress_off: indisponible, contexte construit comme avec l'ordre
+    compress_unavailable: "Compression indisponible ({reason}) : le contexte est construit sans elle, comme avec l'ordre."
+    compress_tokens: "{before} → {after} tokens estimés ({compressor})"
+    compress_count: "{changed} sur {total}"
+    compress_failed_item: "{error} : {cause}"
+    compress_failed: "{count} extrait(s) non compressé(s), gardés tels quels (premier échec : {first})."
+  prompt:
+    system: Consigne système
+    context: Contexte
+    question: Question
   costs:
     build_unknown: "Coût de construction non enregistré pour ce contenu précalculé : reconstruisez-le pour le mesurer."
     generation_unpriced: "Coût en dollars non chiffré : le modèle n'a pas de tarif déclaré."

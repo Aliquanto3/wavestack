@@ -791,3 +791,11 @@ d'autres (story 21) :
   « Avec contexte » (chaque contexte marqué « précalculé · heuristique, sans LLM ») ;
   « Reconstruire » avec le faux modèle (contextes « reconstruits », méthode `llm`, relus après
   rechargement), puis « Rétablir les contextes livrés » ; capture `64-atelier-rag-decoupage.jpg`.
+- `rag_lab_context`, V1.2 story 7 (CAP-5), après `rag` et `rag_rerank` : les quatre options du
+  contexte ; « Budget » à 450 tokens (deux passages entiers, un « coupé », deux « écartés »,
+  jauge du budget) et le prompt final en parties (consigne, contexte, question) retrouvé dans le
+  prompt rendu de la génération ; « Ordre » (positions 1, 5, 2, 4, 3 lues dans le focus) ;
+  « Compression » sans l'extra (`--no-headroom` ou extra absent : la raison près de l'option et
+  dans l'étape) ou avec lui (carte Compression activée, tokens avant et après dans le focus,
+  vrai Headroom hors ligne : la pile n'a pas de compresseur factice) ; capture
+  `65-atelier-rag-contexte.jpg`.

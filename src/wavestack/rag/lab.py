@@ -31,6 +31,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from wavestack import config, greenops
+from wavestack.compression.port import Compressor
 from wavestack.greenops import Measure, Probe, StageCost
 from wavestack.messages import KeyedError, Lazy, Message, join, msg, number, render
 from wavestack.models.embedding import Embedder
@@ -88,7 +89,9 @@ OPTIONS: dict[str, tuple[str, ...]] = {
     "lexical_search": ("bm25",),
     "fusion": ("rrf",),
     "rerank": ("declared",),
-    "context": ("excerpts",),
+    # V1.2 story 7 (CAP-5): cumulative options, each adds to the one before: the context fits a
+    # budget of tokens, then the passages are ordered « extremities first », then compressed.
+    "context": ("excerpts", "budget", "order", "compress"),
     # Lot 5c-3: the workshop's active model generates (the shipped one), or nothing is sent.
     "generation": ("active", "not_run"),
 }
@@ -101,12 +104,20 @@ PARAMS: dict[tuple[str, str], tuple[str, ...]] = {
     ("vector_search", "cosine"): ("candidates",),
     ("lexical_search", "bm25"): ("candidates",),
     ("context", "excerpts"): ("top_k",),
+    ("context", "budget"): ("top_k", "budget_tokens"),
+    ("context", "order"): ("top_k", "budget_tokens"),
+    ("context", "compress"): ("top_k", "budget_tokens"),
 }
 BOUNDS: dict[str, tuple[int, int]] = {
     "chunk_max_chars": (200, 1500),
     "candidates": (1, 20),
     "top_k": (1, 20),
+    "budget_tokens": (100, 4000),
 }
+# V1.2 story 7: the value of a setting the shipped chain does not carry (`param()` reads it
+# before falling back on the lower bound); three excerpts of the shipped corpus take about 505
+# estimated tokens, so the third one is cut at this default.
+PARAM_DEFAULTS: dict[str, int] = {"budget_tokens": 450}
 # V1.2 story 5: the query understanding's bounds (characters of a query, queries of a
 # decomposition, previous questions read by `follow_up`, tokens the model may write).
 QUERY_MAX_CHARS = 300
@@ -116,7 +127,7 @@ HISTORY_MAX = 3
 QUERY_RESERVE = 256
 # The kinds whose every option has a component sheet (CAP-17) in `rag_lab.yaml`; each story
 # that adds options adds its kind here.
-SHEETED_KINDS = ("query", "chunking")
+SHEETED_KINDS = ("query", "chunking", "context")
 # V1.2 story 6 (CAP-4): constants, not settings. `parent_child`: the characters of a child (the
 # parent is a `paragraphs` chunk); `semantic`: a chunk ends where the distance between two
 # neighbouring sentences passes this percentile of the corpus's; `contextual`: the tokens a
@@ -126,6 +137,9 @@ SEMANTIC_PERCENTILE = 80
 CONTEXT_MAX_TOKENS = 128
 FOCUS_CHUNKS_MAX = 20
 FOCUS_CHUNK_CHARS = 300
+# V1.2 story 7 (CAP-5): the mark of a passage the budget cut, and where it may be cut.
+CUT_MARK = "[…]"
+_SENTENCE_END = re.compile(r"[.!?\u2026\u00bb](?=\s)")
 QUESTION_MAX = 500  # the characters of a question the workshop accepts
 STATUSES = ("ok", "error", "skipped", "cancelled", "not_run")
 EMBED_BATCH = 8  # passages embedded at a time: « Arrêter » and the progress between batches
@@ -934,7 +948,7 @@ def param(stage: Stage, name: str, catalog: Catalog) -> int:
     )
     if shipped is not None and name in shipped.params:
         return int(shipped.params[name])
-    return BOUNDS[name][0]
+    return PARAM_DEFAULTS.get(name, BOUNDS[name][0])
 
 
 # ---------- figures in French ----------
@@ -1615,6 +1629,16 @@ class LabDeps:
     # V1.2 story 5: the questions asked before in the session (oldest first), which the
     # `follow_up` option reads as the conversation the workshop does not have.
     history: Sequence[str] = ()
+    # V1.2 story 7 (CAP-5): the session's compressor, borrowed (never loaded nor closed here):
+    # `(compressor, None)`, or `(None, why it is unavailable)`; the chars an excerpt must have
+    # to be compressed; the parts of the prompt the generation would send for a context and a
+    # question, `(kind, text)` with kind `system`, `context` or `question` (the session's one
+    # function, also used by the generation). Defaults: no compressor, no system prompt.
+    compressor: Callable[[], tuple[Compressor | None, Any]] = lambda: (None, None)
+    compression_min_chars: int = 300
+    prompt_parts: Callable[[str, str], Sequence[tuple[str, str]]] = lambda context, question: (
+        ([("context", context)] if context else []) + [("question", question)]
+    )
 
 
 @dataclass
@@ -1629,9 +1653,24 @@ class Item:
     rank: int = 0
     before: int | None = None
     sources: list[dict[str, Any]] = field(default_factory=list)
+    # V1.2 story 7 (CAP-5): the context's passages: the position in the context, whole or cut,
+    # the estimated tokens (before a compression) and after, the compression's transforms and
+    # why it failed on this one.
+    placed: int | None = None
+    state: str | None = None
+    tokens: int | None = None
+    tokens_after: int | None = None
+    transforms: list[str] = field(default_factory=list)
+    error_text: str | None = None
 
     def payload(self) -> dict[str, Any]:
         return {
+            "placed": self.placed,
+            "state": self.state,
+            "tokens": self.tokens,
+            "tokens_after": self.tokens_after,
+            "transforms": self.transforms,
+            "error_text": self.error_text,
             "rank": self.rank,
             "before": self.before,
             "chunk_id": self.chunk_id,
@@ -1661,6 +1700,12 @@ class _Result:
     # V1.2 story 6: the chunking's first chunks, as the focus lists them, and how many in all.
     chunks: list[dict[str, Any]] = field(default_factory=list)
     chunks_total: int = 0
+    # V1.2 story 7: the passages the budget left out, the tokens used and the budget, and the
+    # parts of the prompt the generation would send, with their total.
+    dropped: list[Item] = field(default_factory=list)
+    budget: dict[str, Any] | None = None
+    prompt_parts: list[dict[str, Any]] = field(default_factory=list)
+    prompt_tokens: int | None = None
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -1993,6 +2038,10 @@ class LabRun:
                 "queries": result.queries,
                 "chunks": result.chunks,
                 "chunks_total": result.chunks_total,
+                "dropped": [i.payload() for i in result.dropped],
+                "budget": result.budget,
+                "prompt_parts": result.prompt_parts,
+                "prompt_tokens": result.prompt_tokens,
             },
             step_id,
             component,
@@ -3064,47 +3113,31 @@ class LabRun:
         if ranked is None:
             raise StageFailed(Message("rag_lab.context.nothing"))
         top_k = param(stage, "top_k", self.deps.catalog)
-        content = self.deps.content
         if chain.parents:
-            return self._context_parents(chain, ranked, top_k)
-        kept = ranked[:top_k]
-        items = [
+            return self._context_parents(chain, stage, ranked, top_k)
+        picks = [
             Item(
                 c.chunk_id,
                 c.doc_id,
                 c.title_text,
-                content.excerpt(rank, c.title_text, c.text),
+                c.text,
                 c.score,
                 rank=rank,
                 before=c.rank,
                 sources=c.sources,
             )
-            for rank, c in enumerate(kept, start=1)
+            for rank, c in enumerate(ranked[:top_k], start=1)
         ]
-        chain.context = items
-        text = "\n\n".join([content.intro_text, *(i.text for i in items)]) if items else ""
-        chain.context_text = text
-        say = self._text
-        return _Result(
-            input_text=say("context.input", extracts=self._count(len(ranked), "extract")),
-            output_text=text or say("context.empty"),
-            facts=[
-                (
-                    say("fact.kept"),
-                    say("context.kept", kept=self._int(len(items)), total=self._int(len(ranked))),
-                ),
-                (say("fact.characters"), self._int(len(text))),
-                (say("fact.placement"), content.placement_text),
-            ],
-            items=items,
-        )
+        return self._context_build(chain, stage, ranked, picks)
 
-    def _context_parents(self, chain: _Chain, ranked: list[Item], top_k: int) -> _Result:
+    def _context_parents(
+        self, chain: _Chain, stage: Stage, ranked: list[Item], top_k: int
+    ) -> _Result:
         """V1.2 story 6: the children were searched, their parents are returned, once each,
-        in the order their best child ranks, `top_k` at most."""
-        content = self.deps.content
+        in the order their best child ranks, `top_k` at most. Story 7: the budget, the order
+        and the compression then work on these parents, as on any passage."""
         seen: set[int] = set()
-        items: list[Item] = []
+        picks: list[Item] = []
         read = 0
         for child in ranked:
             read += 1
@@ -3113,49 +3146,347 @@ class LabRun:
                 continue
             seen.add(parent_id)
             parent = chain.parents[parent_id]
-            rank = len(items) + 1
-            items.append(
+            picks.append(
                 Item(
                     child.chunk_id,
                     parent.doc_id,
                     parent.title_text,
-                    content.excerpt(rank, parent.title_text, parent.text),
+                    parent.text,
                     child.score,
-                    rank=rank,
+                    rank=len(picks) + 1,
                     before=child.rank,
                     sources=child.sources,
                 )
             )
-            if len(items) == top_k:
+            if len(picks) == top_k:
                 break
-        chain.context = items
-        text = "\n\n".join([content.intro_text, *(i.text for i in items)]) if items else ""
-        chain.context_text = text
-        say = self._text
         # Children sharing a parent: fewer than `top_k` parents among the candidates searched.
-        short = len(items) < min(top_k, len(ranked))
-        return _Result(
-            warning_text=say(
+        short = None
+        if len(picks) < min(top_k, len(ranked)):
+            short = self._text(
                 "context.parents_short",
-                kept=self._int(len(items)),
+                kept=self._int(len(picks)),
                 top_k=self._int(top_k),
                 read=self._int(read),
             )
-            if short
-            else None,
-            input_text=say("context.input", extracts=self._count(len(ranked), "extract")),
-            output_text=text or say("context.empty"),
-            facts=[
-                (
-                    say("fact.kept"),
-                    say("context.kept", kept=self._int(len(items)), total=self._int(len(ranked))),
-                ),
-                (say("fact.children_read"), self._int(read)),
-                (say("fact.characters"), self._int(len(text))),
-                (say("fact.placement"), content.placement_text),
-            ],
-            items=items,
+        return self._context_build(chain, stage, ranked, picks, read=read, warning=short)
+
+    # -- V1.2 story 7 (CAP-5): the context's budget, order and compression --
+
+    @staticmethod
+    def _edge_positions(count: int) -> list[int]:
+        """The position in the context of the passage of each relevance rank (from 1): the
+        best first, the second last, the third second, the fourth last but one, and so on."""
+        positions, left, right = [], 1, count
+        for rank in range(1, count + 1):
+            if rank % 2:
+                positions.append(left)
+                left += 1
+            else:
+                positions.append(right)
+                right -= 1
+        return positions
+
+    @classmethod
+    def _layout(
+        cls, parts: Sequence[tuple[Item, str]], ordered: bool
+    ) -> list[tuple[Item, str, int]]:
+        """The passages `(item, raw text)` in the order of the context, with their position;
+        `ordered`: extremities first (three passages or more), else the relevance order."""
+        count = len(parts)
+        positions = (
+            cls._edge_positions(count) if ordered and count >= 3 else list(range(1, count + 1))
         )
+        placed = [(item, raw, pos) for (item, raw), pos in zip(parts, positions, strict=True)]
+        return sorted(placed, key=lambda p: p[2])
+
+    def _assemble(self, parts: Sequence[tuple[Item, str]], ordered: bool) -> str:
+        """The context text: the introduction, then each passage formatted at its position."""
+        if not parts:
+            return ""
+        content = self.deps.content
+        excerpts = [
+            content.excerpt(pos, item.title_text, raw)
+            for item, raw, pos in self._layout(parts, ordered)
+        ]
+        return "\n\n".join([content.intro_text, *excerpts])
+
+    @staticmethod
+    def _cut_at(raw: str, limit: int) -> str:
+        """`raw[:limit]` cut at its last end of sentence, else at its last word, plus the
+        mark; empty when nothing of the text is left."""
+        head = raw[:limit]
+        ends = [m.end() for m in _SENTENCE_END.finditer(head)]
+        if ends:
+            head = head[: ends[-1]]
+        else:
+            space = max(head.rfind(" "), head.rfind("\n"))
+            head = head[:space] if space > 0 else head
+        head = head.rstrip()
+        return f"{head} {CUT_MARK}" if head else ""
+
+    def _cut_to_fit(
+        self, whole: list[tuple[Item, str]], item: Item, budget: int, ordered: bool
+    ) -> str | None:
+        """The longest start of `item.text`, cut as `_cut_at` does, with which the context
+        still holds in `budget` tokens, or `None` if not even a word fits."""
+        estimate = self.deps.estimate_tokens
+
+        def fits(cut: str) -> bool:
+            return bool(cut) and estimate(self._assemble([*whole, (item, cut)], ordered)) <= budget
+
+        raw = item.text
+        low, high = 0, len(raw) - 1  # the longest limit whose cut fits (the cut grows with it)
+        while low < high:
+            mid = (low + high + 1) // 2
+            if fits(self._cut_at(raw, mid)):
+                low = mid
+            else:
+                high = mid - 1
+        cut = self._cut_at(raw, low)
+        return cut if low > 0 and fits(cut) else None
+
+    def _smallest_cut(self, raw: str) -> str:
+        """The first sentence of a passage (its first words without one), cut: what is kept of
+        the best passage when the budget cannot hold even a word of it."""
+        first = _SENTENCE_END.search(raw)
+        return self._cut_at(raw, first.end() if first else 80) or f"{raw[:80]} {CUT_MARK}"
+
+    def _context_build(
+        self,
+        chain: _Chain,
+        stage: Stage,
+        ranked: list[Item],
+        picks: list[Item],
+        read: int | None = None,
+        warning: str | None = None,
+    ) -> _Result:
+        """The stage's result for the `picks` (the relevance order, `top_k` at most, their raw
+        text): `excerpts` keeps them all as they are; the other options fit them in the
+        budget, then order them (`order`, `compress`), then compress them (`compress`)."""
+        deps, say = self.deps, self._text
+        content, estimate = deps.content, deps.estimate_tokens
+        if stage.option == "excerpts":
+            items = [
+                replace(
+                    p,
+                    text=content.excerpt(p.rank, p.title_text, p.text),
+                    placed=p.rank,
+                    state="whole",
+                )
+                for p in picks
+            ]
+            for item in items:
+                item.tokens = estimate(item.text)
+            text = "\n\n".join([content.intro_text, *(i.text for i in items)]) if items else ""
+            result = _Result(warning_text=warning)
+            facts = [self._kept_fact(len(items), len(ranked))]
+        else:
+            result = self._context_budgeted(stage, picks, warning)
+            items, text = result.items, result.output_text
+            facts = [self._kept_fact(len(items), len(ranked)), *result.facts]
+        chain.context = items
+        chain.context_text = text
+        if read is not None:
+            facts.append((say("fact.children_read"), self._int(read)))
+        facts += [
+            (say("fact.characters"), self._int(len(text))),
+            (say("fact.placement"), content.placement_text),
+        ]
+        result.facts, result.items = facts, items
+        result.input_text = say("context.input", extracts=self._count(len(ranked), "extract"))
+        result.output_text = text or say("context.empty")
+        self._prompt_preview(result, text)
+        return result
+
+    def _kept_fact(self, kept: int, total: int) -> tuple[str, str]:
+        say = self._text
+        return (
+            say("fact.kept"),
+            say("context.kept", kept=self._int(kept), total=self._int(total)),
+        )
+
+    def _prompt_preview(self, result: _Result, context_text: str) -> None:
+        """The parts of the prompt the generation would send, with their estimated tokens."""
+        parts = []
+        for kind, part_text in self.deps.prompt_parts(context_text, self.question):
+            parts.append(
+                {
+                    "kind": kind,
+                    "label_text": self._text(f"prompt.{kind}"),
+                    "text": part_text,
+                    "tokens": self.deps.estimate_tokens(part_text),
+                }
+            )
+        result.prompt_parts = parts
+        result.prompt_tokens = sum(p["tokens"] for p in parts)
+
+    def _context_text(self, items: Sequence[Item]) -> str:
+        """The introduction and the passages as the context places them."""
+        ordered = sorted(items, key=lambda i: i.placed or 0)
+        return "\n\n".join([self.deps.content.intro_text, *(i.text for i in ordered)])
+
+    def _context_budgeted(self, stage: Stage, picks: list[Item], warning: str | None) -> _Result:
+        """`budget`, `order` and `compress`: the passages enter whole, in the relevance order,
+        while the context holds in the budget; the first that does not is cut (at the end of a
+        sentence, else of a word) and marked, the others are dropped. The best passage is cut
+        rather than left out. Then the order, then the compression. The items returned are the
+        passages in the context, in the relevance order; `output_text` is the context text."""
+        deps, say, count = self.deps, self._text, self._int
+        content, estimate, option = deps.content, deps.estimate_tokens, stage.option
+        budget = param(stage, "budget_tokens", deps.catalog)
+        ordered = option in ("order", "compress")
+        whole: list[tuple[Item, str]] = []
+        cut: tuple[Item, str] | None = None
+        dropped: list[Item] = []
+        for index, pick in enumerate(picks):
+            trial = [*whole, (pick, pick.text)]
+            if estimate(self._assemble(trial, ordered)) <= budget:
+                whole = trial
+                continue
+            cut_text = self._cut_to_fit(whole, pick, budget, ordered)
+            if cut_text is None and not whole:
+                cut_text = self._smallest_cut(pick.text)
+            if cut_text is not None:
+                cut = (pick, cut_text)
+            dropped = picks[index + (1 if cut is not None else 0) :]
+            break
+        parts = sorted([*whole, *([cut] if cut else [])], key=lambda p: p[0].rank)
+        position = {item.rank: pos for item, _, pos in self._layout(parts, ordered)}
+        items: list[Item] = []
+        for item, raw in parts:
+            formatted = content.excerpt(position[item.rank], item.title_text, raw)
+            items.append(
+                replace(
+                    item,
+                    text=formatted,
+                    placed=position[item.rank],
+                    state="cut" if cut and item is cut[0] else "whole",
+                    tokens=estimate(formatted),
+                )
+            )
+        removed = 0
+        if cut is not None:
+            shown = next(i for i in items if i.rank == cut[0].rank)
+            full = content.excerpt(shown.placed or 0, shown.title_text, cut[0].text)
+            removed = max(0, estimate(full) - (shown.tokens or 0))
+        left_out = []
+        for pick in dropped:
+            formatted = content.excerpt(pick.rank, pick.title_text, pick.text)
+            left_out.append(replace(pick, text=formatted, tokens=estimate(formatted)))
+        warnings = [warning] if warning else []
+        if cut is not None or dropped:
+            warnings.append(
+                say(
+                    "context.budget_cut",
+                    budget=count(budget),
+                    whole=count(len(whole)),
+                    cut=count(1 if cut else 0),
+                    dropped=count(len(dropped)),
+                )
+            )
+        if cut is not None and not whole:
+            warnings.append(say("context.budget_tiny"))
+        facts = [
+            (say("fact.whole"), count(len(whole))),
+            (
+                say("fact.cut"),
+                say("context.cut_some", tokens=count(removed)) if cut else say("context.cut_none"),
+            ),
+            (say("fact.dropped"), count(len(dropped))),
+        ]
+        if ordered:
+            ranks = ", ".join(str(i.rank) for i in sorted(items, key=lambda i: i.placed or 0))
+            facts.append(
+                (
+                    say("fact.order"),
+                    say("context.order_edges", ranks=ranks)
+                    if len(items) >= 3
+                    else say("context.order_short"),
+                )
+            )
+        text = self._context_text(items) if items else ""
+        before = estimate(text)
+        used_fact = (
+            say("fact.tokens_used"),
+            say("context.budget_used", used=count(before), budget=count(budget)),
+        )
+        facts.insert(3, used_fact)
+        if option == "compress":
+            text = self._compress_items(items, text, facts, warnings)
+        out = _Result(items=items, output_text=text, facts=facts, dropped=left_out)
+        out.warning_text = " ".join(warnings) or None
+        out.budget = {
+            "used": estimate(text),
+            "budget": budget,
+            "before": before if option == "compress" else None,
+        }
+        return out
+
+    def _compress_items(
+        self, items: list[Item], text: str, facts: list[tuple[str, str]], warnings: list[str]
+    ) -> str:
+        """`compress`: the session's compressor, borrowed, on each passage in turn (never on the
+        introduction), above the session's threshold; a failure keeps the passage as it was.
+        Unavailable: the context stays as `order` built it, and the reason is said. Returns the
+        context text after, `items` updated."""
+        deps, say, count = self.deps, self._text, self._int
+        estimate = deps.estimate_tokens
+        compressor, why = deps.compressor()
+        for item in items:
+            item.tokens_after = item.tokens
+        if compressor is None:
+            reason = render(why or Message("session.rag_lab.compress_not_wanted"), self._lang)
+            warnings.append(say("context.compress_unavailable", reason=reason))
+            facts.append((say("fact.compression"), say("context.compress_off")))
+            return text
+        failures: list[str] = []
+        changed = 0
+        for item in sorted(items, key=lambda i: i.placed or 0):
+            self._check()  # « Arrêter » is read between two passages
+            if len(item.text.strip()) < deps.compression_min_chars:
+                continue
+            try:
+                got = compressor.compress(item.text)
+                after = (got.text or "").strip()
+                transforms = [str(t) for t in (got.transforms or ())]
+            except Exception as exc:  # noqa: BLE001 - AD-16: the passage goes on as it was
+                item.error_text = say(
+                    "context.compress_failed_item",
+                    error=type(exc).__name__,
+                    cause=exception_text(exc, self._lang),
+                )
+                failures.append(item.error_text)
+                continue
+            tokens_after = estimate(after) if after else 0
+            if after and after != item.text.strip() and tokens_after < (item.tokens or 0):
+                item.text, item.tokens_after, item.transforms = after, tokens_after, transforms
+                changed += 1
+        before = sum(i.tokens or 0 for i in items)
+        after_total = sum(i.tokens_after or 0 for i in items)
+        facts.append(
+            (
+                say("fact.compression"),
+                say(
+                    "context.compress_tokens",
+                    before=count(before),
+                    after=count(after_total),
+                    compressor=compressor.label_text,
+                ),
+            )
+        )
+        facts.append(
+            (
+                say("fact.compressed"),
+                say("context.compress_count", changed=count(changed), total=count(len(items))),
+            )
+        )
+        if failures:
+            warnings.append(
+                say("context.compress_failed", count=count(len(failures)), first=failures[0])
+            )
+            facts.append((say("fact.compress_failures"), count(len(failures))))
+        return self._context_text(items)
 
     def _generation_context(self, chain: _Chain) -> str:
         """« le contexte construit (3 extraits), puis la question », or the question alone."""

@@ -56,10 +56,12 @@ def folded(text: str) -> str:
 
 @dataclass(frozen=True)
 class Listed:
-    """One item of a stage's ranked list: its document and its text."""
+    """One item of a stage's ranked list: its document and its text. `placed`: the position
+    in the context (V1.2 story 7: the order may differ from the ranking), when it has one."""
 
     doc_id: str
     text: str
+    placed: int | None = None
 
 
 @dataclass(frozen=True)
@@ -139,7 +141,9 @@ def diagnose_passage(
         before = rank if rank is not None else before
     last = next((ranks[k] for k in ("rerank", "fusion") if k in ranks), best_search)
     if "context" in ranks:
-        if ranks["context"] is None and last is not None and last > budget:
+        if ranks["context"] is None and last is not None:
+            # V1.2 story 7: present in the last ranked list, absent from the context, whatever
+            # its rank: past `top_k`, left out by the budget, or cut off with its anchor.
             blame("context", "cut")
         elif ranks["context"] is None and last is None:
             blame("context", "missing")
@@ -152,6 +156,8 @@ def diagnose_passage(
         )
     size = len(by_kind["context"].items) if "context" in by_kind else 0
     at = ranks.get("context")
+    if at is not None:  # the position in the context, which the order may have changed
+        at = by_kind["context"].items[at - 1].placed or at
     middle = size >= 3 and at is not None and 1 < at < size
     return {
         "doc_id": passage.doc_id,
@@ -357,6 +363,7 @@ def listing(lang: str | None = None) -> dict[str, Any]:
 class LiveItem(_Strict):
     doc_id: str = Field(max_length=200)
     text: str = Field(max_length=20000)
+    placed: int | None = Field(default=None, ge=1, le=MAX_ITEMS)
 
 
 class LiveStage(_Strict):
@@ -382,7 +389,8 @@ def live(request: LiveRequest, lang: str | None = None) -> dict[str, Any] | None
         return None
     chunks = chunk_corpus(load_rag_content(lang), request.chunk_max_chars, lang)
     stages = [
-        StageList(s.kind, [Listed(i.doc_id, i.text) for i in s.items]) for s in request.stages
+        StageList(s.kind, [Listed(i.doc_id, i.text, i.placed) for i in s.items])
+        for s in request.stages
     ]
     return diagnose(question, chunks, stages, budget=request.top_k, tolerance=request.tolerance)
 
