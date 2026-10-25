@@ -59,3 +59,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 20:58 · 15.6 · dev · lancé (Sonnet, ../wavestack-v15-s6) · —
 - 2026-10-25 21:03 · run · décision · 3e créneau (Anaël) : phase spec de 15.2 avancée en V0 · —
 - 2026-10-25 21:03 · 15.2 · dev · lancé (Sonnet, phase spec, ../wavestack-v15-s2) · —
+- 2026-10-25 21:07 · 15.2 · dev · fini (phase spec, 8 cas, 9 points ouverts) · 87c373ec
+- 2026-10-25 21:07 · 15.2 · review · lancé (spec_checkpoint, Opus) · —
