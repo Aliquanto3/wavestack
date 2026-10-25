@@ -7,8 +7,57 @@ lists arrays of uint32 (or of strings). Enough for `wavestack.models.gguf_meta`.
 from __future__ import annotations
 
 import struct
+import sys
 from pathlib import Path
 from typing import Any
+
+
+def make_sparse(path: Path, size: int) -> None:
+    """Extends (or creates) the file to `size` bytes without writing them.
+
+    On NTFS a file is only sparse with the sparse flag: without it `truncate` writes the
+    zeros (seconds per GB). The flag needs no admin rights. Elsewhere `truncate` is enough.
+    The size stays real: the code under test reads it with a plain `stat`.
+    """
+    path = Path(path)
+    path.touch()
+    with open(path, "r+b") as f:
+        if sys.platform == "win32":
+            import ctypes
+            import msvcrt
+            from ctypes import wintypes
+
+            fsctl_set_sparse = 0x900C4
+            returned = wintypes.DWORD(0)
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.DeviceIoControl.argtypes = [
+                wintypes.HANDLE,
+                wintypes.DWORD,
+                wintypes.LPVOID,
+                wintypes.DWORD,
+                wintypes.LPVOID,
+                wintypes.DWORD,
+                ctypes.POINTER(wintypes.DWORD),
+                wintypes.LPVOID,
+            ]
+            # Best effort: without the flag the file is still correct, only slower.
+            kernel32.DeviceIoControl(
+                msvcrt.get_osfhandle(f.fileno()),
+                fsctl_set_sparse,
+                None,
+                0,
+                None,
+                0,
+                ctypes.byref(returned),
+                None,
+            )
+        if sys.platform == "win32" and size > path.stat().st_size:
+            # `truncate` (SetEndOfFile) still takes ~1 s/GB on NTFS, even flagged sparse;
+            # writing the last byte extends the file at once (measured: 5 GiB in < 10 ms).
+            f.seek(size - 1)
+            f.write(b"\0")
+        else:
+            f.truncate(size)
 
 
 def _string(text: str) -> bytes:
