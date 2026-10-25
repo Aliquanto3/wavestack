@@ -632,3 +632,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:09 · 12.21 · attente humaine · accord d'Anaël pour télécharger ~6,9 Go (ou ColSmol seul ~1 Go) : réseau peut-être sur données mobiles ; mesure ~20-30 min sur poste libre ensuite ; notification envoyée · —
 - 2026-10-25 17:09 · run · décision · dossier parasite C:\c\Users\… (2 Mo, fichiers de plusieurs sessions et projets, dont p0.png de 12.21) laissé en place, à supprimer par Anaël s'il le souhaite · —
 - 2026-10-25 17:16 · 12.21 · décision · Anaël : téléchargement des 6,9 Go accordé, sur le WiFi actuel (~3,5 Mo/s mesuré ; données mobiles en repli si besoin) ; téléchargement lancé · e647ad10
+- 2026-10-25 17:16 · 12.16 · review · passe 1 : 3 medium corrigés (auth_env refuse les clés cloud et tout …_API_KEY ; tests d'export en CI avec --extra otel et test hors boucle locale ; tokens d'étape sous wavestack.rag_lab.usage.*), 6 low corrigés (dont corps protobuf non journalisé, URL sans requête), 1 écarté ; 13 tests otel, E2E 157/157 · 7e97f4c9
+- 2026-10-25 17:16 · 12.16 · décision · à revoir : hôte du collecteur autorisé pour tous les clients de la fabrique (comme un hôte cloud) ; surcoût de CI de --extra otel à relever sur la CI de la PR · 7e97f4c9
+- 2026-10-25 17:16 · 12.16 · report · PR après la fusion de 12.12 et refusion de l'intégration · 7e97f4c9
