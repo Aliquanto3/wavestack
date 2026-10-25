@@ -1,0 +1,61 @@
+# V1.2 story 18 (CAP-15), Reiter Angreifen, Karte "Zugriffsrechte": Profile Alle und HR, Modi
+# "Filter nach der Suche" und "Kontrolle vor der Suche", auf der globalen Frage `q_global_rh`. Die
+# Berechnung ist deterministisch (BM25 über den Korpus im Speicher), ohne Modell. IDs und Struktur
+# sind in den drei Sprachen gleich; nur die Texte unterscheiden sich.
+
+chunk_max_chars: 700
+top_k: 3
+question_id: q_global_rh
+
+# Die Umschreibung der Anfrage, die die Passage im Modus "nach" "gelesen" hat: ein konstruierter
+# Text, kein Aufruf. Sie nennt den Titel eines Dokuments der vor dem Filter gelesenen Passagen
+# (per Test geprüft).
+rewrite:
+  provenance:
+    kind: constructed
+    to_record_with: "das aktive Modell, live (spätere Story)"
+  doc_id: entretiens_annuels
+  text: "Für die Suche umgeschriebene Anfrage: \"Personalprozesse zwischen Exemplia und seinen Mitarbeitenden: {title}, Vergütungstabelle, Disziplinarverfahren\". Die HR-Passage wurde gelesen, um diesen Satz zu schreiben, bevor sie entfernt wurde."
+
+texts:
+  banner_text: "Demonstration: fiktiver Korpus, keine echten Daten"
+  title_text: "Zugriffsrechte"
+  hint_text: "Ein Rechtefilter nach der Suche lässt schon eine HR-Passage in die Pipeline; eine Kontrolle vor der Suche kann das nicht. Wählen Sie ein Profil und einen Modus: Die Karte zeigt, was die Pipeline vor dem Filter gelesen hat."
+  profile_label_text: "Profil"
+  profile:
+    all: "Alle"
+    hr: "HR"
+  mode_label_text: "Kontrolle"
+  mode:
+    after: "Filter nach der Suche"
+    before: "Kontrolle vor der Suche"
+  question_label_text: "Frage"
+  corpus_text: "Korpus im Speicher: {docs} Dokumente, davon {hr} nur für HR, {chunks} Passagen mit höchstens {size} Zeichen; die {k} besten nach BM25-Score werden gelesen."
+  seen_title_text: "Von der Pipeline gelesen, vor dem Filter"
+  returned_title_text: "Nach dem Filter zurückgegeben"
+  returned_none_text: "Keine Passage zurückgegeben."
+  leaked_title_text: "Gelesene HR-Passagen (Leck)"
+  leaked_none_text: "Keine HR-Passage wurde gelesen."
+  passage_text: "{rank}. {title} (Auszug {position}), Score {score}"
+  audience:
+    all: "alle"
+    hr: "HR"
+  kept_text: "zurückgegeben"
+  removed_text: "nach dem Lesen entfernt"
+  leak_badge_text: "Leck"
+  count_text: "Zurückgegeben: {count} Passagen von {k} angefragten."
+  rewrite_title_text: "Umschreibung der Anfrage"
+  provenance:
+    constructed_text: "für die Demonstration konstruierter Fall (aufzuzeichnen mit {model})"
+    recorded_text: "aufgezeichnet am {date} mit {model}"
+  notes:
+    leak_text: "Leck: {count} HR-Passage(n) wurden von der Pipeline gelesen, bevor sie entfernt wurden. Ein Modell, das den Kontext oder die Umschreibung erhält, hat sie schon gesehen."
+    shortfall_text: "Nur {count} Ergebnis(se) von {k}: Die Anzahl der Ergebnisse verrät die Existenz des entfernten Dokuments."
+    safe_before_text: "Kein Leck: Der Index enthält nur die für das Profil erlaubten Dokumente, der idf wird ohne die anderen berechnet, und die Anzahl der Ergebnisse erreicht k."
+    authorized_text: "Berechtigung, kein Leck: Das HR-Profil darf die HR-Passagen lesen."
+    no_leak_text: "Für diese Frage ist keine HR-Passage aufgetaucht."
+  limits_title_text: "Was die Karte nicht sagt"
+  limits:
+    - "Der Filter lebt nur in der Karte: Weder der Chat noch die Werkstatt (Aufbauen, Vergleichen, Bewerten) filtern nach Rechten."
+    - "Die Umschreibung der Anfrage ist ein konstruierter Text. Das echte Leck über den Kontext eines aktiven Modells wird in einer späteren Story aufgezeichnet."
+    - "GraphRAG: Eine Gemeinschaftszusammenfassung kann Dokumente verschiedener Profile mischen; ihre Passagen nachträglich zu filtern entfernt nicht, was sie schon zusammengefasst hat."

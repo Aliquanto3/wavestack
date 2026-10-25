@@ -97,7 +97,6 @@ function drawControls() {
   $("rag-atk-run").hidden = isGraph;
   $("rag-atk-limits-title").textContent = t("limits_title_text");
   $("rag-atk-limits").replaceChildren(...(at.body.texts.limits ?? []).map((line) => el("li", "", line)));
-  $("rag-atk-soon").textContent = t("story18_text");
 }
 
 function drawGuardState() {

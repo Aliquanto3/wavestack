@@ -162,5 +162,4 @@ texts:
       remove_needs_uncheck: "Entfernen Sie den Haken beim präparierten Dokument, um es zu entfernen."
       remove_needs_injection: "Nichts zu entfernen: Fügen Sie das Dokument zuerst in den Graphen ein."
       rebuild_document_still_there: "Das Dokument ist noch im Korpus: Der Neuaufbau behält die falsche Relation. Entfernen Sie es zuerst."
-  story18_text: "Löschung und Rechte: kommen in Story 18."
   unknown_text: "Unbekanntes Szenario."

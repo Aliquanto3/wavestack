@@ -1,0 +1,60 @@
+# V1.2 story 18 (CAP-15), Attack tab, "Access rights" card: profiles All and HR, modes "filter
+# after the search" and "check before the search", on the global question `q_global_rh`. The
+# computation is deterministic (BM25 over the corpus in memory), no model. Ids and structure are
+# shared by the three languages; only the texts differ.
+
+chunk_max_chars: 700
+top_k: 3
+question_id: q_global_rh
+
+# The query rewriting that "read" the passage in mode "after": a constructed text, not a call. It
+# cites the title of a document of the passages read before the filter (checked by a test).
+rewrite:
+  provenance:
+    kind: constructed
+    to_record_with: "the active model, live (later story)"
+  doc_id: entretiens_annuels
+  text: "Query rewritten for the search: \"HR processes between Exemplia and its employees: {title}, compensation grid, disciplinary procedure\". The HR passage was read to write this sentence, before being removed."
+
+texts:
+  banner_text: "Demonstration: fictitious corpus, no real data"
+  title_text: "Access rights"
+  hint_text: "A rights filter placed after the search already lets an HR passage into the pipeline; a check placed before the search cannot. Choose a profile and a mode: the card shows what the pipeline read before the filter."
+  profile_label_text: "Profile"
+  profile:
+    all: "Everyone"
+    hr: "HR"
+  mode_label_text: "Check"
+  mode:
+    after: "Filter after the search"
+    before: "Check before the search"
+  question_label_text: "Question"
+  corpus_text: "Corpus in memory: {docs} documents, {hr} of them reserved for HR, {chunks} passages of {size} characters at most; the {k} best by BM25 score are read."
+  seen_title_text: "Read by the pipeline, before the filter"
+  returned_title_text: "Returned after the filter"
+  returned_none_text: "No passage returned."
+  leaked_title_text: "HR passages read (leak)"
+  leaked_none_text: "No HR passage was read."
+  passage_text: "{rank}. {title} (excerpt {position}), score {score}"
+  audience:
+    all: "everyone"
+    hr: "HR"
+  kept_text: "returned"
+  removed_text: "removed after being read"
+  leak_badge_text: "leak"
+  count_text: "Returned: {count} passages out of {k} requested."
+  rewrite_title_text: "Query rewriting"
+  provenance:
+    constructed_text: "case built for the demonstration (to be recorded with {model})"
+    recorded_text: "recorded on {date} with {model}"
+  notes:
+    leak_text: "Leak: {count} HR passage(s) were read by the pipeline before being removed. A model that receives the context or the rewriting has already seen them."
+    shortfall_text: "Only {count} result(s) out of {k}: the number of results betrays the existence of the removed document."
+    safe_before_text: "No leak: the index only holds the documents the profile may read, the idf is computed without the others, and the number of results reaches k."
+    authorized_text: "Authorization, not a leak: the HR profile may read the HR passages."
+    no_leak_text: "No HR passage came up for this question."
+  limits_title_text: "What the card does not say"
+  limits:
+    - "The filter lives in the card only: neither the chat nor the workshop (Build, Compare, Evaluate) filters by rights."
+    - "The query rewriting is a constructed text. The real leak through an active model's context will be recorded in a later story."
+    - "GraphRAG: a community summary can mix documents of different profiles; filtering its passages afterwards does not remove what it has already summarized."

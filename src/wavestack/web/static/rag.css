@@ -1736,3 +1736,55 @@ body.rag-page {
   padding: 0 var(--spacing-2);
   font-weight: 600;
 }
+
+/* V1.2 story 18 (CAP-14, CAP-15): the Effacement and Droits d'acces cards. The state is
+   always written in words; the border only doubles it. */
+.rag-era-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rag-era-table th,
+.rag-era-table td {
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rag-era-status {
+  font-weight: 600;
+}
+
+.rag-era-status[data-status="to_rebuild"],
+.rag-era-status[data-status="to_reload"],
+.rag-era-status[data-status="present"] {
+  border-left: 4px solid var(--color-danger);
+  padding-left: var(--spacing-2);
+}
+
+.rag-era-status[data-status="erased"],
+.rag-era-status[data-status="absent"],
+.rag-era-status[data-status="no_copy"] {
+  border-left: 4px solid var(--color-primary);
+  padding-left: var(--spacing-2);
+}
+
+.rag-era-illustrative {
+  display: block;
+  border: 1px dashed var(--color-line);
+  padding: 0 var(--spacing-2);
+  font-style: italic;
+}
+
+.rag-acc-passage {
+  margin: var(--spacing-2) 0;
+  padding-left: var(--spacing-2);
+  border-left: 4px solid var(--color-line);
+  list-style: none;
+}
+
+.rag-acc-passage[data-leak="1"] {
+  border-left-color: var(--color-danger);
+  border-left-style: dashed;
+}

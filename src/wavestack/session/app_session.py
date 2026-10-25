@@ -197,8 +197,10 @@ from wavestack.models.servers import (
     ollama_load_bytes,
     open_engine,
 )
+from wavestack.rag import access as rag_access
 from wavestack.rag import attack as rag_attack
 from wavestack.rag import contexts as rag_contexts
+from wavestack.rag import erasure as rag_erasure
 from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
@@ -11968,6 +11970,27 @@ class AppSession:
             )
         body["guard"] = self._attack_guard()
         return body
+
+    # ---------- V1.2 story 18 (CAP-14, CAP-15): the Effacement and Droits cards ----------
+
+    def rag_lab_erasure_texts(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/erasure`: the card's texts and default state, no computation."""
+        return rag_erasure.listing(self._language)
+
+    def rag_lab_erasure(self, request: rag_erasure.ErasureRequest) -> dict[str, Any]:
+        """`POST /api/rag_lab/erasure`: the places where the sentinel survives, recomputed from
+        the request. Pure, accepted in any state: no model, no network, nothing written, no
+        entry in the security journal."""
+        return rag_erasure.run(request, self._language)
+
+    def rag_lab_access_texts(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/access`: the card's texts and default state, no computation."""
+        return rag_access.listing(self._language)
+
+    def rag_lab_access(self, request: rag_access.AccessRequest) -> dict[str, Any]:
+        """`POST /api/rag_lab/access`: what the pipeline read before the filter, recomputed.
+        Pure, accepted in any state."""
+        return rag_access.run(request, self._language)
 
     # ---------- the MCP workshop (context `mcp_lab`): story 6 of 2026-09-30, lot 4 of 2026-10-04 --
 

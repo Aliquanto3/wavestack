@@ -1,0 +1,239 @@
+# V1.2 story 18 (CAP-14), Attack tab, "Erasure" card: texts, architectures, places where the
+# sentinel survives and the constructed contents of the derivatives that do not exist yet. Ids,
+# erase modes, provenances and stories are shared by the three languages; only the texts differ.
+#
+# The code ORN-7731-QZ is fictitious (shipped text of the sentinel document). A "measured" place
+# is rebuilt here without any model; a "constructed" place is written by the developer for the
+# demonstration, marked illustrative, with the story that will replace it (10 to 14). No cost or
+# duration figure: bringing a copy back into compliance is said in words.
+
+chunk_max_chars: 700
+top_k: 3
+doc_id: projet_orion
+code: ORN-7731-QZ
+
+architectures:
+  - id: dense
+    available: true
+    label_text: "Dense RAG"
+    update_text: "remove the document's passages from the store, by identifier; the vector leaves with its passage."
+  - id: hybrid
+    available: true
+    label_text: "Hybrid RAG"
+    update_text: "remove the passages from the store and from the BM25 index, by document identifier."
+  - id: rerank
+    available: true
+    label_text: "RAG with reranking"
+    update_text: "remove the passages from the store, by identifier; the reranker keeps nothing."
+  - id: long_context
+    available: false
+    story: 10
+    label_text: "Long context, no retrieval"
+    update_text: "no copy of the corpus to rebuild, except the cached prefix, to reload."
+  - id: cag
+    available: false
+    story: 10
+    label_text: "CAG"
+    update_text: "reload the whole model cache, because the prefix contains the document."
+  - id: agentic
+    available: false
+    story: 11
+    label_text: "Agentic search"
+    update_text: "none: the source is read again at every query."
+  - id: pageindex
+    available: false
+    story: 11
+    label_text: "PageIndex"
+    update_text: "recompute the tree of the modified document and its sections."
+  - id: raptor
+    available: false
+    story: 12
+    label_text: "RAPTOR"
+    update_text: "redo the summaries of the branches concerned, then those that summarize them."
+  - id: graphrag
+    available: false
+    story: 13
+    label_text: "Simplified GraphRAG"
+    update_text: "re-extract the entities, merge, then recompute the communities and their summaries."
+  - id: llm_wiki
+    available: false
+    story: 14
+    label_text: "LLM Wiki"
+    update_text: "recompile the pages concerned, then run the wiki's check."
+  - id: crag
+    available: false
+    story: 12
+    label_text: "Corrective RAG"
+    update_text: "that of hybrid RAG: remove the passages from the store and from the BM25 index."
+
+places:
+  - id: chunks
+    erase_mode: delete
+    measured: chunks
+    architectures: [dense, hybrid, rerank, crag, raptor]
+    label_text: "Chunks and vectors"
+    unit_text: "Passages"
+    measured_on_text: "the text of the passages of the corpus in memory"
+  - id: bm25
+    erase_mode: delete
+    measured: bm25
+    architectures: [hybrid, crag]
+    label_text: "BM25 index"
+    unit_text: "Documents of the index"
+    measured_on_text: "the hybrid's BM25 index"
+  - id: contexts
+    erase_mode: rebuild
+    measured: contexts
+    shared: true
+    architectures: [dense, hybrid, rerank, crag]
+    label_text: "Contextual chunking contexts (recomputed)"
+    unit_text: "Context entries"
+    measured_on_text: "the heuristic contexts recomputed in memory"
+  - id: shipped_contexts
+    erase_mode: rebuild
+    measured: shipped_contexts
+    shared: true
+    architectures: [dense, hybrid, rerank, crag]
+    label_text: "Shipped contexts file (precomputed)"
+    unit_text: "Entries of the file"
+    measured_on_text: "the shipped contexts file, read as it is"
+  - id: raptor_summaries
+    erase_mode: rebuild
+    provenance:
+      kind: constructed
+      to_record_with: "the real RAPTOR tree, story 12"
+    story: 12
+    architectures: [raptor]
+    label_text: "RAPTOR summaries"
+    unit_text: "Summaries"
+    text: "Level 1 summary: Project Orion, identified by the unique code ORN-7731-QZ, is a fictitious internal Exemplia project; its document serves as a sentinel."
+    rebuilt_text: "Level 1 summary: the documents of the corpus describe Exemplia's internal policies (remote work, security, generative AI)."
+  - id: pageindex_tree
+    erase_mode: rebuild
+    provenance:
+      kind: constructed
+      to_record_with: "the real PageIndex tree, story 11"
+    story: 11
+    architectures: [pageindex]
+    label_text: "PageIndex tree"
+    unit_text: "Nodes"
+    text: "Node \"Project Orion\": short summary, code ORN-7731-QZ, Exemplia's sentinel document."
+    rebuilt_text: "Root node: Exemplia's corpus, by section, without the sentinel document."
+  - id: graph_communities
+    erase_mode: rebuild
+    provenance:
+      kind: constructed
+      to_record_with: "the real GraphRAG index, story 13"
+    story: 13
+    architectures: [graphrag]
+    label_text: "Community summaries (GraphRAG)"
+    unit_text: "Summaries"
+    text: "Community \"Orion\": Project Orion (code ORN-7731-QZ) and the document that describes it form a community of their own."
+    rebuilt_text: "Communities: internal policies, human resources and security; no community devoted to Project Orion."
+  - id: graph_entities
+    erase_mode: rebuild
+    provenance:
+      kind: constructed
+      to_record_with: "the real GraphRAG index, story 13"
+    story: 13
+    architectures: [graphrag]
+    label_text: "Entities and relations (GraphRAG)"
+    unit_text: "Entities"
+    text: "Entity \"Project Orion\" (code ORN-7731-QZ), relation \"describes\" to the sentinel document."
+    rebuilt_text: "Entities: Exemplia's policies, teams and procedures; no entity for Project Orion."
+  - id: wiki_pages
+    erase_mode: rebuild
+    provenance:
+      kind: constructed
+      to_record_with: "the real wiki, story 14"
+    story: 14
+    architectures: [llm_wiki]
+    label_text: "Wiki pages"
+    unit_text: "Pages"
+    text: "Page \"Project Orion\": fictitious internal project, code ORN-7731-QZ, source: the sentinel document."
+    rebuilt_text: "Wiki index: the pages of Exemplia's internal policies, without a page on Project Orion."
+  - id: cag_cache
+    erase_mode: reload
+    provenance:
+      kind: constructed
+      to_record_with: "the real CAG cache, story 10"
+    story: 10
+    architectures: [cag]
+    label_text: "Prompt cache (CAG)"
+    unit_text: "Cached prefixes"
+    text: "Cached prefix: the whole corpus preloaded, including the sentinel document and its code ORN-7731-QZ."
+    rebuilt_text: "Cached prefix: the whole corpus preloaded, without the sentinel document."
+  - id: long_context_prefix
+    erase_mode: reload
+    provenance:
+      kind: constructed
+      to_record_with: "the real long-context prefix, story 10"
+    story: 10
+    architectures: [long_context]
+    label_text: "Cached prefix of the long context"
+    unit_text: "Cached prefixes"
+    text: "Cached prefix: the whole corpus put in the prompt, including the sentinel document's code ORN-7731-QZ."
+    rebuilt_text: "Cached prefix: the whole corpus put in the prompt, without the sentinel document."
+  - id: source
+    erase_mode: none
+    measured: source
+    architectures: [agentic, long_context]
+    label_text: "Source read again at every query"
+    unit_text: "Documents of the source"
+    measured_on_text: "the source, read again at every query"
+
+texts:
+  banner_text: "Demonstration: the code is fictitious, no real data"
+  title_text: "Erasure"
+  hint_text: "Deleting a document from the source does not delete it from its copies. Activate the sentinel, build the copies, delete it, then read where the code survives, by place and by architecture."
+  sentinel_label_text: "Activate the sentinel \"{title}\""
+  sentinel_active_text: "active, in this page only"
+  sentinel_inactive_text: "inactive"
+  scope_text: "The activation lives in this page and goes with every request: the shipped corpus, the index, the work copy and the contexts do not change."
+  code_text: "Code searched: {code}"
+  build_text: "Build the copies"
+  erase_text: "Delete the sentinel"
+  rebuild_title_text: "Rebuild an architecture from the source without the sentinel"
+  rebuild_text: "Rebuild: {architecture}"
+  rebuilt_done_text: "rebuilt"
+  guard_text: "Nothing to erase: build the copies first."
+  step_text:
+    idle: "The copies are not built."
+    start: "Copies built with the sentinel: the code is present wherever it is copied."
+    erase: "The sentinel left the source. Not all copies follow it."
+    rebuild: "The chosen architectures are rebuilt from the source without the sentinel."
+  corpus_text: "Corpus in memory: {docs} documents, {chunks} passages of {size} characters at most, {sentinel} of them from the sentinel."
+  table_title_text: "Where the code survives"
+  place_header_text: "Place"
+  architecture_header_text: "Architecture"
+  status_header_text: "Status"
+  hits_text: "{unit} with the code: {hits}"
+  status:
+    present: "present"
+    erased: "erased"
+    to_rebuild: "present · to rebuild"
+    to_reload: "present · to reload"
+    absent: "absent"
+    no_copy: "no copy"
+  shared_text: "shared copy"
+  measured_text: "measured"
+  illustrative_text: "illustrative · {provenance}"
+  upcoming_text: "architecture coming (story {story}), place measured on {on}"
+  vectors_text: "The vectors are not computed (no embedding model): the \"Chunks and vectors\" line measures the text of the passages, and the vector leaves with its passage."
+  cost_text: "Bringing {architecture} back into compliance: {update}"
+  costs_title_text: "What bringing it back into compliance costs (in words)"
+  question_title_text: "Question on the code"
+  question_text: "Search for the code \"{code}\" in what is left, without generation."
+  ranking_title_text: "Passages that come up"
+  ranking_none_text: "No passage comes up: the search no longer finds the code."
+  passage_text: "{rank}. {title} (excerpt {position}), score {score}"
+  holding_title_text: "What still holds the code"
+  holding_none_text: "No copy holds the code any more."
+  provenance:
+    constructed_text: "case built for the demonstration (to be recorded with {model})"
+    recorded_text: "recorded on {date} with {model}"
+  limits_title_text: "What the card does not say"
+  limits:
+    - "The illustrative places are written for the demonstration: they will be plugged into the real derivatives when stories 10 to 14 deliver them."
+    - "The real SQLite index and its vector table are not read: deletion by document identifier will be checked there in a later story."
+    - "The shipped contexts file is read as it is and never modified: built without the sentinel, it does not contain it."

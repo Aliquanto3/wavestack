@@ -162,5 +162,4 @@ texts:
       remove_needs_uncheck: "Untick the trapped document to remove it."
       remove_needs_injection: "Nothing to remove: inject the document into the graph first."
       rebuild_document_still_there: "The document is still in the corpus: the rebuild keeps the false relation. Remove it first."
-  story18_text: "Erasure and Rights: coming in story 18."
   unknown_text: "Unknown scenario."

@@ -319,8 +319,51 @@
         <h3 class="rag-cost-title" id="rag-atk-limits-title"></h3>
         <ul class="rag-atk-list" id="rag-atk-limits"></ul>
       </section>
-      <section class="rag-section" id="rag-atk-soon-box">
-        <p class="rag-note" id="rag-atk-soon"></p>
+      <section class="rag-section" id="rag-erasure-card" aria-labelledby="rag-era-title">
+        <p class="rag-eval-banner" id="rag-era-banner" role="status"></p>
+        <h3 class="rag-cost-title" id="rag-era-title"></h3>
+        <p class="rag-note" id="rag-era-hint"></p>
+        <div class="rag-atk-controls">
+          <label class="rag-atk-check"><input type="checkbox" id="rag-era-sentinel" /> <span id="rag-era-sentinel-label"></span></label>
+          <span class="rag-badge" id="rag-era-sentinel-state"></span>
+        </div>
+        <p class="rag-note" id="rag-era-scope"></p>
+        <div class="rag-copy-buttons" role="group" aria-labelledby="rag-era-title">
+          <button type="button" class="rag-button-secondary" id="rag-era-build"></button>
+          <button type="button" class="rag-button-secondary" id="rag-era-erase"></button>
+        </div>
+        <p class="rag-error" id="rag-era-guard" role="alert" hidden></p>
+        <p class="rag-note" id="rag-era-step" aria-live="polite"></p>
+        <p class="rag-note" id="rag-era-corpus"></p>
+        <div id="rag-era-rebuild-box" hidden>
+          <h4 class="rag-cost-title" id="rag-era-rebuild-title"></h4>
+          <div class="rag-copy-buttons" id="rag-era-rebuild" role="group" aria-labelledby="rag-era-rebuild-title"></div>
+        </div>
+        <div id="rag-era-table-box" aria-live="polite" hidden>
+          <h4 class="rag-cost-title" id="rag-era-table-title"></h4>
+          <div id="rag-era-table"></div>
+          <p class="rag-note" id="rag-era-vectors"></p>
+          <div id="rag-era-costs"></div>
+          <h4 class="rag-cost-title" id="rag-era-question-title"></h4>
+          <p class="rag-note" id="rag-era-question"></p>
+          <div id="rag-era-results"></div>
+        </div>
+        <ul class="rag-atk-list" id="rag-era-limits"></ul>
+      </section>
+      <section class="rag-section" id="rag-access-card" aria-labelledby="rag-acc-title">
+        <p class="rag-eval-banner" id="rag-acc-banner" role="status"></p>
+        <h3 class="rag-cost-title" id="rag-acc-title"></h3>
+        <p class="rag-note" id="rag-acc-hint"></p>
+        <div class="rag-atk-controls">
+          <label for="rag-acc-profile" id="rag-acc-profile-label"></label>
+          <select id="rag-acc-profile"></select>
+          <label for="rag-acc-mode" id="rag-acc-mode-label"></label>
+          <select id="rag-acc-mode"></select>
+        </div>
+        <p class="rag-cmp-question" id="rag-acc-question"></p>
+        <p class="rag-note" id="rag-acc-corpus"></p>
+        <div id="rag-acc-result" aria-live="polite"></div>
+        <ul class="rag-atk-list" id="rag-acc-limits"></ul>
       </section>
     </div>
     <div id="rag-panel-sheets" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-sheets" hidden>
@@ -334,6 +377,8 @@
   <script type="module" src="/static/rag-compare.js"></script>
   <script type="module" src="/static/rag-evaluate.js"></script>
   <script type="module" src="/static/rag-attack.js"></script>
+  <script type="module" src="/static/rag-attack-erasure.js"></script>
+  <script type="module" src="/static/rag-attack-access.js"></script>
   <script type="module" src="/static/rag-sheets.js"></script>
   <script type="module" src="/static/rag-diagnosis.js"></script>
 </body>
