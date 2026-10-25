@@ -599,3 +599,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 15:51 · run · blocked · E2E rag_lab_context cassé sur l'intégration depuis 12.11 (attend 6 options de contexte, 8 aujourd'hui) ; hors CI ; à corriger par la revue de 12.8 · —
 - 2026-10-25 15:51 · 12.8 · second-avis · lancé (défaut cloud de la palette, allowed_hosts, extra decision, diagnostics config.py) · 76f6a095
 - 2026-10-25 15:51 · 12.12 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; empilé sur 12.8, worktree ../wavestack-v12-s12) · 76f6a095
+- 2026-10-25 15:55 · 12.8 · second-avis · 2 high (option cloud choisie par défaut quand le local manque et que la clé est là ; plafond de session aveugle si usage.cost manque), 3 medium (openrouter.ai ouvert à tout client par [net] allowed_hosts ; avertissement 64 % mesuré sur un autre juge ; E2E rag_lab_context préexistant à 9 options), 2 low ; clé, seuil, hashes, extra et MCP sans défaut · 76f6a095
+- 2026-10-25 15:55 · 12.8 · review · lancé (Opus ; correctif de l'E2E rag_lab_context inclus) · 76f6a095
