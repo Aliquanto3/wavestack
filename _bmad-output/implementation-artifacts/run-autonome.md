@@ -450,3 +450,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:55 · 12.19 · dev · complément : critère 7 sans nombre figé (available == id in PRESETS) · a6b5584
 - 2026-10-25 10:55 · run · décision · contrat entre 12.10 et 12.19 : la seconde des deux à entrer dans l'intégration retire story: 10 de long_context et cag dans rag_sheets.yaml ×3 et les passe available: true dans rag_erasure.yaml ×3 · —
 - 2026-10-25 10:55 · run · PR · #112 ouverte vers main (CLAUDE.md : 32 Go de RAM, accord d'Anaël) · —
+- 2026-10-25 10:57 · 12.10 · review · passe 1 : 1 medium (état CAG inscrit au registre, libéré à chaque purge) et 2 low corrigés (génération arrêtée si le préfixe échoue, message d'erreur juste), probe dans un finally, 5 tests ajoutés ; 2 constats écartés avec motif ; E2E 213/213 · 911399e
+- 2026-10-25 10:57 · 12.10 · décision · à revoir : refuser le CAG si _kv_per_token est illisible (le bloc d'intention dit non) ; estimation mémoire prudente (copie du contexte comptée deux fois) · 911399e
+- 2026-10-25 10:57 · 12.10 · PR · #113 ouverte vers integration/v1-2-atelier · 911399e
