@@ -367,3 +367,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:55 · 12.17 · attente humaine · avant de déclarer finie (done_checkpoint) : recette visuelle fr/en/de clair et sombre, relecture des reformulations en/de, vrai verdict Prompt Guard 2, enregistrement des réponses, entrées de la page Sécurité · —
 - 2026-10-25 08:55 · 12.17 · dev · phase 2 (code) lancée · 5dffbb1
 - 2026-10-25 09:02 · 12.6 · CI · rouge Windows groupe 4 deux fois : test_rag_lab_download::test_the_files_are_read_again_before_idle (rappel _rag_caught_up absent) ; non reproduit en local, seul ni après test_rag_lab_chunking ; hors diff de 12.6 ; 3e relance · 6518c09
+- 2026-10-25 09:11 · 12.6 · CI · verte à la 3e relance (test de téléchargement instable sous Windows) · 6518c09
+- 2026-10-25 09:11 · 12.6 · fusion · #107 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 746329b
+- 2026-10-25 09:11 · 12.15 · CI · branche d'intégration fusionnée (4 conflits d'ajout, deux côtés gardés), 4652 tests ciblés verts, CI relancée · 9c9adf2
