@@ -41,6 +41,8 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 
 - 15.3 (spec 1c4d05fc) → 15.4 : fichiers propres à 15.3 (`web/agent_case_api.py`, `web/static/agent-case-form.js` et `.css`, clés `main.agent_case.*`, `agent_case.*`) ; 15.4 crée `web/agent_eval_api.py`, `agent-eval.js`, `main.agent_eval.*`. `agent-case-form.js` exporte `openCaseForm, closeCaseForm, canMakeCase, registerOpenView(fn(caseId)), onCaseSaved(fn)` ; `agent-eval.js` les importe (jamais l'inverse). Routes `/api/agent_eval/` : 15.3 `GET /draft`, `POST /verdict`, `POST /cases` ; 15.4 `GET /cases`, `DELETE /cases`, exécutions. 15.4 met `case_id` dans le payload `turn_started` des tours d'exécution, compare `case.window` au `configured` de `context_window_state`, produit les tours `verdict_turn_ids`. 15.4 ajoute l'étape E2E « Ouvrir Évaluer l'agent ». Insertion dans les fichiers partagés : app.py après `/api/intentions/compact`, app.js après l'import de panes.js, ui.yaml après `main.compare`, run_e2e.py en fin de liste ; index.html non touché.
 
+- 15.5 (088b1683) → après 4b : libellés de la vue cités par le module 9, à vérifier contre le code de 4b (fr ; en et de idem) : « Évaluer l'agent », « Suite fournie », « Mes cas », « Lancer la suite », « Lancer » (avertissement « La conversation sera vidée »), « 3 essais », « Réussi », « Non lancé », « Voir le tour », « réussis sur 3 », pass@3, pass^3, « Diffère : prompt système. », « Comparer A et B », « corrigé », « régressé », « inchangé », « Effacer mes cas ». Puis relancer tests/test_content_language.py (décomptes fr/en/de des libellés cités). « Échoué » volontairement non cité.
+
 ## Décisions
 
 - 2026-10-25 : spec de 15.4 (9bb362e7) : état de session `agent_eval` + garde HTTP ; k = 3 réussi à la majorité stricte (pass@3 et pass^3 affichés à côté) — à revoir par Anaël ; id de configuration inconnu dans un cas de séance ignoré et montré (« Joué sans : … »), contrat inchangé — à revoir par Anaël ; mémoire globale restaurée avant chaque cas et à la fin ; tests en 16 384 avec `start(..., check_window=False)` réservé aux tests (à 4 096 le faux moteur déborde sur le résumé) ; plafond de dépense en cours de cas et `approval: approve` testés en fonction pure, à vérifier en recette.
@@ -120,3 +122,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:13 · 15.2 · fusion · #138 MERGED dans main (squash) · f29058e1
 - 2026-10-25 22:13 · 15.2 · attente humaine · mesure des plafonds par Anaël sur le PC cible (uv run python tools/eval/measure_cases.py --runs 3), notifiée, non bloquante · —
 - 2026-10-25 22:13 · 15.4 · dev · lancé (Opus, partie 4a exécuteur et API, rebasé sur f29058e1) · —
+- 2026-10-25 22:14 · 15.5 · dev · fini (module 9, 4 scénarios, programme 9 modules et 7 h 45) · 088b1683
+- 2026-10-25 22:14 · 15.5 · second-avis · lancé · —
