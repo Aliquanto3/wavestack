@@ -134,3 +134,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:41 · 15.4 · second-avis · 4a lancé · —
 - 2026-10-25 22:41 · 15.4 · dev · 4b lancé (Opus, ../wavestack-v15-s4b, branche feat/v1-5-story-4b-vue empilée sur c087f36a) · —
 - 2026-10-25 22:41 · 15.4 · décision · not_run des deux côtés = inchangé dans la comparaison (cas de la fenêtre) · à revoir
+- 2026-10-25 22:45 · 15.4 · second-avis · 4a : 2 medium (configuration non rétablie si l'arrêt dépasse 30 s ; conversation vidée, prévue par la spec), 5 low · c087f36a
+- 2026-10-25 22:45 · 15.4 · review · 4a lancé (Opus) · —
