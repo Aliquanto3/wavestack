@@ -130,3 +130,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:25 · 15.5 · review · prête hors vérification des libellés de 4b (1 high, 4 medium, 2 low corrigés ; pas de spec de story : revue consignée ici) · acef9326
 - 2026-10-25 22:28 · 15.3 · CI · verte (8/8) après rebase · 435739b9
 - 2026-10-25 22:28 · 15.3 · fusion · #139 MERGED dans main (squash) · ffd2d60e
+- 2026-10-25 22:41 · 15.4 · dev · 4a fini (exécuteur, API, garde HTTP ; case_player supprimé ; rebasé sur ffd2d60e) · c087f36a
+- 2026-10-25 22:41 · 15.4 · second-avis · 4a lancé · —
+- 2026-10-25 22:41 · 15.4 · dev · 4b lancé (Opus, ../wavestack-v15-s4b, branche feat/v1-5-story-4b-vue empilée sur c087f36a) · —
+- 2026-10-25 22:41 · 15.4 · décision · not_run des deux côtés = inchangé dans la comparaison (cas de la fenêtre) · à revoir
