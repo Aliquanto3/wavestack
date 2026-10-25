@@ -2959,6 +2959,9 @@ class UpdateRun(LabRun):
         super().__init__(run_id, label_text, pipeline, deps)
         self.before, self.after = before, after
         self.state: dict[str, Any] = {}
+        # Called with the copy once measured, before `rag_lab_run_ended`: the page reloads the
+        # copy on that event, so it must already be saved (review of V1.2 story 5).
+        self.keep: Callable[[workcopy.WorkCopy], None] | None = None
 
     def _label_of(self, stage: Stage, kind: str) -> str:
         if kind == "lexical_index":
@@ -3012,8 +3015,13 @@ class UpdateRun(LabRun):
                 status = self._part(index, stage, kind, fn, status)
         except Exception:  # noqa: BLE001 - the run ends in error, `run_ended` all the same
             status = "error"
-        finally:
-            self.end(status, _ms(time.monotonic() - started))
+        if status == "ok" and self.keep is not None:
+            try:  # kept only when it was measured, and before the page reloads it
+                self.keep(self.after)
+            except Exception:
+                self.end("error", _ms(time.monotonic() - started))
+                raise  # the session says it (`session.rag_lab.interrupted`)
+        self.end(status, _ms(time.monotonic() - started))
         return status
 
     def _part(
@@ -3244,16 +3252,26 @@ _BULLET = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
 _QUOTES = " \t\"'«»“”„`"
 
 
+# A preamble the model adds (« Voici la question reformulée : »), alone on its line or before
+# the quoted query on the same line.
+_PREAMBLE_QUOTED = re.compile(r"^[^:«\"“]{1,80}:\s*[«\"“](.+?)[»\"”]\s*$")
+
+
 def _clean_line(line: str) -> str:
-    return _BULLET.sub("", line).strip(_QUOTES)
+    line = _BULLET.sub("", line).strip()
+    if line.endswith(":"):  # a preamble alone on its line, never a query
+        return ""
+    if quoted := _PREAMBLE_QUOTED.match(line):
+        line = quoted.group(1)
+    return line.strip(_QUOTES)
 
 
 def parse_queries(option: str, answer: str) -> list[str]:
     """V1.2 story 5 (CAP-3): the queries in a model's answer to the query understanding.
-    `rewrite` and `follow_up`: the first non-empty line (a model that adds a preamble is read
-    by its first line). `decompose`: one query per line, bullets and numbers removed,
-    duplicates dropped, `SUBQUERIES_MAX` kept. `hyde`: the whole answer, one paragraph.
-    Each is cut at its bound; nothing usable gives an empty list."""
+    A preamble (a line ending with a colon, or « … : » before a quoted query) is dropped.
+    `rewrite` and `follow_up`: the first non-empty line. `decompose`: one query per line,
+    bullets and numbers removed, duplicates dropped, `SUBQUERIES_MAX` kept. `hyde`: the whole
+    answer, one paragraph. Each is cut at its bound; nothing usable gives an empty list."""
     lines = [c for line in answer.splitlines() if (c := _clean_line(line))]
     if option == "hyde":
         whole = " ".join(lines)
