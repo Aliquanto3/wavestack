@@ -308,3 +308,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:53 · 12.15 · décision · à revoir : 9 points tranchés par le relecteur Opus (jeu construit dense/hybrid, juge local découvert sur le poste, pas d'extra Ragas/DeepEval, MIN_SAMPLE 5, annotations draft « à valider ») · 6b1898b
 - 2026-10-25 07:53 · 12.15 · attente humaine · valider les annotations de référence ; réenregistrer jeu et pièges avec un vrai juge local non Qwen et un juge cloud ; essayer « Juger cette exécution » sur CPU · —
 - 2026-10-25 07:53 · 12.15 · dev · phase 2 (code) lancée · 6b1898b
+- 2026-10-25 07:54 · 12.5 · second-avis · 0 high, 2 medium (course sur « Modifier » : fin émise avant la sauvegarde de la copie, préexistante, cause probable de l'échec E2E ; préambule du modèle pris pour une requête), 3 low · 9573146
+- 2026-10-25 07:54 · 12.5 · review · lancé (fusion de main d'abord) · 9573146
