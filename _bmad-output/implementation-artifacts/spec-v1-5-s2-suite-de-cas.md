@@ -2,7 +2,7 @@
 title: 'V1.5 story 2 : suite de cas fournie et contrôle dans les deux sens'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: ''
 review_loop_iteration: 0
 context: ['_bmad-output/specs/spec-wavestack-evaluer-l-agent/SPEC.md', '_bmad-output/specs/spec-wavestack-evaluer-l-agent/contrat-des-cas.md']
@@ -197,3 +197,10 @@ Tranchées par l'orchestrateur à la place d'Anaël ; « à revoir par Anaël »
 ## Reste ouvert (Anaël)
 
 - **Mesure des plafonds** sur le PC cible : `uv run python tools/eval/measure_cases.py --runs 3`, puis recopie des `max_model_calls` proposés (sauf H5) dans les trois fichiers et le test 7 ajusté au plafond retenu. Tant qu'elle n'est pas faite, les plafonds sont marqués provisoires dans le commentaire d'en-tête de `content/agent_cases.yaml`. Si le modèle local tourne sur le poste de développement, le dev lance l'outil et recopie la mesure, en le disant dans le rapport.
+
+## Écarts de réalisation
+
+- Le test des deux sens joue les cas sur une fenêtre de 16 384 tokens du faux moteur (1 token par octet) : à 4 096, le faux moteur déborde sur un document du corpus (cas 7), sur la lecture du sous-agent (cas 6) et sur l'appel de résumé de la compaction (cas 5). Le fichier de cas garde `window: 4096`; le remplissage du cas 5 fait environ 5 000 caractères par échange (3 échanges) pour déborder aussi un vrai modèle à 4 096 tokens.
+- La boucle de six appels de R22 va jusqu'à la limite d'étapes : le tour finit en `limit`, donc toutes les vérifications échouent en « tour incomplet » (test dédié) ; le plafond lui-même est testé sur une boucle lente (3 appels d'outil, puis la réponse : 4 appels pour un plafond de 3).
+- Plafonds provisoires, non mesurés (pas de modèle réel dans ce run) : heure_get_datetime 3, chemin_invente 4, h1_bloque_confidentiel 3, memoire_globale_prenom 2, code_talvane_apres_compaction 3, delegation_sous_agent 5, recherche_avant_lecture 4, h5_refuse_sans_rappel 2 (contrat).
+- `case_player.py` : `play_case` lit `session._tools_enabled`, `_skills_enabled`, `_hooks_enabled`, `_mcp_enabled`, `_bricks` et écrit `_history` (aucun accesseur public) ; la story 4 les reprendra dans l'exécuteur.
