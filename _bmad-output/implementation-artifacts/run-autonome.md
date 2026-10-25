@@ -273,3 +273,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:18 · 12.5 · dev · arrêté après 2 commits (code, E2E) ; 12 captures E2E modifiées non commitées · 05ec223
 - 2026-10-25 07:18 · 14.4 · dev · arrêté en pleine implémentation (kept dans CompactionChoice, puis front) ; 19 fichiers modifiés non commités · 30dca94
 - 2026-10-25 07:18 · run · décision · reprise : #101 (merge main, cause CI), fusion, release V1.3 ; puis 14.4 (Opus) et 12.5 (Sonnet) depuis leur worktree ; second avis de 12.9 · —
+- 2026-10-25 07:21 · 13.6 · CI · cause : test_compression attendait Compression en dernier module ; main fusionnée, test réaligné (Cache en dernier), CI relancée · 4c67f02
+- 2026-10-25 07:21 · 14.4 · dev · relancé (Opus) depuis le worktree : commit du travail en cours, fusion de main, fin de l'implémentation · 30dca94
+- 2026-10-25 07:21 · 12.5 · dev · relancé (Sonnet) : vérification des critères, captures, fusion de main · 05ec223
+- 2026-10-25 07:21 · 12.9 · second-avis · lancé · afe6bbd
