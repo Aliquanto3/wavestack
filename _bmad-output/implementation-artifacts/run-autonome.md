@@ -56,7 +56,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 
 - Lire ce fichier en entier, puis `sprint-status.yaml` ; l'état réel prime : `gh pr list --state open`, `git -C ../wavestack-v15-s<n> log -3 --oneline` pour chaque story en cours.
 - Une story dont le dev a commité sans rapport : relancer la chaîne à partir de `second-avis` sur son dernier commit.
-- E2E : `TEMP` et `TMP` en chemin long (`C:\Users\Utilisateur\AppData\Local\Temp`).
+- E2E : `--only` prend les scénarios séparés par des espaces (`--only agent_eval agent_case`) ; avec une virgule, seul le diagnostic tourne et la commande sort en 0. `TEMP` et `TMP` en chemin long (`C:\Users\Utilisateur\AppData\Local\Temp`).
 - Fichiers temporaires des agents : chacun dans `C:\Users\Utilisateur\AppData\Local\Temp\wavestack-v15\s<story>` (le scratchpad de session a expiré).
 - Fin de run : `rapport-run-v1-5.md` (fusionné, bloqué, reporté, « à revoir », tests manuels), mémoire du projet, suppression des worktrees.
 
@@ -145,3 +145,6 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 23:13 · 15.5 · décision · libellé allemand « Agent bewerten öffnen » sans guillemets internes (comme fr et en) ; 15.5 rebasée sur dd66ed03 ; intégration d'essai sur 4b : 335 tests de contenu verts · 67fb4e9b
 - 2026-10-25 23:13 · 15.4 · second-avis · 4b : 4 medium (état de session absent après rechargement ; panneau reconstruit à chaque poll ; focus perdu après Arrêter ; alerte relue chaque seconde), 7 low · de816b5d
 - 2026-10-25 23:13 · 15.4 · review · 4b lancé (Opus) · —
+- 2026-10-25 23:25 · 15.4 · review · 4b prête (4 medium et 4 low corrigés ; E2E agent_eval et agent_case 63/63 ; agent_eval efface les cas de séance au départ) · 3041ca79
+- 2026-10-25 23:25 · 15.4 · PR · #141 ouverte (partie 4b), CI en cours · 3041ca79
+- 2026-10-25 23:25 · 15.5 · PR · #142 ouverte, empilée sur #141 (CI de l'ensemble 4b + 15.5) · 97be225d
