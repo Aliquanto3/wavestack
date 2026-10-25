@@ -510,3 +510,9 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:38 · 12.2 · fusion · #115 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; banc réel encore à lancer (critères 6 et 8 ouverts), story gardée in-progress · 30bbfc1
 - 2026-10-25 12:38 · 12.2 · attente humaine · ordre d'Anaël pour la partie en ligne (possible avec agents en cours) ; partie locale et mémoire quand le poste est libre · —
 - 2026-10-25 12:40 · 12.2 · décision · snapshot Strands 31a83e0 téléchargé (onnx_data 1,80 Go) et paquets du banc local en cache (onnxruntime 1.31.0, tokenizers 0.23.3, AnyJev 35311c5) ; le banc réel n'a plus besoin du réseau que pour OpenRouter · —
+- 2026-10-25 12:42 · 12.2 · décision · Anaël : partie en ligne du banc lancée (6 modèles, ~5 400 appels, plafonds 2 $ / 6 000 appels / 0,33 $ par modèle), agents en cours sur le poste · e91bdca
+- 2026-10-25 12:42 · 12.11 · dev · fini ; critères 1 à 21 (21 vérifié par capture seulement), contrat 12.19 appliqué (27 entrées), E2E 6 scénarios 189/189 avant la dernière fusion · 8b0342b
+- 2026-10-25 12:42 · 12.11 · décision · à revoir : boucle et descente sur le generator existant (model_scope, réserve 128) ; lignes de séquence « Tool calls » / « Tree descent » en anglais ×3 (test_i18n) ; grep et list_files comme éléments du contexte ; borne de 400 tokens par résultat (~1 600 caractères) ; « Arrêter » la reconstruction n'écrit rien ; CHOICE: NONE profond = no_node_chosen · 8b0342b
+- 2026-10-25 12:42 · 12.11 · attente humaine · done_checkpoint avec un vrai modèle sur le PC cible : protocole ACTION:, tours, plafonds, réponses illisibles, descente avant / après « Reconstruire », durées, rendu fr/en/de · —
+- 2026-10-25 12:42 · 12.11 · second-avis · lancé · 8b0342b
+- 2026-10-25 12:42 · 12.19b · dev · lancé (spec puis code, pas de spec_checkpoint, worktree ../wavestack-v12-s19b depuis l'intégration 30bbfc1) · 30bbfc1
