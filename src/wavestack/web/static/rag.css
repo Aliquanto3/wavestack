@@ -838,6 +838,22 @@ body.rag-page {
   color: var(--color-ink-soft);
 }
 
+/* V1.2 story 10 (vues.md): the presets by family (« Recherche », « Sans index »). */
+.rag-preset-family {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+}
+
+.rag-preset-family-label {
+  color: var(--color-ink-soft);
+  font-weight: 600;
+}
+
 /* Lot 5a-2: « Dérouler »'s stepper (diagram.js, its rules in pages.css) and its legend. */
 .rag-stepper-box {
   display: flex;
@@ -1719,4 +1735,26 @@ body.rag-page {
   margin: var(--spacing-2) 0;
   padding-left: var(--spacing-2);
   border-left: 4px solid var(--color-primary);
+}
+
+/* V1.2 story 10: the whole corpus against the window, and the CAG's cache. */
+.rag-window,
+.rag-cache {
+  margin: var(--spacing-3) 0;
+}
+
+.rag-window-title,
+.rag-cache-title {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-window-gauge {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.rag-cache-figures {
+  margin: 0;
+  padding-left: var(--spacing-4);
 }

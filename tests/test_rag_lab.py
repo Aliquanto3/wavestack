@@ -1023,13 +1023,22 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
     steps = {s["key"]: s for s in catalog["steps"]}
     assert list(steps) == list(rag_lab.STEPS)
     build = [k for k, s in steps.items() if s["phase"] == "build"]
-    assert build == ["documents", "chunking", "embed_passages", "vector_store", "lexical_index"]
+    assert build == [
+        "documents",
+        "chunking",
+        "embed_passages",
+        "vector_store",
+        "lexical_index",
+        "cache_prefix",  # V1.2 story 10: drawn for `cached_corpus` only
+    ]
     assert steps["documents"] | {"explain_text": ""} == {
         "key": "documents",
         "phase": "build",
         "stage": "chunking",
         "own": False,
         "part": None,
+        "options": [],
+        "hidden_with": [],
         "uses": [{"component": "documents", "how": "reads"}],
         "label_text": "Documents",
         "action_text": "Charger le corpus",
@@ -1056,6 +1065,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         ("lexical_index", "lexical_search"),
         ("question", None),
         ("embed_query", "embedding"),
+        ("cache_prefix", "context"),
     ]
     components = {c["id"]: c for c in catalog["components"]}
     assert list(components) == list(rag_lab.COMPONENTS)
@@ -1070,6 +1080,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "Question",
         "Augmented prompt",
         "Réponse",
+        "Model cache",
     ]
     assert components["reranker"]["group"] == "models"
     assert components["reranker"]["stage"] == "rerank"
@@ -1141,7 +1152,10 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
     session, _ = ready(index)
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
     presets = {p["id"]: p for p in session.rag_lab_state()["catalog"]["presets"]}
-    assert list(presets) == ["dense", "hybrid", "rerank"] == list(rag_lab.PRESETS)
+    assert list(presets) == ["dense", "hybrid", "rerank", "long_context", "cag"]
+    assert list(presets) == list(rag_lab.PRESETS)
+    search = ("dense", "hybrid", "rerank")  # V1.2 story 10: the « Recherche » family
+    assert [k for k, p in presets.items() if p["family"] == "search"] == list(search)
     content = rag_lab.load_lab_content()
     candidates = rag_lab.param(catalog.default.stages[3], "candidates", catalog)
     assert presets["hybrid"] == {
@@ -1156,15 +1170,19 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
         "available": True,
         "reason_text": None,
         "note_text": None,
+        "family": "search",
+        "context": {"option": "excerpts", "params": dict(catalog.default.stages[5].params)},
+        "replaces_context": False,
     }
     assert all(p["note_text"] is None for p in presets.values())  # every model on the PC
     assert [s["kind"] for s in presets["dense"]["segment"]] == ["vector_search"]
     assert [s["kind"] for s in presets["rerank"]["segment"]] == ["vector_search", "rerank"]
-    assert all(p["available"] and p["label_text"] for p in presets.values())
+    assert all(presets[k]["available"] and presets[k]["label_text"] for k in search)
     # « RAG + reranking » is the shipped chain; each preset only replaces its segment.
     shipped = catalog.preset_pipeline("rerank")
     assert shipped.model_dump() == catalog.default.model_dump()
-    for key, segment in rag_lab.PRESETS.items():
+    for key in search:
+        segment = rag_lab.PRESETS[key]
         chain = catalog.preset_pipeline(key)
         assert [(s.kind, s.option) for s in chain.stages[3:-2]] == list(segment)
         fixed = [s.model_dump(exclude={"id"}) for s in (*chain.stages[:3], *chain.stages[-2:])]

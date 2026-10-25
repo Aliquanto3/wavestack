@@ -522,9 +522,12 @@ function applyEnvelope(envelope) {
       if (turn && p.channel !== "tool_call") turn[p.channel] += p.text;
       break;
     case "model_call_ended":
-      // V1.3 story 2: the cache gauge reads this call's cells and the cause that preceded it.
-      store.cacheGauge = { payload: p, cause: store.cachePrefix ? store.cachePrefix.cause : null };
-      store.cachePrefix = null;
+      // V1.3 story 2: the cache gauge reads this call's cells and the cause that preceded it;
+      // V1.2 story 10: never a call of the RAG workshop (context `rag_lab`), not the chat's.
+      if (envelope.context_id !== "rag_lab") {
+        store.cacheGauge = { payload: p, cause: store.cachePrefix ? store.cachePrefix.cause : null };
+        store.cachePrefix = null;
+      }
       // AD-2: the `*_ended` payload is authoritative and replaces the deltas.
       if (turn) {
         Object.assign(turn, { callEnded: p, text: p.text, reasoning: p.reasoning });

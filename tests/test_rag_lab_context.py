@@ -101,7 +101,7 @@ class FlakyCompressor(FakeCompressor):
 
 
 def test_the_options_the_sequence_and_the_settings():
-    assert rag_lab.OPTIONS["context"] == ("excerpts", "budget", "order", "compress")
+    assert rag_lab.OPTIONS["context"][:4] == ("excerpts", "budget", "order", "compress")
     context = rag_lab.STEPS["context"]
     assert (context.reads, context.writes) == (("chunks", "question"), ("augmented_prompt",))
     assert rag_lab.PARAMS[("context", "excerpts")] == ("top_k",)

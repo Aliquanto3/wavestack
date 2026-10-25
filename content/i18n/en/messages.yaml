@@ -603,6 +603,16 @@ session:
       failed: "Import failed: {label} could not be loaded ({kind}: {cause}). Its installation may be damaged: run `{install}` again from the WaveStack folder; the other options stay usable."
     interrupted: The RAG workshop stopped on an error.
     compress_not_wanted: "The Compression card is not active: activate it for the option to compress the excerpts."
+    # V1.2 story 10: the architectures without an index (long context, CAG).
+    window_needed: "Unavailable: an effective window of at least {needed} tokens is needed, the session has {effective}. {where}"
+    window_set: "Raise the window to {needed} with the “Window” selector in the bar of the Conversation page."
+    window_bound: "The configured window is already {configured}{bound}: choose a model or a server that offers more."
+    cag_local_only: "Unavailable: the CAG keeps the corpus in the memory of a local model. Load a local model (a GGUF file or a local server); the workshop does not drive a cloud provider's cache."
+    cag_label: "the workshop's CAG cache"
+    cag_memory: "CAG cache not kept. {reason} No state is kept for the next questions."
+    cag_snapshot_failed: "Copying the model's state failed ({error})."
+    cag_rss: "After copying the state ({size}), WaveStack takes {rss}, beyond the budget of {budget}: the state is dropped at once."
+    cag_lost: "Prefix lost: the server read only {read} tokens of its cache out of the prefix's {prefix} (another call, the chat for instance, evicted it). The request counts what it evaluated again; the server holds the prefix again."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "The MCP workshop's texts cannot be read (content/mcp_lab.yaml): fix the file, then reload the page."
@@ -1013,6 +1023,7 @@ rag_lab:
     bounds: "{setting} between {low} and {high} {unit}"
     too_few_candidates: "Step “{stage}”: {kept}, fewer than the {extracts} that the context must keep. Keep at least {candidates}, or keep fewer excerpts."
     query_before: "Step “{stage}”: it produces the queries the searches run, so it must come before them. Move it before the searches."
+    corpus_needs_no_search: "Step “{stage}”: the option “{option}” reads the whole corpus, without any search. Remove the retrieval steps, or choose another context option."
   not_installed: "Unavailable: {library} is not installed. From the WaveStack folder: `{command}`, then restart WaveStack. Without `--extra compression`, Headroom would be removed."
   folder_held: "The folder {folder} cannot be deleted ({error}: {cause}): another program may be holding it open. Close it, or delete the rag_lab folder with WaveStack stopped."
   load_failed: "The {noun} {model} could not be loaded ({error}: {cause})."
@@ -1025,6 +1036,7 @@ rag_lab:
     unknown: "Unknown step: {kind}."
     memory: "{mo} MB"
     memory_during: "{memory} ({sign}{mo} MB during the step)"
+    not_used: "Not used by this architecture: the whole corpus goes into the context, without an index."
   passed_on:
     input: "{candidates} from the search."
     output: "Search order kept as it is. {reason}"
@@ -1059,6 +1071,16 @@ rag_lab:
     compression: Compression
     compressed: Compressed excerpts
     compress_failures: Compression failures
+    documents: Documents
+    source: Source
+    window_used: Prompt tokens against the window (estimated)
+    cache: Model cache
+    cache_read: Tokens read from the cache
+    evaluated: Tokens evaluated
+    cache_state: Cache state
+    prefix_tokens: Prefix tokens
+    state_size: State size
+    prefix_duration: Prefix duration
   chunking:
     source_corpus: "the corpus (content/corpus), split for this run"
     source_index: "the RAG brick's index (split when it was built)"
@@ -1200,6 +1222,9 @@ rag_lab:
     compress_count: "{changed} of {total}"
     compress_failed_item: "{error}: {cause}"
     compress_failed: "{count} excerpt(s) not compressed, kept as they were (first failure: {first})."
+    corpus_input: "The whole corpus, without any search: {documents} read in {source}."
+    window_used: "{used} / {window}"
+    cached_note: "the prefix (instruction and corpus) is kept in the model's memory: each request evaluates only the question"
   prompt:
     system: System instruction
     context: Context
@@ -1208,6 +1233,8 @@ rag_lab:
     build_unknown: "Build cost not recorded for this precomputed content: rebuild it to measure it."
     generation_unpriced: "Cost in dollars not priced: the model has no declared price."
     contexts_measure: "Measure recorded when the contexts were built (model: {model}), not made again at each run."
+    cache_read: "of which {tokens} tokens read from the cache, not evaluated again"
+    estimated: "Estimated tokens: no local model counted them."
   update:
     op:
       add: "Adding the document {doc}"
@@ -1225,6 +1252,25 @@ rag_lab:
     store_input: "{vectors} passages to reindex."
     store_output: "Index rebuilt whole (option {option}): the workshop does not update an index vector by vector."
     lexical_output: "BM25 index rebuilt whole: {terms} terms, {occurrences} occurrences."
+    nothing_to_redo: "Nothing to update: the corpus is read again at each request."
+    prefix_input: "The prefix of the changed copy: the instruction and the {documents} documents, whole."
+    prefix_output: "Prefix reloaded whole ({tokens} tokens), from an emptied memory: a change invalidates everything after it."
+    prefix_estimated: "No local model loaded: the prefix is not rebuilt, its {tokens} tokens are estimated."
+  # V1.2 story 10 (CAG): the prefix kept in the model's memory.
+  cache:
+    state:
+      cold: "cold (prefix built by this run)"
+      warm: "warm (prefix read from the cache)"
+      lost: "lost (prefix evicted from the server)"
+      none: "no cache (no state kept)"
+      unknown: "unknown (the engine says nothing of its cache)"
+    no_model: "No model loaded in the workshop: the prefix is not built."
+    not_built: "The prefix was not built."
+    too_long: "Prompt too long for the window: no prefix built, no state kept."
+    input: "The instruction and the whole corpus, up to the question."
+    built: "Prefix evaluated into the model's memory: {tokens} tokens."
+    reused: "Prefix read from the cache ({tokens} tokens), built by an earlier run."
+    update_too_long: "Prompt too long: {tokens} tokens for {usable} usable; the prefix is not rebuilt."
   generation:
     question_only: "the question alone (no context built)"
     with_context: "the built context ({extracts}), then the question"
@@ -1239,6 +1285,7 @@ rag_lab:
     cut: "Answer cut at {max} tokens: the output reserve of a workshop turn is reached."
     empty: "The model gave no answer."
     model_error: "The model failed during the generation: the event log says why."
+    with_corpus: "the whole corpus ({documents}), then the question"
   query:
     input: "Question: {question}."
     input_history: "Earlier questions of the workshop: {history}."
