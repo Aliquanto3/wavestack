@@ -114,3 +114,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:02 · 15.2 · PR · #138 ouverte, CI en cours · b43d4bd8
 - 2026-10-25 22:05 · 15.3 · review · prête (1 high et 3 medium corrigés ; ajout AppSession.journal_floor) · 51bd3579
 - 2026-10-25 22:05 · 15.3 · PR · #139 ouverte, CI en cours · 51bd3579
+- 2026-10-25 22:05 · run · décision · 15.5 avancée pendant les CI de 15.2 et 15.3 : contenus et programme d'après la spec validée de 15.4 et la maquette, libellés de la vue vérifiés après 4b · —
+- 2026-10-25 22:05 · 15.5 · dev · lancé (Sonnet, ../wavestack-v15-s5) · —
