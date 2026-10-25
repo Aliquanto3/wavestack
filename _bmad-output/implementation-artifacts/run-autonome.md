@@ -285,3 +285,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:30 · 12.9 · review · lancé (fusion de main d'abord) · afe6bbd
 - 2026-10-25 07:32 · run · fusion · #102 MERGED (version 1.3.0) via file_prs.py · ec7e1ff
 - 2026-10-25 07:32 · run · décision · release v1.3.0 publiée (tag annoté, pre-release comme les précédentes) · ec7e1ff
+- 2026-10-25 07:38 · 12.9 · review · passe 1 : 5 medium corrigés (liste de l'exécution prioritaire sur le découpage livré, context:missing sans étape classante, paramètres du run, top_k ≤ 20, CAP-2 à 4 partiels), low 7 et 9 corrigés ; E2E rag rag_rerank rag_lab_diagnosis 81/81 · 50751a6
+- 2026-10-25 07:38 · 12.9 · décision · à revoir : copie de travail éditée ignorée si le passage n'est dans aucune liste (Reports de la story) ; E2E rag_lab_diagnosis dépend de rag et rag_rerank · —
+- 2026-10-25 07:38 · 12.9 · PR · #103 ouverte · 50751a6
