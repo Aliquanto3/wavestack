@@ -400,3 +400,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:36 · 12.17 · PR · #109 ouverte vers integration/v1-2-atelier · 0127a8c
 - 2026-10-25 09:44 · 12.7 · review · passe 1 : medium écarté (libération du compresseur sur le worker unique, après le run, test ajouté), 4 low corrigés (excerpts figé par sha256, test Headroom réel renforcé, avertissement context.budget_over) ; E2E 168/168 · 1b92d4e
 - 2026-10-25 09:44 · 12.7 · PR · #110 ouverte vers integration/v1-2-atelier · 1b92d4e
+- 2026-10-25 09:45 · 12.10 · review · spec approuvée (19 critères) ; fenêtre effective, CAG à un seul état avec contrôle mémoire (LoadRegistry, RSS, MemoryError) et repli sans cache, jauge du chat qui ignore l'atelier (défaut préexistant), tests sur petit corpus · 689a1f1
+- 2026-10-25 09:45 · 12.10 · décision · à revoir : 7 points tranchés par le relecteur Opus (règle 16 384 aussi en nuage, état reconstruit gardé à la mise à jour, NO_INDEX_WINDOW en >=) ; réglage de fenêtre sur la page Conversation, contre la maquette · 689a1f1
+- 2026-10-25 09:45 · 12.10 · attente humaine · mesures réelles sur le PC cible (durées à froid et à chaud, taille de l'état, mémoire de crête, tokens réels du corpus) ; fenêtre de 16 384 dans 4 Go à confirmer par la story 12.2 · —
+- 2026-10-25 09:45 · 12.10 · dev · phase 2 (code) lancée (Opus, effort high) · 689a1f1
