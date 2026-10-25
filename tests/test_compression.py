@@ -785,14 +785,16 @@ def test_cli_sets_the_offline_variables_before_third_party_imports():
     assert source.index("_headroom_offline()") < source.index("import truststore")
 
 
-def test_scenario_compression_opens_the_last_module():
+def test_scenario_compression_opens_the_long_context_module():
     scenarios = (config.content_dir() / "scenarios.yaml").read_text(encoding="utf-8")
-    # Story 21: FR-38's last brick, after the sub-agent; V1.4-2: it opens the programme's last
-    # module, « Contexte long et carte », before the harness map.
+    # Story 21: FR-38's last brick, after the sub-agent; V1.4-2: it opens the module « Contexte
+    # long et carte », before the harness map; V1.3-6: the « Cache » module comes after it.
     assert (
         scenarios.index("scenarios: [rag, rag_rerank, rag_agentic]")
         < scenarios.index("scenarios: [subagent]\n")
-        < scenarios.index("scenarios: [compression, harness_map]\n\ntransverse:")
+        < scenarios.index("scenarios: [compression, harness_map]\n")
+        < scenarios.index("scenarios: [cache_read,")
+        < scenarios.index("\ntransverse:")
     )
     lines = LOG.splitlines()
     assert ERROR_LINE in LOG and len(lines) >= 60  # Headroom sees a log from about 50 lines
