@@ -33,8 +33,6 @@ AVERAGE = re.compile(r"\b(mean|average|avg|mrr|recall_at_k|aggregates?)\b", re.I
 STORY_OF = {
     "long_context": 10,
     "cag": 10,
-    "raptor": 12,
-    "crag": 12,
     "llm_wiki": 14,
 }
 # V1.2 story 10 brought long_context and cag into the workshop (`lab.PRESETS`); their places
@@ -48,6 +46,8 @@ IN_WORKSHOP = (
     "agentic",
     "pageindex",
     "graphrag",  # V1.2 story 13
+    "raptor",  # V1.2 story 12
+    "crag",
     "llm_wiki",  # V1.2 story 14
 )
 
@@ -110,6 +110,8 @@ def test_start_the_measured_places_hold_the_code(lang):
     assert hits["pageindex_tree"] >= 1  # V1.2 story 11: measured on the rule's tree
     # V1.2 story 13: measured on the rule's graph, the code kept as an entity from one mention
     assert hits["graph_entities"] >= 1 and hits["graph_communities"] >= 1
+    # V1.2 story 12: measured on the rule's RAPTOR tree (a sentence citing a code first)
+    assert hits["raptor_summaries"] >= 1
     assert hits["wiki_pages"] >= 1  # V1.2 story 14: measured on the rule's wiki
     assert body["corpus"]["sentinel_passages"] == 2
     assert [p["position"] for p in body["results"]["ranking"]] == [2, 1]
@@ -170,6 +172,16 @@ def test_a_cache_turns_erased_by_its_own_architecture_only():
     assert found["cag_cache"] == "erased_illustrative"
     assert found["pageindex_tree"] == "erased"  # V1.2 story 11: measured, never illustrative
     assert found["long_context_prefix"] == "to_reload"
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_rebuilding_raptor_erases_its_measured_summaries(lang):
+    """V1.2 story 12: RAPTOR's summaries are measured on the rule's tree; « erased » once the
+    tree is rebuilt without the sentinel, never « illustratif, non mesuré »."""
+    body = ask(make_session(lang), sentinel_active=True, step="rebuild", rebuilt=["raptor"])
+    assert statuses(body)["raptor_summaries"] == "erased"
+    place = next(p for p in body["places"] if p["id"] == "raptor_summaries")
+    assert place["hits"] == 0 and place["kind"] == "measured"
 
 
 @pytest.mark.parametrize("lang", LANGS)
@@ -240,10 +252,11 @@ def test_rebuilt_outside_rebuild_and_unknown_values_are_refused():
 def test_the_displayed_marks_illustrative_and_upcoming():
     body = ask(make_session(), sentinel_active=True, step="erase")
     places = {p["id"]: p for p in body["places"]}
-    assert places["raptor_summaries"]["kind"] == "constructed"
-    assert places["raptor_summaries"]["illustrative_text"].startswith("illustratif · cas construit")
-    # V1.2 story 11: the tree; V1.2 story 13: the graph's entities and communities
-    for pid in ("pageindex_tree", "graph_communities", "graph_entities"):
+    assert places["cag_cache"]["kind"] == "constructed"
+    assert places["cag_cache"]["illustrative_text"].startswith("illustratif · cas construit")
+    # V1.2 story 11: the tree; V1.2 story 13: the graph's entities and communities; V1.2 story
+    # 12: RAPTOR's summaries
+    for pid in ("pageindex_tree", "graph_communities", "graph_entities", "raptor_summaries"):
         assert places[pid]["kind"] == "measured"
         assert places[pid]["illustrative_text"] is None
     assert places["wiki_pages"]["kind"] == "measured"  # V1.2 story 14
@@ -251,7 +264,7 @@ def test_the_displayed_marks_illustrative_and_upcoming():
     assert places["chunks"]["illustrative_text"] is None
     rows = {r["architecture"]: r for r in places["bm25"]["rows"]}
     assert rows["hybrid"]["upcoming_text"] is None
-    assert "story 12" in rows["crag"]["upcoming_text"] and "BM25" in rows["crag"]["upcoming_text"]
+    assert rows["crag"]["upcoming_text"] is None  # V1.2 story 12: in the workshop
     source = {r["architecture"]: r["upcoming_text"] for r in places["source"]["rows"]}
     assert source["agentic"] is None and source["long_context"] is None
 
@@ -338,7 +351,6 @@ def test_constructed_places_cite_the_code_and_name_their_story(lang):
     assert len(content.architectures) == 11
     constructed = [p for p in content.places if p.provenance]
     assert {p.id for p in constructed} == {
-        "raptor_summaries",
         "cag_cache",
         "long_context_prefix",
     }
@@ -361,12 +373,12 @@ def test_invalid_data_is_refused_at_the_load():
     model = erasure.ErasureContent
     place = lambda d, pid: next(p for p in d["places"] if p["id"] == pid)  # noqa: E731
     cases = [
-        lambda d: place(d, "raptor_summaries")["provenance"].pop("to_record_with"),
-        lambda d: place(d, "raptor_summaries").update(provenance={"kind": "recorded"}),
-        lambda d: place(d, "raptor_summaries").update(story=None),
-        lambda d: place(d, "raptor_summaries").update(story=15),
-        lambda d: place(d, "raptor_summaries").update(rebuilt_text=f"avec {CODE}"),
-        lambda d: place(d, "raptor_summaries").update(text="sans le code"),
+        lambda d: place(d, "cag_cache")["provenance"].pop("to_record_with"),
+        lambda d: place(d, "cag_cache").update(provenance={"kind": "recorded"}),
+        lambda d: place(d, "cag_cache").update(story=None),
+        lambda d: place(d, "cag_cache").update(story=15),
+        lambda d: place(d, "cag_cache").update(rebuilt_text=f"avec {CODE}"),
+        lambda d: place(d, "cag_cache").update(text="sans le code"),
         lambda d: place(d, "chunks").update(erase_mode="rebuild"),
         lambda d: place(d, "chunks").update(text="x"),
         lambda d: d.update(unknown=1),
@@ -399,6 +411,7 @@ def test_the_module_imports_only_the_permitted_names():
         ("wavestack.rag.contexts", "heuristic_entries"),
         ("wavestack.rag.pageindex", "build_tree"),  # V1.2 story 11: the rule's tree, pure
         ("wavestack.rag.graph", "build_graph"),  # V1.2 story 13: the rule's graph, pure
+        ("wavestack.rag.raptor", "build_tree"),  # V1.2 story 12: the rule's RAPTOR tree, pure
         ("wavestack.rag.wiki", "build_wiki"),  # V1.2 story 14: the rule's wiki, pure
         ("wavestack.rag.contexts", "load_book"),
         ("wavestack.rag.corpus", "Chunk"),

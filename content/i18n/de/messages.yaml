@@ -627,7 +627,8 @@ session:
     decision_cloud_label: "Entscheidungs-API (OpenRouter, {model})"
     decision_no_key: "Ohne Schlüssel nicht verfügbar: Setzen Sie die Umgebungsvariable {env} (oder in der Benutzer-Registry), dann starten Sie WaveStack neu. Der Schlüssel wird nie angezeigt oder geschrieben."
     decision_capped: "Ausgabenobergrenze der Sitzung erreicht ({spent} von {cap}, [finops] max_session_usd): Es wird kein Aufruf gesendet."
-    rebuild_target: "Unbekannter Neuaufbau: „{target}“. Die Werkstatt baut die Kontexte, den PageIndex-Baum oder den GraphRAG-Graphen neu auf."
+    rebuild_target: "Unbekannter Neuaufbau: „{target}“. Die Werkstatt baut die Kontexte, den PageIndex-Baum, den GraphRAG-Graphen, das Wiki oder den RAPTOR-Baum neu auf."
+    fallback_no_model: "Ohne geladenes Modell kann der Rückfall die Frage nicht umformulieren: Er antwortet „Ich weiß es nicht“, sobald der Filter nichts behält."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "Die Texte der MCP-Werkstatt sind unlesbar (content/mcp_lab.yaml): Korrigieren Sie die Datei und laden Sie die Seite neu."
@@ -1054,6 +1055,9 @@ rag_lab:
     community:
       one: Community
       other: Communities
+    summary:
+      one: Zusammenfassung
+      other: Zusammenfassungen
   # A rank: « 1er », « 2ᵉ » (English: 1st, 2nd, 3rd, 4th; 21st, 22nd, 23rd).
   rank:
     first: "1."
@@ -1088,6 +1092,7 @@ rag_lab:
     check_last: "Schritt „{stage}“: Er prüft die Antwort und steht daher am Ende, nach dem Schritt „{after}“."
     router_before: "Schritt „{stage}“: Er wählt die auszuführenden Suchen und muss daher vor ihnen stehen. Verschieben Sie ihn vor die Suchen."
     filter_after: "Schritt „{stage}“: Er sortiert eine Liste von Passagen, daher muss eine Suche vor ihm stehen. Verschieben Sie ihn hinter die Suchen."
+    fallback_after_filter: "Schritt „{stage}“: Er liest die vom Schritt „{filter}“ behaltenen Passagen, der daher vor ihm stehen muss. Fügen Sie einen Passagenfilter hinzu oder verschieben Sie den Rückfall dahinter."
   not_installed: "Nicht verfügbar: {library} ist nicht installiert. Im Ordner von WaveStack: `{command}`, dann starten Sie WaveStack neu. Ohne `--extra compression` würde Headroom entfernt."
   folder_held: "Der Ordner {folder} kann nicht gelöscht werden ({error}: {cause}): Möglicherweise hält ein anderes Programm ihn geöffnet. Schließen Sie es, oder löschen Sie den Ordner rag_lab bei gestopptem WaveStack."
   load_failed: "Das {noun} {model} konnte nicht geladen werden ({error}: {cause})."
@@ -1171,6 +1176,21 @@ rag_lab:
     graph_part_merge: Zusammenführung
     graph_part_communities: Neu berechnete Communities
     graph_part_summaries: Zusammenfassungen
+    raptor: "Baum"
+    raptor_levels: "Ebenen von Zusammenfassungen"
+    raptor_summaries: "Zusammenfassungen"
+    raptor_stale: "Veraltete Zusammenfassungen"
+    raptor_kept: "Behaltene Knoten"
+    raptor_estimate: "Zusammenfassungen durch ein Modell (Schätzung)"
+    raptor_part_chunking: "Zerlegung (Passagen des Dokuments)"
+    raptor_part_placement: "Einordnung"
+    raptor_part_summaries: "Zusammenfassungen"
+    raptor_summarized: "Vom Modell geschriebene Zusammenfassungen"
+    raptor_kept_rule: "Von der Regel behaltene Zusammenfassungen"
+    fallback_verdict: "Beurteilung der Passagen"
+    fallback_web: "Websuche"
+    fallback_kept_after: "Beim zweiten Versuch behaltene Passagen"
+    fallback_answer: "Antwort"
     wiki: Wiki
     wiki_pages: Wiki-Seiten
     wiki_concepts: Begriffsseiten
@@ -1340,6 +1360,7 @@ rag_lab:
     # V1.2 story 8 (CAP-6)
     decision_unpriced: "Kosten in Dollar nicht beziffert: Die Entscheidungs-API hat keine Kosten geliefert."
     graph_measure: "Beim Neuaufbau des Graphen aufgezeichnete Messung (Modell: {model}), nicht bei jeder Ausführung wiederholt."
+    raptor_measure: "Messung beim Neuaufbau des RAPTOR-Baums aufgezeichnet (Modell: {model}), nicht bei jeder Ausführung wiederholt."
     wiki_measure: "Beim Neukompilieren des Wikis aufgezeichnete Messung (Modell: {model}), nicht bei jeder Ausführung wiederholt."
   update:
     op:
@@ -1366,6 +1387,7 @@ rag_lab:
     tree_rule: "Teilbaum nach der Regel neu berechnet, ohne Modell: {redone} Knoten neu berechnet, {removed} entfernt; der Rest des Baums bleibt."
     tree_model: "Zusammenfassungen des Teilbaums vom Modell {model} neu geschrieben: {redone} Knoten, {failed} mangels Antwort behalten, {removed} entfernt; der Rest des Baums bleibt."
     graph_input: "Der Graph nach dem Vorgang an {documents}: Extraktion nur des betroffenen Dokuments, Zusammenführung, Communities, Zusammenfassungen."
+    raptor_input: "Der Baum nach der Operation an {documents}: Zerlegung nur des betroffenen Dokuments, Einordnung seiner Passagen, Zusammenfassungen der betroffenen Zweige."
     wiki_input: "Die Seiten, die das betroffene Dokument speist ({documents}): seine Seite, die der Begriffe, die es nennt, dann der Index."
     wiki_rule: "Seiten nach der Regel neu kompiliert, ohne Modell: {redone} Seite(n), {removed} entfernt, der Index neu berechnet; der Rest des Wikis bleibt."
     wiki_model: "Synthesen der betroffenen Seiten vom Modell {model} neu geschrieben: {redone} Seite(n), {failed} mangels Antwort behalten, {removed} entfernt; der Rest des Wikis bleibt."
@@ -1591,6 +1613,48 @@ rag_lab:
     input: "Geprüfte Sätze der Antwort: {sentences}; Passagen des Kontexts: {passages}."
     output: "Verankert: {grounded}; nicht verankert: {not_grounded}."
     unchecked: "Folgende Sätze nicht geprüft: {count} (höchstens acht pro Antwort)."
+  # V1.2 story 12 (CAP-7): RAPTOR's tree of summaries, Corrective RAG's fallback.
+  raptor:
+    input: "Die Frage und der RAPTOR-Baum ({passages}, {summaries} auf {levels} Ebene(n)) der {documents} aus {source}."
+    summary_title: "Zusammenfassung der Ebene {level} ({sources})"
+    nothing: "Kein Knoten des Baums teilt ein Wort mit der Frage: Der Kontext ist leer."
+    rule_note: "Von einer Regel berechneter Baum: Ein echtes RAPTOR lässt seine Zusammenfassungen von einem Modell schreiben, siehe die Schätzung oder Neu aufbauen."
+    mark_shipped: "mitgelieferter Baum, von einer Regel berechnet, ohne Modell"
+    mark_rebuilt: "vom Modell {model} neu aufgebauter Baum ({by_model} von {summaries} Zusammenfassung(en) vom Modell geschrieben, die übrigen von der Regel)"
+    estimate: "Schätzung, nicht gemessen: Zusammenfassungen durch ein Modell bräuchten {calls} Aufrufe (einen je Zusammenfassung) und etwa {tokens} Eingabe-Token. In keiner Summe."
+    summary_instruction: "Fasse die folgenden Texte (Passagen einer Dokumentation oder Zusammenfassungen von Passagengruppen) in ein oder zwei Sätzen zusammen, höchstens {max} Zeichen, ohne etwas zu erfinden. Antworte nur mit der Zusammenfassung."
+    summary_user: "Die Zusammenfassung dieser Texte:"
+    summaries_empty: "{count} leere Antwort(en) des Modells: Diese Zusammenfassungen behalten die der Regel."
+    input_trimmed: "{count} Eingabe(n) gekürzt, damit sie ins Fenster passen."
+    rebuild_input: "Die {summaries} des Baums, von der Regel neu gruppiert, je ein Modellaufruf, von unten nach oben."
+    rebuild_output: "{done} von {total} Zusammenfassung(en) vom Modell geschrieben, {empty} von der Regel behalten."
+    update_model_error: "Das Modell ist beim Aktualisieren der Zusammenfassungen gescheitert: Nichts wird geschrieben, die Arbeitskopie und der vorhandene Baum bleiben; das Ereignisprotokoll nennt den Grund."
+    rebuild_model_error: "Das Modell ist beim Neuaufbau des Baums gescheitert: Nichts wird geschrieben, der vorhandene Baum bleibt; das Ereignisprotokoll nennt den Grund."
+    rebuild_nothing: "Das Modell hat keine Zusammenfassung geschrieben: Nichts wird geschrieben, der vorhandene Baum bleibt."
+    run_label: "Neuaufbau des RAPTOR-Baums"
+    summary: "{mark}: {passages}, {summaries} auf {levels} Ebene(n); {stale} veraltete Zusammenfassung(en) gegenüber der Arbeitskopie."
+    measure: "Messung des Neuaufbaus: {tokens} Token, {calls} Modellaufrufe, {duration}."
+    part_chunking: "Zerlegung: {passages} Passage(n) des betroffenen Dokuments."
+    part_placement: "Einordnung: {added} Passage(n) in den Baum eingeordnet, {removed} entfernt."
+    part_summaries: "Zusammenfassungen: {rewritten} von {total} erneuert."
+    placement_fact: "{added} eingeordnet, {removed} entfernt"
+    summaries_fact: "{rewritten} von {total} erneuert"
+    by_rule: "per Regel, ohne Modell"
+    by_model: "per Modell (neu aufgebauter Baum)"
+  fallback:
+    no_filter: "Kein Passagenfilter hat die Liste in dieser Ausführung beurteilt (übersprungen oder fehlgeschlagen): nichts zu korrigieren."
+    input: "Die vom Filter behaltenen Passagen: {kept}."
+    correct: "Der Filter hat {kept} behalten: kein Rückfall."
+    corrected: "Zweiter Versuch: Der Filter hat {kept} für die umformulierte Frage behalten."
+    abstain: "Der Filter hat keine Passage behalten: Die Werkstatt antwortet „Ich weiß es nicht“, ohne das Modell aufzurufen."
+    abstained_answer: "Ich weiß es nicht: Keine Passage des Korpus beantwortet die Frage."
+    by_workshop: "von der Werkstatt geschrieben (Corrective RAG), keine Generierung"
+    verdict_correct: "mindestens eine Passage behalten"
+    verdict_incorrect: "keine Passage behalten"
+    no_web: "keine: Die Werkstatt ist offline, der Rückfall sucht im selben Korpus"
+    no_rewrite: "Keine Umformulierung ({why}): kein zweiter Versuch."
+    empty_rewrite: "Das Modell hat keine Anfrage geliefert: kein zweiter Versuch."
+    step_failed: "Zweiter Versuch, Schritt „{stage}“: {why}"
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:
