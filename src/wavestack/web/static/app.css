@@ -4955,21 +4955,22 @@ body > .site-nav {
 }
 
 /* V1.4 story 4 (CAP-5): « Compacter ▾ » and its menu, on the display menu's pattern. */
+/* The panel hangs from the pane's header (positioned), across its width: the pane clips what
+   leaves it, and the button sits too far right for a panel of its own width. */
 .compact-menu {
-  position: relative;
+  position: static;
   display: inline-flex;
 }
 
 .compact-menu-panel {
   position: absolute;
-  right: 0;
-  top: calc(100% + var(--spacing-1));
+  left: var(--spacing-2);
+  right: var(--spacing-2);
+  top: calc(100% - var(--spacing-1));
   z-index: 10;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
-  width: max-content;
-  max-width: min(28rem, 90vw);
   padding: var(--spacing-2);
   background: var(--color-surface-raised);
   color: var(--color-ink);

@@ -16780,7 +16780,7 @@ def s_compact_button(r: Run) -> None:
         page.evaluate("() => document.activeElement.dataset.strategy") == "compaction",
         "menu ouvert : le focus sur la première entrée disponible",
     )
-    r.shot_element("82-compacter-menu", "#compact-menu")
+    r.shot_element("82-compacter-menu", "#compact-menu-panel")
     panel.locator(".compact-menu-item[data-strategy='compaction']").click()
     r.ev.wait("history_compacted", seq, timeout=30)
     r.wait_idle()
