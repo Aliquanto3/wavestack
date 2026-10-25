@@ -1,6 +1,7 @@
 # English translation of content/rag_questions.yaml (story 1): same ids, types, doc_ids and
 # history shape as the French file; only the texts (and the anchors of the translated
 # passages) change. Monolingual documents keep their one existing file's anchor untranslated.
+# Obsolete `annotation` field: the reference annotations are in `rag_evaluation.yaml` (story 15).
 questions:
   # ---------- factual ----------
   - id: q_fact_pwd

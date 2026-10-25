@@ -2,7 +2,7 @@
 title: 'Story 15 : vue Évaluer, juges face à l''annotation humaine et quatre pièges'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -131,6 +131,7 @@ Les décisions du point de contrôle (plus bas) priment sur la rédaction initia
 
 - 2026-10-25 : rédaction (draft), points ouverts à trancher à la relecture.
 - 2026-10-25 : point de contrôle de spec. Corrections : intention `rag_lab_judge` au lieu d'un `POST` de jugement (un appel de modèle est une intention de classe (b)) ; famille par `catalog.publisher_for` existant ; argument `grammar` à ajouter aux moteurs (aucun moteur ne prend de grammaire aujourd'hui) ; les exécutions de la session sont tenues par la page (la session ne garde pas les runs), envoyées comme dans la story 9 ; jeu enregistré sur les préréglages existants `dense` et `hybrid` (la maquette cite GraphRAG, story 13) ; définitions exactes de rappel@k, MRR, k et des deux fidélités ; provenance des cas et des annotations ; garde-fou des agrégats rendu testable (les commentaires de `rag-diagnosis.js` contiennent « mean ») ; plan de tests complété (moteurs, intention, bornes, tests existants). Statut `ready-for-dev`.
+- 2026-10-25 : implémentation (phase 2), statut `review` ; écarts et choix dans Reports.
 
 ## Décisions du point de contrôle
 
@@ -151,4 +152,12 @@ Les décisions du point de contrôle (plus bas) priment sur la rédaction initia
 - Tâche humaine (Anaël) : essai du bouton « Juger cette exécution » avec un modèle local réel (temps de chargement via `LoadRegistry`, qualité de la sortie GBNF sur CPU).
 - Retrait de l'extra `eval-adapters` (D7) ; à reprendre seulement si un recoupement réel est voulu : mesurer la résolution `uv` des versions épinglées (ni torch ni service), couper leur télémétrie, brancher leur LLM sur nos moteurs. Mettre à jour `brownfield.md` (ligne `eval-adapters`) à l'intégration.
 - Si la story 13 (GraphRAG) est livrée, ajouter une architecture `graphrag` au jeu enregistré comme dans la maquette.
-- À remplir au développement.
+- Développement (2026-10-25), écarts et choix à revoir :
+  - Justifications du jeu enregistré : un gabarit par critère et par verdict (`texts.why`), pas une phrase propre à chaque cellule ; seuls les quatre pièges portent leurs justifications écrites. Anaël les réécrit en réenregistrant le jeu.
+  - Précision du contexte : un verdict `yes | partly | no` par exécution (non par passage) ; moyenne : oui = 1, en partie = 0,5, non = 0 ; accord = égalité stricte avec la référence.
+  - Le panel de la page (GET) suit le modèle qui génère maintenant ; le jugement d'une exécution vérifie la famille du générateur de cette exécution (mémoire `run_id -> modèle`, enregistrée au lancement de l'exécution, 50 entrées au plus).
+  - Jugement : l'intention renvoie `judgment_id` ; la page interroge `POST /api/rag_lab/evaluation` toutes les 1,5 s jusqu'à `judging: false`. Un échec du fournisseur ou de la mémoire est dit dans l'onglet (`judge_error`), sans verdict « illisible » (qui reste réservé à une sortie illisible).
+  - Un moteur sans l'argument `grammar` (fichier ou llama-server l'ont ; Ollama non) est refusé comme juge avec la raison « pas de grammaire GBNF ».
+  - Cloud sans clé, jeu construit : `rag_lab_evaluate` n'exerce pas « Juger » (modèle requis) ; le refus 409 est vérifié par l'API.
+  - `rag.html` garde la note `.rag-soon` de l'onglet Évaluer, masquée, car `rag.js` (`renderTabs`) y écrit son texte ; `rag.js` n'est pas modifié. `_rag_lab_tabs` (scénario `rag_lab_views`) ne cherche plus « à venir » dans Évaluer.
+  - `rag_lab` (E2E) vérifie un dépôt intact par `git status` : il échoue tant que le worktree a des changements non commités, sans lien avec cette story.

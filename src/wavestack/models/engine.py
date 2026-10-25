@@ -114,7 +114,9 @@ class Engine(Protocol):
         `DEFAULT_SAMPLING`), and the in-process one `candidates: int = 0` (read that many
         candidates with each token, into `Fragment.candidates`); the session passes them only
         when the « LLM nu » screen asks (`candidates` only to a file's engine), so an engine
-        with the four arguments alone stays valid."""
+        with the four arguments alone stays valid. V1.2 story 15: `grammar: str | None = None`
+        (GBNF) likewise, passed only by the RAG workshop's judge, to an engine that takes it
+        (the file's and llama-server's)."""
         ...
 
     def tokenize(self, text: str) -> list[int]: ...
@@ -496,10 +498,12 @@ class LlamaCppEngine:
         *,
         sampling: Sampling | None = None,
         candidates: int = 0,
+        grammar: str | None = None,
     ) -> Iterator[Fragment]:
-        """`candidates` (story 29): the number of most probable tokens to read with each
-        token, from the logits of the position it was drawn from (the last one: never
-        `logits_all`, which would hold n_ctx × vocabulary floats)."""
+        """V1.2 story 15: `grammar`, a GBNF grammar the sampled tokens must follow (the RAG
+        judge's output); `None`: free sampling. `candidates` (story 29): the number of most
+        probable tokens to read with each token, from the logits of the position it was drawn
+        from (the last one: never `logits_all`, which would hold n_ctx × vocabulary floats)."""
         s = sampling or DEFAULT_SAMPLING
         decoder = codecs.getincrementaldecoder("utf-8")("replace")
         pending = ""
@@ -507,8 +511,16 @@ class LlamaCppEngine:
         reason: StopReason = "stop"
         self._last_evaluated = None
         self._lib.llama_perf_context_reset(self._llm.ctx)
+        constraint: dict[str, Any] = {}
+        if grammar is not None:  # V1.2 story 15
+            constraint["grammar"] = self._lib.LlamaGrammar.from_string(grammar, verbose=False)
         tokens = self._llm.generate(
-            prompt_ids, temp=s.temperature, top_p=s.top_p, top_k=s.top_k, min_p=s.min_p
+            prompt_ids,
+            temp=s.temperature,
+            top_p=s.top_p,
+            top_k=s.top_k,
+            min_p=s.min_p,
+            **constraint,
         )
         try:
             for token in tokens:

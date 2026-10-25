@@ -25,6 +25,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections import OrderedDict
 from collections.abc import Callable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field, replace
@@ -132,6 +133,7 @@ from wavestack.messages import (
     said,
 )
 from wavestack.models import catalog as model_catalog
+from wavestack.models import discovery as discovery_module
 from wavestack.models import download as download_module
 from wavestack.models import embedding as embedding_module
 from wavestack.models import gguf_meta
@@ -149,7 +151,7 @@ from wavestack.models.capabilities import (
     tool_call_tags,
 )
 from wavestack.models.cloud_api import create_cloud_engine
-from wavestack.models.cloud_base import emit_spend, reset_conversation_spend
+from wavestack.models.cloud_base import emit_spend, reset_conversation_spend, session_cap_error
 from wavestack.models.embedding import Embedder
 from wavestack.models.engine import (
     DEFAULT_SAMPLING,
@@ -170,6 +172,7 @@ from wavestack.models.load_registry import (
     RAG_LAB_EMBEDDING,
     RAG_LAB_FAISS,
     RAG_LAB_FASTEMBED,
+    RAG_LAB_JUDGE,
     RAG_LAB_LANCEDB,
     RAG_LAB_RERANKER,
     RERANKER,
@@ -194,6 +197,7 @@ from wavestack.models.servers import (
     ollama_load_bytes,
     open_engine,
 )
+from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
 from wavestack.rag import workcopy
@@ -1001,6 +1005,17 @@ class AppSession:
         # Story 30 (the RAG workshop): its runs, numbered over the session's life (`lab{n}`),
         # and its content error already traced (once per message).
         self._rag_labs = 0
+        # V1.2 story 15 (CAP-11), the Evaluate tab: the generating model of each finished run
+        # (`run_id` -> label and family), the judges' verdicts kept by run, both bounded (the
+        # oldest leaves), the last judgment's failure, and the local-model discovery (replaced
+        # in the tests: it reads the disk and probes loopback servers).
+        self._rag_generators: OrderedDict[str, tuple[str, str]] = OrderedDict()
+        self._rag_verdicts: OrderedDict[
+            str, dict[str, dict[str, rag_evaluation.SessionVerdict]]
+        ] = OrderedDict()
+        self._rag_judge_error: str | None = None
+        self._rag_judgments = 0
+        self._rag_judge_discover: Callable[[], list[Any]] = lambda: discovery_module.discover(None)
         self._rag_lab_error_traced: str | None = None
         # Increment 3: FAISS and LanceDB imported (what each import added to the RSS), and
         # the ones whose import failed (a DLL blocked), then unavailable with the reason.
@@ -10526,6 +10541,7 @@ class AppSession:
             previous = self.reason_text
             self._rag_labs += 1
             run_id = f"lab{self._rag_labs}"
+            self._remember_generator(run_id)  # V1.2 story 15
             cancel = self._cancel = CancelToken()
             self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
         self._emit_state()
@@ -10608,6 +10624,257 @@ class AppSession:
             with self._lock:
                 self._cancel = None
             self._set_state("idle", previous)
+
+    # ---------- V1.2 story 15 (CAP-11): the Evaluate tab's judges ----------
+
+    MAX_RAG_JUDGED = 50  # the runs whose generator and verdicts the session keeps
+
+    def _generator_family(self) -> tuple[str, str] | None:
+        """The model that generates now, its label and its family (the publisher, as
+        `catalog.publisher_for` says it); `None` without a model. Called under the lock."""
+        if self._cloud is not None:
+            label = self._cloud.model
+            return label, rag_evaluation.family_of([], [label], self._language)
+        if self._model_name is None or self._engine is None:
+            return None
+        arch = [self._caps.family] if self._caps is not None else []
+        meta = [self._meta.architecture] if self._meta is not None else []
+        label = self._model_name
+        return label, rag_evaluation.family_of([*meta, *arch], [label], self._language)
+
+    def _remember_generator(self, run_id: str) -> None:
+        """The generator of a run just started (the one `Generation` will call), bounded."""
+        found = self._generator_family()
+        if found is None:
+            return
+        self._rag_generators[run_id] = found
+        while len(self._rag_generators) > self.MAX_RAG_JUDGED:
+            self._rag_generators.popitem(last=False)
+
+    def _keep_verdict(
+        self, run_id: str, criterion: str, found: rag_evaluation.SessionVerdict
+    ) -> None:
+        with self._lock:
+            by_criterion = self._rag_verdicts.setdefault(run_id, {})
+            self._rag_verdicts.move_to_end(run_id)
+            by_criterion.setdefault(criterion, {})[found.role] = found
+            while len(self._rag_verdicts) > self.MAX_RAG_JUDGED:
+                self._rag_verdicts.popitem(last=False)
+
+    def _rag_finops(self) -> dict[str, Any]:
+        cap = self.cfg.max_session_usd
+        spent = float((session_spend(self.cfg.eur_per_usd) or {}).get("total_usd") or 0.0)
+        return {"max_session_usd": cap, "spent_usd": spent, "capped": spent >= cap}
+
+    def _rag_judge_panel(self, generator: tuple[str, str] | None) -> dict[str, Any]:
+        """The panel for a generator: at most one local judge (a GGUF file or a llama-server
+        model of another publisher) and the cloud models, each admitted or set aside with its
+        reason. Reads the disk and probes the loopback servers: asked when the page opens."""
+        texts = rag_evaluation.load_evaluation(self._language).texts
+        if generator is None:
+            return {"generator": None, "local": [], "cloud": []}
+        label, family = generator
+        local = rag_evaluation.local_options(
+            self._rag_judge_discover(), family, texts, self._language
+        )
+        cloud = rag_evaluation.cloud_options(
+            self.cfg.cloud_models[0],
+            family,
+            lambda entry: config.cloud_key(entry) is not None,
+            texts,
+            self._language,
+        )
+        publisher = model_catalog.publisher_for([], [label], self._language)
+        return {
+            "generator": {"label": label, "family": family, "family_label": publisher.label_text},
+            "local": [asdict(o) for o in local],
+            "cloud": [asdict(o) for o in cloud],
+        }
+
+    def rag_lab_evaluation(
+        self,
+        live: Sequence[rag_evaluation.LiveRun] = (),
+        *,
+        with_panel: bool = False,
+    ) -> dict[str, Any]:
+        """`GET`/`POST /api/rag_lab/evaluation`: the tab's figures, the session's verdicts
+        joined to the runs the page sends. No model is loaded and nothing leaves."""
+        with self._lock:
+            kept = {r: {c: dict(v) for c, v in by.items()} for r, by in self._rag_verdicts.items()}
+            generator = self._generator_family()
+            judging = self.state == "rag_lab"
+            error = self._rag_judge_error
+        body = rag_evaluation.listing(
+            self._language,
+            live=live,
+            finops=self._rag_finops(),
+            session_criteria=kept,
+            panel=self._rag_judge_panel(generator) if with_panel else None,
+        )
+        return body | {"judging": judging, "judge_error": error}
+
+    def judge_rag_lab_run(
+        self,
+        run: rag_evaluation.LiveRun,
+        *,
+        role: str,
+        judge_id: str,
+        criterion: str,
+    ) -> str:
+        """Intention `rag_lab_judge` (class b): one criterion of one finished run, by one
+        judge of the panel, accepted in `idle` only, then run on the worker. A judge set
+        aside, a cloud judge without a key or at the session's cap, a free question: a
+        `SendRefused` with the reason, nothing sent. Returns the judgment's id."""
+        content = rag_evaluation.load_evaluation(self._language)
+        texts = content.texts
+        panel_texts, live_texts = texts["panel"], texts["live"]
+        question = next(
+            (q for q in load_rag_questions(self._language) if q.id == run.question_id), None
+        )
+        if question is None:
+            raise SendRefused(str(texts["live"]["none_text"]))
+        if criterion not in rag_evaluation.CRITERIA or (criterion == "correct_refusal") != (
+            question.type == "no_answer"
+        ):
+            raise SendRefused(str(texts["not_applicable_text"]))
+        if not run.answer_text.strip():
+            raise SendRefused(str(live_texts["no_answer_text"]))
+        with self._lock:
+            generator = self._rag_generators.get(run.run_id)
+        if generator is None:
+            raise SendRefused(str(panel_texts["no_generator_known_text"]))
+        family = generator[1]
+        entry = candidate = None
+        if role == "cloud":
+            entry = self.cfg.cloud_model(judge_id)
+            if entry is None:
+                raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
+            (option,) = rag_evaluation.cloud_options(
+                [entry], family, lambda e: config.cloud_key(e) is not None, texts, self._language
+            )
+            if option.reason:
+                raise SendRefused(str(panel_texts["rejected_text"]).format(reason=option.reason))
+            if not option.has_key:
+                raise SendRefused(str(panel_texts["no_key_text"]))
+            if session_cap_error(entry, self.cfg.max_session_usd) is not None:
+                finops = self._rag_finops()
+                raise SendRefused(
+                    str(panel_texts["cap_text"]).format(
+                        spent=f"{finops['spent_usd']:.2f} $",
+                        cap=f"{finops['max_session_usd']:.2f} $",
+                    )
+                )
+        elif role == "local":
+            options = rag_evaluation.local_options(
+                self._rag_judge_discover(), family, texts, self._language
+            )
+            found = next((o for o in options if o.id == judge_id), None)
+            if found is None:
+                raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
+            if found.reason:
+                raise SendRefused(str(panel_texts["rejected_text"]).format(reason=found.reason))
+            candidate = next(c for c in self._rag_judge_discover() if (c.ref or c.path) == judge_id)
+        else:
+            raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            previous = self.reason_text
+            self._rag_judgments += 1
+            judgment_id = f"judge{self._rag_judgments}"
+            self._rag_judge_error = None
+            cancel = self._cancel = CancelToken()
+            self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
+        self._emit_state()
+        self._executor.submit(
+            self._run_rag_judge,
+            judgment_id,
+            run,
+            question,
+            role,
+            entry,
+            candidate,
+            criterion,
+            content,
+            cancel,
+            previous,
+        )
+        return judgment_id
+
+    def _run_rag_judge(
+        self,
+        judgment_id: str,
+        run: rag_evaluation.LiveRun,
+        question: Any,
+        role: str,
+        entry: CloudModel | None,
+        candidate: Any,
+        criterion: str,
+        content: rag_evaluation.EvaluationContent,
+        cancel: CancelToken,
+        previous: str | None,
+    ) -> None:
+        """On the worker. The judge's own call, apart from the run's: its events are not the
+        run's, and nothing of it enters the workshop's runs. The local engine is closed and
+        leaves the registry at the end (AD-8); a failure is said in the tab, not retried."""
+        texts = content.texts
+        context = [i.text for s in run.stages if s.kind == "context" for i in s.items]
+        case = rag_evaluation.Case(
+            question.question_text, run.answer_text, context, question.expected_answer_text
+        )
+        slot = False
+        try:
+            if entry is not None:
+                judge: rag_evaluation.Judge = _CloudJudge(self, entry, judgment_id, cancel)
+                label = entry.model
+            else:
+                label = candidate.name or Path(candidate.path or candidate.ref).stem
+                judge = _LocalJudge(self, candidate, judgment_id, cancel, label)
+                slot = True
+            verdict = rag_evaluation.judge_case(judge, criterion, case, texts)
+            self._keep_verdict(
+                run.run_id,
+                criterion,
+                rag_evaluation.SessionVerdict(role, label, verdict.verdict, verdict.why_text),
+            )
+        except (ProviderError, ValueRefused, SendRefused, OSError, ValueError, RuntimeError) as exc:
+            with self._lock:
+                self._rag_judge_error = str(texts["live"]["failed_text"]).format(
+                    reason=self._judge_failure_text(exc)
+                )
+        except Exception as exc:  # noqa: BLE001 - AD-16: the state still comes back
+            with scoped(**self._rag_lab_scope(judgment_id, "rag_lab.judge", brick=None)):
+                self._error(
+                    Message("session.rag_lab.interrupted"),
+                    exc,
+                    Message("session.llm_lab.back_to_idle"),
+                )
+            with self._lock:
+                self._rag_judge_error = str(texts["live"]["failed_text"]).format(
+                    reason=type(exc).__name__
+                )
+        finally:
+            if slot:
+                self._load_registry.release(RAG_LAB_JUDGE)
+            with self._lock:
+                self._cancel = None
+            self._set_state("idle", previous)
+
+    def _judge_failure_text(self, exc: BaseException) -> str:
+        """Why a judgment failed, in the session's language (a provider's refusal, a memory
+        refusal, the engine's error)."""
+        for attr in ("message_text", "reason_text"):
+            found = getattr(exc, attr, None)
+            if found:
+                return render(found, self._language)
+        return (
+            render(exc, self._language)
+            if isinstance(exc, KeyedError)
+            else str(exc) or type(exc).__name__
+        )
+
+    def _judge_messages(self, prompt: str) -> list[dict[str, Any]]:
+        return [{"role": "user", "content": [Part(SegmentKind.USER_MESSAGE, prompt)]}]
 
     def _rag_lab_deps(
         self,
@@ -12911,3 +13178,129 @@ class AppSession:
         if conn is not None and conn.requesting:
             conn.close(wait=False)
         return True
+
+
+# ---------- V1.2 story 15 (CAP-11): the judges of the Evaluate tab ----------
+
+
+class _LocalJudge:
+    """A local model as a judge: loaded for the call (file: in this process, under the load
+    registry's budget; llama-server: its own adapter), its output bound to the verdict grammar
+    (GBNF), closed at the end. The chat template renders the prompt as one user message."""
+
+    def __init__(
+        self, session: AppSession, candidate: Any, judgment_id: str, cancel: CancelToken, label: str
+    ) -> None:
+        self.session, self.candidate = session, candidate
+        self.judgment_id, self.cancel, self.label = judgment_id, cancel, label
+
+    def complete(self, prompt: str) -> str:
+        s, candidate = self.session, self.candidate
+        window = s.configured_window
+        registry = s._load_registry
+        if candidate.engine is None:  # a GGUF file, in this process
+            cost = registry.file_cost(candidate.path, window)
+            refusal = registry.check_component(self.label, cost, RAG_LAB_JUDGE)
+            if refusal is not None:
+                raise SendRefused(refusal)
+            base = registry.baseline()
+            engine = s._engine_factory(candidate.path, n_ctx=window)
+            registry.grant(
+                self.label,
+                cost,
+                RAG_LAB_JUDGE,
+                in_process=True,
+                share=registry.file_share(candidate.path),
+                base=base,
+            )
+        else:  # a llama-server model: nothing loads in this process
+            engine = s._server_factory(candidate, n_ctx=window)
+            registry.grant(self.label, 0, RAG_LAB_JUDGE, in_process=False)
+        try:
+            meta = engine.metadata()
+            caps = capabilities_for(meta)
+            if caps.incompatible_reason:
+                raise RuntimeError(str(caps.incompatible_reason))
+            rendered = render_context(
+                engine,
+                caps.chat_template or "",
+                s._judge_messages(prompt),
+                call_id=self.judgment_id,
+                special_tokens=meta.special_tokens,
+                bos_token=meta.bos_token,
+                eos_token=meta.eos_token,
+                add_generation_prompt=True,
+                lang=s._language,
+            )
+            if "grammar" not in inspect.signature(engine.complete).parameters:
+                raise RuntimeError(
+                    str(
+                        rag_evaluation.load_evaluation(s._language).texts["panel"][
+                            "no_grammar_text"
+                        ]
+                    )
+                )
+            pieces = engine.complete(
+                rendered.ids,
+                (),
+                rag_evaluation.JUDGE_MAX_TOKENS,
+                self.cancel,
+                grammar=rag_evaluation.GRAMMAR,
+            )
+            return "".join(fragment.text for fragment in pieces)
+        finally:
+            engine.close()
+
+
+class _CloudJudge:
+    """A declared cloud model as a judge: one `run_call`, the session's FinOps spend and cap
+    (`max_session_usd`: refused before anything is sent), no second counter."""
+
+    def __init__(
+        self, session: AppSession, entry: CloudModel, judgment_id: str, cancel: CancelToken
+    ) -> None:
+        self.session, self.entry = session, entry
+        self.judgment_id, self.cancel = judgment_id, cancel
+        self.label = entry.model
+
+    def complete(self, prompt: str) -> str:
+        s, entry = self.session, self.entry
+        key = config.cloud_key(entry)
+        if key is None:  # the key left since the intention: nothing is sent
+            raise ValueRefused("session.load.no_key")
+        content = s._cloud_content or s._localized(load_cloud_content)
+        reserve = rag_evaluation.JUDGE_MAX_TOKENS
+        rendered = render_chat_body(
+            s._judge_messages(prompt),
+            None,
+            call_id=self.judgment_id,
+            fields=chat_fields(entry, reserve),
+            markers=s.cfg.cloud_markers,
+            estimate=lambda t: config.estimate_tokens(t, s.cfg.chars_per_token),
+            provider_label_text=content.provider_segment_text,
+            lang=s._language,
+            api=entry.api,
+        )
+        engine = s._cloud_factory(entry, key)
+        scope = s._rag_lab_scope(self.judgment_id, "rag_lab.judge", brick=None)
+        try:
+            with scoped(**scope | {"call_id": self.judgment_id}, origin="model"):
+                call = run_call(
+                    engine,
+                    ChatBody(rendered.body.encode("utf-8")),
+                    self.cancel,
+                    phase_label=s._t(
+                        "session.llm_lab.sending",
+                        provider=entry.provider,
+                        tokens=s._n(rendered.raw_total),
+                    ),
+                    estimated_prompt=rendered.raw_total,
+                    chars_per_token=s.cfg.chars_per_token,
+                    call_id=lambda index: f"{self.judgment_id}.{index}",
+                    lang=s._language,
+                    eur_per_usd=s.cfg.eur_per_usd,
+                    max_session_usd=s.cfg.max_session_usd,
+                )
+        finally:
+            engine.close()
+        return call.text

@@ -43,6 +43,7 @@ from wavestack.models import catalog
 from wavestack.models.cloud_base import session_spend
 from wavestack.models.engine import SAMPLING_BOUNDS, Sampling
 from wavestack.rag import diagnosis as rag_diagnosis
+from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag.lab import QUESTION_MAX, Pipeline
 from wavestack.session.app_session import (
     AppSession,
@@ -298,6 +299,19 @@ class RagLabRunIntention(BaseModel):
         if not value.strip():
             raise ValueError("question vide")
         return value
+
+
+class RagLabJudgeIntention(BaseModel):
+    """V1.2 story 15 (CAP-11): one criterion of one finished run (the page holds its lists and
+    its answer), judged by `judge` of the panel: `role` `local` (a model of the poste, by its
+    `ref`) or `cloud` (a `[[cloud.models]]` `id`)."""
+
+    run: rag_evaluation.LiveRun
+    role: Literal["local", "cloud"]
+    judge: str = Field(min_length=1, max_length=500)
+    criterion: Literal[
+        "context_precision", "faithfulness", "relevance", "accuracy", "correct_refusal"
+    ]
 
 
 class RagLabUpdateIntention(BaseModel):
@@ -714,6 +728,48 @@ def create_app(
         found = rag_diagnosis.replay(case_id, app_session.language)
         if found is None:
             raise HTTPException(status_code=404, detail="unknown case")
+        return found
+
+    # ----- V1.2 story 15 (CAP-11): the Evaluate tab -----
+
+    @app.get("/api/rag_lab/evaluation")
+    def rag_lab_evaluation_state() -> dict[str, object]:
+        """V1.2 story 15: the tab's texts, the judges' panel (admitted, or set aside with the
+        reason), the FinOps spend and cap, the recorded set with its aggregates, the traps.
+        Reads the disk for the local models; no model loaded, nothing sent."""
+        return app_session.rag_lab_evaluation(with_panel=True)
+
+    @app.post("/api/rag_lab/evaluation")
+    def rag_lab_evaluation(request: rag_evaluation.EvaluationRequest) -> dict[str, object]:
+        """V1.2 story 15: the recorded set plus the finished runs the page holds (a free
+        question is left out of n), with the session's verdicts. Pure: no model."""
+        return app_session.rag_lab_evaluation(request.runs)
+
+    @app.post("/api/intentions/rag_lab_judge")
+    def rag_lab_judge(intention: RagLabJudgeIntention) -> dict[str, str]:
+        """V1.2 story 15, class (b): accepted in `idle` only. 409 with the reason when the
+        judge is set aside, a cloud judge has no key or the session is at its cap."""
+        try:
+            return {
+                "judgment_id": app_session.judge_rag_lab_run(
+                    intention.run,
+                    role=intention.role,
+                    judge_id=intention.judge,
+                    criterion=intention.criterion,
+                )
+            }
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.get("/api/rag_lab/evaluation/traps/{trap_id}")
+    def rag_lab_trap(trap_id: str) -> dict[str, object]:
+        """V1.2 story 15: one of the four traps replayed from its recording, no model. 404:
+        unknown."""
+        found = rag_evaluation.replay_trap(trap_id, app_session.language)
+        if found is None:
+            raise HTTPException(status_code=404, detail="unknown trap")
         return found
 
     @app.get("/mcp")

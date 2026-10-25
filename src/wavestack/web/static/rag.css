@@ -1536,3 +1536,56 @@ body.rag-page {
 #rag-case {
   margin-top: var(--spacing-3);
 }
+
+/* V1.2 story 15 (CAP-11): the Evaluate tab. Tokens only. */
+.rag-eval-banner {
+  margin: var(--spacing-3) 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--rounded-sm);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.rag-eval-scroll {
+  overflow-x: auto;
+}
+
+.rag-eval-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rag-eval-table th,
+.rag-eval-table td {
+  padding: var(--spacing-2);
+  border: 1px solid var(--color-line);
+  vertical-align: top;
+  text-align: left;
+}
+
+.rag-eval-judges,
+.rag-eval-agg-lines,
+.rag-eval-claims {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rag-eval-judge,
+.rag-eval-ref,
+.rag-eval-rule {
+  margin-bottom: var(--spacing-2);
+}
+
+.rag-eval-disagree {
+  border-style: dashed;
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.rag-eval-trap-verdict {
+  margin: var(--spacing-2) 0;
+  padding-left: var(--spacing-2);
+  border-left: 4px solid var(--color-primary);
+}

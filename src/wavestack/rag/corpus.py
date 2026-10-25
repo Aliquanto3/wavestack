@@ -110,7 +110,8 @@ class RagPassage(BaseModel):
 
 class RagQuestion(BaseModel):
     """`content/rag_questions.yaml` (story 1): a prepared question with its expected answer
-    and passages, for the demonstration corpus. No annotation yet (story 15 adds it)."""
+    and passages, for the demonstration corpus. The reference annotations are in
+    `content/rag_evaluation.yaml` (V1.2 story 15)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -122,7 +123,8 @@ class RagQuestion(BaseModel):
     expected_passages: list[RagPassage] = Field(default_factory=list)
     trap_passages: list[RagPassage] = Field(default_factory=list)  # `temporal`: the old version
     audience: Literal["all", "hr"] | None = None  # when the question targets an HR document
-    annotation: str | None = None  # facultative (story 15 fills it; left empty here)
+    # Obsolète (V1.2 story 15) : les annotations de référence vivent dans `rag_evaluation.yaml`.
+    annotation: str | None = None
 
     @model_validator(mode="after")
     def _no_answer_has_no_expected_passage(self) -> RagQuestion:

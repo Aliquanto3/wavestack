@@ -397,6 +397,33 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
                 exclude={"title_text", "explain_text"}
             )
             assert tr_case.title_text != fr_case.title_text
+    elif rel == "rag_evaluation.yaml":  # V1.2 story 15: same verdicts, ranks and labels
+        from wavestack.rag import evaluation as rag_evaluation
+
+        fr, tr = rag_evaluation.load_evaluation("fr"), rag_evaluation.load_evaluation(lang)
+
+        def holes(value: object) -> object:  # the placeholders of every text, by path
+            if isinstance(value, dict):
+                return {k: holes(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [holes(v) for v in value]
+            return sorted(re.findall(r"\{(\w+)\}", str(value)))
+
+        assert holes(tr.texts) == holes(fr.texts)
+        answers = {"answer_text"}
+        for fr_run, tr_run in zip(fr.recorded.runs, tr.recorded.runs, strict=True):
+            assert fr_run.model_dump(exclude=answers) == tr_run.model_dump(exclude=answers)
+            assert tr_run.answer_text != fr_run.answer_text
+        assert fr.recorded.model_dump(exclude={"runs"}) == tr.recorded.model_dump(exclude={"runs"})
+        for fr_trap, tr_trap in zip(fr.traps, tr.traps, strict=True):
+            assert fr_trap.id == tr_trap.id
+            assert tr_trap.title_text != fr_trap.title_text
+            assert [c.label for c in fr_trap.claims] == [c.label for c in tr_trap.claims]
+            assert [p.verdict for p in fr_trap.passes] == [p.verdict for p in tr_trap.passes]
+            assert {r: v.verdict for r, v in fr_trap.verdicts.items()} == {
+                r: v.verdict for r, v in tr_trap.verdicts.items()
+            }
+            assert (fr_trap.kind, fr_trap.causes) == (tr_trap.kind, tr_trap.causes)
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()
