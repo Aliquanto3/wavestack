@@ -46,6 +46,7 @@ Au plus 2 stories en développement à la fois
 | V16 | 12.16 | 12.16 ← 12.13 ; 12.16 ← 12.14 |
 | V17 | 12.8 (humaine) · 12.20 | 12.8 ← 12.2 ; 12.20 ← 12.19 |
 | V18 | 12.12 · 12.21 | 12.12 ← 12.8 ; 12.21 ← 12.16 |
+| V19 | 12.19b | 12.19b ← 12.19 (découpée de 12.19 au point de contrôle) |
 
 Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/lab.py`, focus de `rag.js`) 5, 6, 7, 10, 11, 13, 14, 16, 12 ; piste onglets (`rag.js` par onglet, `rag.css`, `rag.html`, `app.py`) 9, 15, 17, 18, 19. Les deux pistes partagent `rag_lab.yaml` ×3, `ui.yaml` et `run_e2e.py` en ajouts seulement : le reviewer fusionne `origin/main` et garde les deux côtés.
 
@@ -417,3 +418,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:54 · 12.17 · CI · verte après le correctif du test instable · 4d6cc03
 - 2026-10-25 09:54 · 12.17 · fusion · #109 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 16c4eca
 - 2026-10-25 09:58 · 12.7 · CI · rouge (même test instable, branche sans correctif) ; intégration fusionnée, 269 tests ciblés verts, CI relancée · c7408d2
+- 2026-10-25 10:01 · 12.19 · review · spec approuvée (18 critères) ; données de 12.18 relues et non recopiées, liens #attack, hypotheses tirées de litterature.md, axe réglementaire sans niveau, niveaux « proposition, à relire » · 3bbbf2f
+- 2026-10-25 10:01 · 12.19 · décision · à revoir : 13 fiches de composant découpées en story 12.19b (vague V19) ; page Sécurité = même vocabulaire RISKS sans seconde matrice (lecture de CAP-16) ; RAPTOR sans source · 3bbbf2f
+- 2026-10-25 10:01 · 12.19 · attente humaine · avant de déclarer finie (done_checkpoint) : relire niveaux et formulations réglementaires fr/en/de (graphrag / Droits « élevé » contre « moyen » en maquette), liens de littérature, lecture de CAP-16, recette visuelle ; source primaire de RAPTOR à ouvrir avec réseau · —
+- 2026-10-25 10:01 · 12.19 · dev · phase 2 (code) lancée · 3bbbf2f
