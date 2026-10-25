@@ -398,3 +398,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:36 · 12.17 · review · passe 1 : 3 medium corrigés (seul le verdict réel agit, entrées de démonstration hors compteurs via record(counted=False), remove sans inject refusé), 4 low corrigés (LoadedOnly : la carte ne peut jamais charger Prompt Guard) ; E2E 102/102 · 0127a8c
 - 2026-10-25 09:36 · 12.17 · décision · à revoir : sans Prompt Guard chargé, rien n'est écarté (critère 14 lu « affiché ») ; security_log.py modifié par ajout · 0127a8c
 - 2026-10-25 09:36 · 12.17 · PR · #109 ouverte vers integration/v1-2-atelier · 0127a8c
+- 2026-10-25 09:44 · 12.7 · review · passe 1 : medium écarté (libération du compresseur sur le worker unique, après le run, test ajouté), 4 low corrigés (excerpts figé par sha256, test Headroom réel renforcé, avertissement context.budget_over) ; E2E 168/168 · 1b92d4e
+- 2026-10-25 09:44 · 12.7 · PR · #110 ouverte vers integration/v1-2-atelier · 1b92d4e
