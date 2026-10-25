@@ -6,6 +6,7 @@ import ast
 import operator
 import re
 import unicodedata
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path, PurePath, PurePosixPath
 
@@ -208,13 +209,21 @@ def search_documents(query: str, lang: str = config.DEFAULT_LANGUAGE) -> str:
     """The lines of the active corpus documents (in `lang`, file by file as `read_file`
     reads them) holding the words of `query`, as `corpus/<doc>.md:<line>: <text>`: the
     lines with the most words first, in document order, at most `MAX_RESULTS`."""
+    return match_lines(query, [(name, _corpus_text(name, lang)) for name in corpus_files()], lang)
+
+
+def match_lines(query: str, docs: Sequence[tuple[str, str]], lang: str) -> str:
+    """V1.2 story 11: `search_documents`'s rule, pure: the lines of `docs` (pairs of a name
+    and a text, in order) holding the words of `query`, as `<name>:<line>: <text>`, the lines
+    with the most words first, at most `MAX_RESULTS`. The RAG workshop's agent applies it to
+    the work copy's documents; `ToolError` (`empty`, `none`) as `search_documents` raises it."""
     words = re.findall(r"\w+", _fold(query))
     terms = list(dict.fromkeys(t for t in words if len(t) >= MIN_TERM and t not in _STOPWORDS))
     if not terms:
         raise ToolError("tools.search_documents.empty", min=MIN_TERM)
     hits: list[tuple[int, str, int, str]] = []  # (words found, file, line number, text)
-    for name in corpus_files():
-        for number, line in enumerate(_corpus_text(name, lang).splitlines(), start=1):
+    for name, text in docs:
+        for number, line in enumerate(text.splitlines(), start=1):
             folded = _fold(line)
             found = sum(term in folded for term in terms)
             if found:

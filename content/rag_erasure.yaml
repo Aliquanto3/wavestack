@@ -36,13 +36,11 @@ architectures:
     label_text: "CAG"
     update_text: "recharger tout le cache du modèle, car le préfixe contient le document."
   - id: agentic
-    available: false
-    story: 11
+    available: true
     label_text: "Recherche agentique"
     update_text: "aucune : la source est relue à chaque requête."
   - id: pageindex
-    available: false
-    story: 11
+    available: true
     label_text: "PageIndex"
     update_text: "recalculer l'arbre du document modifié et de ses sections."
   - id: raptor
@@ -110,15 +108,11 @@ places:
     rebuilt_text: "Résumé de niveau 1 : les documents du corpus décrivent les politiques internes d'Exemplia (télétravail, sécurité, IA générative)."
   - id: pageindex_tree
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "l'arbre réel de PageIndex, story 11"
-    story: 11
+    measured: pageindex_tree
     architectures: [pageindex]
     label_text: "Arbre de PageIndex"
     unit_text: "Nœuds"
-    text: "Nœud « Projet Orion » : résumé court, code ORN-7731-QZ, document sentinelle d'Exemplia."
-    rebuilt_text: "Nœud racine : le corpus d'Exemplia, par section, sans le document sentinelle."
+    measured_on_text: "l'arbre heuristique recalculé en mémoire"
   - id: graph_communities
     erase_mode: rebuild
     provenance:
