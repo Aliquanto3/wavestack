@@ -14465,6 +14465,77 @@ def s_rag_lab_views(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_diagnosis(r: Run) -> None:
+    """V1.2 story 9 (CAP-10), after `rag` and `rag_rerank`: the rank of the expected passage at
+    each stage of a run on a prepared question (the stage at fault named, no mean), a free
+    question and a question without passage said apart, and the three recorded cases of
+    « Où naît l'erreur » replayed in one click each, with no event of the workshop (no model,
+    no run). Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_mode(r, "compose")
+        page.locator("#rag-reset-chain").click()
+        questions = r.api("GET", "/api/rag_lab").json()["questions"]
+        factual = next(q for q in questions if q["type"] == "factual")
+        silent = next(q for q in questions if q["type"] == "no_answer")
+        expect(page.locator("#rag-diag-title")).to_have_text(
+            "Où se perd le bon extrait ?", timeout=5000
+        )
+        _rag_lab_run(r, "Une question libre")
+        r.check(
+            "Question libre" in page.locator("#rag-diag-run").inner_text(),
+            "diagnostic : une question libre n'a pas de passage attendu",
+        )
+        _rag_lab_run(r, factual["question_text"])
+        passage = page.locator("#rag-diag-run .rag-diag-passage")
+        expect(passage.first).to_be_visible(timeout=10_000)
+        kinds = passage.first.locator(".rag-diag-steps li").evaluate_all(
+            "els => els.map(e => e.dataset.stage)"
+        )
+        r.check(
+            kinds[0] == "chunking"
+            and kinds[-1] == "context"
+            and "vector_search" in kinds
+            and passage.first.locator(".rag-diag-verdict").inner_text() != ""
+            and "moyenne" not in page.locator("#rag-diag-run").inner_text().lower(),
+            "diagnostic : le rang du passage attendu à chaque étape et un verdict, sans moyenne",
+            str(kinds),
+        )
+        r.shot("63-atelier-rag-diagnostic", full_page=True)
+        _rag_lab_run(r, silent["question_text"])
+        expect(page.locator("#rag-diag-run")).to_contain_text(
+            "rien à diagnostiquer", timeout=10_000
+        )
+
+        # « Où naît l'erreur »: three recorded cases, each born at its own stage, no model.
+        seq = r.ev.mark()
+        born = []
+        for case, fault in (
+            ("not_indexed", "chunking:not_indexed"),
+            ("ranked_low", "vector_search:ranked_low"),
+            ("cut_by_budget", "context:cut"),
+        ):
+            page.click(f'#rag-cases [data-case="{case}"]')
+            expect(page.locator(f'#rag-case[data-case="{case}"]')).to_be_visible(timeout=5000)
+            verdict = page.locator("#rag-case .rag-diag-verdict")
+            born.append(verdict.get_attribute("data-fault"))
+            r.check(
+                born[-1] == fault
+                and "aucun appel au modèle" in page.locator("#rag-case .rag-badge").inner_text()
+                and page.locator("#rag-case .rag-diag-steps li.is-fault").count() == 1,
+                f"cas {case} : l'étape fautive est désignée ({fault}), exécution enregistrée",
+                str(born[-1]),
+            )
+        r.check(
+            not [e for e in r.ev.since(seq) if e["kind"].startswith(("rag_lab_", "model_"))],
+            "les trois cas se rejouent sans événement de l'atelier (ni modèle, ni exécution)",
+        )
+    finally:
+        r.goto_app()
+
+
 def s_rag_lab_query(r: Run) -> None:
     """V1.2 story 5 (CAP-3), after `rag` and `rag_rerank`: « Query understanding » added from the
     palette, placed after the Vector store; « Décomposition en sous-questions » on a multi-hop
@@ -16639,6 +16710,116 @@ def s_claude_cache(r: Run) -> None:
             _pick_model(r, a_label)
 
 
+def s_cache_module(r: Run) -> None:
+    """V1.3 story 6 (CAP-6): the « Cache » module, 45 minutes, five scenarios; the gestures are
+    in the instructions, nothing is scripted. On the fake local engine: two prompts of
+    « Lire le cache » give a read part; « Casser le préfixe » (the system prompt switched off)
+    gives the cause « message système modifié »; « Vider le cache » gives « cache vidé »."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    content = _scenarios_yaml()
+    module = content["program"][-1]
+    r.check(
+        module["title_text"] == "Cache"
+        and module["duration_min"] == 45
+        and module["scenarios"]
+        == ["cache_read", "cache_prefix", "cache_expiry", "cache_claude", "cache_bilan"],
+        "module « Cache » : 45 min, cinq scénarios",
+        str(module),
+    )
+    # The cache gauge reads the fake llama-server (local): switch to it, back to the cloud fake
+    # model at the end (`relaunch` expects it saved).
+    cloud = "☁️ RÉSEAU · Faux fournisseur (e2e) · wavestack-fake"
+    page.locator("#model-picker").blur()
+    seq = r.ev.mark()
+    page.select_option("#model-picker", label=LLAMA_OPTION)
+    page.click("#model-picker-apply")
+    r.ev.wait("model_load_ended", seq, timeout=30)
+    expect(page.locator("#model-indicator")).to_contain_text("Local · llama-server", timeout=10_000)
+    r.wait_idle()
+    try:
+        _cache_module_steps(r)
+    finally:
+        seq = r.ev.mark()
+        page.select_option("#model-picker", label=cloud)
+        page.click("#model-picker-apply")
+        page.click("#cloud-warning-confirm")
+        r.ev.wait("model_load_ended", seq, timeout=30)
+        r.wait_idle()
+
+
+def _cache_lean(r: Run) -> None:
+    """The fake llama-server's window is small and counts coarsely: with every brick of the
+    module on, the first prompt overflows. The gestures under test (the cache gauge, the cause,
+    the button) need only the system prompt and the global memory (the cause « system » needs a
+    system message left), so the heavy bricks are switched off here."""
+    for name in ("Outils", "MCP", "Skills", "Hooks", "Compression"):
+        r.set_brick(name, False)
+
+
+def _cache_module_steps(r: Run) -> None:
+    page = r.page
+    r.launch("cache_read")
+    guide = page.locator("#scenario-info-popover").text_content() or ""
+    r.check(
+        "sans le raisonnement ni le RAG" in guide and "Cache du dernier appel" in guide,
+        "« Lire le cache » : la consigne rappelle les exceptions et nomme la jauge",
+    )
+    first, second, _ = _prompts("cache_read")
+    _cache_lean(r)
+    r.send(first)
+    seq = r.ev.mark()
+    r.send(second)
+    call = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    expect(page.locator("#cache-gauge .cache-seg-read")).to_have_count(1, timeout=5000)
+    r.check(
+        call["cache_origin"] == "local" and call["cache_read_tokens"] > 0,
+        "« Lire le cache » : le second prompt lit le cache",
+        str(call.get("cache_read_tokens")),
+    )
+    r.launch("cache_prefix")
+    _cache_lean(r)
+    p1, p2, p3, _ = _prompts("cache_prefix")
+    r.send(p1)
+    r.send(p2)
+    r.set_brick("Prompt système", False)
+    try:
+        seq = r.ev.mark()
+        r.send(p3)
+        causes = [e["payload"]["cause"] for e in r.ev.since(seq, "prefix_not_reused")]
+        r.check(causes == ["system"], "« Casser le préfixe » : cause « system »", str(causes))
+    finally:
+        r.set_brick("Prompt système", True)
+    r.launch("cache_expiry")
+    _cache_lean(r)
+    q1, q2, q3, _ = _prompts("cache_expiry")
+    r.send(q1)
+    r.send(q2)
+    seq = r.ev.mark()
+    page.locator("#clear-cache").click()
+    r.wait_idle()
+    r.send(q3)
+    cleared = [e["payload"]["cause"] for e in r.ev.since(seq, "prefix_not_reused")]
+    r.check(
+        cleared == ["cache_cleared"],
+        "« Faire expirer le cache » : cause « cache vidé »",
+        str(cleared),
+    )
+    # The optional Claude scenario is read, not run: no key, no paid call.
+    r.launch("cache_claude")
+    text = page.locator("#scenario-info-popover").text_content() or ""
+    r.check(
+        "Cache de prompt de Claude" in text and "Facultatif" in text,
+        "« Le cache de Claude » : consigne facultative, réglage nommé",
+    )
+    r.launch("cache_bilan")
+    text = page.locator("#scenario-info-popover").text_content() or ""
+    r.check(
+        all(w in text for w in ("Lecture cache", "Écriture cache", "Non caché")),
+        "« Lire un bilan » : le vocabulaire d'agent-cost-kit",
+    )
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -16674,6 +16855,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab", s_rag_lab),
     ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
     ("rag_lab_query", s_rag_lab_query),  # V1.2 story 5
+    ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),
@@ -16704,6 +16886,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("cache_bilan", s_cache_bilan),  # V1.3 story 4 (CAP-3): the bilan's two columns
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
     ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
+    ("cache_module", s_cache_module),  # V1.3 story 6: le module « Cache »
 ]
 
 

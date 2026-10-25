@@ -780,3 +780,9 @@ d'autres (story 21) :
   (le faux llama-server coupe la question en deux), listées dans le focus de l'étape et cherchées
   chacune (chaque extrait donne son rang pour chaque requête) ; la réécriture n'en produit
   qu'une ; capture `63-atelier-rag-requetes.jpg`.
+
+- `rag_lab_diagnosis`, V1.2 story 9 (CAP-10), après `rag` et `rag_rerank` : sur une question
+  préparée, le rang du passage attendu à chaque étape et l'étape fautive désignée (sans moyenne) ;
+  une question libre et une question sans passage le disent ; les trois cas « Où naît l'erreur »
+  (`not_indexed`, `ranked_low`, `cut_by_budget`) se rejouent en un clic, chacun avec son étape
+  fautive, sans aucun événement de l'atelier ; capture `63-atelier-rag-diagnostic.jpg`.

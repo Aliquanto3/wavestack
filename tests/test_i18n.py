@@ -38,6 +38,7 @@ from wavestack.mcp.servers import (
     load_mcp_content,
 )
 from wavestack.models.catalog import load_publishers
+from wavestack.rag import diagnosis
 from wavestack.rag import lab as rag_lab
 from wavestack.rag.corpus import load_rag_content, load_rag_questions
 from wavestack.scenarios import load_scenarios
@@ -379,6 +380,23 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert shape(tr) == shape(fr)
         for fr_q, tr_q in zip(fr, tr, strict=True):
             assert tr_q.question_text != fr_q.question_text
+    elif (
+        rel == "rag_diagnosis.yaml"
+    ):  # V1.2 story 9: the same cases and references, texts translated
+        fr, tr = diagnosis.load_diagnosis("fr"), diagnosis.load_diagnosis(lang)
+        assert fr.texts.model_fields_set == tr.texts.model_fields_set
+
+        def holes(value: object) -> object:  # the placeholders of every text, by field
+            if isinstance(value, dict):
+                return {k: holes(v) for k, v in value.items()}
+            return sorted(re.findall(r"\{(\w+)\}", str(value)))
+
+        assert holes(tr.texts.model_dump()) == holes(fr.texts.model_dump())
+        for fr_case, tr_case in zip(fr.cases, tr.cases, strict=True):
+            assert fr_case.model_dump(exclude={"title_text", "explain_text"}) == tr_case.model_dump(
+                exclude={"title_text", "explain_text"}
+            )
+            assert tr_case.title_text != fr_case.title_text
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()
