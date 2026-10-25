@@ -187,3 +187,9 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 05:45 · run · report · limite d'usage de 02:12 à 05:45, run à l'arrêt · —
 - 2026-10-25 05:45 · 14.3 · fusion · #91 fusionnée · 48caadd
 - 2026-10-25 05:45 · 12.3 · CI · rouge (couleur codée en dur dans rag.css), corrigée · de52977
+- 2026-10-25 05:52 · 13.4 · dev · fusion de main dans la branche (conflit app_session.py, deux méthodes gardées) · aa3379f
+- 2026-10-25 05:52 · 14.2 · review · passe 2 faite, 2 constats Important corrigés (test_compression, 22 scénarios, 6 h) · cea00e4
+- 2026-10-25 05:52 · 14.2 · PR · #97 ouverte · cea00e4
+- 2026-10-25 05:52 · 14.2 · décision · à revoir : capture 01b reprise de main, à regénérer par l'E2E · —
+- 2026-10-25 05:52 · 14.2 · décision · à revoir : vidéo de démo non regénérée (compose.py : 7 modules · 6 h) · —
+- 2026-10-25 05:52 · 14.2 · décision · à revoir : brique éteinte à opacity 0.45 (contraste 3,2:1) gardée, état aussi en texte · —
