@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from wavestack.agent_eval import store
-from wavestack.agent_eval.cases import Check, load_provided_cases, new_case_id
+from wavestack.agent_eval.cases import AgentCase, Check, load_provided_cases, new_case_id
 from wavestack.agent_eval.checks import CheckVerdict, verify
 from wavestack.agent_eval.draft import (
     CaseDraft,
@@ -25,6 +25,7 @@ from wavestack.agent_eval.draft import (
 )
 from wavestack.messages import msg
 from wavestack.session.app_session import AppSession
+from wavestack.trace.envelope import Envelope
 from wavestack.trace.journal import get_journal
 
 PREFIX = "/api/agent_eval"
@@ -120,17 +121,46 @@ def _form_errors(
     return [*errors, *check_errors], form.model_copy(update={"checks": cleaned})
 
 
+# The form's fields a case's validation can refuse, and the message each one shows.
+_CASE_ERROR_KEYS = {
+    "title_text": "required",
+    "symptom_text": "required",
+    "assertion_text": "required",
+    "prompt": "required",
+    "max_model_calls": "max_calls",
+}
+
+
 def register_agent_case_routes(app: FastAPI, app_session: AppSession) -> None:
     def refuse(refused: DraftRefused) -> HTTPException:
         status = 404 if refused.reason == "unknown_turn" else 409
         text = msg(f"agent_case.refused.{refused.reason}", app_session.language)
         return HTTPException(status_code=status, detail=text)
 
-    def draft_of(turn_id: str) -> CaseDraft:
+    def session_events() -> list[Envelope]:
+        """This session's events only: an earlier session's `t1` is not this one's."""
+        floor = app_session.journal_floor
+        return [e for e in get_journal().all_events() if e.seq > floor]
+
+    def draft_of(turn_id: str, events: list[Envelope] | None = None) -> CaseDraft:
         try:
-            return reconstitute_draft(get_journal().all_events(), turn_id)
+            return reconstitute_draft(session_events() if events is None else events, turn_id)
         except DraftRefused as refused:
             raise refuse(refused) from None
+
+    def built(found: CaseDraft, form: CaseForm, case_id: str, lang: str) -> AgentCase:
+        try:
+            return to_case(found, form, case_id)
+        except ValidationError as error:  # a value the form let through, refused by the case
+            detail = []
+            for item in error.errors():
+                field = str(item["loc"][0]) if item["loc"] else "checks"
+                key = _CASE_ERROR_KEYS.get(field, "checks_kind")
+                field = field if field in _CASE_ERROR_KEYS else "checks"
+                entry = {"field": field, "message_text": msg(f"agent_case.error.{key}", lang)}
+                if entry not in detail:
+                    detail.append(entry)
+            raise HTTPException(status_code=422, detail=detail) from error
 
     @app.get(f"{PREFIX}/draft")
     def draft(turn_id: str) -> CaseDraft:
@@ -139,7 +169,8 @@ def register_agent_case_routes(app: FastAPI, app_session: AppSession) -> None:
     @app.post(f"{PREFIX}/verdict", response_model=None)
     def verdict(form: CaseForm) -> FormVerdict | JSONResponse:
         lang = app_session.language
-        found = draft_of(form.turn_id)
+        events = session_events()
+        found = draft_of(form.turn_id, events)
         errors, form = _form_errors(form, lang, strict=False)
         if errors:
             return JSONResponse(status_code=422, content={"detail": errors})
@@ -152,9 +183,9 @@ def register_agent_case_routes(app: FastAPI, app_session: AppSession) -> None:
             }
         )
         # A session case's id starts with `u`.
-        case = to_case(found, trial, "udraft")
+        case = built(found, trial, "udraft", lang)
         wanted = set(found.verdict_turn_ids)
-        envelopes = [e for e in get_journal().all_events() if e.turn_id in wanted]
+        envelopes = [e for e in events if e.turn_id in wanted]
         result = verify(case, envelopes, lang)
         return FormVerdict(
             passed=result.passed,
@@ -171,7 +202,7 @@ def register_agent_case_routes(app: FastAPI, app_session: AppSession) -> None:
         errors, form = _form_errors(form, lang, strict=True)
         if errors:
             return JSONResponse(status_code=422, content={"detail": errors})
-        case = to_case(found, form, new_case_id())
+        case = built(found, form, new_case_id(), lang)
         try:
             store.add_session_case(case, load_provided_cases())
         except store.SessionCasesUnreadable:

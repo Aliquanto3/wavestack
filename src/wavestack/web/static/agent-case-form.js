@@ -33,6 +33,9 @@ let stylesheet = null;
 let current = null; // the open drawer's state, or null (closed)
 let ids = 0;
 
+// The button under each turn uses this stylesheet before any drawer opens.
+stylesReady();
+
 // ---------- the module's interface ----------
 
 /** A main message turn, ended, that no case run played. `started` and `ended` are the payloads. */
@@ -81,7 +84,12 @@ export async function openCaseForm(turnId, opener) {
   drawer.setAttribute("aria-labelledby", titleId);
   const title = el("h3", "", tc("form.title"));
   title.id = titleId;
-  drawer.append(title, el("p", "ae-loading", tc("form.loading")));
+  const loadingCancel = el("button", "ae-button", tc("form.cancel"));
+  loadingCancel.type = "button";
+  loadingCancel.addEventListener("click", () => cancel(state));
+  const loadingActions = el("div", "ae-actions");
+  loadingActions.appendChild(loadingCancel);
+  drawer.append(title, el("p", "ae-loading", tc("form.loading")), loadingActions);
   drawer.addEventListener("keydown", (event) => onKey(state, event));
   (document.querySelector('[data-pane="human"]') ?? document.body).appendChild(drawer);
   await stylesReady();
@@ -592,12 +600,16 @@ function refreshActions(state) {
 
 async function submit(state) {
   if (state.saving) return;
-  for (const stale of state.drawer.querySelectorAll(".ae-error")) stale.remove();
+  for (const field of state.drawer.querySelectorAll('[aria-invalid="true"]')) clearError(field);
   state.parts.saveError.hidden = true;
   state.saving = true;
   refreshActions(state);
   const result = await fetchJson(`${API}/cases`, body(state));
-  if (current !== state) return;
+  if (current !== state) {
+    // Closed meanwhile (another turn opened): the case exists, the listeners must hear it.
+    if (result.ok) notifySaved(result.body.case);
+    return;
+  }
   state.saving = false;
   refreshActions(state);
   if (result.ok) {
@@ -635,16 +647,25 @@ function saved(state, savedCase) {
   actions.appendChild(done);
   state.drawer.replaceChildren(title, message, actions);
   (actions.firstElementChild ?? done).focus();
+  notifySaved(savedCase);
+}
+
+function notifySaved(savedCase) {
   for (const listener of [...savedListeners]) listener(savedCase);
 }
 
 /** « Annuler » and Échap: closes at once when nothing changed, else asks in the page. */
 function cancel(state) {
-  if (state.done || !dirty(state)) {
+  if (state.saving) return; // the POST is on its way: closing now would hide its outcome
+  if (state.done || !state.form || !dirty(state)) {
     close({ focus: true });
     return;
   }
-  if (state.confirm) return;
+  if (state.confirm) {
+    // Asked again: the way out is « Abandonner », give it the focus.
+    state.confirm.querySelector(".ae-danger")?.focus();
+    return;
+  }
   const box = el("div", "ae-confirm");
   box.setAttribute("role", "alertdialog");
   const ask = el("span", "", tc("form.discard.ask"));

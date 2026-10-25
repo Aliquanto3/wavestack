@@ -18235,6 +18235,20 @@ def s_agent_case(r: Run) -> None:
     )
     drawer = page.locator(".ae-drawer")
     r.check(drawer.count() == 0, "aucun tiroir avant le clic")
+    # « Annuler » while the draft is still on its way closes at once.
+    held: list = []
+    page.route("**/api/agent_eval/draft*", lambda route: held.append(route))
+    button.click()
+    expect(drawer.locator(".ae-loading")).to_be_visible(timeout=5000)
+    drawer.get_by_role("button", name="Annuler").click()
+    expect(drawer).to_have_count(0, timeout=5000)
+    r.check(
+        page.evaluate("() => document.activeElement.dataset.focusKey") == f"agent-case:{turn_id}",
+        "« Annuler » pendant la lecture du tour : tiroir fermé, focus rendu au bouton",
+    )
+    page.unroute("**/api/agent_eval/draft*")  # lets the held draft through: closed, ignored
+    page.wait_for_timeout(300)
+    r.check(drawer.count() == 0 and len(held) == 1, "le brouillon arrivé après coup est ignoré")
     seq = r.ev.mark()
     button.click()
     expect(drawer).to_be_visible(timeout=5000)
@@ -18299,6 +18313,11 @@ def s_agent_case(r: Run) -> None:
     r.check(
         "Abandonner les modifications ?" in confirm.inner_text(),
         "« Annuler » sur un tiroir modifié demande « Abandonner les modifications ? »",
+    )
+    page.keyboard.press("Escape")
+    r.check(
+        page.evaluate("() => document.activeElement.textContent") == "Abandonner",
+        "Échap une seconde fois : le focus va sur « Abandonner », la sortie reste à portée",
     )
     confirm.get_by_role("button", name="Continuer").click()
     expect(confirm).to_have_count(0, timeout=5000)

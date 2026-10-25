@@ -379,3 +379,19 @@ def test_the_form_only_exports_its_interface():
         "registerOpenView",
     ]
     assert "window.agentEval" not in script and "./agent-eval.js" not in script
+
+
+def test_an_earlier_session_turn_of_the_same_id_is_not_read():
+    """The journal outlives a session and turn ids restart at `t1`: the draft and the verdict
+    read this session's turn only."""
+    _, before, _ = setup(outputs=["Il pleut."])
+    old = played(before, "Quel temps fait-il ?")
+    _, session, client = setup()
+    turn = played(session)
+    assert turn == old  # the collision the floor guards against
+    draft = client.get("/api/agent_eval/draft", params={"turn_id": turn}).json()
+    assert draft["prompt"] == "Quelle heure est-il ?"
+    assert draft["answer_text"] == "Il est midi."
+    assert [c["tool"] for c in draft["tool_calls"]] == ["get_datetime"]
+    verdict = client.post("/api/agent_eval/verdict", json=form(turn, checks=[CALLED])).json()
+    assert verdict["passed"]

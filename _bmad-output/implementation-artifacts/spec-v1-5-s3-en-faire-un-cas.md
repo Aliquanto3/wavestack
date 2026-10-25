@@ -396,3 +396,18 @@ Modifiés (fichiers partagés en **gras**, chacun avec un point d'insertion fix�
 - **Clés `yes` et `no`** de `form.discard` : écrites entre guillemets dans `ui.yaml`, sinon YAML 1.1 les lit comme des booléens.
 - **Journal des tests** : le journal est global au processus et les `turn_id` repartent à `t1` à chaque session ; les tests de route remplacent le journal par un journal neuf.
 - `agent-case-form.js` : `canMakeCase(started, ended)` lit les charges utiles (`{kind, case_id}` et `{status}`) ; `index.html` et `app.css` ne sont pas modifiés ; `tests/test_ui_texts.py` ajoute le module à la liste des scripts de la page.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu c26438b6)
+
+Base à jour (origin/main 85534df4), pas de rebase.
+
+- Important, high, second avis 1 : corrigé. Échap pendant la lecture du tour levait un TypeError (`form` nul, donc `dirty()` vrai, puis `parts.actions` absent). Le tiroir porte désormais « Annuler » dès le chargement, qui ferme sans confirmation. Un second Échap ou « Annuler » avec la confirmation ouverte donne le focus à « Abandonner » (avant : sans effet). E2E : deux étapes ajoutées.
+- Important, medium, second avis 2 : corrigé. `submit()` retirait tous les `.ae-error`, nœud `saveError` compris, et l'échec suivant s'écrivait dans un nœud détaché. Il ne retire plus que les erreurs des champs (`clearError` sur `[aria-invalid]`).
+- Important, medium, second avis 3 : corrigé. « Annuler » et Échap sont sans effet pendant l'enregistrement. Si le tiroir est fermé autrement (ouverture sur un autre tour), un POST réussi prévient quand même les abonnés de `onCaseSaved`.
+- Important, medium, second avis 4 : corrigé. Le journal est celui du processus et les `turn_id` repartent à `t1` à chaque `AppSession`. `reset()` ne remet pas `_turns` à zéro : le défaut est latent en démo (une seule `AppSession` par processus), réel dès qu'un processus en crée deux. `AppSession.journal_floor` (seq du journal à la création) borne désormais les événements que lisent `/draft`, `/verdict` et `/cases`. Test : `test_an_earlier_session_turn_of_the_same_id_is_not_read` (rouge sans le correctif).
+- Nit, low, second avis 5 : corrigé. La feuille `agent-case-form.css` est chargée au chargement du module, et le bouton sous chaque tour est stylé avant la première ouverture.
+- Nit, low, second avis 6 : corrigé en partie. `/verdict` ne lit plus le journal qu'une fois (le même relevé sert au brouillon et au verdict). Il reste un tri par appel, en O(n log n) sur le journal de la séance avec un débounce de 250 ms : laissé. Complexité : 1 constat.
+- Nit, low, second avis 7 : corrigé. Une `ValidationError` de `to_case` renvoie un 422 au format du formulaire (champ connu, sinon `checks`) au lieu d'un 500. C'est un garde-fou, que les validations du formulaire rendent normalement inatteignable, d'où l'absence de test.
+- Nit, low, second avis 8 : laissé (informatif). L'E2E est hors CI, comme les autres scénarios du dépôt.
