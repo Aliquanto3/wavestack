@@ -1,0 +1,16 @@
+{
+  "determinism": {
+    "checked": 5,
+    "deterministic": true,
+    "max_gap": 0.0
+  },
+  "probabilistic": true,
+  "revisions": {},
+  "rss_added_mb": 90,
+  "rss_with_slm_mb": 2300,
+  "status": "measured",
+  "truncated_items": 0,
+  "versions": {
+    "onnxruntime": "synthetic"
+  }
+}
