@@ -30,7 +30,7 @@ Par ordre d'utilité, d'après les attentes humaines du journal (détail en anne
 3. **Couche de décision** (12.8) : extra `decision`, classifieur, routeur et Grounding check en local ; un vrai appel cloud (forme, coût, plafond).
 4. **Évaluer** (12.15) : valider les annotations de référence, réenregistrer avec un vrai juge local non Qwen et un juge cloud.
 5. **MCP et OpenTelemetry** : brancher un vrai Claude Code sur l'architecture exposée (12.20) ; `uv sync --extra otel` vers Phoenix ou Langfuse (12.16).
-6. **Décision en attente** : corriger « story 14 » en « story 18 » dans `projet_orion.md` (corpus livré, empreintes) (12.18).
+6. ~~Décision en attente : renvoi « story 14 » du document sentinelle~~ : fait par #131, qui renomme aussi le document en Projet Talvane (`projet_talvane.md`, code TLV-7731-QZ).
 7. **Index réels** : reconstruire les 3 index (`build_rag_index.py --lang fr|en|de`) pour leurs fichiers de coût (12.3), si ce n'est pas déjà fait.
 8. Relire le rapport du banc System One (12.2) et le rapport de recherche visuelle (12.21).
 
@@ -254,7 +254,7 @@ Par ordre d'utilité, d'après les attentes humaines du journal (détail en anne
 
 **12.18**
 
-- décision : corriger « story 14 » en « story 18 » dans projet_orion.md (corpus livré, empreintes)
+- décision : corriger « story 14 » en « story 18 » dans projet_talvane.md (ex-sentinelle renommée) (corpus livré, empreintes)
 - avant de déclarer finie (done_checkpoint) : recette visuelle fr/en/de clair et sombre, jouer effacement et droits, corpus et copie de travail inchangés, relire les contenus construits
 
 **12.10**

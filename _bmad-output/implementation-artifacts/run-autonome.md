@@ -383,9 +383,9 @@ Run terminé : epics 12, 13 et 14 fusionnés dans main, versions 1.3.0, 1.4.0 et
 - 2026-10-25 09:18 · 12.17 · décision · à revoir : sans Prompt Guard chargé, verdict enregistré appliqué à la colonne « avec » ; entrées de démonstration comptées dans « bloqués » ; not_installed au niveau mid ; capture sans numéro · d95e83a
 - 2026-10-25 09:18 · 12.17 · second-avis · lancé (priorité : effet de la reformulation du corpus sur 12.6, 12.9, 12.15) · d95e83a
 - 2026-10-25 09:19 · 12.18 · dev · lancé (phase spec, empilé sur 12.17, worktree ../wavestack-v12-s18) · d95e83a
-- 2026-10-25 09:22 · 12.18 · dev · spec prête (16 critères, 8 points ouverts : instantanés en mémoire, dérivés illustratifs, sentinelle projet_orion dans l'état de la page, corpus livré inchangé) · af49d59
+- 2026-10-25 09:22 · 12.18 · dev · spec prête (16 critères, 8 points ouverts : instantanés en mémoire, dérivés illustratifs, sentinelle (projet_talvane) dans l'état de la page, corpus livré inchangé) · af49d59
 - 2026-10-25 09:22 · 12.18 · review · relecture de la spec lancée · af49d59
-- 2026-10-25 09:22 · 12.18 · attente humaine · décision : corriger « story 14 » en « story 18 » dans projet_orion.md (corpus livré, empreintes) · —
+- 2026-10-25 09:22 · 12.18 · attente humaine · décision : corriger « story 14 » en « story 18 » dans projet_talvane.md (ex-sentinelle renommée) (corpus livré, empreintes) · —
 - 2026-10-25 09:23 · 12.15 · CI · verte après une relance · 9c9adf2
 - 2026-10-25 09:23 · 12.15 · fusion · #108 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · b3246b2
 - 2026-10-25 09:24 · 12.7 · dev · fini ; 16 critères (10 sauté : extra compression absent), 4890 tests ciblés verts, E2E 168/168 et --no-headroom 54/54 ; 12.6 et intégration fusionnées · a652ed4
@@ -694,3 +694,4 @@ Run terminé : epics 12, 13 et 14 fusionnés dans main, versions 1.3.0, 1.4.0 et
 - 2026-10-25 18:52 · run · fusion · #130 MERGED dans main (squash), version 1.5.0 · f41cf5bb
 - 2026-10-25 18:53 · run · décision · tag annoté v1.5.0 et release GitHub « WaveStack 1.5.0 » publiés (notes : epic 12) · f41cf5bb
 - 2026-10-25 18:55 · run · décision · fin du run : rapport-nuit-2026-10-25.md, mémoire du projet à jour, worktrees supprimés · —
+- 2026-10-25 19:20 · run · fusion · #131 MERGED dans main (squash) : sentinelle renommée Projet Talvane (TLV-7731-QZ) à la demande d'Anaël, renvoi story 18, E2E rag_lab_rights réaligné sur GraphRAG mesuré · fce4f8b
