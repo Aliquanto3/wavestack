@@ -29,8 +29,7 @@ Fichier de séance : `{"version": 1, "cases": [...]}`, écrit atomiquement (temp
 ## Journal d'un cas
 
 - **Enveloppes lues** : celles dont le `turn_id` est un tour lancé par le cas : le tour du prompt, le tour de compaction éventuel et le message renvoyé ensuite. Tous contextes (principal et `sub{n}`).
-- **Témoin** : le `turn_ended` du dernier tour de message. Absent (journal tronqué) ou d'un statut autre que `completed` (la session l'émet toujours, annulation comprise : `cancelled`, `limit`, `error`, `overflow`, `blocked`) : toutes les vérifications échouent, raison « tour incomplet ». Un outil bloqué ou refusé par un hook ne termine pas le tour (statut `completed`).
-- **Cas fourni** : au moins une vérification positive (`tool_called`, `answer_contains`, `hook_decided` ou `subagent_called`), refusé au chargement sinon.
+- **Témoin** : le `turn_ended` du dernier tour de message. Absent (annulation, journal tronqué) : toutes les vérifications échouent, raison « tour incomplet ».
 - **Fonction** : `verify(case, envelopes) -> CaseVerdict`, pure, sans I/O ni modèle. Elle sert aussi au formulaire sur le tour d'origine (CAP-3).
 
 ## Catalogue des vérifications (fermé)
