@@ -530,3 +530,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:59 · 12.11 · review · passe 1 : 2 low corrigés (search_documents lit à la demande, pageindex.forget retire un document supprimé de l'arbre reconstruit), 2 écartés (filtre hr, test du lien) ; 548 tests ciblés, E2E 189/189 · ec11ca5
 - 2026-10-25 12:59 · 12.11 · décision · à revoir : aucune architecture de l'atelier ne filtre l'audience hr (la carte d'accès de 12.18 montre la fuite) ; seul le MCP exposé de 12.20 filtre ; règle transmise à la relecture de 12.13 · ec11ca5
 - 2026-10-25 12:59 · 12.11 · PR · #116 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · ec11ca5
+- 2026-10-25 13:03 · 12.19b · review · passe 1 : 1 Important low corrigé (panne de /api/rag_lab/sheets testée en E2E), 2 low corrigés (fastembed renvoie au guide, « aux égalités et arrondis près »), 2 écartés (contrôle des options déjà au chargement, chiffres Sentence-BERT et DPR relus exacts), 1 reporté (conflit 12.11) ; 371 tests, E2E 166/166 · 6b00d2c
+- 2026-10-25 13:03 · 12.19b · décision · pas de passe 2 : seul constat Important = un test ajouté, de gravité low · 6b00d2c
+- 2026-10-25 13:03 · 12.19b · report · PR après la fusion de #116 (12.11) et refusion de l'intégration (rag_lab.yaml ×3) · 6b00d2c
