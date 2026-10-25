@@ -90,3 +90,8 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:25 · 15.6 · fusion · #135 MERGED dans main (squash) · 23108ae2
 - 2026-10-25 21:26 · 15.3 · review · spec ready-for-dev, 9 points tranchés · 1c4d05fc
 - 2026-10-25 21:26 · 15.3 · décision · tour annulé éligible à « En faire un cas » · à revoir
+- 2026-10-25 21:30 · 15.1 · CI · verte (8/8) · aa2ca985
+- 2026-10-25 21:30 · 15.1 · fusion · #137 MERGED dans main (squash) · a1f970bc
+- 2026-10-25 21:30 · run · fusion · #136 MERGED dans main (précision de contrat-des-cas.md) · 85534df4
+- 2026-10-25 21:30 · 15.2 · dev · lancé (Sonnet, code, rebasé sur 85534df4) · —
+- 2026-10-25 21:30 · 15.3 · dev · lancé (Sonnet, code, rebasé sur 85534df4) · —
