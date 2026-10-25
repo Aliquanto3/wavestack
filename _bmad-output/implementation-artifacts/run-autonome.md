@@ -387,3 +387,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:24 · 12.10 · dev · lancé (phase spec, empilé sur 12.7, worktree ../wavestack-v12-s10) · a652ed4
 - 2026-10-25 09:25 · 12.17 · second-avis · 0 high, 3 medium (verdict enregistré qui pilote la colonne « avec » sans Prompt Guard, entrées de démonstration comptées dans le journal réel, état interdit du mini-graphe), 4 low ; corpus reformulé inactif (faq_mots_de_passe active: false), aucun effet sur 12.6, 12.9, 12.15 · d95e83a
 - 2026-10-25 09:25 · 12.17 · review · lancé (base integration/v1-2-atelier) · d95e83a
+- 2026-10-25 09:29 · 12.10 · dev · spec prête (18 critères, 7 points ouverts : tête de chaîne skipped, CAG refusé en nuage, appel de chauffe pour llama-server, une seule entrée de cache d'état, fenêtre = 16 384) · 3ffe294
+- 2026-10-25 09:29 · 12.10 · review · relecture de la spec lancée (mémoire du snapshot sur 16 Go, cache du chat) · 3ffe294
