@@ -10,6 +10,10 @@ scriptée et déterministe.
 uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py
 ```
 
+Sous Windows, lancez-le avec `PYTHONUTF8=1` (PowerShell : `$env:PYTHONUTF8 = "1"`) : sans lui,
+la console en cp1252 fait planter des scénarios dont la sortie contient un caractère hors de
+cette page de code (par exemple « ◐ » dans `themes`).
+
 - `--only h5 caveman` : seulement ces scénarios (le diagnostic est toujours joué). Chaque
   scénario se lance seul : aucun ne dépend de ceux qui le précèdent dans le parcours.
 - `--keep` : garde le dossier de données temporaire (journaux `wavestack.log`,

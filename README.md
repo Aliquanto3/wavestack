@@ -7,8 +7,7 @@ interface en français, en anglais et en allemand.
 
 ![Démonstration de WaveStack : le LLM nu ne connaît pas l'heure ; avec la brique Outils, le modèle appelle get_datetime et chaque étape s'affiche ; puis la jauge du cache, la carte du harnais, les ateliers LLM, recherche documentaire et MCP, et la page Sécurité](docs/assets/wavestack-demo.gif)
 
-*Même question, sans puis avec outils : le LLM nu avoue ne pas connaître l'heure ; avec les outils,
-il appelle `get_datetime` et chaque étape s'affiche. Puis la jauge du cache et la carte du harnais, l'Atelier LLM, l'Atelier recherche documentaire, l'Atelier MCP et la page Sécurité. [Version vidéo (MP4)](docs/assets/wavestack-demo.mp4).*
+*Même question, sans puis avec outils : le LLM nu avoue ne pas connaître l'heure ; avec les outils, il appelle `get_datetime` et chaque étape s'affiche. Puis la jauge du cache et la carte du harnais, l'Atelier LLM, l'Atelier recherche documentaire, l'Atelier MCP et la page Sécurité. [Version vidéo (MP4)](docs/assets/wavestack-demo.mp4).*
 
 ## Comment ça marche
 
@@ -21,8 +20,8 @@ en réinjecte les résultats, jusqu'à la réponse. WaveStack montre cette boucl
   chaque scénario allume ses briques, donne sa consigne et propose ses prompts.
 - **Quatre volets synchronisés** : ce que voit l'utilisateur, ce que lit vraiment le modèle (en
   tokens), ce que fait le harnais pas à pas, et où tourne chaque pièce (sur le poste ou non).
-  Une **carte du harnais** range les briques dans les sept sous-systèmes d'un harnais ; la barre
-  du haut montre le coût de la séance et le cache de chaque appel (lu, écrit, non mis en cache).
+  Une **carte du harnais** range les briques dans les sept sous-systèmes d'un harnais ; la barre du bas montre le cache
+  du dernier appel (lu, écrit, non mis en cache) et le bouton « Dépense », en haut, le coût de la séance.
 - **Trois ateliers pour regarder à l'intérieur** : l'Atelier LLM (texte, tokens, vecteurs,
   probabilités, token tiré), l'Atelier recherche documentaire (cinq onglets : Construire,
   Comparer, Évaluer, Attaquer, Fiches ; du RAG classique aux architectures sans index, à
@@ -36,9 +35,8 @@ Pour Windows 10 ou 11 x64, sans droits administrateur ; prévoyez 3 Go de disque
 tous les modèles du RAG) et 4 Go de RAM libre. Sous macOS ou Linux, ou si une étape bloque
 (proxy, politique du poste), suivez [l'installation détaillée](docs/installation.md).
 
-**Une seule commande**, dans PowerShell (pas CMD) : touche Windows, tapez `PowerShell`, Entrée, puis
-collez la commande ([Ouvrir PowerShell](docs/installation.md#ouvrir-powershell)). Elle installe `uv` si besoin, récupère
-WaveStack dans `Documents\WaveStack`, dépose le modèle Qwen (1,3 Go), puis lance l'appli ;
+**Une seule commande**, dans PowerShell (pas CMD) : touche Windows, tapez `PowerShell`, Entrée, puis collez la
+commande ([Ouvrir PowerShell](docs/installation.md#ouvrir-powershell)). Elle installe `uv` si besoin, récupère WaveStack dans `Documents\WaveStack`, dépose le modèle Qwen (1,3 Go), puis lance l'appli ;
 relancée plus tard, elle rouvre WaveStack sans rien retélécharger. **Sur un réseau
 d'entreprise**, tapez d'abord `$env:UV_SYSTEM_CERTS = "1"` dans ce même terminal et faites
 autoriser les domaines de [Derrière un proxy d'entreprise](docs/installation.md#derrière-un-proxy-dentreprise) :
@@ -68,8 +66,7 @@ Invoke-WebRequest -UseBasicParsing "https://huggingface.co/unsloth/Qwen3.5-2B-GG
 uv run wavestack
 ```
 
-En cas d'échec du téléchargement, prenez [le fichier](https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf)
-avec le navigateur. Détails, extras et macOS/Linux : [installation détaillée](docs/installation.md#windows).
+En cas d'échec du téléchargement, prenez [le fichier](https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf) avec le navigateur. Détails, extras et macOS/Linux : [installation détaillée](docs/installation.md#windows).
 
 **Modèles du RAG.** Les modèles d'embedding et de reranking (121 à 639 Mo) se téléchargent depuis
 l'interface : carte RAG de l'Atelier Harnais pour la brique RAG, bouton « Télécharger » de
@@ -81,11 +78,10 @@ arrête WaveStack. Mise à jour : `git pull` (ou un nouveau zip), `uv sync` avec
 
 ## Utiliser un modèle cloud (clé API)
 
-Facultatif : le modèle local suffit pour toute la formation. Préréglages : Groq, Mistral,
-Gemini, Gemma, Claude (avec son cache de prompt) et GPT-6 Luna. Collez la clé du fournisseur sur la page Modèles, dans la ligne du
-modèle (« Enregistrer la clé », prise en compte sans relancer), puis « Tester », « Choisir ce
-modèle… » et « Utiliser ce modèle ». La clé reste sur ce poste, n'est jamais affichée ni tracée
-et ne part que vers l'hôte du fournisseur. Plans gratuits, proxy et conditions : [Modèles cloud](docs/modeles.md#modèles-cloud).
+Facultatif : le modèle local suffit pour toute la formation. Préréglages : Groq, Mistral, Gemini, Gemma,
+Claude (cache de prompt à activer, désactivé par défaut) et GPT-6 Luna. Collez la clé du fournisseur sur la page Modèles,
+dans la ligne du modèle (« Enregistrer la clé », prise en compte sans relancer), puis « Tester », « Choisir ce modèle… »
+et « Utiliser ce modèle ». La clé reste sur ce poste, n'est jamais affichée ni tracée et ne part que vers l'hôte du fournisseur. Plans gratuits, proxy et conditions : [Modèles cloud](docs/modeles.md#modèles-cloud).
 
 ## Aller plus loin
 

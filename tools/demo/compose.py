@@ -126,8 +126,11 @@ class Film:
             caption(img, step, text, icon)
             for box, *rest in highlights:
                 if isinstance(box, str):  # measured by drive.py on this very screenshot
-                    box = self.entries[path].get("boxes", {}).get(box)
+                    name, box = box, self.entries[path].get("boxes", {}).get(box)
                     if box is None:  # not (whole) in view
+                        print(
+                            f"Cadre « {name} » non mesuré sur {path.name} : sauté.", file=sys.stderr
+                        )
                         continue
                 highlight(img, box, *rest)
             self.add(img, total / len(paths))

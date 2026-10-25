@@ -284,7 +284,9 @@ if __name__ == "__main__":
     }
     parser = argparse.ArgumentParser(description="Capture WaveStack for the README demo.")
     parser.add_argument("frames", type=Path, help="dossier des captures")
-    parser.add_argument("sequence", nargs="?", choices=list(sequences), help="une seule prise")
+    parser.add_argument(
+        "sequence", nargs="*", choices=list(sequences), help="prises à refaire (toutes par défaut)"
+    )
     parser.add_argument("--channel", default="chrome", help="chrome ou msedge")
     args = parser.parse_args()
     state = api_state()
@@ -295,7 +297,7 @@ if __name__ == "__main__":
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel=args.channel)
         page = browser.new_page(viewport=VIEWPORT)
-        for name in [args.sequence] if args.sequence else sequences:  # one alone: a bad take
+        for name in args.sequence or sequences:  # some alone: takes that came out badly
             sequences[name](page, args.frames / name)
         browser.close()
     print(f"Images dans {args.frames}")
