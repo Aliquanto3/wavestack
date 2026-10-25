@@ -438,6 +438,34 @@ class RerankerModel(LocalModelSpec):
     max_tokens: int = Field(gt=8)
 
 
+class DecisionModel(LocalModelSpec):
+    """V1.2 story 8 (CAP-6): `[rag_lab.decision.classifier]`, System One's local classifier
+    (deberta_xsmall, a zero-shot NLI in ONNX run by the extra `decision`): its ONNX file
+    (`load_path`), its tokenizer and its config, all three among `files`."""
+
+    backend: Literal["onnx"]  # type: ignore[assignment]
+    tokenizer_path: str = Field(min_length=1)
+    config_path: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _paths_are_declared(self) -> DecisionModel:
+        declared = {PurePosixPath(f.path) for f in self.files}
+        for value in (self.tokenizer_path, self.config_path):
+            _relative_path(value)
+            if PurePosixPath(value) not in declared:
+                raise ValueError("tokenizer_path and config_path must be among files[].path")
+        return self
+
+
+# V1.2 story 8: the decision API's model of each System One role, the bench's choices.
+DECISION_ROLES = ("router", "filter", "grounding")
+DECISION_DEFAULT_MODELS = {
+    "router": "typesafe/jev-1.14",
+    "filter": "perplexity/pplx-decider-flash-v1.2",
+    "grounding": "typesafe/jev-1.14",
+}
+
+
 class FastembedModel(_Strict):
     """`[rag_lab.fastembed]` (story 30): an optional embedding model of the RAG workshop, run
     by fastembed (ONNX), never downloaded by WaveStack: its files lie under
@@ -1008,6 +1036,32 @@ class Config:
         """Story 30 (AD-8): what importing FAISS is expected to add, `[rag_lab] faiss_cost_mb`
         (16 MB measured on Linux, 37 MB with numpy's first import)."""
         return max(0, self._int("rag_lab", "faiss_cost_mb", default=60)) * 1024 * 1024
+
+    @cached_property
+    def rag_lab_decision_classifier(self) -> tuple[DecisionModel | None, Message | None]:
+        """V1.2 story 8: System One's local classifier (`[rag_lab.decision.classifier]`), or
+        why its declaration is absent or invalid."""
+        raw = self.get("rag_lab", "decision", "classifier")
+        if raw is None:
+            return None, _message("config.rag_lab_decision.absent")
+        try:
+            return DecisionModel.model_validate(raw), None
+        except ValidationError as exc:
+            fields = ", ".join(
+                ".".join(str(p) for p in e["loc"]) or "section" for e in exc.errors()
+            )
+            return None, _message("config.rag_lab_decision.invalid", fields=fields)
+
+    @property
+    def rag_lab_decision_models(self) -> dict[str, str]:
+        """V1.2 story 8: the decision API's model of each role (`[rag_lab.decision]`
+        `router_model`, `filter_model`, `grounding_model`), the bench's choice by default."""
+        out = {}
+        for role in DECISION_ROLES:
+            value = self.get("rag_lab", "decision", f"{role}_model")
+            ok = isinstance(value, str) and 0 < len(value) <= 128
+            out[role] = value if ok else DECISION_DEFAULT_MODELS[role]
+        return out
 
     @property
     def rag_lab_fastembed_cost_bytes(self) -> int:

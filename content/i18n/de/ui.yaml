@@ -1212,6 +1212,16 @@ rag:
   tree_reset: "Mitgelieferten Baum wiederherstellen"
   tree_stale: "{count} veraltete(r) Knoten: Zusammenfassung nach der Regel neu berechnet"
   tree_progress: "Neuaufbau: {done} / {total} Knoten"
+  # V1.2 story 8 (CAP-6): System One's decisions in the focus.
+  decision_title: "System-One-Entscheidungen"
+  decision_subject: "Gegenstand"
+  decision_verdict: "Entscheidung"
+  decision_author: "Urheber"
+  decision_probability: "Wahrscheinlichkeit"
+  decision_threshold: "Schwelle"
+  decision_below: "unter der Schwelle"
+  decision_judge: "Antwort des Richters: {text}"
+  decision_truncated: "bei 512 Tokens gekürzt"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

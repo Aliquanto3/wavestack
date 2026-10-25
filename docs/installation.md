@@ -54,6 +54,8 @@ commandes près.
 - Pour l'Atelier MCP, serveur GitHub (connexion par code, device flow) : `github.com` (déjà
   listé ci-dessus) et `api.githubcopilot.com` (serveur MCP distant de GitHub). Voir
   [Sécurité, garde-fous et FinOps visible](securite.md#connexion-à-github).
+- Pour les options cloud de la couche de décision System One de l'atelier (facultatif, avec
+  une clé `OPENROUTER_API_KEY`) : `openrouter.ai`.
 - Pendant les séances, selon les briques utilisées : les modèles cloud (voir
   [Hôtes à autoriser](modeles.md#hôtes-à-autoriser)) et les serveurs MCP publics,
   `learn.microsoft.com` et `mcp.data.gouv.fr` (voir le

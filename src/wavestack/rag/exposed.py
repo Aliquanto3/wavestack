@@ -198,6 +198,12 @@ def refusal(
     invalid = rag_lab.validate_pipeline(pipeline, catalog)
     if invalid is not None:
         return Refusal("invalid", reasons.invalid.format(reason=invalid))
+    # V1.2 story 8: a check after the generation (System One's grounding) calls a model, and
+    # the rules below read the chain's last two stages as the Context and the Generation.
+    check = next((s for s in pipeline.stages if s.kind in rag_lab.CHECKS), None)
+    if check is not None:
+        stage = catalog.content.stages[check.kind].label_text
+        return Refusal("model_stage", reasons.model_stage.format(stage=stage))
     context = pipeline.stages[-len(rag_lab.FIXED_TAIL)]
     option = catalog.option_label(context.kind, context.option)
     if context.option in rag_lab.CORPUS_OPTIONS:

@@ -40,6 +40,7 @@ from wavestack.models.load_registry import LoadRegistry
 from wavestack.models.reranker import RerankCancelled, Reranker
 from wavestack.rag import agent_tools, pageindex, workcopy
 from wavestack.rag import contexts as rag_contexts
+from wavestack.rag import decision as rag_decision
 from wavestack.rag import index as rag_index
 from wavestack.rag.corpus import (
     Chunk,
@@ -59,17 +60,25 @@ KINDS = (
     "embedding",
     "vector_store",
     "query",
+    "router",  # V1.2 story 8 (CAP-6): System One's three decisions
     "vector_search",
     "lexical_search",
     "fusion",
     "rerank",
+    "passage_filter",
     "context",
     "generation",
+    "grounding_check",
 )
 # Increment 4: the retrieval segment, between the vector store and the context, in any order
 # (the chain's other stages are fixed); a stage of it is added before the context.
 # V1.2 story 5 (CAP-3): the query understanding opens the segment, before the searches.
 RETRIEVAL = ("query", "vector_search", "lexical_search", "fusion", "rerank")
+# V1.2 story 8 (CAP-6): System One's router (before the searches) and passage filter (after a
+# search) join the segment; its grounding check is the one kind after the generation.
+RETRIEVAL = (*RETRIEVAL, "router", "passage_filter")
+CHECKS = ("grounding_check",)
+DECISION_KINDS = ("router", "passage_filter", "grounding_check")
 SEARCHES = ("vector_search", "lexical_search")
 FIXED_HEAD = ("chunking", "embedding", "vector_store")
 FIXED_TAIL = ("context", "generation")
@@ -108,6 +117,11 @@ OPTIONS: dict[str, tuple[str, ...]] = {
     ),
     # Lot 5c-3: the workshop's active model generates (the shipped one), or nothing is sent.
     "generation": ("active", "not_run"),
+    # V1.2 story 8 (CAP-6): each System One decision, by the local model the bench chose or by
+    # the decision API (cloud, with a key).
+    "router": ("local", "cloud"),
+    "passage_filter": ("local", "cloud"),
+    "grounding_check": ("local", "cloud"),
 }
 # The settings of an option, by name.
 PARAMS: dict[tuple[str, str], tuple[str, ...]] = {
@@ -121,17 +135,37 @@ PARAMS: dict[tuple[str, str], tuple[str, ...]] = {
     ("context", "budget"): ("top_k", "budget_tokens"),
     ("context", "order"): ("top_k", "budget_tokens"),
     ("context", "compress"): ("top_k", "budget_tokens"),
+    # V1.2 story 8: the threshold of each decision (in %), and the cascade to the SLM judge.
+    **{
+        (kind, option): ("decision_threshold", "judge_cascade")
+        for kind in DECISION_KINDS
+        for option in ("local", "cloud")
+    },
 }
 BOUNDS: dict[str, tuple[int, int]] = {
     "chunk_max_chars": (200, 1500),
     "candidates": (1, 20),
     "top_k": (1, 20),
     "budget_tokens": (100, 4000),
+    "decision_threshold": (1, 99),  # V1.2 story 8, in %
+    "judge_cascade": (0, 1),  # V1.2 story 8: 0 off (the default), 1 on
 }
 # V1.2 story 7: the value of a setting the shipped chain does not carry (`param()` reads it
 # before falling back on the lower bound); three excerpts of the shipped corpus take about 505
 # estimated tokens, so the third one is cut at this default.
 PARAM_DEFAULTS: dict[str, int] = {"budget_tokens": 450}
+# V1.2 story 8 (CAP-6): a setting's default for one option, read before `PARAM_DEFAULTS`. The
+# thresholds of the filter and of the grounding are the bench's (story 2, adjusted on its own
+# set, so optimistic); the router was not measured: 50 % is a proposal. The cascade is off.
+OPTION_PARAM_DEFAULTS: dict[tuple[str, str, str], int] = {
+    ("router", "local", "decision_threshold"): 50,
+    ("router", "cloud", "decision_threshold"): 50,
+    ("passage_filter", "local", "decision_threshold"): 2,
+    ("passage_filter", "cloud", "decision_threshold"): 13,
+    ("grounding_check", "local", "decision_threshold"): 20,
+    ("grounding_check", "cloud", "decision_threshold"): 59,
+}
+GROUNDING_MAX_SENTENCES = 8  # the answer's sentences the grounding check reads, at most
 # V1.2 story 5: the query understanding's bounds (characters of a query, queries of a
 # decomposition, previous questions read by `follow_up`, tokens the model may write).
 QUERY_MAX_CHARS = 300
@@ -152,6 +186,10 @@ SHEETED_KINDS = (
     "rerank",
     "context",
     "generation",
+    # V1.2 story 8 (CAP-6)
+    "router",
+    "passage_filter",
+    "grounding_check",
 )
 # V1.2 story 6 (CAP-4): constants, not settings. `parent_child`: the characters of a child (the
 # parent is a `paragraphs` chunk); `semantic`: a chunk ends where the distance between two
@@ -213,6 +251,8 @@ COMPONENTS: dict[str, tuple[str, str, str | None]] = {
     # V1.2 story 11: the agent's tools on the corpus files, and PageIndex's tree of sections.
     "file_tools": ("models", "🛠️", None),
     "section_tree": ("data", "🌳", None),
+    # V1.2 story 8 (CAP-6): System One's model (the classifier, the reranker or the API).
+    "decision_model": ("models", "🎯", None),
 }
 
 
@@ -316,6 +356,14 @@ STEPS: dict[str, SequenceStep] = {
         reads=("section_tree", "question"),
         calls=("llm",),
         options=("section_tree",),
+    ),
+    # V1.2 story 8 (CAP-6): System One's decisions, each its own line in the chain's order.
+    "router": SequenceStep("run", "router", reads=("question",), calls=("decision_model",)),
+    "passage_filter": SequenceStep(
+        "run", "passage_filter", reads=("question",), calls=("decision_model",)
+    ),
+    "grounding_check": SequenceStep(
+        "run", "grounding_check", reads=("answer", "augmented_prompt"), calls=("decision_model",)
     ),
 }
 
@@ -818,8 +866,10 @@ class Catalog:
                     "label_text": text.label_text,
                     "explain_text": text.explain_text,
                     "movable": kind in RETRIEVAL,
+                    # V1.2 story 8: a check, added after the generation (never moved).
+                    "check": kind in CHECKS,
                     # V1.2 story 5: a stage added opens the retrieval segment, after this one.
-                    "insert_after": "vector_store" if kind == "query" else None,
+                    "insert_after": INSERT_AFTER.get(kind),
                     "options": options,
                     # B1 (2026-10-05): the models to download from this stage, the figure the
                     # architecture's tile says (« 2 modèles à télécharger »).
@@ -988,6 +1038,10 @@ def _bounds_fr(
     ).strip()
 
 
+# V1.2 stories 5 and 8: where a stage added from the palette goes (after this kind).
+INSERT_AFTER = {"query": "vector_store", "router": "vector_store", "grounding_check": "generation"}
+
+
 def check_pipeline(
     pipeline: Pipeline, catalog: Catalog, *, lang: str | None = None
 ) -> tuple[str, str | None] | None:
@@ -1015,6 +1069,18 @@ def check_pipeline(
         if stage.kind in seen:
             return text("once", stage=names[stage.kind]), stage.id
         seen.add(stage.kind)
+    # V1.2 story 8: the checks (System One's grounding) close the chain, after the generation;
+    # the rules below read the chain without them, the options and settings with them.
+    checks = 0
+    while checks < len(stages) and stages[len(stages) - 1 - checks].kind in CHECKS:
+        checks += 1
+    misplaced = next((s for s in stages[: len(stages) - checks] if s.kind in CHECKS), None)
+    if misplaced is not None:
+        return (
+            text("check_last", stage=names[misplaced.kind], after=names["generation"]),
+            misplaced.id,
+        )
+    stages = stages[: len(stages) - checks]
     kinds = [s.kind for s in stages]
     head, tail = list(FIXED_HEAD), list(FIXED_TAIL)
     order = " → ".join(names[k].lower() for k in (*FIXED_HEAD, *FIXED_TAIL) if k in names)
@@ -1044,7 +1110,7 @@ def check_pipeline(
         refused = _segment_refusal(segment, searches, names, text, stages[-len(tail)].id)
         if refused is not None:
             return refused
-    for stage in stages:
+    for stage in pipeline.stages:
         label = names[stage.kind]
         state = catalog.options.get((stage.kind, stage.option))
         if state is None:
@@ -1111,6 +1177,14 @@ def _segment_refusal(
     understanding = next((s for s in segment if s.kind == "query"), None)
     if understanding is not None and position[understanding.id] > position[searches[0].id]:
         return text("query_before", stage=names["query"]), understanding.id
+    # V1.2 story 8: the router chooses the searches, so it comes before them; the filter reads
+    # a ranked list, so a search comes before it.
+    router = next((s for s in segment if s.kind == "router"), None)
+    if router is not None and position[router.id] > position[searches[0].id]:
+        return text("router_before", stage=names["router"]), router.id
+    sieve = next((s for s in segment if s.kind == "passage_filter"), None)
+    if sieve is not None and position[sieve.id] < position[searches[0].id]:
+        return text("filter_after", stage=names["passage_filter"]), sieve.id
     return None
 
 
@@ -1132,7 +1206,8 @@ def param(stage: Stage, name: str, catalog: Catalog) -> int:
     )
     if shipped is not None and name in shipped.params:
         return int(shipped.params[name])
-    return PARAM_DEFAULTS.get(name, BOUNDS[name][0])
+    fallback = PARAM_DEFAULTS.get(name, BOUNDS[name][0])
+    return OPTION_PARAM_DEFAULTS.get((stage.kind, stage.option, name), fallback)
 
 
 # ---------- figures in French ----------
@@ -1862,6 +1937,15 @@ class LabDeps:
     # agent's rounds, the descent's levels): the main context's engine state saved once.
     reserve: int = 0
     model_scope: Callable[[], AbstractContextManager[Any]] = nullcontext
+    # V1.2 story 8 (CAP-6): System One's local classifier (lent for the run: `Lent`, or
+    # `StageSkipped`/`StageFailed`), the decision API (`(client, None)`, or `(None, why)`; the
+    # session's client checks the session's cap and records each call's cost) and its model of
+    # each role (`router`, `filter`, `grounding`). `None`: no classifier (the stage is skipped).
+    classifier: Callable[[], Lent] | None = None
+    decision_api: Callable[[], tuple[Any, Any]] = lambda: (None, None)
+    decision_models: dict[str, str] = field(
+        default_factory=lambda: dict(config.DECISION_DEFAULT_MODELS)
+    )
 
 
 @dataclass
@@ -1935,6 +2019,8 @@ class _Result:
     # V1.2 story 11: the agent's rounds (`agent_loop`) and the descent's levels (`section_tree`).
     agent: dict[str, Any] | None = None
     tree: dict[str, Any] | None = None
+    # V1.2 story 8 (CAP-6): System One's decisions (author, probability, threshold).
+    decisions: list[dict[str, Any]] = field(default_factory=list)
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -1988,6 +2074,9 @@ class _Chain:
     parent_of: list[int] = field(default_factory=list)
     contexts: rag_contexts.Matched | None = None
     lent: dict[str, Lent] = field(default_factory=dict)
+    # V1.2 story 8 (CAP-6): the stages the router left out (kind -> why), the answer generated.
+    routed_out: dict[str, str] = field(default_factory=dict)
+    answer: str | None = None
 
     @property
     def ranked(self) -> list[Item] | None:
@@ -2131,6 +2220,10 @@ class LabRun:
             base["option"] = stage.option
             if stopped:
                 self._ended(step_id, component, base, "skipped", _Result(), None, 0, None)
+                continue
+            routed = chain.routed_out.get(stage.kind)  # V1.2 story 8: left out by the router
+            if routed is not None:
+                self._ended(step_id, component, base, "skipped", _Result(), routed, 0, None)
                 continue
             if whole and stage.kind in FIXED_HEAD:
                 # V1.2 story 10: in the chain, never run: nothing indexed, nothing to build.
@@ -2292,6 +2385,7 @@ class LabRun:
                 "cache": result.cache,
                 "agent": result.agent,
                 "tree": result.tree,
+                "decisions": result.decisions,
             },
             step_id,
             component,
@@ -2346,6 +2440,8 @@ class LabRun:
             return self._context(chain, stage, step_id, tick)
         if stage.kind == "generation":
             return self._generation_run(chain, step_id, progress)
+        if stage.kind in DECISION_KINDS:  # V1.2 story 8 (CAP-6)
+            return self._decision(chain, stage, step_id, progress)
         raise StageFailed(Message("rag_lab.stage.unknown", kind=stage.kind))
 
     def _passed_on(self, chain: _Chain, reason_text: str) -> _Result:
@@ -4462,10 +4558,429 @@ class LabRun:
             )
         if not got.answer_text.strip():
             result.output_text = text("generation.empty")
+        chain.answer = got.answer_text  # V1.2 story 8: what the grounding check reads
         if got.status == "limit":
             cut = text("generation.cut", max=count(got.reserve))
             result.warning_text = " ".join(filter(None, [result.warning_text, cut]))
         return result
+
+    # -- V1.2 story 8 (CAP-6): System One, the router, the passage filter, the grounding --
+
+    def _decision(
+        self, chain: _Chain, stage: Stage, step_id: str, progress: Callable[[int, int], None]
+    ) -> _Result:
+        """One System One stage: each decision by the classifier at or above the threshold,
+        else refused or, cascade on, by the SLM judge (the workshop's active model)."""
+        if stage.option == "cloud" and self._reads_work_copy():
+            # SPEC: a cloud model receives the fictitious Exemplia corpus only.
+            raise StageSkipped(Message("rag_lab.decision.work_copy"))
+        if stage.kind == "router":
+            return self._router(chain, stage, step_id)
+        if stage.kind == "passage_filter":
+            return self._passage_filter(chain, stage, step_id, progress)
+        return self._grounding(chain, stage, step_id, progress)
+
+    def _decision_settings(self, stage: Stage) -> tuple[float, bool]:
+        catalog = self.deps.catalog
+        threshold = param(stage, "decision_threshold", catalog) / 100
+        return threshold, param(stage, "judge_cascade", catalog) == 1
+
+    def _classifier(self, chain: _Chain) -> Lent:
+        """The local classifier, lent once for the run (the router and the grounding share it)."""
+        lent = chain.lent.get("decision.classifier")
+        if lent is None:
+            if self.deps.classifier is None:
+                raise StageSkipped(Message("rag_lab.decision.no_classifier"))
+            lent = chain.lent["decision.classifier"] = self.deps.classifier()
+        return lent
+
+    def _decision_api(self) -> Any:
+        api, why = self.deps.decision_api()
+        if api is None:
+            raise StageSkipped(why or Message("rag_lab.decision.no_api"))
+        return api
+
+    def _decision_failed(self, exc: Exception) -> StageFailed:
+        """A decision that failed: soft, the chain goes on as if the stage were not there."""
+        if isinstance(exc, rag_decision.DecisionError):
+            cause = render(exc.text, self._lang)
+        else:
+            cause = f"{type(exc).__name__} : {exception_text(exc, self._lang)}"
+        return StageFailed(Message("rag_lab.decision.failed", cause=cause), soft=True)
+
+    def _judge(
+        self, step_id: str, instruction: str, context_text: str, question: str, costs: list
+    ) -> str | None:
+        """The SLM judge's raw answer (the workshop's active model, a short task), or `None`
+        when it cannot be asked (no model loaded, an error); its call's cost kept."""
+        if self.deps.generator is None:
+            return None
+        try:
+            got = self._ask(step_id, instruction, context_text, question)
+        except (StageSkipped, StageFailed):
+            return None
+        costs.append(self._call_cost("query", "judge", got))
+        if got.status == "cancelled":
+            raise LabCancelled()
+        if got.status not in ("completed", "limit"):
+            return None
+        return got.answer_text.strip()
+
+    def _decision_payload(self, decision: rag_decision.Decision, model_label: str) -> dict:
+        lang = self._lang
+        notes = "note"
+        if decision.verdict in rag_decision.STRATEGIES:
+            verdict_text = self.deps.texts.presets[decision.verdict].label_text
+            notes = "note_choice"  # the router keeps its choice under the threshold
+        else:
+            verdict_text = self._text(f"decision.verdict.{decision.verdict}")
+        if decision.author == "judge":
+            author_text = self._text("decision.author.judge")
+        else:
+            author_text = self._text("decision.author.classifier", model=model_label)
+        p = decision.probability
+        return {
+            "subject_text": decision.subject_text[:QUESTION_MAX],
+            "verdict": decision.verdict,
+            "verdict_text": verdict_text,
+            "probability": None if p is None else round(p, 4),
+            "probability_text": score_text(p, lang) if p is not None else "—",
+            "threshold": decision.threshold,
+            "threshold_text": score_text(decision.threshold, lang),
+            "author": decision.author,
+            "author_text": author_text,
+            "below": decision.below,
+            "judge_text": self._preview(decision.judge_text) if decision.judge_text else None,
+            "note_text": self._text(f"decision.{notes}.{decision.note}") if decision.note else None,
+            "truncated": decision.truncated,
+            "probabilities": {k: round(v, 4) for k, v in decision.probabilities.items()},
+            "chunk_id": decision.chunk_id,
+            "doc_id": decision.doc_id,
+        }
+
+    def _decision_facts(
+        self, stage: Stage, model_label: str, decisions: Sequence[rag_decision.Decision]
+    ) -> list[tuple[str, str]]:
+        threshold, cascade = self._decision_settings(stage)
+        judged = sum(1 for d in decisions if d.author == "judge")
+        return [
+            (self._text("fact.model"), model_label),
+            (self._text("decision.fact.threshold"), score_text(threshold, self._lang)),
+            (
+                self._text("decision.fact.cascade"),
+                self._text("decision.cascade_on" if cascade else "decision.cascade_off"),
+            ),
+            (
+                self._text("decision.fact.authors"),
+                self._text(
+                    "decision.authors",
+                    classifier=self._int(len(decisions) - judged),
+                    judge=self._int(judged),
+                ),
+            ),
+        ]
+
+    def _decision_warning(
+        self,
+        stage: Stage,
+        decisions: Sequence[rag_decision.Decision],
+        extra: str | None = None,
+    ) -> str | None:
+        _, cascade = self._decision_settings(stage)
+        parts = [extra] if extra else []
+        if cascade:
+            parts.append(self._text("decision.cascade_unvalidated"))
+        cut = sum(1 for d in decisions if d.truncated)
+        if cut:
+            parts.append(self._text("decision.truncated", count=self._int(cut)))
+        return " ".join(parts) or None
+
+    @staticmethod
+    def _api_cost(kind: str, tokens: int, duration_ms: int, usd: float | None) -> StageCost:
+        note = None if usd is not None else Message("rag_lab.costs.decision_unpriced")
+        return StageCost("query", kind, tokens, duration_ms, usd, None, note_text=note)
+
+    def _router(self, chain: _Chain, stage: Stage, step_id: str) -> _Result:
+        """The strategy for this question among those the chain can run (a strategy is
+        runnable when the chain has all its stages); the stages it does not use are skipped."""
+        kinds = {s.kind for s in chain.pipeline.stages}
+        candidates = [
+            s for s in rag_decision.STRATEGIES if set(rag_decision.STRATEGY_KINDS[s]) <= kinds
+        ]
+        presets = self.deps.texts.presets
+        if len(candidates) < 2:
+            raise StageSkipped(Message("rag_lab.router.too_few"))
+        lang = config.as_language(self._lang)
+        threshold, cascade = self._decision_settings(stage)
+        hypotheses = {s: rag_decision.ROUTER_HYPOTHESES[lang][s] for s in candidates}
+        started = time.monotonic()
+        tokens = sum(
+            self.deps.estimate_tokens(f"{self.question}\n{h}") for h in hypotheses.values()
+        )
+        costs: list[StageCost] = []
+        truncated, borrowed = False, False
+        try:
+            if stage.option == "local":
+                lent = self._classifier(chain)
+                model_label, borrowed = lent.label_text, lent.borrowed
+                probe = Probe(self.deps.meter)  # a local tracker, stopped whatever happens
+                try:
+                    probabilities, truncated = lent.model.choice(self.question, hypotheses)
+                finally:
+                    costs.append(self._cost("query", "router", probe, tokens))
+            else:
+                api = self._decision_api()
+                model_label = self.deps.decision_models["router"]
+                answer = api.choice(
+                    model_label,
+                    {"question": self.question},
+                    rag_decision.ROUTER_INSTRUCTIONS[lang],
+                    hypotheses,
+                )
+                probabilities = rag_decision.choice_probability(answer)
+                duration = _ms(time.monotonic() - started)
+                used = answer.input_tokens or tokens
+                costs.append(self._api_cost("router", used, duration, answer.cost_usd))
+        except (StageSkipped, StageFailed, LabCancelled):
+            raise
+        except Exception as exc:  # noqa: BLE001 - the chain goes on, every search kept
+            raise self._decision_failed(exc) from exc
+
+        def judge() -> tuple[str | None, str | None]:
+            described = " ; ".join(f"{s} : {hypotheses[s]}" for s in candidates)
+            suffix = rag_decision.ROUTER_JUDGE_SUFFIX[lang].format(options=", ".join(candidates))
+            instruction = f"{rag_decision.ROUTER_INSTRUCTIONS[lang]} {described} {suffix}"
+            raw = self._judge(step_id, instruction, "", self.question, costs)
+            return (None, None) if raw is None else (rag_decision.judge_label(raw, candidates), raw)
+
+        decision = rag_decision.decide_choice(
+            self.question, probabilities, threshold, cascade, judge
+        )
+        decision.truncated = truncated
+        chosen = decision.verdict
+        label = presets[chosen].label_text
+        left_out = []
+        for kind in ("lexical_search", "fusion", "rerank"):
+            if kind in kinds and kind not in rag_decision.STRATEGY_KINDS[chosen]:
+                chain.routed_out[kind] = self._text("router.routed_out", strategy=label)
+                left_out.append(self.deps.texts.stages[kind].label_text)
+        payload = self._decision_payload(decision, model_label)
+        return _Result(
+            input_text=self._text(
+                "router.input",
+                question=self._quoted(self.question[:80]),
+                strategies=", ".join(presets[s].label_text for s in candidates),
+            ),
+            output_text=self._text(
+                "router.output",
+                strategy=label,
+                probability=payload["probability_text"],
+                threshold=payload["threshold_text"],
+                author=payload["author_text"],
+                left_out=", ".join(left_out) or self._text("router.none_left_out"),
+            ),
+            facts=self._decision_facts(stage, model_label, [decision]),
+            borrowed=borrowed,
+            warning_text=self._decision_warning(stage, [decision]),
+            costs=costs,
+            decisions=[payload],
+        )
+
+    def _passage_filter(
+        self, chain: _Chain, stage: Stage, step_id: str, progress: Callable[[int, int], None]
+    ) -> _Result:
+        """Each passage of the ranked list kept or dropped: locally on the brick's reranker's
+        score (the bench's choice), or by the decision API's « noul »; the list goes on with
+        the passages kept, in their order."""
+        candidates = chain.ranked
+        if not candidates:
+            raise StageSkipped(Message("rag_lab.filter.no_candidates"))
+        lang = config.as_language(self._lang)
+        threshold, cascade = self._decision_settings(stage)
+        passages = [f"{c.title_text}\n{c.text}" for c in candidates]
+        tokens = sum(self.deps.estimate_tokens(f"{self.question}\n{p}") for p in passages)
+        started = time.monotonic()
+        costs: list[StageCost] = []
+        cut = [False] * len(candidates)
+        borrowed = False
+        try:
+            if stage.option == "local":
+                lent = self.deps.reranker("declared")
+                model_label, borrowed = lent.label_text, lent.borrowed
+                probe = Probe(self.deps.meter)
+                try:
+                    raw = lent.model.score(self.question, passages, self.deps.cancelled, progress)
+                except RerankCancelled:
+                    raise LabCancelled() from None
+                finally:
+                    costs.append(self._cost("query", "passage_filter", probe, tokens))
+                if len(raw) != len(candidates):
+                    raise rag_decision.DecisionError(Message("rag_lab.filter.mismatch"))
+                scores: list[float | None] = [min(1.0, max(0.0, float(r.score))) for r in raw]
+                cut = [getattr(r, "truncated", False) is True for r in raw]
+            else:
+                api = self._decision_api()
+                model_label = self.deps.decision_models["filter"]
+                scores, usd, used = [], None, 0
+                instructions = rag_decision.INSTRUCTIONS["filter"][lang]
+                for i, passage in enumerate(passages):
+                    self._check()
+                    state = {"question": self.question, "passage": passage}
+                    answer = api.noul(model_label, state, instructions)
+                    scores.append(answer.value)
+                    estimated = self.deps.estimate_tokens(f"{self.question}\n{passage}")
+                    used += answer.input_tokens or estimated
+                    if answer.cost_usd is not None:
+                        usd = (usd or 0.0) + answer.cost_usd
+                    progress(i + 1, len(passages))
+                duration = _ms(time.monotonic() - started)
+                costs.append(self._api_cost("passage_filter", used, duration, usd))
+        except (StageSkipped, StageFailed, LabCancelled):
+            raise
+        except Exception as exc:  # noqa: BLE001 - the chain goes on with the list unfiltered
+            raise self._decision_failed(exc) from exc
+        suffix = rag_decision.JUDGE_SUFFIX[lang]
+        instruction = f"{rag_decision.INSTRUCTIONS['filter'][lang]} {suffix}"
+        decisions = []
+        for c, passage, p, was_cut in zip(candidates, passages, scores, cut, strict=True):
+
+            def judge(passage: str = passage) -> tuple[bool | None, str | None]:
+                raw = self._judge(step_id, instruction, passage, self.question, costs)
+                return (None, None) if raw is None else (rag_decision.judge_word(raw, lang), raw)
+
+            d = rag_decision.decide_binary(
+                c.title_text, p, threshold, cascade, judge, "keep", "drop"
+            )
+            d.chunk_id, d.doc_id, d.truncated = c.chunk_id, c.doc_id, was_cut
+            decisions.append(d)
+        kept: list[Item] = []
+        dropped: list[Item] = []
+        for c, d in zip(candidates, decisions, strict=True):
+            into = kept if d.verdict == "keep" else dropped
+            into.append(
+                Item(
+                    c.chunk_id,
+                    c.doc_id,
+                    c.title_text,
+                    c.text,
+                    c.score,
+                    rank=len(into) + 1,
+                    before=c.rank,
+                    sources=c.sources,
+                )
+            )
+        chain.lists[-1] = kept
+        empty = self._text("filter.all_dropped") if not kept else None
+        return _Result(
+            input_text=self._text(
+                "filter.input", candidates=self._count(len(candidates), "candidate")
+            ),
+            output_text=self._text(
+                "filter.output",
+                kept=self._count(len(kept), "extract"),
+                dropped=self._int(len(dropped)),
+            ),
+            facts=self._decision_facts(stage, model_label, decisions),
+            items=kept,
+            dropped=dropped,
+            borrowed=borrowed,
+            warning_text=self._decision_warning(stage, decisions, empty),
+            costs=costs,
+            decisions=[self._decision_payload(d, model_label) for d in decisions],
+        )
+
+    def _grounding(
+        self, chain: _Chain, stage: Stage, step_id: str, progress: Callable[[int, int], None]
+    ) -> _Result:
+        """Each sentence of the answer (at most `GROUNDING_MAX_SENTENCES`) grounded or not in
+        the passages the context gave (the premise), by NLI or the decision API's « noul »."""
+        answer = (chain.answer or "").strip()
+        if not answer:
+            raise StageSkipped(Message("rag_lab.grounding.no_answer"))
+        passages = [f"{i.title_text}\n{i.text}" for i in chain.context]
+        if not passages and chain.context_text:
+            passages = [chain.context_text]
+        if not passages:
+            raise StageSkipped(Message("rag_lab.grounding.no_context"))
+        premise = rag_decision.PREMISE_SEP.join(passages)
+        claims, total = rag_decision.sentences(answer, GROUNDING_MAX_SENTENCES)
+        lang = config.as_language(self._lang)
+        threshold, cascade = self._decision_settings(stage)
+        started = time.monotonic()
+        tokens = len(claims) * self.deps.estimate_tokens(premise)
+        costs: list[StageCost] = []
+        scores: list[float | None] = []
+        cut: list[bool] = []
+        borrowed = False
+        try:
+            if stage.option == "local":
+                lent = self._classifier(chain)
+                model_label, borrowed = lent.label_text, lent.borrowed
+                probe = Probe(self.deps.meter)
+                try:
+                    for i, claim in enumerate(claims):
+                        self._check()
+                        state = {"premise": premise, "claim": claim}
+                        p, was_cut = lent.model.noul("grounding", lang, state)
+                        scores.append(p)
+                        cut.append(was_cut)
+                        progress(i + 1, len(claims))
+                finally:
+                    costs.append(self._cost("query", "grounding_check", probe, tokens))
+            else:
+                api = self._decision_api()
+                model_label = self.deps.decision_models["grounding"]
+                usd, used = None, 0
+                instructions = rag_decision.INSTRUCTIONS["grounding"][lang]
+                for i, claim in enumerate(claims):
+                    self._check()
+                    got = api.noul(model_label, {"premise": premise, "claim": claim}, instructions)
+                    scores.append(got.value)
+                    cut.append(False)
+                    used += got.input_tokens or self.deps.estimate_tokens(f"{premise}\n{claim}")
+                    if got.cost_usd is not None:
+                        usd = (usd or 0.0) + got.cost_usd
+                    progress(i + 1, len(claims))
+                duration = _ms(time.monotonic() - started)
+                costs.append(self._api_cost("grounding_check", used, duration, usd))
+        except (StageSkipped, StageFailed, LabCancelled):
+            raise
+        except Exception as exc:  # noqa: BLE001 - said in the stage, the answer stays
+            raise self._decision_failed(exc) from exc
+        suffix = rag_decision.JUDGE_SUFFIX[lang]
+        instruction = f"{rag_decision.INSTRUCTIONS['grounding'][lang]} {suffix}"
+        decisions = []
+        for claim, p, was_cut in zip(claims, scores, cut, strict=True):
+
+            def judge(claim: str = claim) -> tuple[bool | None, str | None]:
+                raw = self._judge(step_id, instruction, premise, claim, costs)
+                return (None, None) if raw is None else (rag_decision.judge_word(raw, lang), raw)
+
+            d = rag_decision.decide_binary(
+                claim, p, threshold, cascade, judge, "grounded", "not_grounded"
+            )
+            d.truncated = was_cut
+            decisions.append(d)
+        grounded = sum(1 for d in decisions if d.verdict == "grounded")
+        unchecked = total - len(claims)
+        more = self._text("grounding.unchecked", count=self._int(unchecked)) if unchecked else None
+        return _Result(
+            input_text=self._text(
+                "grounding.input",
+                sentences=self._int(len(claims)),
+                passages=self._count(len(passages), "extract"),
+            ),
+            output_text=self._text(
+                "grounding.output",
+                grounded=self._int(grounded),
+                not_grounded=self._int(len(decisions) - grounded),
+            ),
+            facts=self._decision_facts(stage, model_label, decisions),
+            borrowed=borrowed,
+            warning_text=self._decision_warning(stage, decisions, more),
+            costs=costs,
+            decisions=[self._decision_payload(d, model_label) for d in decisions],
+        )
 
 
 class _PrefixPart:

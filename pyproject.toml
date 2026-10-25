@@ -51,6 +51,12 @@ rag-alt = [
 greenops = [
     "codecarbon==3.3.1",
 ]
+# V1.2 story 8 (CAP-6): System One's local classifier (deberta_xsmall, a zero-shot NLI in
+# ONNX), without the guardrails' Presidio and spaCy. No torch; WaveStack starts without it.
+decision = [
+    "onnxruntime==1.23.2",
+    "tokenizers==0.22.1",
+]
 
 [dependency-groups]
 dev = [

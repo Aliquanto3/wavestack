@@ -14756,6 +14756,100 @@ def s_rag_lab_context(r: Run) -> None:
             r.set_brick("Compression", False)
 
 
+def s_rag_lab_decision(r: Run) -> None:
+    """V1.2 story 8 (CAP-6), after `rag` and `rag_rerank`: System One's three steps in the
+    palette; « Passage filter » (the fake reranker's score) with the cascade on: at a threshold
+    of 99 % the passages go to the SLM judge (the fake model answers « oui »), at 1 % the
+    classifier decides some alone (an author changes); each decision shows its author, its
+    probability and the threshold. The cloud options greyed with the key's variable when no key
+    is set; the local classifier's reason (extra or files) when it cannot run. Nothing is sent
+    to a decision API: the scenario never runs a cloud option. Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_lab_decision(r)
+    finally:
+        page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+        r.goto_app()
+
+
+def _decision_focus(r: Run, step: str) -> list[dict[str, Any]]:
+    _focus_of(r, step)
+    return r.page.evaluate(
+        "() => [...document.querySelectorAll('#rag-focus .rag-decision')].map(d => ({"
+        " author: d.dataset.author, verdict: d.dataset.verdict, below: d.dataset.below,"
+        " text: d.innerText }))"
+    )
+
+
+def _rag_lab_decision(r: Run) -> None:
+    page = r.page
+    _rag_mode(r, "compose")
+    if page.locator("#rag-reset-chain").is_visible():
+        page.locator("#rag-reset-chain").click()
+    offered = page.locator("#rag-palette-a select option").all_inner_texts()
+    r.check(
+        {"Strategy router", "Passage filter", "Grounding check"} <= set(offered),
+        "les trois étapes de System One sont proposées dans la palette",
+        str(offered),
+    )
+    _add_stage(r, "Passage filter")
+    kinds = _chain_kinds(r)
+    r.check(
+        "passage_filter" in kinds and kinds.index("passage_filter") < kinds.index("context"),
+        "Passage filter ajouté avant le contexte",
+        str(kinds),
+    )
+    row = _seq_row(r, "passage_filter")
+    threshold = row.locator('input[data-param="decision_threshold"]').input_value()
+    cascade = row.locator('input[data-param="judge_cascade"]').input_value()
+    r.check(
+        (threshold, cascade) == ("2", "0"),
+        "seuil du banc (2 %) et cascade désactivée par défaut",
+        f"{threshold} · {cascade}",
+    )
+    cloud = row.locator("select.rag-option option").nth(1)
+    if cloud.is_disabled():
+        r.check(
+            "OPENROUTER_API_KEY" in row.inner_text(),
+            "sans clé, l'option cloud est grisée et sa raison nomme la variable",
+            row.inner_text(),
+        )
+    authors = {}
+    for value in (99, 1):
+        _set_stage(r, "passage_filter", "local", decision_threshold=value, judge_cascade=1)
+        _rag_lab_run(r, compose=False)
+        decisions = _decision_focus(r, "passage_filter")
+        authors[value] = [d["author"] for d in decisions]
+        r.check(
+            bool(decisions)
+            and all("Probabilité" in d["text"] and "Seuil" in d["text"] for d in decisions),
+            f"seuil {value} % : chaque décision dit son auteur, sa probabilité et le seuil",
+            str(decisions[:2]),
+        )
+        _rag_mode(r, "compose")
+    r.check(
+        "judge" in authors[99] and authors[1] != authors[99],
+        "baisser le seuil change l'auteur d'au moins une décision (juge puis classifieur)",
+        str(authors),
+    )
+    r.shot("90-atelier-rag-system-one")
+    _add_stage(r, "Grounding check")
+    kinds = _chain_kinds(r)
+    r.check(
+        kinds[-1] == "grounding_check", "Grounding check ajouté après la génération", str(kinds)
+    )
+    local = _seq_row(r, "grounding_check").locator("select.rag-option option").first
+    if local.is_disabled():
+        text = _seq_row(r, "grounding_check").inner_text()
+        r.check(
+            "--extra decision" in text or "Télécharger" in text or "absents" in text,
+            "le classifieur local indisponible dit pourquoi (extra ou fichiers)",
+            text,
+        )
+
+
 def _context_compression_ready(r: Run) -> bool:
     """The Compression card activated when Headroom is installed (loaded before the workshop's
     page reads its catalog); `False`: the extra is absent, the card cannot serve."""
@@ -18549,6 +18643,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
     ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
     ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
+    ("rag_lab_decision", s_rag_lab_decision),  # V1.2 story 8
     ("rag_lab_no_index", s_rag_lab_no_index),  # V1.2 story 10
     ("rag_lab_agentic", s_rag_lab_agentic),  # V1.2 story 11
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15

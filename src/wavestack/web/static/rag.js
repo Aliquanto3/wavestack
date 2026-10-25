@@ -273,7 +273,8 @@ function stageControls(stage, index) {
   if (info && info.options.length > 1) box.append(optionSelect(stage, info));
   else box.append(el("span", "rag-chain-option", option?.label_text ?? stage.option));
   for (const param of option?.params ?? []) box.append(paramInput(stage, param));
-  if (info?.movable) box.append(moveButtons(index));
+  // V1.2 story 8: a check (after the generation) is removed the same way, never moved.
+  if (info?.movable || info?.check) box.append(moveButtons(index));
   if (option?.note_text) box.append(el("p", "rag-chain-note", option.note_text));
   for (const other of info?.options ?? []) {
     if (!other.available && other.reason_text) {
@@ -474,7 +475,7 @@ function renderPalette() {
   const pipeline = chain();
   if (!pipeline || !store.catalog || store.mode !== "compose") return;
   const present = new Set(pipeline.stages.map((s) => s.kind));
-  const absent = store.catalog.stages.filter((s) => s.movable && !present.has(s.kind));
+  const absent = store.catalog.stages.filter((s) => (s.movable || s.check) && !present.has(s.kind));
   if (!absent.length) return;
   const label = el("label", "rag-palette-label");
   label.append(el("span", null, text("add_text") || t("rag.add")));

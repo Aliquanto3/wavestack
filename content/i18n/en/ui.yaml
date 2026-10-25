@@ -1212,6 +1212,16 @@ rag:
   tree_reset: "Restore the shipped tree"
   tree_stale: "{count} stale node(s): summary recomputed by the rule"
   tree_progress: "Rebuild: {done} / {total} nodes"
+  # V1.2 story 8 (CAP-6): System One's decisions in the focus.
+  decision_title: "System One decisions"
+  decision_subject: "Subject"
+  decision_verdict: "Decision"
+  decision_author: "Author"
+  decision_probability: "Probability"
+  decision_threshold: "Threshold"
+  decision_below: "under the threshold"
+  decision_judge: "The judge's answer: {text}"
+  decision_truncated: "cut at 512 tokens"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

@@ -22,6 +22,7 @@ session:
     model_noun:
       embedding: d'embedding
       reranking: de reranking
+      decision: "de décision"
     model_mismatch: "Indisponible : le fichier {names} de {folder} n'est pas le modèle {noun} déclaré ({label}, {size} Mo attendus). Cliquez sur « Télécharger » pour le remplacer.{tail}"
     model_absent: "Indisponible : modèle absent. Le modèle {noun} {label} ({size} Mo) n'est pas sur le poste. Cliquez sur « Télécharger », ou copiez à la main {names} dans {folder}, puis cliquez de nouveau sur « Télécharger ».{tail}"
     works_without_reranking: " Le RAG fonctionne sans reranking."
@@ -593,6 +594,7 @@ session:
     noun:
       embedding: modèle d'embedding
       reranking: modèle de reranking
+      decision: "classifieur de décision"
     # Finition V1 (#9): the object of « charger » in the budget's refusal, with its article.
     to_load: "le {noun} {model}"
     fastembed_unavailable: fastembed indisponible.
@@ -624,6 +626,13 @@ session:
     # V1.2 story 11: the agentic search and PageIndex ask the workshop's model.
     searchless_no_model: "Sans modèle chargé, l'étape Contexte est sautée : l'option reste applicable, chargez un modèle pour que le modèle cherche lui-même."
     rebuild_target: "Reconstruction inconnue : « {target} ». L'atelier reconstruit les contextes ou l'arbre de PageIndex."
+    # V1.2 story 8 (CAP-6): System One's options.
+    decision_extra: "Indisponible : le classifieur local demande l'extra « decision » (onnxruntime, tokenizers). Depuis le dossier de WaveStack : `uv sync --extra decision` (gardez vos autres extras, par exemple `--extra compression`), puis relancez WaveStack."
+    lab_decision_absent: "Indisponible : fichiers du classifieur absents ({files} sous {folder}). Cliquez sur « Télécharger » dans cette étape en mode Composer, ou récupérez-les aux adresses déclarées dans wavestack.toml ([rag_lab.decision.classifier])."
+    filter_label: "Seuil sur le score du reranker ({model})"
+    decision_cloud_label: "API de décision (OpenRouter, {model})"
+    decision_no_key: "Indisponible sans clé : définissez la variable d'environnement {env} (ou dans le registre utilisateur), puis relancez WaveStack. La clé n'est jamais affichée ni écrite."
+    decision_capped: "Plafond de dépense de la session atteint ({spent} sur {cap}, [finops] max_session_usd) : aucun appel n'est envoyé."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "Textes de l'atelier MCP illisibles (content/mcp_lab.yaml) : corrigez le fichier puis rechargez la page."
@@ -942,6 +951,10 @@ config:
   rag_embedding:
     absent: "La section [rag.embedding] de wavestack.toml est absente : elle nomme le modèle d'embedding. Rétablissez-la, puis relancez WaveStack (la configuration n'est lue qu'au lancement)."
     invalid: "La section [rag.embedding] est invalide ({fields}). Corrigez wavestack.toml ou settings.json, puis relancez WaveStack (la configuration n'est lue qu'au lancement)."
+  # V1.2 story 8 (CAP-6)
+  rag_lab_decision:
+    absent: "Indisponible : la section [rag_lab.decision.classifier] de wavestack.toml est absente (elle nomme le classifieur de System One). Rétablissez-la, puis relancez WaveStack."
+    invalid: "Indisponible : la section [rag_lab.decision.classifier] est invalide ({fields}). Corrigez wavestack.toml, puis relancez WaveStack."
   rag_reranker:
     absent: "Indisponible : la section [rag.reranker] de wavestack.toml est absente (elle nomme le modèle de reranking). Rétablissez-la, puis relancez WaveStack."
     invalid: "Indisponible : la section [rag.reranker] est invalide ({fields}). Corrigez wavestack.toml ou settings.json, puis relancez WaveStack."
@@ -1074,6 +1087,10 @@ rag_lab:
     query_before: "Étape « {stage} » : elle produit les requêtes que les recherches exécutent, elle doit venir avant elles. Déplacez-la avant les recherches."
     corpus_needs_no_search: "Étape « {stage} » : l'option « {option} » lit le corpus entier, sans recherche. Retirez les étapes de récupération, ou choisissez une autre option de contexte."
     searches_itself: "Étape « {stage} » : l'option « {option} » cherche elle-même dans le corpus, sans index : retirez les étapes de récupération."
+    # V1.2 story 8 (CAP-6)
+    check_last: "Étape « {stage} » : elle contrôle la réponse, elle vient en dernier, après l'étape « {after} »."
+    router_before: "Étape « {stage} » : elle choisit les recherches à lancer, elle doit venir avant elles. Déplacez-la avant les recherches."
+    filter_after: "Étape « {stage} » : elle trie une liste de passages, une recherche doit venir avant elle. Déplacez-la après les recherches."
   not_installed: "Indisponible : {library} n'est pas installé. Depuis le dossier de WaveStack : `{command}`, puis relancez WaveStack. Sans `--extra compression`, Headroom serait retiré."
   folder_held: "Le dossier {folder} ne peut pas être supprimé ({error} : {cause}) : un autre programme le tient peut-être ouvert. Fermez-le, ou supprimez le dossier rag_lab WaveStack arrêté."
   load_failed: "Le {noun} {model} n'a pas pu être chargé ({error} : {cause})."
@@ -1298,6 +1315,8 @@ rag_lab:
     cache_read: "dont {tokens} tokens lus du cache, non réévalués"
     estimated: "Tokens estimés : aucun modèle local ne les a comptés."
     tree_measure: "Mesure enregistrée à la reconstruction de l'arbre (modèle : {model}), non refaite à chaque exécution."
+    # V1.2 story 8 (CAP-6)
+    decision_unpriced: "Coût en dollars non chiffré : l'API de décision n'a pas rendu de coût."
   update:
     op:
       add: "Ajout du document {doc}"
@@ -1410,6 +1429,57 @@ rag_lab:
       decompose: "Tu décomposes une question complexe en sous-questions simples, chacune cherchable seule dans une base de documents d'entreprise. Réponds par {max} sous-questions au plus, une par ligne, sans numéro ni explication. Si la question est déjà simple, réponds par elle seule."
       follow_up: "Tu reformules la dernière question d'une conversation pour qu'elle se comprenne seule, sans les échanges précédents : remplace les pronoms et les sous-entendus par ce qu'ils désignent. Réponds par une seule question, sans explication."
       hyde: "Tu écris, en un court paragraphe, la réponse plausible à la question, comme si elle était extraite d'un document d'entreprise. Elle peut contenir des erreurs de fait : elle sert seulement à retrouver des passages proches. Pas d'introduction."
+  # V1.2 story 8 (CAP-6): System One's decisions.
+  decision:
+    work_copy: "Option cloud indisponible : la copie de travail du corpus est modifiée, et un modèle cloud ne reçoit que le corpus fictif livré. Revenez à l'état livré (Coûts en trois temps), ou choisissez l'option locale."
+    no_classifier: "Aucun classifieur local : l'étape est sautée."
+    no_api: "API de décision indisponible : l'étape est sautée."
+    failed: "La décision a échoué ({cause}) : la chaîne continue comme sans cette étape."
+    verdict:
+      keep: "gardé"
+      drop: "rejeté"
+      grounded: "ancrée"
+      not_grounded: "non ancrée"
+    author:
+      classifier: "classifieur ({model})"
+      judge: "SLM juge (modèle actif de l'atelier)"
+    note:
+      cascade_off: "sous le seuil : refusé par le classifieur (cascade désactivée)"
+      judge_unavailable: "sous le seuil : juge indisponible (aucun modèle chargé), refusé par le classifieur"
+      judge_unreadable: "sous le seuil : réponse du juge illisible, refusé par le classifieur"
+      error: "aucune probabilité : refusé"
+    note_choice:
+      cascade_off: "sous le seuil : choix du classifieur gardé (cascade désactivée)"
+      judge_unavailable: "sous le seuil : juge indisponible (aucun modèle chargé), choix du classifieur gardé"
+      judge_unreadable: "sous le seuil : réponse du juge illisible, choix du classifieur gardé"
+      error: "aucune probabilité"
+    fact:
+      threshold: "Seuil"
+      cascade: "Cascade vers le SLM juge"
+      authors: "Décisions"
+    cascade_on: "activée (non validée par le banc)"
+    cascade_off: "désactivée"
+    authors: "{classifier} par le classifieur, {judge} par le juge"
+    cascade_unvalidated: "Cascade vers le SLM juge non validée par le banc préalable : le juge Qwen3.5-2B y accepte 64 % des affirmations non étayées et n'écarte que 49 % des passages hors sujet."
+    truncated: "Paires coupées à 512 tokens : {count} (le classifieur n'en lit pas la fin)."
+  router:
+    too_few: "Le routeur choisit parmi les stratégies que la chaîne sait faire : il en faut au moins deux. Ajoutez BM25 et la Fusion (RAG hybride), ou le Reranking (RAG + reranking), à la recherche dense. L'étape est sautée, toutes les recherches tournent."
+    input: "La question {question}, confrontée aux stratégies que la chaîne sait faire : {strategies}."
+    output: "Stratégie choisie : « {strategy} » (probabilité {probability}, seuil {threshold}), par {author}. Étapes écartées : {left_out}."
+    none_left_out: "aucune"
+    routed_out: "Écartée par le routeur : stratégie « {strategy} »."
+  filter:
+    no_candidates: "Aucun passage à filtrer."
+    mismatch: "le reranker n'a pas rendu un score par passage"
+    input: "La question et {candidates} de l'étape précédente, jugés un par un."
+    output: "Gardés : {kept} ; rejetés : {dropped}."
+    all_dropped: "Aucun passage gardé : le contexte sera vide et le modèle ne recevra que la question."
+  grounding:
+    no_answer: "Aucune réponse à contrôler : la génération n'a pas tourné ou n'a rien produit."
+    no_context: "Aucun passage dans le contexte : rien contre quoi contrôler la réponse."
+    input: "Phrases de la réponse contrôlées : {sentences} ; passages du contexte : {passages}."
+    output: "Ancrées : {grounded} ; non ancrées : {not_grounded}."
+    unchecked: "Phrases suivantes non contrôlées : {count} (au plus huit par réponse)."
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:

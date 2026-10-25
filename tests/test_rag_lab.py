@@ -957,7 +957,8 @@ def test_state_catalog_default_chain_and_last_run(index):
     assert [s["kind"] for s in stages] == list(rag_lab.KINDS)
     assert state["catalog"]["insert_before"] == "context"
     movable = {s["kind"] for s in stages if s["movable"]}
-    assert movable == {"query", "vector_search", "lexical_search", "fusion", "rerank"}
+    assert {"query", "vector_search", "lexical_search", "fusion", "rerank"} <= movable
+    assert movable == set(rag_lab.RETRIEVAL)  # V1.2 story 8: with the router and the filter
     options = {s["kind"]: s["options"][0] for s in stages}
     assert options["embedding"]["label_text"] == "Faux embedding"
     assert options["rerank"]["label_text"] == "Faux reranker"
@@ -989,7 +990,9 @@ def test_catalog_notes_say_what_a_run_would_meet(index):
     assert "modèle absent" in options["embedding"]["note_text"]
     assert "index absent" in options["vector_store"]["note_text"]
     assert "modèle absent" in options["rerank"]["note_text"]
-    assert all(o["available"] for o in options.values())
+    # V1.2 story 8: System One's local classifier needs its extra and its files, like the
+    # workshop's own models (unavailable, « Télécharger » offered).
+    assert all(o["available"] for k, o in options.items() if k not in rag_lab.DECISION_KINDS)
 
 
 def test_invalid_content_is_said_and_refuses_the_run(index, monkeypatch):
@@ -1073,7 +1076,9 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
     ]
     components = {c["id"]: c for c in catalog["components"]}
     assert list(components) == list(rag_lab.COMPONENTS)
-    assert [c["label_text"] for c in catalog["components"]] == [
+    labels = [c["label_text"] for c in catalog["components"]]
+    assert "Decision model" in labels  # V1.2 story 8: System One's model
+    assert labels[:13] == [
         "Documents",
         "Chunks",
         "Vector store",
