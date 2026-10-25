@@ -695,3 +695,4 @@ Run terminé : epics 12, 13 et 14 fusionnés dans main, versions 1.3.0, 1.4.0 et
 - 2026-10-25 18:53 · run · décision · tag annoté v1.5.0 et release GitHub « WaveStack 1.5.0 » publiés (notes : epic 12) · f41cf5bb
 - 2026-10-25 18:55 · run · décision · fin du run : rapport-nuit-2026-10-25.md, mémoire du projet à jour, worktrees supprimés · —
 - 2026-10-25 19:20 · run · fusion · #131 MERGED dans main (squash) : sentinelle renommée Projet Talvane (TLV-7731-QZ) à la demande d'Anaël, renvoi story 18, E2E rag_lab_rights réaligné sur GraphRAG mesuré · fce4f8b
+- 2026-10-25 19:39 · run · fusion · #132 MERGED dans main (squash), version 1.5.1 ; tag annoté v1.5.1 et release GitHub publiés · 66cee5f
