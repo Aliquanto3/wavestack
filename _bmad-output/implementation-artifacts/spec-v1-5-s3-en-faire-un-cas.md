@@ -2,7 +2,7 @@
 title: 'V1.5 story 3 : « En faire un cas » depuis un tour'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: ''
 review_loop_iteration: 0
 context: ['_bmad-output/specs/spec-wavestack-evaluer-l-agent/SPEC.md', '_bmad-output/specs/spec-wavestack-evaluer-l-agent/vues.md', '_bmad-output/specs/spec-wavestack-evaluer-l-agent/contrat-des-cas.md']
@@ -387,3 +387,12 @@ Modifiés (fichiers partagés en **gras**, chacun avec un point d'insertion fix�
 7. **Fenêtre d'un modèle réseau** (Ollama, llama-server, `hosting == "server"`) : `configured`, comme un fichier local. La story 4 doit comparer `case.window` au `configured` du `context_window_state` courant, et à aucun autre champ.
 8. **Une ou deux vérifications** dans le formulaire, contre une à trois dans le contrat : voulu (CAP-3), le contrat ne change pas. Pas de vérification positive obligatoire pour un cas de séance.
 9. **Interface avec la story 4** : exports ES d'`agent-case-form.js` (`registerOpenView`, `onCaseSaved`, `openCaseForm`, `closeCaseForm`, `canMakeCase`), et pas de `window.agentEval`. Fichiers, clés et routes séparés ; les points d'insertion des fichiers partagés sont fixés dans « Fichiers ».
+
+## Écarts constatés au développement
+
+- **Id d'essai** : `/verdict` construit le cas d'essai avec l'id `udraft`, pas `draft` : l'id d'un cas de séance commence par `u` (validateur d'`AgentCase`).
+- **Bouton** : il n'existait ni `turn-actions` ni « Comparer » par tour (« Comparer » est un bouton global du compositeur). `app.js` crée une rangée `div.turn-actions` sous la bulle du modèle (fonction `caseActions`), avec `data-focus-key="agent-case:{turn}"` et `data-turn-label` (le nom du tour, pour le sous-titre du tiroir). Le tour garde `caseId` (lu dans `turn_started.case_id`, que la story 4 ajoute).
+- **Note de refus** : posée sous la rangée d'actions du tour, elle disparaît au prochain rendu du chat.
+- **Clés `yes` et `no`** de `form.discard` : écrites entre guillemets dans `ui.yaml`, sinon YAML 1.1 les lit comme des booléens.
+- **Journal des tests** : le journal est global au processus et les `turn_id` repartent à `t1` à chaque session ; les tests de route remplacent le journal par un journal neuf.
+- `agent-case-form.js` : `canMakeCase(started, ended)` lit les charges utiles (`{kind, case_id}` et `{status}`) ; `index.html` et `app.css` ne sont pas modifiés ; `tests/test_ui_texts.py` ajoute le module à la liste des scripts de la page.

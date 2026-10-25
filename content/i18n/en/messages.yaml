@@ -2317,6 +2317,20 @@ security:
       reason: "Prices declared in the configuration; “≈” when usage is not measured by the provider."
       production: "Reconciliation with the provider's invoice."
 
+# V1.5 CAP-3: the refusals and errors of « En faire un cas » (`web/agent_case_api.py`).
+agent_case:
+  refused:
+    unknown_turn: "This turn is no longer in the journal (WaveStack was restarted)."
+    not_a_message: "Only a message turn can become a case."
+    case_turn: "This turn was played by a case run."
+    unfinished: "This turn is not finished yet."
+  error:
+    required: "This field is required."
+    max_calls: "The limit must be at least 1."
+    checks_count: "Choose one or two checks."
+    checks_kind: "This check type does not exist."
+    unreadable: "The file with your cases is unreadable: the case was not saved. You can clear it from “Evaluate the agent” (“Clear my cases”)."
+
 # V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
 agent_eval:
   incomplete: "incomplete turn"

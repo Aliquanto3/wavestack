@@ -537,6 +537,89 @@ main:
     time: "Temps : {time}{diff}"
     no_context: "Aucun contexte rendu pour ces tours."
     button: "Comparer"
+  agent_case:
+    form:
+      action: "En faire un cas"
+      action_label: "En faire un cas du {turn}"
+      title: "En faire un cas"
+      subtitle: "{turn} · {model} · {date}"
+      loading: "Lecture du tour…"
+      incomplete: "Ce tour s'est terminé sans aboutir (« {status} ») : sur lui, toutes les vérifications échouent (« tour incomplet »). Le verdict ne dit donc pas si vos vérifications visent le défaut que vous avez vu."
+      field:
+        title: "Titre"
+        prompt: "Prompt"
+        symptom: "Symptôme"
+        assertion: "Assertion"
+        max_calls: "Plafond d'appels au modèle"
+      config:
+        legend: "Configuration du tour (lecture seule)"
+        line: "Briques : {bricks} · Fenêtre : {window}"
+        window_unset: "non exigée"
+        not_kept: "Non repris par le cas : {options}. L'exécution gardera le réglage courant."
+        option:
+          mcp_lazy: "chargement paresseux MCP"
+          rag_rerank: "reranking RAG"
+      tools:
+        legend: "Outils appelés par le tour"
+        none: "Aucun outil appelé."
+      history:
+        include:
+          one: "Reprendre l'historique ({count} échange)"
+          other: "Reprendre l'historique ({count} échanges)"
+        compacted: "L'historique a été compacté ou réduit avant ce tour : il est repris tel que le modèle l'a reçu (résumé compris)."
+        unavailable: "L'historique de ce tour ne peut pas être reconstitué depuis le journal : il ne sera pas repris."
+      freeze_prompt: "Figer ce prompt système dans le cas"
+      approval:
+        label: "Validation humaine (H5) pendant l'exécution"
+        refuse: "refuser"
+        approve: "accepter"
+      overflow:
+        label: "Si le contexte déborde"
+        none: "arrêter le tour"
+        compaction: "compacter puis renvoyer"
+        sliding_window: "fenêtre glissante puis renvoyer"
+      checks:
+        legend: "Vérifications (une ou deux)"
+        type_label: "Type de vérification"
+        add: "Ajouter une vérification"
+        remove: "Retirer cette vérification"
+        kind:
+          tool_called: "Outil appelé"
+          tool_not_called: "Outil non appelé"
+          argument_never: "Argument jamais passé"
+          answer_contains: "Texte dans la réponse"
+          hook_decided: "Hook qui décide"
+          subagent_called: "Sous-agent appelé"
+          turn_completed: "Tour fini sans erreur"
+        param:
+          tool: "Outil"
+          before: "avant (facultatif)"
+          argument: "Argument"
+          contains: "contient"
+          text: "Texte"
+          hook: "Hook"
+          decision: "Décision"
+        decision:
+          block: "bloque"
+          ask_human: "demande l'accord"
+      verdict:
+        fails: "Le tour d'origine échoue bien à ce cas."
+        cannot_fail: "Ce cas ne peut pas échouer sur ce tour. Il ne détectera pas la défaillance que vous avez vue."
+        pending: "Calcul du verdict…"
+        incomplete: "Complétez les vérifications pour voir le verdict."
+        unavailable: "WaveStack ne répond pas : le verdict n'a pas pu être calculé."
+      save: "Enregistrer"
+      saving: "Enregistrement…"
+      cancel: "Annuler"
+      discard:
+        ask: "Abandonner les modifications ?"
+        "yes": "Abandonner"
+        "no": "Continuer"
+      saved: "Cas enregistré."
+      open_view: "Ouvrir Évaluer l'agent"
+      close: "Fermer"
+      error:
+        no_answer: "WaveStack ne répond pas : le cas n'a pas été enregistré."
   orch:
     catalog:
       one: "{count} outil décrit au modèle dans le contexte : {tokens} tokens."

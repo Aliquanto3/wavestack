@@ -18197,6 +18197,186 @@ def s_compact_button(r: Run) -> None:
     r.wait_idle()
 
 
+def _case_button(r: Run):
+    """« En faire un cas » under the last turn of the Vue humain."""
+    button = r.page.locator("#chat .turn-actions button").last
+    expect(button).to_be_visible(timeout=5000)
+    return button
+
+
+def _case_language(r: Run, lang: str, title: str, banner: str) -> None:
+    """The drawer in `lang` (a turn played after the switch): its title and its verdict."""
+    _switch_language(r, lang)
+    r.send("Quelle heure est-il ?")
+    _case_button(r).click()
+    drawer = r.page.locator(".ae-drawer")
+    expect(drawer.locator("h3")).to_have_text(title, timeout=5000)
+    expect(drawer.locator(".ae-verdict")).to_contain_text(re.compile(banner), timeout=5000)
+    r.check(True, f"tiroir en {lang} : titre « {title} » et bandeau traduits")
+    r.page.keyboard.press("Escape")
+    expect(drawer).to_have_count(0, timeout=5000)
+
+
+def s_agent_case(r: Run) -> None:
+    """V1.5 story 3 (CAP-3): « En faire un cas » under a finished turn, the drawer filled from
+    the journal, the verdict computed without the model, the unsaved-changes confirmation, the
+    field errors, the session case written to `agent_cases.json` (provenance `séance`) that
+    survives « Vider la conversation » and « Réinitialiser », the stopped turn's note, then the
+    drawer in English and German. Ends in French."""
+    page = r.page
+    r.launch("native_tools")
+    ended = r.send("Quelle heure est-il ?")
+    turn_id = ended["turn_id"]
+    button = _case_button(r)
+    r.check(
+        "En faire un cas" in button.inner_text() and button.get_attribute("aria-label") is not None,
+        "« En faire un cas » proposé sous le tour terminé, avec un nom accessible",
+        button.get_attribute("aria-label") or "",
+    )
+    drawer = page.locator(".ae-drawer")
+    r.check(drawer.count() == 0, "aucun tiroir avant le clic")
+    seq = r.ev.mark()
+    button.click()
+    expect(drawer).to_be_visible(timeout=5000)
+    title = drawer.locator("[data-field='title_text']")
+    expect(title).to_be_focused(timeout=5000)
+    r.check(
+        drawer.get_attribute("role") == "dialog"
+        and drawer.get_attribute("aria-modal") == "true"
+        and drawer.locator("h3").inner_text() == "En faire un cas",
+        "tiroir : rôle dialog, aria-modal, titre « En faire un cas », focus sur le titre",
+    )
+    text = drawer.inner_text()
+    history = drawer.locator("label.ae-check-line", has_text="Reprendre l'historique").locator(
+        "input"
+    )
+    freeze = drawer.locator("label.ae-check-line", has_text="Figer ce prompt système").locator(
+        "input"
+    )
+    r.check(
+        drawer.locator("[data-field='prompt']").input_value() == "Quelle heure est-il ?"
+        and "get_datetime" in text
+        and not history.is_checked()
+        and not freeze.is_checked()
+        and drawer.locator("[data-field='approval']").input_value() == "refuse",
+        "tiroir pré-rempli : prompt, outil get_datetime, historique à zéro, prompt système "
+        "non figé, validation « refuser »",
+        text[:300],
+    )
+    verdict = drawer.locator(".ae-verdict")
+    kind = drawer.locator("select[data-field='checks.0.kind']")
+    r.check(
+        kind.input_value() == "tool_called"
+        and drawer.locator("select[data-field='checks.0.tool']").input_value() == "get_datetime",
+        "première vérification : « Outil appelé » sur get_datetime",
+    )
+    title.fill("L'heure inventée")
+    drawer.locator("[data-field='symptom_text']").fill("N'appelle pas l'outil")
+    drawer.locator("[data-field='assertion_text']").fill("Doit appeler get_datetime")
+    kind.select_option("tool_not_called")
+    expect(verdict).to_have_class(re.compile(r"\bfails\b"), timeout=5000)
+    r.check(
+        "échoue bien" in verdict.inner_text()
+        and verdict.get_attribute("role") == "status"
+        and "get_datetime" in verdict.inner_text(),
+        "vérification « Outil non appelé » : le tour d'origine échoue bien, raison dite",
+        verdict.inner_text(),
+    )
+    kind.select_option("tool_called")
+    expect(verdict).to_have_class(re.compile(r"\bwarns\b"), timeout=5000)
+    r.check(
+        "ne peut pas échouer" in verdict.inner_text(),
+        "vérification « Outil appelé » : avertissement « ne peut pas échouer »",
+        verdict.inner_text(),
+    )
+    r.check(not r.ev.since(seq, "model_call_started"), "le verdict n'appelle pas le modèle")
+    kind.select_option("tool_not_called")
+    expect(verdict).to_have_class(re.compile(r"\bfails\b"), timeout=5000)
+    r.shot("agent-case-form")
+    drawer.get_by_role("button", name="Annuler").click()
+    confirm = drawer.locator(".ae-confirm")
+    expect(confirm).to_be_visible(timeout=5000)
+    r.check(
+        "Abandonner les modifications ?" in confirm.inner_text(),
+        "« Annuler » sur un tiroir modifié demande « Abandonner les modifications ? »",
+    )
+    confirm.get_by_role("button", name="Continuer").click()
+    expect(confirm).to_have_count(0, timeout=5000)
+    r.check(drawer.is_visible(), "« Continuer » garde le tiroir ouvert")
+    # A missing text is said under its field, and the focus goes there.
+    symptom = drawer.locator("[data-field='symptom_text']")
+    symptom.fill("")
+    drawer.get_by_role("button", name="Enregistrer").click()
+    error = drawer.locator("p.ae-error", has_text="Ce champ est obligatoire.")
+    expect(error).to_have_count(1, timeout=5000)
+    r.check(
+        page.evaluate("() => document.activeElement.dataset.field") == "symptom_text",
+        "enregistrement sans symptôme : erreur sous le champ, focus dessus",
+    )
+    symptom.fill("N'appelle pas l'outil")
+    drawer.get_by_role("button", name="Enregistrer").click()
+    expect(drawer.locator(".ae-saved")).to_have_text("Cas enregistré.", timeout=5000)
+    r.check(
+        drawer.get_by_role("button", name="Ouvrir Évaluer l'agent").count() == 0,
+        "cas enregistré, sans « Ouvrir Évaluer l'agent » tant qu'aucune vue ne s'est enregistrée",
+    )
+    saved_file = r.stack.data_dir / "agent_cases.json"
+    cases = json.loads(saved_file.read_text(encoding="utf-8"))["cases"]
+    r.check(
+        len(cases) == 1
+        and cases[0]["provenance"]["source"] == "séance"
+        and cases[0]["provenance"]["turn_id"] == turn_id
+        and cases[0]["title_text"] == "L'heure inventée"
+        and cases[0]["checks"] == [{"kind": "tool_not_called", "tool": "get_datetime"}],
+        "agent_cases.json : le cas, provenance « séance » et tour d'origine",
+        str(cases)[:300],
+    )
+    drawer.get_by_role("button", name="Fermer").click()
+    expect(drawer).to_have_count(0, timeout=5000)
+    page.click("#clear-conversation")
+    r.wait_idle()
+    seq = r.ev.mark()
+    page.click("#reset-button")
+    r.ev.wait("harness_reset", seq, timeout=10)
+    r.wait_idle()
+    r.check(
+        json.loads(saved_file.read_text(encoding="utf-8"))["cases"] == cases,
+        "après « Vider la conversation » et « Réinitialiser » : agent_cases.json intact",
+    )
+    # A turn stopped midway still offers the action, with the note.
+    seq = r.ev.mark()
+    page.fill("#composer-input", "Explique le harnais [lent] [long]")
+    page.press("#composer-input", "Enter")
+    r.ev.wait("model_first_token", seq, timeout=20)
+    page.click("#composer-stop")
+    stopped = r.ev.wait("turn_ended", seq)
+    r.wait_idle()
+    _case_button(r).click()
+    expect(drawer).to_be_visible(timeout=5000)
+    note = drawer.locator(".ae-banner")
+    expect(note).to_be_visible(timeout=5000)
+    r.check(
+        stopped["payload"]["status"] == "cancelled" and "sans aboutir" in note.inner_text(),
+        "tour arrêté : l'action est proposée, le tiroir porte la note de tour non abouti",
+        note.inner_text(),
+    )
+    page.keyboard.press("Escape")
+    expect(drawer).to_have_count(0, timeout=5000)
+    focus_key = page.evaluate("() => document.activeElement.dataset.focusKey || ''")
+    r.check(
+        focus_key.startswith("agent-case:"),
+        "Échap sur un tiroir intact le ferme et rend le focus au bouton",
+        focus_key,
+    )
+    try:
+        _case_language(r, "en", "Make it a case", r"cannot fail|does fail")
+        _case_language(r, "de", "Als Fall speichern", r"kann bei diesem Turn|besteht diesen Fall")
+    finally:
+        if r.state().get("language") != "fr":
+            _switch_language(r, "fr")
+        r.check(r.state()["language"] == "fr", "nettoyage : retour au français")
+
+
 def _compaction_cache(r: Run) -> None:
     """V1.4 story 4, local text mode (the fake llama-server keeps its previous prompt): after
     a sliding window then a compaction from « Compacter ▾ », the next call writes, with the
@@ -19385,6 +19565,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("compaction", s_compaction),  # V1.4 story 4 (CAP-5)
     ("sliding_window", s_sliding_window),
     ("compact_button", s_compact_button),
+    ("agent_case", s_agent_case),  # V1.5 story 3 (CAP-3)
     ("busy_and_stop", s_busy_and_stop),
     ("reload_and_reset", s_reload_and_reset),
     ("language", s_language),

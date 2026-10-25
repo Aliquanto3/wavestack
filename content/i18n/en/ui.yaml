@@ -525,6 +525,89 @@ main:
     time: "Time: {time}{diff}"
     no_context: "No context rendered for these turns."
     button: "Compare"
+  agent_case:
+    form:
+      action: "Make it a case"
+      action_label: "Make a case from {turn}"
+      title: "Make it a case"
+      subtitle: "{turn} · {model} · {date}"
+      loading: "Reading the turn…"
+      incomplete: "This turn ended without completing (“{status}”): every check fails on it (“incomplete turn”). The verdict therefore does not tell whether your checks target the failure you saw."
+      field:
+        title: "Title"
+        prompt: "Prompt"
+        symptom: "Symptom"
+        assertion: "Assertion"
+        max_calls: "Model-call limit"
+      config:
+        legend: "Turn configuration (read-only)"
+        line: "Bricks: {bricks} · Window: {window}"
+        window_unset: "not required"
+        not_kept: "Not kept by the case: {options}. The run will keep the current setting."
+        option:
+          mcp_lazy: "MCP lazy loading"
+          rag_rerank: "RAG reranking"
+      tools:
+        legend: "Tools called by the turn"
+        none: "No tool called."
+      history:
+        include:
+          one: "Reuse the history ({count} exchange)"
+          other: "Reuse the history ({count} exchanges)"
+        compacted: "The history was compacted or trimmed before this turn: it is reused as the model received it (summary included)."
+        unavailable: "This turn's history cannot be rebuilt from the journal: it will not be reused."
+      freeze_prompt: "Freeze this system prompt in the case"
+      approval:
+        label: "Human approval (H5) during the run"
+        refuse: "refuse"
+        approve: "approve"
+      overflow:
+        label: "If the context overflows"
+        none: "stop the turn"
+        compaction: "compact, then resend"
+        sliding_window: "sliding window, then resend"
+      checks:
+        legend: "Checks (one or two)"
+        type_label: "Check type"
+        add: "Add a check"
+        remove: "Remove this check"
+        kind:
+          tool_called: "Tool called"
+          tool_not_called: "Tool not called"
+          argument_never: "Argument never passed"
+          answer_contains: "Text in the answer"
+          hook_decided: "Hook decided"
+          subagent_called: "Sub-agent called"
+          turn_completed: "Turn completed without error"
+        param:
+          tool: "Tool"
+          before: "before (optional)"
+          argument: "Argument"
+          contains: "contains"
+          text: "Text"
+          hook: "Hook"
+          decision: "Decision"
+        decision:
+          block: "blocks"
+          ask_human: "asks for approval"
+      verdict:
+        fails: "The original turn does fail this case."
+        cannot_fail: "This case cannot fail on this turn. It will not catch the failure you saw."
+        pending: "Computing the verdict…"
+        incomplete: "Complete the checks to see the verdict."
+        unavailable: "WaveStack is not responding: the verdict could not be computed."
+      save: "Save"
+      saving: "Saving…"
+      cancel: "Cancel"
+      discard:
+        ask: "Discard your changes?"
+        "yes": "Discard"
+        "no": "Keep editing"
+      saved: "Case saved."
+      open_view: "Open Evaluate the agent"
+      close: "Close"
+      error:
+        no_answer: "WaveStack is not responding: the case was not saved."
   orch:
     catalog:
       one: "{count} tool described to the model in the context: {tokens} tokens."

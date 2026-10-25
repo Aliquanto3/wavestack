@@ -14,6 +14,8 @@ import { renderMarkdown } from "./markdown.js";
 import { block as diagramBlock, light, marker, svgEl, wire, wireLayer } from "./diagram.js";
 // Lot 4 (2026-10-04, AD-28): the panes' mechanics and the projection mode, shared with /mcp.
 import { createPanes, initProjection } from "./panes.js";
+// V1.5 story 3: « En faire un cas » on a finished turn.
+import { canMakeCase, openCaseForm } from "./agent-case-form.js";
 
 const PANES = ["bricks", "human", "ctx", "orch", "schema"];
 const PANE_LABELS = section("main.pane_titles");
@@ -457,6 +459,7 @@ function applyEnvelope(envelope) {
         summaryText: null, // V1.4 story 4: its summary, once applied
         model: p.active_model ?? null, // story 17: « Modèle : … » and « Comparer »
         replayOf: p.replay_of, // story 9b: the turn this one replays, or null
+        caseId: p.case_id ?? null, // V1.5 story 4: the case run that played it, or null
         startedAt: Date.parse(envelope.ts),
         callStartedAt: null,
         phaseLabel: null,
@@ -3674,6 +3677,9 @@ function renderChat() {
     const consulted = consultedTools(turn);
     if (consulted.length) answer.appendChild(consultedLine(turn, consulted));
     nodes.push(answer);
+    if (canMakeCase({ kind: turn.kind, case_id: turn.caseId }, turn.status === null ? null : { status: turn.status })) {
+      nodes.push(caseActions(turn)); // V1.5 story 3
+    }
     // H5: the validation is the user's to give, in the thread of its turn, under the answer;
     // a sub-agent's too (story 19), though its text never shows here.
     for (const step of allSteps(turn)) {
@@ -3706,6 +3712,19 @@ function renderChat() {
     quietFocus(target);
   }
   if (followTail) chat.scrollTop = chat.scrollHeight;
+}
+
+// V1.5 story 3: under a finished turn, « En faire un cas » opens the case form on it.
+function caseActions(turn) {
+  const row = el("div", "turn-actions");
+  const button = el("button", "ae-text", t("main.agent_case.form.action"));
+  button.type = "button";
+  button.dataset.focusKey = `agent-case:${turn.id}`;
+  button.dataset.turnLabel = turnName(turn);
+  button.setAttribute("aria-label", t("main.agent_case.form.action_label", { turn: turnNameLower(turn) }));
+  button.addEventListener("click", () => openCaseForm(turn.id, button));
+  row.appendChild(button);
+  return row;
 }
 
 // D5 of 2026-10-01: the tools whose result the answer could draw on, each with its step's

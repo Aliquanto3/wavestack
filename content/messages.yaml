@@ -2357,6 +2357,20 @@ security:
       reason: "Prix déclarés dans la configuration ; « ≈ » quand l'usage n'est pas mesuré par le fournisseur."
       production: "Rapprochement avec la facture du fournisseur."
 
+# V1.5 CAP-3: the refusals and errors of « En faire un cas » (`web/agent_case_api.py`).
+agent_case:
+  refused:
+    unknown_turn: "Ce tour n'est plus dans le journal (WaveStack a été relancé)."
+    not_a_message: "Seul un tour de message peut devenir un cas."
+    case_turn: "Ce tour a été joué par une exécution de cas."
+    unfinished: "Ce tour n'est pas terminé."
+  error:
+    required: "Ce champ est obligatoire."
+    max_calls: "Le plafond doit être au moins 1."
+    checks_count: "Choisissez une ou deux vérifications."
+    checks_kind: "Ce type de vérification n'existe pas."
+    unreadable: "Le fichier de vos cas est illisible : le cas n'a pas été enregistré. Vous pouvez l'effacer depuis « Évaluer l'agent » (« Effacer mes cas »)."
+
 # V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
 agent_eval:
   incomplete: "tour incomplet"

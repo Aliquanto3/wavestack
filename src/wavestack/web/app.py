@@ -62,6 +62,7 @@ from wavestack.session.diagnostic import DiagnosticSession, Refused
 from wavestack.trace import otel as trace_otel
 from wavestack.trace.envelope import Envelope
 from wavestack.trace.journal import get_journal
+from wavestack.web.agent_case_api import register_agent_case_routes
 
 STATIC_DIR = Path(__file__).parent / "static"
 log = logging.getLogger(__name__)
@@ -1686,6 +1687,8 @@ def create_app(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
             ) from None
         return {"started": True}
+
+    register_agent_case_routes(app, app_session)  # V1.5 story 3: « En faire un cas »
 
     @app.post("/api/intentions/clear_cache")
     def clear_cache() -> dict[str, bool]:
