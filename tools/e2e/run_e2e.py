@@ -16483,8 +16483,8 @@ def s_cache_module(r: Run) -> None:
 def _cache_lean(r: Run) -> None:
     """The fake llama-server's window is small and counts coarsely: with every brick of the
     module on, the first prompt overflows. The gestures under test (the cache gauge, the cause,
-    the button) need only the system prompt and the global memory (the cause « system » needs a system
-    message left), so the heavy bricks are switched off here."""
+    the button) need only the system prompt and the global memory (the cause « system » needs a
+    system message left), so the heavy bricks are switched off here."""
     for name in ("Outils", "MCP", "Skills", "Hooks", "Compression"):
         r.set_brick(name, False)
 
