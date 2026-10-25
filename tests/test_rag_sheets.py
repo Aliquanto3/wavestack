@@ -141,7 +141,9 @@ def test_the_listing_serves_a_sheet_for_each_component(lang):
     assert sheets.PENDING_SHEET_KINDS == () and body["pending"] == []
     assert body["pending_text"] == ""
     for key in expected:
-        assert sheets.component(lang, key)["bench_text"] == ""
+        # V1.2 story 8: System One's sheets say what the bench of story 2 measured.
+        measured = key.split(".")[0] in lab.DECISION_KINDS
+        assert bool(sheets.component(lang, key)["bench_text"]) == measured
 
 
 @pytest.mark.parametrize("lang", LANGS)

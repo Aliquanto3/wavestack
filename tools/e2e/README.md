@@ -791,6 +791,7 @@ d'autres (story 21) :
   « Avec contexte » (chaque contexte marqué « précalculé · heuristique, sans LLM ») ;
   « Reconstruire » avec le faux modèle (contextes « reconstruits », méthode `llm`, relus après
   rechargement), puis « Rétablir les contextes livrés » ; capture `64-atelier-rag-decoupage.jpg`.
+- `rag_lab_decision`, V1.2 story 8 (CAP-6), après `rag` et `rag_rerank` : les trois étapes de System One dans la palette ; « Passage filter » (score du faux reranker), seuil du banc (2 %) et cascade désactivée par défaut ; cascade activée, seuil 99 % puis 1 % : le faux modèle répond « oui » en juge, l'auteur d'au moins une décision change ; auteur, probabilité et seuil dans le focus ; options cloud grisées sans `OPENROUTER_API_KEY` (aucune option cloud n'est lancée) ; « Grounding check » ajouté après la génération, la raison du classifieur local indisponible ; capture `90-atelier-rag-system-one.jpg`.
 - `rag_lab_context`, V1.2 story 7 (CAP-5), après `rag` et `rag_rerank` : les quatre options du
   contexte ; « Budget » à 450 tokens (deux passages entiers, un « coupé », deux « écartés »,
   jauge du budget) et le prompt final en parties (consigne, contexte, question) retrouvé dans le

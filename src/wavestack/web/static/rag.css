@@ -2223,3 +2223,73 @@ body.rag-page {
   text-align: left;
   vertical-align: top;
 }
+
+/* V1.2 story 8 (CAP-6): System One's decisions in the focus (author, probability, threshold). */
+.rag-decisions {
+  margin: var(--spacing-3) 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rag-decisions-title {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-decisions-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rag-decision {
+  margin-bottom: var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-left: 3px solid var(--color-line);
+}
+
+.rag-decision[data-author="judge"] {
+  border-left-style: dashed;
+}
+
+.rag-decision[data-verdict="drop"],
+.rag-decision[data-verdict="not_grounded"] {
+  border-left-color: var(--color-warning);
+}
+
+.rag-decision-head,
+.rag-decision-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin: 0;
+}
+
+.rag-decision-subject {
+  font-weight: 600;
+}
+
+.rag-decision-figures,
+.rag-decision-judge,
+.rag-decision-note {
+  color: var(--color-ink-soft);
+}
+
+.rag-decision-judge,
+.rag-decision-note {
+  margin: var(--spacing-1) 0 0;
+}
+
+.rag-decision-verdict,
+.rag-decision-below {
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  white-space: nowrap;
+}
+
+.rag-decision-below {
+  border-color: var(--color-warning);
+  color: var(--color-ink);
+}
+

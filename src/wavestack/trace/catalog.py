@@ -1707,6 +1707,30 @@ class RagLabTree(BaseModel):
     warnings: list[RagLabWarning] = []
 
 
+class RagLabDecision(BaseModel):
+    """V1.2 story 8 (CAP-6): one System One decision. `author`: `classifier` (the local model
+    or the decision API) or `judge` (the SLM judge, under the threshold, cascade on);
+    `probability`: the classifier's (of « yes », or of the strategy chosen), `None` when it
+    failed; `below`: under the threshold; `judge_text`: the judge's answer, cut."""
+
+    subject_text: str
+    verdict: str
+    verdict_text: str
+    probability: float | None = None
+    probability_text: str
+    threshold: float
+    threshold_text: str
+    author: Literal["classifier", "judge"]
+    author_text: str
+    below: bool = False
+    judge_text: str | None = None
+    note_text: str | None = None
+    truncated: bool = False
+    probabilities: dict[str, float] = {}
+    chunk_id: int | None = None
+    doc_id: str | None = None
+
+
 class RagLabGraphEntity(BaseModel):
     id: str
     name: str
@@ -1830,6 +1854,9 @@ class RagLabStageEndedPayload(BaseModel):
     # cut preview and a length).
     agent: RagLabAgent | None = None
     tree: RagLabTree | None = None
+    # V1.2 story 8 (CAP-6): System One's decisions (the router's, each passage's, each
+    # sentence's), with their author, probability and threshold.
+    decisions: list[RagLabDecision] = []
     graph: RagLabGraph | None = None  # V1.2 story 13: GraphRAG's query
 
 

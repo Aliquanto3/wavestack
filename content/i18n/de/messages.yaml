@@ -21,6 +21,7 @@ session:
     model_noun:
       embedding: Embedding
       reranking: Reranking
+      decision: "Entscheidungs"
     model_mismatch: "Nicht verfügbar: Die Datei {names} in {folder} ist nicht das deklarierte {noun}-Modell ({label}, {size} MB erwartet). Klicken Sie auf „{noun}-Modell herunterladen“, um sie zu ersetzen.{tail}"
     model_absent: "Nicht verfügbar: Modell fehlt. Das {noun}-Modell {label} ({size} MB) ist nicht auf dem Arbeitsplatz. Klicken Sie auf „{noun}-Modell herunterladen“, oder kopieren Sie {names} von Hand nach {folder} und klicken Sie dann erneut auf „{noun}-Modell herunterladen“.{tail}"
     works_without_reranking: " Das RAG funktioniert ohne Reranking."
@@ -588,6 +589,7 @@ session:
     noun:
       embedding: Embedding-Modell
       reranking: Reranking-Modell
+      decision: "Entscheidungsklassifikator"
     # Accusative: „um das Embedding-Modell X zu laden“ (the budget's refusal).
     to_load: "das {noun} {model}"
     fastembed_unavailable: fastembed nicht verfügbar.
@@ -618,6 +620,13 @@ session:
     cag_lost: "Präfix verloren: Der Server hat nur {read} Tokens seines Caches von den {prefix} des Präfixes gelesen (ein anderer Aufruf, etwa der Chat, hat es verdrängt). Die Anfrage zählt, was sie neu ausgewertet hat; der Server hält das Präfix wieder."
     # V1.2 story 11: the agentic search and PageIndex ask the workshop's model.
     searchless_no_model: "Ohne geladenes Modell wird der Kontext-Schritt übersprungen: Die Option bleibt anwendbar; laden Sie ein Modell, damit das Modell selbst sucht."
+    # V1.2 story 8 (CAP-6): System One's options.
+    decision_extra: "Nicht verfügbar: Der lokale Klassifikator braucht das Extra „decision“ (onnxruntime, tokenizers). Im Ordner von WaveStack: `uv sync --extra decision` (behalten Sie Ihre anderen Extras, zum Beispiel `--extra compression`), dann starten Sie WaveStack neu."
+    lab_decision_absent: "Nicht verfügbar: Dateien des Klassifikators fehlen ({files} unter {folder}). Klicken Sie in diesem Schritt im Modus „Komponieren“ auf „Herunterladen“, oder holen Sie sie von den in wavestack.toml deklarierten Adressen ([rag_lab.decision.classifier])."
+    filter_label: "Schwelle auf dem Score des Rerankers ({model})"
+    decision_cloud_label: "Entscheidungs-API (OpenRouter, {model})"
+    decision_no_key: "Ohne Schlüssel nicht verfügbar: Setzen Sie die Umgebungsvariable {env} (oder in der Benutzer-Registry), dann starten Sie WaveStack neu. Der Schlüssel wird nie angezeigt oder geschrieben."
+    decision_capped: "Ausgabenobergrenze der Sitzung erreicht ({spent} von {cap}, [finops] max_session_usd): Es wird kein Aufruf gesendet."
     rebuild_target: "Unbekannter Neuaufbau: „{target}“. Die Werkstatt baut die Kontexte, den PageIndex-Baum oder den GraphRAG-Graphen neu auf."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
@@ -928,6 +937,10 @@ config:
   rag_embedding:
     absent: "Der Abschnitt [rag.embedding] von wavestack.toml fehlt: Er nennt das Embedding-Modell. Stellen Sie ihn wieder her und starten Sie WaveStack dann neu (die Konfiguration wird nur beim Start gelesen)."
     invalid: "Der Abschnitt [rag.embedding] ist ungültig ({fields}). Korrigieren Sie wavestack.toml oder settings.json und starten Sie WaveStack dann neu (die Konfiguration wird nur beim Start gelesen)."
+  # V1.2 story 8 (CAP-6)
+  rag_lab_decision:
+    absent: "Nicht verfügbar: Der Abschnitt [rag_lab.decision.classifier] von wavestack.toml fehlt (er benennt den Klassifikator von System One). Stellen Sie ihn wieder her, dann starten Sie WaveStack neu."
+    invalid: "Nicht verfügbar: Der Abschnitt [rag_lab.decision.classifier] ist ungültig ({fields}). Korrigieren Sie wavestack.toml, dann starten Sie WaveStack neu."
   rag_reranker:
     absent: "Nicht verfügbar: Der Abschnitt [rag.reranker] von wavestack.toml fehlt (er nennt das Reranking-Modell). Stellen Sie ihn wieder her und starten Sie WaveStack dann neu."
     invalid: "Nicht verfügbar: Der Abschnitt [rag.reranker] ist ungültig ({fields}). Korrigieren Sie wavestack.toml oder settings.json und starten Sie WaveStack dann neu."
@@ -1068,6 +1081,10 @@ rag_lab:
     query_before: "Schritt „{stage}“: Er erzeugt die Anfragen, welche die Suchen ausführen, und muss daher vor ihnen stehen. Verschieben Sie ihn vor die Suchen."
     corpus_needs_no_search: "Schritt „{stage}“: Die Option „{option}“ liest den ganzen Korpus, ohne Suche. Entfernen Sie die Retrieval-Schritte, oder wählen Sie eine andere Kontext-Option."
     searches_itself: "Schritt „{stage}“: Die Option „{option}“ sucht selbst im Korpus, ohne Index: Entfernen Sie die Retrieval-Schritte."
+    # V1.2 story 8 (CAP-6)
+    check_last: "Schritt „{stage}“: Er prüft die Antwort und steht daher am Ende, nach dem Schritt „{after}“."
+    router_before: "Schritt „{stage}“: Er wählt die auszuführenden Suchen und muss daher vor ihnen stehen. Verschieben Sie ihn vor die Suchen."
+    filter_after: "Schritt „{stage}“: Er sortiert eine Liste von Passagen, daher muss eine Suche vor ihm stehen. Verschieben Sie ihn hinter die Suchen."
   not_installed: "Nicht verfügbar: {library} ist nicht installiert. Im Ordner von WaveStack: `{command}`, dann starten Sie WaveStack neu. Ohne `--extra compression` würde Headroom entfernt."
   folder_held: "Der Ordner {folder} kann nicht gelöscht werden ({error}: {cause}): Möglicherweise hält ein anderes Programm ihn geöffnet. Schließen Sie es, oder löschen Sie den Ordner rag_lab bei gestopptem WaveStack."
   load_failed: "Das {noun} {model} konnte nicht geladen werden ({error}: {cause})."
@@ -1306,6 +1323,8 @@ rag_lab:
     cache_read: "davon {tokens} Tokens aus dem Cache gelesen, nicht neu ausgewertet"
     estimated: "Geschätzte Tokens: Kein lokales Modell hat sie gezählt."
     tree_measure: "Beim Neuaufbau des Baums aufgezeichnete Messung (Modell: {model}), nicht bei jeder Ausführung wiederholt."
+    # V1.2 story 8 (CAP-6)
+    decision_unpriced: "Kosten in Dollar nicht beziffert: Die Entscheidungs-API hat keine Kosten geliefert."
     graph_measure: "Beim Neuaufbau des Graphen aufgezeichnete Messung (Modell: {model}), nicht bei jeder Ausführung wiederholt."
   update:
     op:
@@ -1464,6 +1483,57 @@ rag_lab:
       decompose: "Du zerlegst eine komplexe Frage in einfache Teilfragen, die jeweils für sich in einer Basis von Unternehmensdokumenten gesucht werden können. Antworte mit höchstens {max} Teilfragen, eine pro Zeile, ohne Nummer und ohne Erklärung. Ist die Frage schon einfach, antworte nur mit ihr."
       follow_up: "Du formulierst die letzte Frage eines Gesprächs so um, dass sie ohne die früheren Beiträge verständlich ist: Ersetze Pronomen und Andeutungen durch das, was sie meinen. Antworte mit einer einzigen Frage, ohne Erklärung."
       hyde: "Du schreibst in einem kurzen Absatz die plausible Antwort auf die Frage, als stammte sie aus einem Unternehmensdokument. Sie darf sachliche Fehler enthalten: Sie dient nur dazu, nahe Passagen zu finden. Keine Einleitung."
+  # V1.2 story 8 (CAP-6): System One's decisions.
+  decision:
+    work_copy: "Cloud-Option nicht verfügbar: Die Arbeitskopie des Korpus ist geändert, und ein Cloud-Modell erhält nur den mitgelieferten fiktiven Korpus. Kehren Sie zum Lieferzustand zurück (Kosten in drei Zeiten), oder wählen Sie die lokale Option."
+    no_classifier: "Kein lokaler Klassifikator: Der Schritt wird übersprungen."
+    no_api: "Entscheidungs-API nicht verfügbar: Der Schritt wird übersprungen."
+    failed: "Die Entscheidung ist fehlgeschlagen ({cause}): Die Kette läuft weiter wie ohne diesen Schritt."
+    verdict:
+      keep: "behalten"
+      drop: "verworfen"
+      grounded: "verankert"
+      not_grounded: "nicht verankert"
+    author:
+      classifier: "Klassifikator ({model})"
+      judge: "SLM-Richter (aktives Modell der Werkstatt)"
+    note:
+      cascade_off: "unter der Schwelle: vom Klassifikator abgelehnt (Kaskade aus)"
+      judge_unavailable: "unter der Schwelle: Richter nicht verfügbar (kein Modell geladen), vom Klassifikator abgelehnt"
+      judge_unreadable: "unter der Schwelle: Antwort des Richters unlesbar, vom Klassifikator abgelehnt"
+      error: "keine Wahrscheinlichkeit: abgelehnt"
+    note_choice:
+      cascade_off: "unter der Schwelle: Wahl des Klassifikators behalten (Kaskade aus)"
+      judge_unavailable: "unter der Schwelle: Richter nicht verfügbar (kein Modell geladen), Wahl des Klassifikators behalten"
+      judge_unreadable: "unter der Schwelle: Antwort des Richters unlesbar, Wahl des Klassifikators behalten"
+      error: "keine Wahrscheinlichkeit"
+    fact:
+      threshold: "Schwelle"
+      cascade: "Kaskade zum SLM-Richter"
+      authors: "Entscheidungen"
+    cascade_on: "an (vom Prüfstand nicht validiert)"
+    cascade_off: "aus"
+    authors: "{classifier} vom Klassifikator, {judge} vom Richter"
+    cascade_unvalidated: "Kaskade zum SLM-Richter vom Vorab-Prüfstand nicht validiert: Der dort gemessene Richter (Qwen3.5-2B mit Grammatik und Wahrscheinlichkeit) akzeptierte 64 % der nicht gestützten Aussagen und verwarf nur 49 % der themenfremden Passagen; der Richter hier, das aktive Modell ohne Grammatik und Wahrscheinlichkeit, wurde nicht gemessen."
+    truncated: "Bei 512 Tokens gekürzte Paare: {count} (der Klassifikator liest ihr Ende nicht)."
+  router:
+    too_few: "Der Router wählt unter den Strategien, die die Kette kann: Es braucht mindestens zwei. Fügen Sie der dichten Suche BM25 und die Fusion (hybrides RAG) oder das Reranking (RAG + Reranking) hinzu. Der Schritt wird übersprungen, alle Suchen laufen."
+    input: "Die Frage {question}, gegenübergestellt den Strategien, die die Kette kann: {strategies}."
+    output: "Gewählte Strategie: „{strategy}“ (Wahrscheinlichkeit {probability}, Schwelle {threshold}), von {author}. Weggelassene Schritte: {left_out}."
+    none_left_out: "keine"
+    routed_out: "Vom Router weggelassen: Strategie „{strategy}“."
+  filter:
+    no_candidates: "Keine Passage zu filtern."
+    mismatch: "der Reranker hat nicht einen Score pro Passage geliefert"
+    input: "Die Frage und {candidates} des vorherigen Schritts, einzeln beurteilt."
+    output: "Behalten: {kept}; verworfen: {dropped}."
+    all_dropped: "Keine Passage behalten: Der Kontext wird leer sein, und das Modell erhält nur die Frage."
+  grounding:
+    no_answer: "Keine Antwort zu prüfen: Die Generierung lief nicht oder hat nichts erzeugt."
+    no_context: "Keine Passage im Kontext: nichts, woran die Antwort zu prüfen wäre."
+    input: "Geprüfte Sätze der Antwort: {sentences}; Passagen des Kontexts: {passages}."
+    output: "Verankert: {grounded}; nicht verankert: {not_grounded}."
+    unchecked: "Folgende Sätze nicht geprüft: {count} (höchstens acht pro Antwort)."
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:

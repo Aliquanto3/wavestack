@@ -174,6 +174,16 @@ stages:
       (HyDE); die Suchen suchen dann diese Anfragen statt der Frage im Originalwortlaut. Jede
       Anfrage kostet einen Modellaufruf, und ein Modell, das sich irrt, schließt die richtige
       Antwort schon vor der Suche aus.
+  # V1.2 story 8 (CAP-6): System One's three decisions.
+  router:
+    label_text: "Strategy router"
+    explain_text: "Vor den Suchen wählt ein Klassifikator für die Frage eine Strategie, die die Kette kann: dichtes RAG, hybrid oder + Reranking. Die Schritte, die diese Strategie nicht nutzt, werden übersprungen. Jede Entscheidung zeigt ihren Urheber (Klassifikator oder Richter), ihre Wahrscheinlichkeit und die Schwelle; unter der Schwelle fragt die Kaskade, standardmäßig aus, den SLM-Richter."
+  passage_filter:
+    label_text: "Passage filter"
+    explain_text: "Nach einer Suche wird jede eingestufte Passage vor dem Kontext behalten oder verworfen. Der Score kommt vom Reranker des Bausteins (lokal) oder von einem Entscheidungsmodell (Cloud): Über der Schwelle behält der Klassifikator die Passage allein; darunter verwirft er sie, oder die Kaskade fragt den SLM-Richter."
+  grounding_check:
+    label_text: "Grounding check"
+    explain_text: "Nach der Generierung wird jeder Satz der Antwort den Passagen des Kontexts gegenübergestellt: verankert oder nicht. Die Prüfung meldet eine nicht gestützte Aussage, sie schreibt die Antwort nicht um. Unter der Schwelle gilt der Satz als nicht verankert, oder die Kaskade fragt den SLM-Richter."
 
 # The name of each option; those naming a declared model take its label.
 options:
@@ -245,6 +255,22 @@ options:
       label_text: "Nachfrage eigenständig formuliert"
     hyde:
       label_text: "Hypothetisches Dokument (HyDE)"
+  # V1.2 story 8 (CAP-6)
+  router:
+    local:
+      label_text: "Lokaler Klassifikator (deberta_xsmall)"
+    cloud:
+      label_text: "Entscheidungs-API (Cloud)"
+  passage_filter:
+    local:
+      label_text: "Schwelle auf dem Score des Rerankers"
+    cloud:
+      label_text: "Entscheidungs-API (Cloud)"
+  grounding_check:
+    local:
+      label_text: "Lokaler Klassifikator (deberta_xsmall)"
+    cloud:
+      label_text: "Entscheidungs-API (Cloud)"
 
 # The settings: their name and unit.
 params:
@@ -260,6 +286,13 @@ params:
   budget_tokens:
     label_text: "Kontextbudget"
     unit_text: "Tokens (geschätzt)"
+  # V1.2 story 8 (CAP-6)
+  decision_threshold:
+    label_text: "Entscheidungsschwelle"
+    unit_text: "% (Wahrscheinlichkeit)"
+  judge_cascade:
+    label_text: "Kaskade zum SLM-Richter (vom Prüfstand nicht validiert)"
+    unit_text: "0 = nein, 1 = ja"
 
 # Lot 5a: the lines of the sequence. The technical name is the same in the three languages;
 # the action and the explanation are in the page's language. Without `explain_text`, the
@@ -359,6 +392,16 @@ steps:
     label_text: "Tree descent"
     action_text: "Das Modell wählt Ebene für Ebene die zu öffnenden Knoten"
     explain_text: "Auf jeder Ebene liest das Modell die nummerierte Liste der Kinder der behaltenen Knoten (Titel und Zusammenfassung) und antwortet CHOICE: 3, 7 (höchstens zwei) oder CHOICE: NONE. Ein Aufruf je Ebene: zwei beim mitgelieferten Korpus (die Dokumente, dann die Abschnitte). Der ganze Text der erreichten Abschnitte wird der Kontext."
+  # V1.2 story 8 (CAP-6): System One's lines, in the chain's order.
+  router:
+    label_text: "Strategy router"
+    action_text: "Die Suchstrategie der Frage wählen"
+  passage_filter:
+    label_text: "Passage filter"
+    action_text: "Jede Passage behalten oder verwerfen"
+  grounding_check:
+    label_text: "Grounding check"
+    action_text: "Die Verankerung jedes Satzes der Antwort prüfen"
   # V1.2 story 13: GraphRAG's graph built once, then queried at each question.
   graph_build:
     label_text: "Graph building"
@@ -410,6 +453,10 @@ components:
   section_tree:
     label_text: "Abschnittsbaum"
     note_text: "Dokumente und Abschnitte, Titel und Zusammenfassungen"
+  # V1.2 story 8 (CAP-6)
+  decision_model:
+    label_text: "Decision model"
+    note_text: "Lokaler Klassifikator, Reranker oder Entscheidungs-API"
   knowledge_graph:
     label_text: "Wissensgraph"
     note_text: "Entitäten, Beziehungen, zusammengefasste Communities"
@@ -886,6 +933,73 @@ sheets:
         url: "https://github.com/VectifyAI/PageIndex"
       - label_text: "arXiv 2604.14222: PageIndex an 50 Fragen bewertet, Latenz ~1,7-fach"
         url: "https://arxiv.org/html/2604.14222v1"
+  # V1.2 story 8 (CAP-6): System One's options (litterature.md, H6 and H7).
+  router.local:
+    purpose_text: "Für jede Frage die Suchstrategie unter denen wählen, die die Kette kann (dichtes RAG, hybrid, + Reranking), mit einem lokalen NLI-Klassifikator (deberta-v3-xsmall Zero-Shot, ONNX): Jede Strategie ist eine Hypothese, die wahrscheinlichste gewinnt, und die Schritte, die sie nicht nutzt, werden übersprungen."
+    when_text: "Verwenden, um zu sehen, was eine Wahl pro Frage gegenüber einer festen Kette kostet und bringt. Vermeiden, wenn eine Strategie zum Korpus passt: Der Router fügt einen Aufruf hinzu und kann sich irren. Er lässt nur Schritte der Kette weg, er fügt nie einen hinzu."
+    cost_text: "Nichts beim Aufbau oder bei der Aktualisierung. Bei jeder Anfrage ein Durchlauf des Klassifikators pro Kandidatenstrategie (einige zehn Millisekunden auf der CPU); der Prüfstand hat 351 MB zusätzlichen RAM gemessen. Er spart die Zeit der Schritte, die er weglässt."
+    literature_text: "Hypothese H6, teilweise gestützt: Routing pro Anfrage schlägt die beste feste Wahl, aber der Gewinn ist bescheiden und weit vom Orakel entfernt (43,7 gegen 39,3 fest und 60,8 Orakel, RAGRouter-Bench); er betrifft vor allem die Kosten (Adaptive-RAG)."
+    bench_text: "Das Routing wurde vom Vorab-Prüfstand nicht gemessen (Story 2: nur Filter und Verankerung). Die Routing-Hypothesen und die Schwelle von 50 % sind Vorschläge. deberta-v3-xsmall ist das Modell, das der Prüfstand CAP-6 der V2 für das Routing nach Fachgebiet gewählt hatte."
+    sources:
+      - label_text: "RAGRouter-Bench: Routing pro Anfrage, 43,7 gegen 39,3 fest und 60,8 Orakel"
+        url: "https://arxiv.org/html/2602.00296v2"
+      - label_text: "Adaptive-RAG: die Strategie nach der Komplexität der Frage wählen"
+        url: "https://arxiv.org/pdf/2403.14403"
+  router.cloud:
+    purpose_text: "Dieselbe Strategiewahl durch die Entscheidungs-API von OpenRouter: eine Frage „choice“, die ein Label, seine Wahrscheinlichkeiten und eine Konfidenz liefert. Standardmodell: Jev 1.14 (TypeSafe). Ohne den Schlüssel OPENROUTER_API_KEY ist die Option ausgegraut."
+    when_text: "Verwenden, um ein Entscheidungsmodell und einen lokalen Klassifikator bei derselben Wahl zu vergleichen. Vermeiden offline oder bei echten Dokumenten: Ein Cloud-Modell erhält nur den fiktiven Korpus Exemplia, und auf einer geänderten Arbeitskopie wird die Option abgelehnt."
+    cost_text: "Nichts beim Aufbau oder bei der Aktualisierung. Ein API-Aufruf pro Frage, angekündigt 70 bis 500 ms, auf die Eingabe berechnet; die Ausgabe zählt zur Obergrenze der Sitzung ([finops] max_session_usd)."
+    literature_text: "Hypothese H6, teilweise gestützt: bescheidener Gewinn des Routings pro Anfrage, vor allem bei den Kosten (RAGRouter-Bench, Adaptive-RAG). Die Form „choice“ des Alpha-Endpunkts wurde vom Prüfstand nicht aufgerufen: Sie folgt der Dokumentation und ist noch zu prüfen."
+    bench_text: "Beim Routing nicht gemessen. Bei der Verankerung hat Jev 1.14 0 % der nicht gestützten Aussagen des fiktiven Satzes akzeptiert, gegen 23 % im vom Rahmen zitierten Artikel."
+    sources:
+      - label_text: "RAGRouter-Bench: Routing pro Anfrage, 43,7 gegen 39,3 fest und 60,8 Orakel"
+        url: "https://arxiv.org/html/2602.00296v2"
+      - label_text: "Eden AI: Jev, ein Modell zum Entscheiden"
+        url: "https://www.edenai.co/post/jev-a-new-kind-of-ai-model-built-for-decisions-not-conversation"
+  passage_filter.local:
+    purpose_text: "Jede eingestufte Passage vor dem Kontext behalten oder verwerfen, nach dem Score des Rerankers des Bausteins: über der Schwelle wird die Passage behalten; darunter wird sie verworfen oder, bei aktiver Kaskade, vom SLM beurteilt. Der Vorab-Prüfstand hat diesen Reranker als lokalen Standardfilter gewählt."
+    when_text: "Verwenden, um themenfremde Passagen, die das Modell ablenken, aus dem Kontext zu entfernen. Eine hohe Schwelle vermeiden: Eine verworfene nützliche Passage kommt nicht zurück, und die Antwort verliert ihre Stütze. Der Score eines Rerankers ist keine kalibrierte Wahrscheinlichkeit: Seine Schwelle gilt nur für dieses Modell."
+    cost_text: "Nichts beim Aufbau oder bei der Aktualisierung. Bei jeder Anfrage ein Durchlauf des Rerankers pro Kandidat (141 ms Median im Prüfstand), auch nach einem Reranking: Der Filter liest die Kandidaten erneut."
+    literature_text: "Hypothese H7, nicht belegt: Ein Entscheidungsmodell würde die zwischengeschalteten LLM-Richter ohne Qualitätsverlust ersetzen. Seine Genauigkeit ist der eines LLM nahe, aber es akzeptiert mehr nicht gestützte Aussagen; keine Studie betrifft eine ganze Pipeline."
+    bench_text: "Prüfstand der Story 2 (fiktiver Satz, 279 Paare auf fr, en, de): Bei der Schwelle 0,02 behält der Reranker 95 % der erwarteten Passagen und verwirft 64 % der themenfremden (92 % bei 0,5). Schwelle am Satz selbst angepasst: optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "jev-corrective-rag: ein Passagenfilter durch ein Entscheidungsmodell"
+        url: "https://github.com/sudeshkar/jev-corrective-rag"
+  passage_filter.cloud:
+    purpose_text: "Jede Passage durch die Entscheidungs-API behalten oder verwerfen: eine Frage „noul“, die die Wahrscheinlichkeit des Ja auf „Reicht diese Passage zur Antwort?“ liefert. Standardmodell: PPLX Decider Flash 1.2, die Cloud-Wahl des Prüfstands. Ohne Schlüssel ist die Option ausgegraut."
+    when_text: "Verwenden, um ein Entscheidungsmodell und den Reranker bei derselben Sortierung zu vergleichen. Vermeiden offline oder bei echten Dokumenten: Nur der fiktive Korpus Exemplia geht in die Cloud."
+    cost_text: "Nichts beim Aufbau. Ein API-Aufruf pro Kandidat und pro Frage (249 ms Median im Prüfstand), auf die Eingabe berechnet; die Ausgabe zählt zur Obergrenze der Sitzung."
+    literature_text: "Hypothese H7, nicht belegt: Ein Entscheidungsmodell würde die zwischengeschalteten LLM-Richter ohne Qualitätsverlust ersetzen; keine Studie betrifft eine ganze Pipeline."
+    bench_text: "Bei der Schwelle 0,13 behält PPLX Decider Flash 1.2 95 % der erwarteten Passagen und verwirft 79 % der themenfremden (AUC 0,92), besser als der mitgelieferte Reranker. Schwelle am Satz angepasst: optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "MLflow: Jev als LLM-Richter"
+        url: "https://mlflow.org/blog/jev-llm-judge/"
+  grounding_check.local:
+    purpose_text: "Jeden Satz der Antwort (höchstens acht) an den Passagen des Kontexts prüfen, mit dem lokalen NLI deberta-v3-xsmall: über der Schwelle ist der Satz verankert; darunter gilt er als nicht verankert oder wird, bei aktiver Kaskade, vom SLM beurteilt. Die Prüfung meldet, sie korrigiert die Antwort nicht."
+    when_text: "Verwenden, um eine Antwort zu erkennen, die eine Tatsache, eine Zahl oder eine Bedingung hinzufügt oder ändert. Nicht als Garantie verwenden: Der Klassifikator lässt einen Teil der nicht gestützten Aussagen durch, und er liest nur 512 Tokens (ein langer Kontext wird gekürzt)."
+    cost_text: "Nichts beim Aufbau. Bei jeder Anfrage ein Durchlauf des Klassifikators pro Satz (28 ms Median im Prüfstand); 351 MB zusätzlicher RAM."
+    literature_text: "Hypothese H7, nicht belegt: Ein Entscheidungsmodell akzeptiert 23 % nicht gestützte Aussagen gegen 13 % bei einem LLM (Towards AI); keine Studie betrifft eine ganze Pipeline."
+    bench_text: "Bei der Schwelle 0,20 akzeptiert deberta-v3-xsmall 9 % der nicht gestützten Aussagen (KI 5 bis 16 %) und behält 81 % der gestützten. Der SLM-Richter des Prüfstands (Qwen3.5-2B mit Grammatik und Wahrscheinlichkeit) akzeptierte 64 %: Die Kaskade ist nicht validiert, und der Richter hier (das aktive Modell, ohne Grammatik) wurde nicht gemessen. Schwelle am Satz angepasst: optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "AnyJev (Nokia): Entscheidungen aus einem kleinen lokalen Modell"
+        url: "https://github.com/nokia-applied-research/AnyJev"
+  grounding_check.cloud:
+    purpose_text: "Dieselbe Prüfung durch die Entscheidungs-API: eine Frage „noul“ pro Satz, „Wird die Aussage von den Abschnitten vollständig gestützt?“. Standardmodell: Jev 1.14 (TypeSafe), die Cloud-Wahl des Prüfstands. Ohne Schlüssel ist die Option ausgegraut."
+    when_text: "Verwenden, um ein Entscheidungsmodell und einen lokalen Klassifikator an denselben Sätzen zu vergleichen. Vermeiden offline oder bei echten Dokumenten: Nur der fiktive Korpus Exemplia geht in die Cloud."
+    cost_text: "Nichts beim Aufbau. Ein API-Aufruf pro Satz (246 ms Median im Prüfstand), auf die Eingabe berechnet; die Ausgabe zählt zur Obergrenze der Sitzung."
+    literature_text: "Hypothese H7, nicht belegt: 23 % nicht gestützte Aussagen von Jev akzeptiert gegen 13 % von einem LLM im einzigen veröffentlichten Artikel (Towards AI)."
+    bench_text: "Bei der Schwelle 0,59 akzeptiert Jev 1.14 0 % der nicht gestützten Aussagen (KI 0 bis 3 %) und behält 81 % der gestützten. Kleiner fiktiver Satz, Items voneinander übersetzt: Die Intervalle sind optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "Arize: TypeSafe Jev als LLM-Richter"
+        url: "https://arize.com/blog/typesafe-jev-llm-judge/"
   context.graph_search:
     purpose_text: "Ohne Vektoren in einem einmal aufgebauten Wissensgraphen suchen: die Entitäten des Korpus, ihre Beziehungen (mit ihren Belegpassagen) und ihre zusammengefassten Communities. Lokal liefern die Entitäten der Frage und ihre Nachbarn einen Schritt entfernt die Passagen des Kontexts; global durchlaufen die nächsten Communities je einen « map »-Aufruf."
     when_text: "Für Multi-Hop-Fragen (zwei Verfahren, zwei Abteilungen verbinden) und globale Fragen (ein Überblick über ein Thema) auf einem stabilen Korpus. Zu vermeiden für einen einfachen Fakt: Er verliert bei einfachen Fakten, gewinnt bei Multi-Hop- und globalen Fragen. Ebenso zu vermeiden bei einem Korpus, der sich oft ändert: Graph und Zusammenfassungen sind neu zu machen."
