@@ -412,3 +412,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:53 · 12.18 · second-avis · 0 high, 1 medium (endroit construit affiché « effacé » sans mesure), 4 low ; aucune écriture de fichier, fuite au profil Tous en mode après vérifiée, mode avant sans fuite · 89b0697
 - 2026-10-25 09:53 · 12.18 · décision · à revoir : endroit construit jamais « effacé » mesuré, statut distinct « effacé (illustratif, non mesuré) » · —
 - 2026-10-25 09:53 · 12.18 · review · lancé · 89b0697
+- 2026-10-25 09:54 · 12.19 · dev · spec prête (17 critères, 8 points ouverts : 13 fiches de composant à écrire, RAPTOR sans source, cadre réglementaire sans niveau, niveaux proposés à relire par Anaël) · a29f707
+- 2026-10-25 09:54 · 12.19 · review · relecture de la spec lancée · a29f707
