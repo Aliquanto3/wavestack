@@ -213,3 +213,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:05 · 12.3 · fusion · #96 fusionnée · 377426f
 - 2026-10-25 06:05 · 12.4 · second-avis · lancé · e4db223
 - 2026-10-25 06:09 · 13.4 · fusion · #95 fusionnée · a53e96e
+- 2026-10-25 06:10 · 12.4 · second-avis · 0 high, 2 medium (YAMLError non attrapé, chargement des rag-*.js non testé), 5 low · e4db223
+- 2026-10-25 06:10 · 12.4 · review · lancé (fusion de main d'abord) · e4db223
