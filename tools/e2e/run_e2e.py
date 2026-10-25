@@ -18443,7 +18443,7 @@ def s_cache_module(r: Run) -> None:
     page = r.page
     page.set_viewport_size({"width": 1600, "height": 1000})
     content = _scenarios_yaml()
-    module = content["program"][-1]
+    module = content["program"][7]
     r.check(
         module["title_text"] == "Cache"
         and module["duration_min"] == 45
