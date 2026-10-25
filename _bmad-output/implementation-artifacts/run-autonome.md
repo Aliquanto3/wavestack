@@ -533,3 +533,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:03 · 12.19b · review · passe 1 : 1 Important low corrigé (panne de /api/rag_lab/sheets testée en E2E), 2 low corrigés (fastembed renvoie au guide, « aux égalités et arrondis près »), 2 écartés (contrôle des options déjà au chargement, chiffres Sentence-BERT et DPR relus exacts), 1 reporté (conflit 12.11) ; 371 tests, E2E 166/166 · 6b00d2c
 - 2026-10-25 13:03 · 12.19b · décision · pas de passe 2 : seul constat Important = un test ajouté, de gravité low · 6b00d2c
 - 2026-10-25 13:03 · 12.19b · report · PR après la fusion de #116 (12.11) et refusion de l'intégration (rag_lab.yaml ×3) · 6b00d2c
+- 2026-10-25 13:06 · 12.11 · CI · verte · ec11ca5
+- 2026-10-25 13:06 · 12.11 · fusion · #116 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.20 prévenue (agentic et pageindex dans PRESETS) · cc3ec10
+- 2026-10-25 13:06 · 12.19b · dev · refusion de l'intégration (avec 12.11) lancée avant la PR · 6b00d2c
