@@ -2316,3 +2316,38 @@ security:
       statement: "Costs are estimates."
       reason: "Prices declared in the configuration; “≈” when usage is not measured by the provider."
       production: "Reconciliation with the provider's invoice."
+
+# V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
+agent_eval:
+  incomplete: "incomplete turn"
+  incomplete_status: "incomplete turn (ended as “{status}”)"
+  decisions:
+    block: "block"
+    ask_human: "ask for approval"
+  tool_called:
+    passed: "{tool} called"
+    missing: "{tool} never called"
+    in_order: "{tool} called before {before}"
+    late: "{before} called before {tool}"
+  tool_not_called:
+    passed: "{tool} never called"
+    failed: "{tool} called"
+  argument_never:
+    passed: "{tool} never called with “{contains}” in {argument}"
+    failed: "{tool} called with {argument} = “{value}”"
+  model_calls_max:
+    one: "{count} model call for a cap of {max}"
+    other: "{count} model calls for a cap of {max}"
+  answer_contains:
+    passed: "the answer contains “{text}”"
+    failed: "the answer does not contain “{text}”"
+  hook_decided:
+    passed: "{hook} decided: {decision}"
+    failed: "{hook} never decided: {decision}"
+  subagent_called:
+    passed: "sub-agent called"
+    failed: "sub-agent never called"
+  turn_completed:
+    passed: "turns finished without error"
+    status: "a turn ended as “{status}”"
+    error: "harness error: {message}"

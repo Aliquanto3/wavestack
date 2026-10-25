@@ -2356,3 +2356,38 @@ security:
       statement: "Les coûts sont des estimations."
       reason: "Prix déclarés dans la configuration ; « ≈ » quand l'usage n'est pas mesuré par le fournisseur."
       production: "Rapprochement avec la facture du fournisseur."
+
+# V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
+agent_eval:
+  incomplete: "tour incomplet"
+  incomplete_status: "tour incomplet (fini en « {status} »)"
+  decisions:
+    block: "bloquer"
+    ask_human: "demander l'accord"
+  tool_called:
+    passed: "{tool} appelé"
+    missing: "{tool} jamais appelé"
+    in_order: "{tool} appelé avant {before}"
+    late: "{before} appelé avant {tool}"
+  tool_not_called:
+    passed: "{tool} jamais appelé"
+    failed: "{tool} appelé"
+  argument_never:
+    passed: "{tool} jamais appelé avec « {contains} » dans {argument}"
+    failed: "{tool} appelé avec {argument} = « {value} »"
+  model_calls_max:
+    one: "{count} appel au modèle pour un plafond de {max}"
+    other: "{count} appels au modèle pour un plafond de {max}"
+  answer_contains:
+    passed: "la réponse contient « {text} »"
+    failed: "la réponse ne contient pas « {text} »"
+  hook_decided:
+    passed: "{hook} a décidé : {decision}"
+    failed: "{hook} n'a jamais décidé : {decision}"
+  subagent_called:
+    passed: "sous-agent appelé"
+    failed: "sous-agent jamais appelé"
+  turn_completed:
+    passed: "tours finis sans erreur"
+    status: "un tour a fini en « {status} »"
+    error: "erreur du harnais : {message}"
