@@ -70,15 +70,15 @@ session:
     rag_lab: "RAG-Werkstatt: Ausführung läuft; warten Sie ihr Ende ab oder stoppen Sie sie."
     mcp_lab: "MCP-Werkstatt: Austausch läuft; warten Sie sein Ende ab oder stoppen Sie ihn."
     awaiting: "Warten auf Ihre Freigabe: Erlauben oder lehnen Sie den Netzwerkaufruf ab."
-    no_model: "Senden nicht verfügbar: Es ist kein Modell gewählt. Wählen Sie eines auf der Diagnoseseite."
-    load_failed: "Senden nicht verfügbar: Das Modell konnte nicht geladen werden. Wählen Sie auf der Diagnoseseite eine andere GGUF-Datei."
-    cloud_failed: "Senden nicht verfügbar: Das Cloud-Modell konnte nicht vorbereitet werden. Wählen Sie ein Modell auf der Diagnoseseite."
+    no_model: "Senden nicht verfügbar: Es ist kein Modell gewählt. Wählen Sie eines auf der Seite Modelle."
+    load_failed: "Senden nicht verfügbar: Das Modell konnte nicht geladen werden. Wählen Sie auf der Seite Modelle eine andere GGUF-Datei."
+    cloud_failed: "Senden nicht verfügbar: Das Cloud-Modell konnte nicht vorbereitet werden. Wählen Sie ein Modell auf der Seite Modelle."
     no_turn: Keine Runde möglich.
-    load_stopped: "Senden nicht verfügbar: Das Laden des Modells wurde gestoppt, und es ist kein Modell geladen. Wählen Sie ein Modell auf der Diagnoseseite."
+    load_stopped: "Senden nicht verfügbar: Das Laden des Modells wurde gestoppt, und es ist kein Modell geladen. Wählen Sie ein Modell auf der Seite Modelle."
   # Story 26 (AD-9): the window panel, when the cache and the read time are not WaveStack's to measure.
   # V1.3 Story 5: Prompt-Cache von Claude, im Fensterpanel eingestellt.
   claude_cache:
-    no_key: "Deaktiviert: Geben Sie zuerst den API-Schlüssel eines Claude-Modells ein (Diagnoseseite)."
+    no_key: "Deaktiviert: Geben Sie zuerst den API-Schlüssel eines Claude-Modells ein (Seite Modelle)."
     unknown: "Unbekannte Einstellung: Wählen Sie off, 5 Min. oder 1 Std."
     not_saved: "Der Cache von Claude ist für diese Sitzung eingestellt, die Einstellung konnte aber nicht in settings.json gespeichert werden."
     note: "Gilt für Claude-Modelle. Unterhalb einer modellspezifischen Token-Schwelle cacht der Anbieter nichts: Alles bleibt dann „Nicht gecacht“. Wird beim nächsten Aufruf berücksichtigt."
@@ -692,9 +692,9 @@ session:
     missing_argument: "Der Prompt „{prompt}“ verlangt das Argument „{argument}“."
     blob_content: "[{mime}-Inhalt von {n} Bytes, nicht eingefügt]"
     ask:
-      no_model: "Kein Modell geladen: Wählen Sie eines in der Diagnose."
-      no_tools: "Das aktive Modell ruft keine Tools auf: Wählen Sie in der Diagnose ein anderes."
-      cloud_no_tools: "Das aktive Modell ({model}) deklariert keine Tool-Aufrufe: Wählen Sie in der Diagnose ein anderes."
+      no_model: "Kein Modell geladen: Wählen Sie eines auf der Seite Modelle."
+      no_tools: "Das aktive Modell ruft keine Tools auf: Wählen Sie auf der Seite Modelle ein anderes."
+      cloud_no_tools: "Das aktive Modell ({model}) deklariert keine Tool-Aufrufe: Wählen Sie auf der Seite Modelle ein anderes."
       of_unknown: "Nichts zu senden: Lesen Sie zuerst eine Ressource oder holen Sie einen Prompt über diese Verbindung."
       question_with_prompt: "Ein Prompt geht ohne Frage hinaus: Seine Nachrichten sind die Anfrage."
       question_required: "Schreiben Sie zuerst eine Frage."
@@ -1928,7 +1928,7 @@ models:
     too_large: Die Anfrage allein überschreitet das Minutenkontingent des Anbieters.
     context_exceeded: "Kontext überschritten: {provider} lehnt einen Kontext ab, der länger als sein Fenster ist."
     bad_request: "Anfrage von {provider} abgelehnt ({status}): Fehler des Harness oder der Voreinstellung."
-    key_refused: "Schlüssel von {provider} abgelehnt ({status}). Prüfen Sie ihn in der Diagnose."
+    key_refused: "Schlüssel von {provider} abgelehnt ({status}). Prüfen Sie ihn auf der Seite Modelle."
     not_found: "Modell bei {provider} nicht gefunden (404): „{model}“ wurde möglicherweise zurückgezogen."
     unavailable: "{provider} ist nicht verfügbar ({status})."
     unexpected: "Unerwartete Antwort von {provider} ({status})."
@@ -1945,7 +1945,7 @@ models:
     session_cap: "Ausgabenobergrenze der Sitzung erreicht: {total} ausgegeben bei einer Obergrenze von {cap}. Der Aufruf wurde nicht gesendet und kostet nichts. Um die Obergrenze anzuheben, ändern Sie [finops] max_session_usd in settings.json bei gestopptem WaveStack und starten Sie WaveStack dann neu (die Summe der Sitzung wird erst beim Neustart auf null zurückgesetzt)."
     hint:
       slow_provider: "Starten Sie die Runde neu: Ein ausgelasteter Anbieter antwortet manchmal langsam."
-      test_network: "Prüfen Sie das Netzwerk des Arbeitsplatzes mit „Testen“ in der Diagnose."
+      test_network: "Prüfen Sie das Netzwerk des Arbeitsplatzes mit „Testen“ auf der Seite Modelle."
       check_connection: "Prüfen Sie die Verbindung des Arbeitsplatzes oder den Proxy."
       allow_host: "Der Host {host} muss vom Unternehmensnetzwerk zugelassen werden."
       check_base_url: Prüfen Sie base_url in der Deklaration des Modells.
@@ -1956,7 +1956,7 @@ models:
       reduce_window: "Verkleinern Sie das Kontextfenster: Warten hilft nicht."
       clear_conversation: Leeren Sie die Unterhaltung, oder stellen Sie den MCP-Baustein auf Lazy Loading um.
       check_declaration: Prüfen Sie die Deklaration des Modells (wavestack.toml oder settings.json).
-      reenter_key: "Geben Sie den Schlüssel in der Diagnose erneut ein, dann „Testen“."
+      reenter_key: "Geben Sie den Schlüssel auf der Seite Modelle erneut ein, dann „Testen“."
       check_model_name: Prüfen Sie den Modellnamen in der Konsole des Anbieters.
       retry_later: Versuchen Sie es in einigen Minuten erneut.
       retry_turn: Starten Sie die Runde neu.

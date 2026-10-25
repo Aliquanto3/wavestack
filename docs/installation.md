@@ -341,7 +341,7 @@ scénarios, les ateliers), voir le [guide d'utilisation](guide.md).
 - Si WaveStack tourne déjà, la commande ouvre l'interface principale quand l'instance est prête,
   sinon le diagnostic.
 - Le diagnostic reste accessible par l'indicateur de modèle de la barre du bas et par le lien
-  « 🛠️ Diagnostic » de la barre de navigation, en haut de chaque page.
+  « 🛠️ Modèles » de la barre de navigation, en haut de chaque page.
 
 ### Premier lancement long sur un poste qui a beaucoup de modèles
 

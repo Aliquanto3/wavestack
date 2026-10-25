@@ -500,7 +500,7 @@ scenarios:
       Optional: Es braucht einen Claude-API-Schlüssel und sendet echte kostenpflichtige
       Aufrufe (einige Cent). Ohne Schlüssel lesen Sie diese Anleitung als Trainer und gehen
       zum nächsten Szenario. Der vorgeschlagene Prompt läuft hier auf dem lokalen Modell,
-      ohne Netzwerk, und bereitet die Unterhaltung vor. Mit einem auf der Diagnoseseite
+      ohne Netzwerk, und bereitet die Unterhaltung vor. Mit einem auf der Seite Modelle
       eingegebenen Schlüssel wählen Sie ein Claude-Modell, öffnen „Fenster“ und stellen
       „Prompt-Cache von Claude“ auf „5 Minuten“: Das Schreiben des Caches kostet dann das
       1,25-Fache des Eingabepreises. Fügen Sie einen langen Text in die Nachricht ein, etwa

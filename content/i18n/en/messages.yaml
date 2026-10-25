@@ -68,15 +68,15 @@ session:
     rag_lab: "RAG workshop: run in progress; wait for it to end or stop it."
     mcp_lab: "MCP workshop: exchange in progress; wait for it to end or stop it."
     awaiting: "Awaiting your approval: allow or refuse the network call."
-    no_model: "Sending unavailable: no model is chosen. Choose one on the diagnostics page."
-    load_failed: "Sending unavailable: the model could not be loaded. Choose another GGUF file on the diagnostics page."
-    cloud_failed: "Sending unavailable: the cloud model could not be prepared. Choose a model on the diagnostics page."
+    no_model: "Sending unavailable: no model is chosen. Choose one on the Models page."
+    load_failed: "Sending unavailable: the model could not be loaded. Choose another GGUF file on the Models page."
+    cloud_failed: "Sending unavailable: the cloud model could not be prepared. Choose a model on the Models page."
     no_turn: No turn possible.
-    load_stopped: "Sending unavailable: the model loading was stopped and no model is loaded. Choose a model on the diagnostics page."
+    load_stopped: "Sending unavailable: the model loading was stopped and no model is loaded. Choose a model on the Models page."
   # Story 26 (AD-9): the window panel, when the cache and the read time are not WaveStack's to measure.
   # V1.3 story 5: Claude's prompt cache, set in the window panel.
   claude_cache:
-    no_key: "Disabled: first enter the API key of a Claude model (diagnostic page)."
+    no_key: "Disabled: first enter the API key of a Claude model (Models page)."
     unknown: "Unknown setting: choose off, 5 min or 1 h."
     not_saved: "Claude's cache is set for this session, but the setting could not be saved in settings.json."
     note: "Applies to Claude models. Below a token threshold specific to each model, the provider caches nothing: everything then stays in “Uncached”. Taken into account at the next call."
@@ -689,9 +689,9 @@ session:
     missing_argument: "The prompt “{prompt}” needs the argument “{argument}”."
     blob_content: "[{mime} content of {n} bytes, not included]"
     ask:
-      no_model: "No model is loaded: choose one in the diagnostic."
-      no_tools: "The active model does not call tools: choose another one in the diagnostic."
-      cloud_no_tools: "The active model ({model}) does not declare tool calling: choose another one in the diagnostic."
+      no_model: "No model is loaded: choose one on the Models page."
+      no_tools: "The active model does not call tools: choose another one on the Models page."
+      cloud_no_tools: "The active model ({model}) does not declare tool calling: choose another one on the Models page."
       of_unknown: "Nothing to send: first read a resource or get a prompt on this connection."
       question_with_prompt: "A prompt leaves without a question: its messages are the request."
       question_required: "Write a question first."
@@ -1925,7 +1925,7 @@ models:
     too_large: The request alone exceeds the provider's per-minute quota.
     context_exceeded: "Context exceeded: {provider} refuses a context longer than its window."
     bad_request: "Request refused by {provider} ({status}): a fault of the harness or of the preset."
-    key_refused: "Key refused by {provider} ({status}). Check it in the diagnostics."
+    key_refused: "Key refused by {provider} ({status}). Check it on the Models page."
     not_found: "Model not found at {provider} (404): “{model}” may have been withdrawn."
     unavailable: "{provider} is unavailable ({status})."
     unexpected: "Unexpected answer from {provider} ({status})."
@@ -1942,7 +1942,7 @@ models:
     session_cap: "Session spending cap reached: {total} spent against a cap of {cap}. The call was not sent and costs nothing. To raise the cap, change [finops] max_session_usd in settings.json with WaveStack stopped, then restart it (the session total only goes back to zero on restart)."
     hint:
       slow_provider: "Run the turn again: a busy provider sometimes answers slowly."
-      test_network: "Check the workstation's network with “Test” in the diagnostics."
+      test_network: "Check the workstation's network with “Test” on the Models page."
       check_connection: "Check the workstation's connection, or the proxy."
       allow_host: "The host {host} must be allowed by the company network."
       check_base_url: Check base_url in the model's declaration.
@@ -1953,7 +1953,7 @@ models:
       reduce_window: "Reduce the context window: waiting is no use."
       clear_conversation: Clear the conversation, or switch the MCP brick to lazy loading.
       check_declaration: Check the model's declaration (wavestack.toml or settings.json).
-      reenter_key: "Enter the key again in the diagnostics, then “Test”."
+      reenter_key: "Enter the key again on the Models page, then “Test”."
       check_model_name: Check the model's name in the provider's console.
       retry_later: Try again in a few minutes.
       retry_turn: Run the turn again.

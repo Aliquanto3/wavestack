@@ -65,7 +65,7 @@ common:
   links:
     pages: "WaveStack pages"
     home: "Harness"
-    diagnostic: "🛠️ Diagnostics"
+    diagnostic: "🛠️ Models"
     llm: "LLM"
     llm_title: "LLM workshop: inside the active model (tokens, vectors, token-by-token generation)"
     rag: "RAG"
@@ -378,11 +378,11 @@ main:
     prompts_label: "Suggested prompts"
   model:
     served_title: "Model served by {provider} on this workstation ({url}): a process separate from WaveStack; the text sent is built by the harness."
-    local_title: "Local model {model}, on this workstation. Click to open the diagnostics."
+    local_title: "Local model {model}, on this workstation. Click to open the Models page."
     active_label: "Active model: {model}. {title}"
     list_unavailable: "Model list unavailable: retrying in a few seconds."
     picker_title: "Change model: the conversation is kept."
-    open_diagnostic: "Open the diagnostics"
+    open_diagnostic: "Open the Models page"
     open_table: "Open the table"
     choose: "Choose…"
     load: "Load"
@@ -1357,8 +1357,8 @@ mcp:
   ask:
     question: "Question"
     send: "Send to the model"
-    no_model: "No model is loaded: choose one in the diagnostic."
-    no_tools: "The active model does not call tools: choose another one in the diagnostic."
+    no_model: "No model is loaded: choose one on the Models page."
+    no_tools: "The active model does not call tools: choose another one on the Models page."
     unavailable: "“By the model” unavailable: {reason}"
     local_line: "{model} · Local"
     cloud_line: "{model} · 🌐 NETWORK · {provider}"
@@ -1586,8 +1586,8 @@ mcp:
     failure: "Failure: {label}, {reason}"
 
 diagnostic:
-  page_title: "WaveStack — Diagnostics and models"
-  title: "Diagnostics and models"
+  page_title: "WaveStack — Models"
+  title: "Models"
   candidates_title: "💻 Local models detected"
   cloud_title: "☁️ Cloud models"
   cloud_help: "Outside the workstation: each call sends the whole context to the provider."

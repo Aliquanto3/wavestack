@@ -35,9 +35,9 @@ et **Journal** (compteur des refus et blocages, voir
 | **RAG** | Atelier RAG | `/rag` | Une chaîne RAG à monter et exécuter pièce par pièce (voir [Atelier RAG](#atelier-rag)) |
 | **MCP** | Atelier MCP | `/mcp` | Le protocole MCP entre le harnais et un serveur, dont le bloc GitHub (voir [Atelier MCP](#atelier-mcp) et [Sécurité](securite.md)) |
 | **Sécurité** | Page Sécurité | `/security` | La matrice de risques des outils, les contrôles actifs et le journal, pour un RSSI (voir [Sécurité, garde-fous et FinOps visible](securite.md)) |
-| **🛠️ Diagnostic** | Diagnostic et modèles | `/diagnostic` | Les vérifications du lancement, le choix du modèle et les clés API (voir [l'installation](installation.md#premier-lancement-et-diagnostic)) |
+| **🛠️ Modèles** | Modèles | `/diagnostic` | Les vérifications du lancement, le choix du modèle et les clés API (voir [l'installation](installation.md#premier-lancement-et-diagnostic)) |
 
-Le tableau des modèles et de leurs capacités est la page Diagnostic elle-même (voir
+Le tableau des modèles et de leurs capacités est la page Modèles elle-même (voir
 [Changer de modèle](modeles.md#changer-de-modèle)) : une carte par modèle, locaux puis cloud,
 par éditeur ; l'entrée « Tableau des modèles et de leurs capacités… » du sélecteur de la barre
 du bas y mène, et
@@ -465,7 +465,7 @@ sable : la brique RAG de l'atelier (ses réglages, son index, ses modèles) ne c
   tronqué : l'étape l'annonce en avertissement (« 3 chunks sur 16 dépassent 512 tokens,
   tronqués »). Un GGUF d'embedding ou de reranking (clé `pooling_type` dans son en-tête) n'est
   jamais proposé comme modèle de conversation, où qu'il soit (dossier des modèles, cache
-  Hugging Face, LM Studio) : Diagnostic et modèles le montrent en rouge, avec la raison.
+  Hugging Face, LM Studio) : la page Modèles le montre en rouge, avec la raison.
 - **Reranking au choix.** L'étape Reranking propose, après le modèle de la brique RAG (BGE
   Reranker v2 M3), ceux déclarés en `[[rag_lab.rerankers]]` de `wavestack.toml` :
   **Qwen3-Reranker 0.6B** (1 024 tokens par paire). Son fichier va sous `models/reranker/` ;
@@ -667,8 +667,8 @@ La langue change :
   langue (« 1 234 », « 1,234 », « 1.234 »). Ses textes sont dans `content/ui.yaml`.
 
 - **le reste** : les noms et explications des briques, les scénarios et leurs consignes,
-  les ateliers (« Atelier LLM », « Atelier RAG », « Atelier MCP ») et la page « Diagnostic et
-  modèles », le corpus RAG et les titres de ses documents, et les messages produits par le
+  les ateliers (« Atelier LLM », « Atelier RAG », « Atelier MCP ») et la page « Modèles »,
+  le corpus RAG et les titres de ses documents, et les messages produits par le
   harnais (erreurs, raisons d'indisponibilité, erreurs d'outils lues par le modèle, marque de
   troncature, refus des hooks, résultat de `get_datetime`), tirés de `content/messages.yaml`.
 
@@ -723,7 +723,7 @@ cent), la phrase entière (4 chiffres significatifs, conversion en euros) dans l
 total compte tous les appels payants : les tours, le sous-agent, « Tester » au diagnostic et
 l'Atelier LLM. Ni « Vider la conversation » ni « Réinitialiser » ne le remettent à zéro ; seul
 un relancement de WaveStack le fait (il n'est jamais écrit sur le disque). Les prix déclarés
-sont aussi sur la ligne « Prix » de la carte dépliée d'un modèle, page Diagnostic. Un modèle
+sont aussi sur la ligne « Prix » de la carte dépliée d'un modèle, page Modèles. Un modèle
 local n'a pas de coût, et une entrée sans `pricing` non plus.
 
 **Mettre les prix à jour.** Relevez les prix sur la page du fournisseur, puis surchargez l'entrée

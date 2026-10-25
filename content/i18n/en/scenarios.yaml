@@ -465,7 +465,7 @@ scenarios:
       Optional: it needs a Claude API key and sends real paid calls (a few cents). Without a
       key, read this instruction as the trainer and go on to the next scenario. The suggested
       prompt runs here on the local model, with no network, and prepares the conversation.
-      With a key entered on the Diagnostic page, choose a Claude model, open “Window” and
+      With a key entered on the Models page, choose a Claude model, open “Window” and
       set “Claude prompt cache” to “5 minutes”: writing the cache then costs 1.25 times the
       input price. Paste a long text into the message, a documentation page for example,
       because below a token threshold specific to the model the provider caches nothing and

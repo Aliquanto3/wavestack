@@ -74,7 +74,7 @@ common:
   links:
     pages: "Pages de WaveStack"
     home: "Harnais"
-    diagnostic: "🛠️ Diagnostic"
+    diagnostic: "🛠️ Modèles"
     llm: "LLM"
     llm_title: "Atelier LLM : l'intérieur du modèle actif (tokens, vecteurs, génération token par token)"
     rag: "RAG"
@@ -390,11 +390,11 @@ main:
     prompts_label: "Prompts suggérés"
   model:
     served_title: "Modèle servi par {provider} sur ce poste ({url}) : processus distinct de WaveStack ; le texte envoyé est construit par le harnais."
-    local_title: "Modèle local {model}, sur ce poste. Cliquez pour ouvrir le diagnostic."
+    local_title: "Modèle local {model}, sur ce poste. Cliquez pour ouvrir la page Modèles."
     active_label: "Modèle actif : {model}. {title}"
     list_unavailable: "Liste des modèles indisponible : nouvel essai dans quelques secondes."
     picker_title: "Changer de modèle : la conversation est conservée."
-    open_diagnostic: "Ouvrir le diagnostic"
+    open_diagnostic: "Ouvrir la page Modèles"
     open_table: "Ouvrir le tableau"
     choose: "Choisir…"
     load: "Charger"
@@ -1375,8 +1375,8 @@ mcp:
   ask:
     question: "Question"
     send: "Envoyer au modèle"
-    no_model: "Aucun modèle n'est chargé : choisissez-en un dans le diagnostic."
-    no_tools: "Le modèle actif n'appelle pas d'outils : choisissez-en un autre dans le diagnostic."
+    no_model: "Aucun modèle n'est chargé : choisissez-en un sur la page Modèles."
+    no_tools: "Le modèle actif n'appelle pas d'outils : choisissez-en un autre sur la page Modèles."
     unavailable: "« Par le modèle » indisponible : {reason}"
     local_line: "{model} · Local"
     cloud_line: "{model} · 🌐 RÉSEAU · {provider}"
@@ -1606,8 +1606,8 @@ mcp:
     failure: "Échec : {label}, {reason}"
 
 diagnostic:
-  page_title: "WaveStack — Diagnostic et modèles"
-  title: "Diagnostic et modèles"
+  page_title: "WaveStack — Modèles"
+  title: "Modèles"
   candidates_title: "💻 Modèles locaux détectés"
   cloud_title: "☁️ Modèles cloud"
   cloud_help: "Hors du poste : chaque appel envoie tout le contexte au fournisseur."

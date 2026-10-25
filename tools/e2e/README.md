@@ -399,8 +399,8 @@ Vérifications ajoutées aux scénarios existants :
   prix « — » sans `pricing`) ; dans le groupe Qwen, le faux Ollama (0.6B) avant le faux llama-server
   (taille inconnue) ; chaque modèle commence par « 🏠 Local · » ou « ☁️ RÉSEAU · » (story 5 de la V1.1) ; « Tableau des
   modèles et de leurs capacités… » puis « Autre fichier ou clé API… » en dernier. « Ouvrir le
-  tableau » mène à `/models` : onglet « 🛠️ Diagnostic » courant, aucun onglet « Modèles »,
-  « 🛠️ Diagnostic » vers `/diagnostic` (mêmes onglets) ; lignes du faux llama-server (Qwen, outils « oui », « activable »,
+  tableau » mène à `/models` : onglet « 🛠️ Modèles » courant,
+  « 🛠️ Modèles » vers `/diagnostic` (mêmes onglets) ; lignes du faux llama-server (Qwen, outils « oui », « activable »,
   « 4 096 tokens »), de R (« toujours »), de `wavestack-fake` (« jamais », « actif »), du faux
   Ollama (« inconnu », raison « introuvable » visible), « RÉSEAU » sur chaque ligne cloud,
   étiquette sur le jeton jaune, un en-tête par groupe du sélecteur. Puis R activé depuis le
@@ -716,9 +716,9 @@ haut) :
 
 - `diagnostic` : sur `/`, `<title>` « WaveStack — Atelier Harnais », un seul `h1` masqué
   (`.sr-only`) et l'onglet « Harnais » courant ; `model_catalog` : `/diagnostic` titré
-  « Diagnostic et modèles », lien `#models-link` vers `/models`.
+  « Modèles », lien `#models-link` vers `/models`.
 - `themes`, `mcp_lab`, `rag_lab`, `llm_screen` : la barre commune à cinq onglets
-  (`Harnais · LLM · RAG · MCP · 🛠️ Diagnostic`), titres et `h1` complets des ateliers.
+  (`Harnais · LLM · RAG · MCP · 🛠️ Modèles`), titres et `h1` complets des ateliers.
 - `forced_native` : le « ? » d'« Actions forcées » ouvre son aide, ancrée sous le bouton, encore
   ouverte après un nouveau rendu du panneau.
 - `gemini_shape`, `local_server`, `priced_estimate` : la dépense sur trois lignes (« Dépense

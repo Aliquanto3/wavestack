@@ -20,8 +20,8 @@ validation) :
 - **Barre du bas** : le sélecteur « Changer de modèle… », à droite de l'indicateur de modèle,
   liste les fichiers GGUF du poste, les modèles d'un serveur local déjà lancé et les modèles
   cloud déclarés (grisés sans clé). Un modèle cloud affiche d'abord son avertissement. « Autre
-  fichier ou clé API… » ouvre le diagnostic.
-- **Diagnostic** : « Choisir ce modèle » dans la carte d'un fichier ou d'un modèle servi,
+  fichier ou clé API… » ouvre la page Modèles.
+- **Page Modèles** : « Choisir ce modèle » dans la carte d'un fichier ou d'un modèle servi,
   « Choisir ce modèle… » dans celle d'un modèle cloud (qui ouvre d'abord l'avertissement), ou
   « Choisir ce fichier » après un chemin saisi.
 
@@ -62,7 +62,7 @@ détails d'Ollama ou dans le nom. L'éditeur est reconnu par `content/models/pub
 (architecture, puis nom) ; un modèle inconnu va dans « Autres éditeurs ».
 
 **Tableau des modèles.** L'avant-dernière entrée du sélecteur, « Tableau des modèles et de leurs
-capacités… » (bouton « Ouvrir le tableau »), ouvre la page « Diagnostic et modèles »
+capacités… » (bouton « Ouvrir le tableau »), ouvre la page « Modèles »
 (`/diagnostic` ; l'ancienne adresse `/models` y redirige). Une carte par modèle, groupée par
 éditeur : un même modèle trouvé sous plusieurs sources (le fichier d'Ollama et le modèle
 qu'Ollama sert, une copie dans le cache Hugging Face et dans LM Studio…) n'a qu'une carte,
@@ -486,7 +486,7 @@ GPT-6.1 Sol figure en commentaire dans `wavestack.toml` (il raisonne toujours).
 ### Revenir au modèle local
 
 Choisissez un fichier GGUF dans le sélecteur de la barre du bas, ou
-cliquez sur « Choisir ce modèle » dans la carte d'un fichier, page Diagnostic : le modèle local est
+cliquez sur « Choisir ce modèle » dans la carte d'un fichier, page Modèles : le modèle local est
 rechargé sans relance, conversation gardée.
 
 ### Hôtes à autoriser
