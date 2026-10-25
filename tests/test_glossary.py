@@ -84,24 +84,33 @@ def _citing_files() -> list[Path]:
     )
 
 
+def _unknown_citations(paths: list[Path], root: Path) -> list[str]:
+    """The citations of `paths` whose key is missing from a language of the glossary."""
+    known = [set(glossary.load_terms(lang)) for lang in ("fr", *TRANSLATED)]
+    unknown = []
+    for path in paths:
+        for key in sorted(glossary.cited_keys(path.read_text(encoding="utf-8-sig"))):
+            if not all(key in keys for keys in known):
+                unknown.append(f"{path.relative_to(root).as_posix()} : [[g:{key}]]")
+    return unknown
+
+
 def test_every_term_cited_by_a_content_text_exists_in_every_language():
     """The texts of the bricks and of the scenarios (and every other text of `content/`)
     cite only terms of the glossary, in French and in its translations."""
-    known = [set(glossary.load_terms(lang)) for lang in ("fr", *TRANSLATED)]
-    unknown = []
-    for path in _citing_files():
-        for key in sorted(glossary.cited_keys(path.read_text(encoding="utf-8-sig"))):
-            if not all(key in keys for keys in known):
-                unknown.append(f"{path.relative_to(CONTENT).as_posix()} : [[g:{key}]]")
+    unknown = _unknown_citations(_citing_files(), CONTENT)
     assert not unknown, unknown
 
 
 def test_a_citation_of_an_unknown_term_would_be_found(tmp_path):
-    """The check above looks at every `.yaml` and `.md` under `content/`."""
-    assert _citing_files() and all(p.is_relative_to(CONTENT) for p in _citing_files())
-    text = "explanation_text:\n  - Un [[g:inconnu]] et un [[g:tool|outil]].\n"
-    assert glossary.cited_keys(text) == {"inconnu", "tool"}
-    assert "inconnu" not in glossary.load_terms("fr")
+    """The check above looks at the `.yaml` and `.md` texts under `content/` (bricks included)
+    and reports a key the glossary does not know, not a known one."""
+    files = _citing_files()
+    assert CONTENT / "bricks" / "guardrails.yaml" in files
+    assert CONTENT / "glossary.yaml" not in files
+    text = tmp_path / "brick.yaml"
+    text.write_text("explanation_text:\n  - Un [[g:inconnu]] et un [[g:tool|outil]].\n", "utf-8")
+    assert _unknown_citations([text], tmp_path) == ["brick.yaml : [[g:inconnu]]"]
 
 
 @pytest.mark.parametrize("lang", ["fr", *TRANSLATED])
@@ -135,10 +144,31 @@ def test_the_route_falls_back_to_french_on_a_broken_translation(tmp_path, monkey
     session.close()
 
 
+def test_the_route_falls_back_to_french_on_a_malformed_yaml_translation(tmp_path, monkeypatch):
+    broken = tmp_path / "glossary.yaml"
+    broken.write_text("terms: {tool: {term: Outil, definition: x\n", encoding="utf-8")
+    _, session = _session(language="en")
+    real = config.content_file
+    monkeypatch.setattr(
+        config,
+        "content_file",
+        lambda rel, lang=None: (
+            broken if (rel, lang) == ("glossary.yaml", "en") else real(rel, lang)
+        ),
+    )
+    response = _client(session).get("/api/glossary")
+    assert response.status_code == 200
+    assert response.json()["language"] == "fr"
+    session.close()
+
+
 def test_an_invalid_glossary_is_refused(tmp_path, monkeypatch):
     bad = tmp_path / "glossary.yaml"
     for text in ("terms: {}\n", "terms: {Bad-Key: {term: a, definition: b}}\n",
-                 "terms: {ok: {term: a, definition: ' '}}\n"):  # fmt: skip
+                 "terms: {ok: {term: a, definition: ' '}}\n",
+                 "terms: {ok: {term: 404, definition: b}}\n",
+                 "terms: {ok: {term: a, definition: [b]}}\n",
+                 "terms: {ok: {term: a, definition: b\n"):  # fmt: skip
         bad.write_text(text, encoding="utf-8")
         monkeypatch.setattr(config, "content_file", lambda rel, lang=None: bad)
         with pytest.raises(glossary.GlossaryError):

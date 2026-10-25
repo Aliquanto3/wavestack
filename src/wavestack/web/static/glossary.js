@@ -9,7 +9,9 @@
 import { ready, t } from "./i18n.js";
 
 const CITATION = /\[\[g:([a-z][a-z0-9_]*)(?:\|([^\]]*))?\]\]/g;
-const SKIP = new Set(["SCRIPT", "STYLE", "TEXTAREA", "INPUT", "SELECT", "OPTION", "CODE", "PRE"]);
+// No citation inside these (code, form fields, an existing button or link, the panel itself).
+const SKIP = "script, style, textarea, input, select, option, code, pre, button, a, #glossary-panel";
+const skipped = (node) => Boolean(node.parentElement?.closest(SKIP));
 
 let terms = null; // [{key, term, definition}] once read, null while unknown
 let loading = null;
@@ -176,13 +178,13 @@ function citeNode(node) {
 function citeAll(root) {
   if (!terms || !root) return;
   if (root.nodeType === Node.TEXT_NODE) {
-    if (!SKIP.has(root.parentElement?.tagName) && !root.parentElement?.closest("#glossary-panel")) citeNode(root);
+    if (!skipped(root)) citeNode(root);
     return;
   }
-  if (root.nodeType !== Node.ELEMENT_NODE || SKIP.has(root.tagName) || root.closest("#glossary-panel")) return;
+  if (root.nodeType !== Node.ELEMENT_NODE || root.closest(SKIP)) return;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) =>
-      node.nodeValue.includes("[[g:") && !SKIP.has(node.parentElement?.tagName) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+      node.nodeValue.includes("[[g:") && !skipped(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
   });
   const found = [];
   while (walker.nextNode()) found.push(walker.currentNode);

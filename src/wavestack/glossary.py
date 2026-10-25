@@ -28,7 +28,10 @@ class GlossaryError(ValueError):
 def load_terms(lang: str | None = None) -> dict[str, dict[str, str]]:
     """The terms in `lang` (the setting's language when `None`), `{key: {term, definition}}`."""
     path = config.content_file("glossary.yaml", lang)
-    data: Any = yaml.safe_load(path.read_text(encoding="utf-8"))
+    try:
+        data: Any = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise GlossaryError(f"{path.name} : YAML invalide ({exc})") from exc
     terms = data.get("terms") if isinstance(data, dict) else None
     if not isinstance(terms, dict) or not terms:
         raise GlossaryError(f"{path.name} : une section « terms » non vide est attendue")
@@ -36,7 +39,8 @@ def load_terms(lang: str | None = None) -> dict[str, dict[str, str]]:
         if not isinstance(key, str) or not KEY.fullmatch(key):
             raise GlossaryError(f"{key} : clé invalide")
         for field in ("term", "definition"):
-            if not isinstance(entry, dict) or not str(entry.get(field) or "").strip():
+            value = entry.get(field) if isinstance(entry, dict) else None
+            if not isinstance(value, str) or not value.strip():
                 raise GlossaryError(f"{key}.{field} : un texte non vide est attendu")
     return {k: {"term": v["term"], "definition": v["definition"]} for k, v in terms.items()}
 
