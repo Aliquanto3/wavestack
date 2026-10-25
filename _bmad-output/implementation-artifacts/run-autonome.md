@@ -527,3 +527,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:57 · 12.19b · review · lancé (Opus) · 347db6d
 - 2026-10-25 12:59 · 12.13 · dev · spec prête (20 critères, D1 à D10 : graphe livré heuristique sans modèle, propagation d'étiquettes maison sans networkx, préréglage graphrag local / global, coût du graphe livré nul et estimation étiquetée, audience hr par preuve) · 3ef995c
 - 2026-10-25 12:59 · 12.13 · review · relecture de la spec lancée (règles hr et d'exposition MCP à aligner sur 12.11 et 12.20) · 3ef995c
+- 2026-10-25 12:59 · 12.11 · review · passe 1 : 2 low corrigés (search_documents lit à la demande, pageindex.forget retire un document supprimé de l'arbre reconstruit), 2 écartés (filtre hr, test du lien) ; 548 tests ciblés, E2E 189/189 · ec11ca5
+- 2026-10-25 12:59 · 12.11 · décision · à revoir : aucune architecture de l'atelier ne filtre l'audience hr (la carte d'accès de 12.18 montre la fuite) ; seul le MCP exposé de 12.20 filtre ; règle transmise à la relecture de 12.13 · ec11ca5
+- 2026-10-25 12:59 · 12.11 · PR · #116 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · ec11ca5
