@@ -2522,7 +2522,7 @@ class AppSession:
             # Lot A: the next engine starts with an empty cache, nothing to check against.
             self._main_cache = self._cache_evicted = None
             # V1.2 story 10: the CAG's state was this engine's.
-            self._cag_cache = self._cag_pending = None
+            self._cag_forget()
         try:
             if engine is not None:
                 engine.close()
@@ -2706,7 +2706,7 @@ class AppSession:
             if window == self._configured_window:
                 return Message("session.window.already", window=self._num_lazy(window)), None
             # V1.2 story 10: a CAG state is kept for one window.
-            self._cag_cache = self._cag_pending = None
+            self._cag_forget()
             active, cloud = self._active, self._cloud
             if cloud is not None:
                 locked = self._locked_fr(cloud)
@@ -6887,7 +6887,7 @@ class AppSession:
             # Refused: the engine's memory is unknown (its ids forgotten), never compared.
             self._main_cache = [] if cleared else None
             self._cache_cleared = cleared
-            self._cag_cache = self._cag_pending = None  # V1.2 story 10: its state too
+            self._cag_forget()  # V1.2 story 10: its state too
         if not cleared:
             raise SendRefused(Message("session.refused.cache_unsupported"))
 
@@ -6971,7 +6971,7 @@ class AppSession:
             with self._lock:
                 self._language = language
                 self._ui_texts = None  # never the former language's under the new code
-                self._cag_cache = self._cag_pending = None  # V1.2 story 10: another corpus
+                self._cag_forget()  # V1.2 story 10: another corpus
                 if hasattr(self._engine, "language"):  # a served engine's own traces
                     self._engine.language = language
             config.clear_content_caches()
@@ -11261,6 +11261,8 @@ class AppSession:
         finally:
             with self._lock:  # V1.2 story 10: an update's prefix not kept is freed
                 self._cag_pending = None
+                if self._cag_cache is None or self._cag_cache.snapshot is None:
+                    self._load_registry.release(RAG_LAB_CAG)  # no state held any more
             errors = loans.close()
             if errors:
                 with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
@@ -11718,10 +11720,18 @@ class AppSession:
                     if ask.cached_prefix:  # V1.2 story 10: within the main context's copy
                         assert isinstance(rendered, RenderedContext)
                         cag = self._cag_prepare(engine, rendered, ask, cancel)
-                    out = self._call_model(rendered, cancel, (), reserve, reasons, on_token=token)
-                    got.status = out.status
-                    if out.status == "error":
-                        got.error_text = out.message_text or None
+                    if cag is not None and cag[0].status == "error":
+                        # The prefix stopped or failed: no generation behind it (it would
+                        # meet the same engine, or a cancel already asked).
+                        got.status = "cancelled" if cancel.cancelled else "error"
+                        got.error_text = cag[0].reason_text
+                    else:
+                        out = self._call_model(
+                            rendered, cancel, (), reserve, reasons, on_token=token
+                        )
+                        got.status = out.status
+                        if out.status == "error":
+                            got.error_text = out.message_text or None
                 except Exception as exc:  # noqa: BLE001 - AD-16: the stage says it, prompt kept
                     got.status = "error"
                     got.error_text = Message(
@@ -11778,7 +11788,11 @@ class AppSession:
                     )
             else:
                 got.output_tokens = produced
-            if ask.cached_prefix:
+            if ask.cached_prefix and cloud is None and cag is None:
+                # Local, but the CAG's preparation raised: the stage's error says it.
+                failed = got.error_text or Message("rag_lab.stage.stopped")
+                got.prefix = rag_lab.CagPrefix("error", reason_text=failed)
+            elif ask.cached_prefix:
                 self._cag_reading(got, cag, call)
             return got
 
@@ -11808,7 +11822,20 @@ class AppSession:
     def _cag_drop(self) -> None:
         """The CAG entry deleted, its state freed (nothing else references it)."""
         with self._lock:
-            self._cag_cache = self._cag_pending = None
+            self._cag_forget()
+
+    def _cag_forget(self) -> None:
+        """Under `self._lock`: the entry and the update's pending one deleted, their state's
+        grant released from the budget (`LoadRegistry`, slot `rag_lab.cag`)."""
+        self._cag_cache = self._cag_pending = None
+        self._load_registry.release(RAG_LAB_CAG)
+
+    def _cag_grant(self, size: int) -> None:
+        """A CAG state kept (`size` bytes, in WaveStack's memory): held by the budget's slot
+        `rag_lab.cag` until `_cag_forget`, so that what loads next is checked with it."""
+        self._load_registry.grant(
+            self._t("session.rag_lab.cag_label"), size, RAG_LAB_CAG, share=size
+        )
 
     @staticmethod
     def _cag_prefix_ids(engine: Engine, rendered: RenderedContext, question: str) -> list[int]:
@@ -11898,7 +11925,8 @@ class AppSession:
                 evaluated = _evaluated(engine)
         except Exception as exc:  # noqa: BLE001 - AD-16: said in the step
             failure = exc
-        duration, impact = probe.stop()
+        finally:
+            duration, impact = probe.stop()  # the tracker never left running
         if failure is not None or cancel.cancelled:
             reason = (
                 Message("rag_lab.stage.stopped")
@@ -11943,6 +11971,8 @@ class AppSession:
                     reason=Message("session.rag_lab.cag_snapshot_failed", error="None"),
                 )
         keep = snapshot is not None or not stateful
+        if snapshot is not None:
+            self._cag_grant(size or 0)
         entry = (
             _CagEntry(key, snapshot, n, tokens, duration, impact, size if snapshot else None)
             if keep
