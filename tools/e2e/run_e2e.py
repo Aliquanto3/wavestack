@@ -15067,12 +15067,13 @@ def s_rag_lab_rights(r: Run) -> None:
             "question sur le code : plus de passage, mais les copies contiennent encore le code",
         )
         page.locator('#rag-era-rebuild [data-architecture="graphrag"]').click()
-        expect(row("graph_communities")).to_contain_text("effacé", timeout=10_000)
+        expect(row("graph_communities")).to_contain_text("non mesuré", timeout=10_000)
         r.check(
-            "effacé" in row("graph_entities").inner_text()
+            "effacé (illustratif, non mesuré)" in row("graph_entities").inner_text()
             and "à reconstruire" in row("wiki_pages").inner_text()
             and "Remise en conformité" in page.inner_text("#rag-era-costs"),
-            "reconstruction de GraphRAG : ses endroits effacés, les autres inchangés, coût en mots",
+            "reconstruction de GraphRAG : ses endroits « effacé (illustratif, non mesuré) », "
+            "les autres inchangés, coût en mots",
         )
         page.locator("#rag-era-sentinel").uncheck()
         expect(page.locator("#rag-era-table-box")).to_be_hidden(timeout=10_000)

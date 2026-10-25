@@ -13,7 +13,7 @@ question_id: q_global_rh
 rewrite:
   provenance:
     kind: constructed
-    to_record_with: "das aktive Modell, live (spätere Story)"
+    to_record_with: "dem aktiven Modell, live, in einer späteren Story"
   doc_id: entretiens_annuels
   text: "Für die Suche umgeschriebene Anfrage: \"Personalprozesse zwischen Exemplia und seinen Mitarbeitenden: {title}, Vergütungstabelle, Disziplinarverfahren\". Die HR-Passage wurde gelesen, um diesen Satz zu schreiben, bevor sie entfernt wurde."
 

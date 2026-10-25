@@ -816,7 +816,7 @@ d'autres (story 21) :
   cartes « Effacement » et « Droits d'accès », sans modèle, sans index, sans clé. Sentinelle activée,
   copies construites, sentinelle supprimée (chunks et BM25 effacés, contextes et dérivés « à
   reconstruire », caches « à recharger », mentions « illustratif · cas construit »), question sur le
-  code, reconstruction de GraphRAG ; droits : profil Tous après la recherche (passage RH lu avant le
+  code, reconstruction de GraphRAG (ses endroits « effacé (illustratif, non mesuré) ») ; droits : profil Tous après la recherche (passage RH lu avant le
   filtre, moins de k rendus, réécriture construite), avant la recherche (aucune fuite), profil RH ;
   la carte « Document piégé » répond encore ; corpus de Construire inchangé ; aucune requête hors de
   `127.0.0.1` ; capture `69-atelier-rag-attaquer-effacement-droits.jpg`.

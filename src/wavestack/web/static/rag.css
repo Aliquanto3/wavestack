@@ -1770,6 +1770,18 @@ body.rag-page {
   padding-left: var(--spacing-2);
 }
 
+/* Story 18 review: a constructed place rebuilt is not measured, unlike « erased ». */
+.rag-era-status[data-status="erased_illustrative"] {
+  border-left: 4px dashed var(--color-line);
+  padding-left: var(--spacing-2);
+  font-style: italic;
+}
+
+.rag-era-status-note {
+  display: block;
+  font-style: italic;
+}
+
 .rag-era-illustrative {
   display: block;
   border: 1px dashed var(--color-line);

@@ -12,7 +12,7 @@ question_id: q_global_rh
 rewrite:
   provenance:
     kind: constructed
-    to_record_with: "the active model, live (later story)"
+    to_record_with: "the active model, live, in a later story"
   doc_id: entretiens_annuels
   text: "Query rewritten for the search: \"HR processes between Exemplia and its employees: {title}, compensation grid, disciplinary procedure\". The HR passage was read to write this sentence, before being removed."
 

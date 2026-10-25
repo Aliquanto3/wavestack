@@ -101,7 +101,7 @@ places:
     erase_mode: rebuild
     provenance:
       kind: constructed
-      to_record_with: "den echten RAPTOR-Baum, Story 12"
+      to_record_with: "dem echten RAPTOR-Baum, Story 12"
     story: 12
     architectures: [raptor]
     label_text: "RAPTOR-Zusammenfassungen"
@@ -112,7 +112,7 @@ places:
     erase_mode: rebuild
     provenance:
       kind: constructed
-      to_record_with: "den echten PageIndex-Baum, Story 11"
+      to_record_with: "dem echten PageIndex-Baum, Story 11"
     story: 11
     architectures: [pageindex]
     label_text: "PageIndex-Baum"
@@ -123,7 +123,7 @@ places:
     erase_mode: rebuild
     provenance:
       kind: constructed
-      to_record_with: "den echten GraphRAG-Index, Story 13"
+      to_record_with: "dem echten GraphRAG-Index, Story 13"
     story: 13
     architectures: [graphrag]
     label_text: "Gemeinschaftszusammenfassungen (GraphRAG)"
@@ -134,7 +134,7 @@ places:
     erase_mode: rebuild
     provenance:
       kind: constructed
-      to_record_with: "den echten GraphRAG-Index, Story 13"
+      to_record_with: "dem echten GraphRAG-Index, Story 13"
     story: 13
     architectures: [graphrag]
     label_text: "Entitäten und Relationen (GraphRAG)"
@@ -145,7 +145,7 @@ places:
     erase_mode: rebuild
     provenance:
       kind: constructed
-      to_record_with: "das echte Wiki, Story 14"
+      to_record_with: "dem echten Wiki, Story 14"
     story: 14
     architectures: [llm_wiki]
     label_text: "Wiki-Seiten"
@@ -156,7 +156,7 @@ places:
     erase_mode: reload
     provenance:
       kind: constructed
-      to_record_with: "den echten CAG-Cache, Story 10"
+      to_record_with: "dem echten CAG-Cache, Story 10"
     story: 10
     architectures: [cag]
     label_text: "Prompt-Cache (CAG)"
@@ -167,7 +167,7 @@ places:
     erase_mode: reload
     provenance:
       kind: constructed
-      to_record_with: "das echte Präfix des langen Kontexts, Story 10"
+      to_record_with: "dem echten Präfix des langen Kontexts, Story 10"
     story: 10
     architectures: [long_context]
     label_text: "Zwischengespeichertes Präfix des langen Kontexts"
@@ -211,14 +211,18 @@ texts:
   status:
     present: "vorhanden"
     erased: "gelöscht"
+    erased_illustrative: "gelöscht (illustrativ, nicht gemessen)"
     to_rebuild: "vorhanden · neu aufzubauen"
     to_reload: "vorhanden · neu zu laden"
     absent: "nicht vorhanden"
     no_copy: "keine Kopie"
   shared_text: "gemeinsame Kopie"
+  erased_illustrative_text: "Geschriebener Status, nicht gemessen: Der neu aufgebaute Inhalt ist ein Demonstrationstext, hier fand kein Neuaufbau statt."
+  source_found_text: "der Code wird bei jeder Anfrage aus der Quelle gelesen"
+  source_gone_text: "der Code ist nicht mehr in der Quelle"
   measured_text: "gemessen"
   illustrative_text: "illustrativ · {provenance}"
-  upcoming_text: "Architektur kommt (Story {story}), Ort gemessen an {on}"
+  upcoming_text: "Architektur kommt, Story {story}; Ort gemessen an {on}"
   vectors_text: "Die Vektoren werden nicht berechnet (kein Embedding-Modell): Die Zeile \"Chunks und Vektoren\" misst den Text der Passagen, und der Vektor geht mit seiner Passage."
   cost_text: "Konformität von {architecture} wiederherstellen: {update}"
   costs_title_text: "Was die Wiederherstellung der Konformität kostet (in Worten)"

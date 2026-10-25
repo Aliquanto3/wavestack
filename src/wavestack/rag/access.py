@@ -35,6 +35,16 @@ FILE = "rag_access.yaml"
 PROFILES = ("all", "hr")
 MODES = ("after", "before")
 SCORE_DIGITS = 2
+# The texts the session and the card read (a missing one is refused at the load, not a 500).
+REQUIRED_TEXTS = (
+    *(f"notes.{n}" for n in ("leak_text", "authorized_text", "safe_before_text", "no_leak_text")),
+    "notes.shortfall_text",
+    *(f"profile.{p}" for p in PROFILES),
+    *(f"mode.{m}" for m in MODES),
+    *(f"audience.{a}" for a in PROFILES),
+    "provenance.constructed_text",
+    "provenance.recorded_text",
+)
 
 
 class _Strict(BaseModel):
@@ -50,6 +60,13 @@ class Rewrite(_Strict):
     text: str = Field(min_length=1)  # {title}
 
 
+def _text_at(texts: dict[str, Any], path: str) -> object:
+    node: object = texts
+    for key in path.split("."):
+        node = node.get(key) if isinstance(node, dict) else None
+    return node
+
+
 class AccessContent(_Strict):
     chunk_max_chars: int = Field(ge=100, le=4000)
     top_k: int = Field(ge=1, le=10)
@@ -61,6 +78,9 @@ class AccessContent(_Strict):
     def _title_placeholder(self) -> AccessContent:
         if "{title}" not in self.rewrite.text:
             raise ValueError("the rewriting cites a title")
+        missing = [k for k in REQUIRED_TEXTS if not isinstance(_text_at(self.texts, k), str)]
+        if missing:
+            raise ValueError(f"missing texts: {', '.join(missing)}")
         return self
 
 

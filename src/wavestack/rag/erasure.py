@@ -73,6 +73,31 @@ MODE_OF_MEASURED = {
     "source": "none",
 }
 STORIES = range(10, 15)
+STATUSES = (
+    "present",
+    "erased",
+    "erased_illustrative",
+    "to_rebuild",
+    "to_reload",
+    "absent",
+    "no_copy",
+)
+# The texts the session reads: a missing one is refused at the load, not a 500 when drawn.
+REQUIRED_TEXTS = (
+    "guard_text",
+    "hits_text",
+    "shared_text",
+    "illustrative_text",
+    "erased_illustrative_text",
+    "upcoming_text",
+    "cost_text",
+    "source_found_text",
+    "source_gone_text",
+    *(f"status.{s}" for s in STATUSES),
+    *(f"step_text.{s}" for s in ("idle", "start", "erase", "rebuild")),
+    "provenance.constructed_text",
+    "provenance.recorded_text",
+)
 SCORE_DIGITS = 2
 EXCERPT_CONTEXT = 120
 
@@ -135,6 +160,13 @@ class Place(_Strict):
         return self
 
 
+def _text_at(texts: dict[str, Any], path: str) -> object:
+    node: object = texts
+    for key in path.split("."):
+        node = node.get(key) if isinstance(node, dict) else None
+    return node
+
+
 class ErasureContent(_Strict):
     chunk_max_chars: int = Field(ge=100, le=4000)
     top_k: int = Field(ge=1, le=10)
@@ -146,6 +178,9 @@ class ErasureContent(_Strict):
 
     @model_validator(mode="after")
     def _shape(self) -> ErasureContent:
+        missing = [k for k in REQUIRED_TEXTS if not isinstance(_text_at(self.texts, k), str)]
+        if missing:
+            raise ValueError(f"missing texts: {', '.join(missing)}")
         if [a.id for a in self.architectures] != list(ARCHITECTURES):
             raise ValueError("the eleven architectures, in order")
         ids = [p.id for p in self.places]
@@ -186,6 +221,8 @@ class ErasureRequest(_Strict):
     def _rebuilt_only_when_rebuilding(self) -> ErasureRequest:
         if self.rebuilt and self.step != "rebuild":
             raise ValueError("`rebuilt` belongs to the step `rebuild`")
+        if self.step == "rebuild" and not self.rebuilt:
+            raise ValueError("the step `rebuild` names at least one architecture")
         return self
 
 
@@ -285,7 +322,8 @@ def status_of(
     place: Place, copies: Copies, erased: bool, rebuilt: set[str]
 ) -> tuple[str, list[str]]:
     """`(status, items holding the code)`, computed from the content of the place now and at the
-    start: never declared."""
+    start: never declared. A constructed place rebuilt is `erased_illustrative`, never the
+    measured `erased`: its rebuilt content is written by hand, nothing was measured."""
     held = _hit_items(place, copies, erased, rebuilt)
     if place.erase_mode == "none":
         return "no_copy", held
@@ -295,8 +333,18 @@ def status_of(
         return {"delete": "present", "rebuild": "to_rebuild", "reload": "to_reload"}[
             place.erase_mode
         ], held
-    at_start = _hit_items(place, copies, False, set())
-    return ("erased" if at_start else "absent"), held
+    if not _hit_items(place, copies, False, set()):
+        return "absent", held
+    return ("erased_illustrative" if place.provenance is not None else "erased"), held
+
+
+def _status_text(content: ErasureContent, place: Place, status: str, held: list[str]) -> str:
+    """The status in words; the source (`none`) adds whether the code is still read in it."""
+    words = content.texts["status"][status]
+    if place.erase_mode == "none":
+        key = "source_found_text" if held else "source_gone_text"
+        words = f"{words} · {content.texts[key]}"
+    return words
 
 
 def _excerpt(text: str, code: str) -> str:
@@ -351,7 +399,14 @@ def _place_rows(
                     else None
                 ),
                 "status": row_status,
-                "status_text": None if row_status is None else texts["status"][row_status],
+                "status_text": (
+                    None if row_status is None else _status_text(content, place, status, held)
+                ),
+                "status_note_text": (
+                    texts["erased_illustrative_text"]
+                    if row_status == "erased_illustrative"
+                    else None
+                ),
                 "hits": None if copies is None else len(held),
                 "hits_text": (
                     None
@@ -393,7 +448,7 @@ def _results(
                 "place": place.id,
                 "label_text": place.label_text,
                 "status": status,
-                "status_text": content.texts["status"][status],
+                "status_text": _status_text(content, place, status, held),
                 "kind": "constructed" if place.provenance else "measured",
                 "text": _excerpt(held[0], copies.code),
             }
