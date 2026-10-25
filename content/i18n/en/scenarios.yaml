@@ -363,7 +363,7 @@ scenarios:
     description_text: >-
       The bricks of the previous modules stay on (MCP in lazy loading), without the
       sub-agent, without context injection (H3), and without the reasoning or the RAG.
-      No tool here: only the cache counts. Send the first prompt: beside the context gauge,
+      The tools stay on, but no prompt calls them: only the cache counts. Send the first prompt: beside the context gauge,
       the “Cache of the last call” gauge shows mostly “written”, because the model reads the
       context for the first time. Send the second: the start of the context is identical,
       and the gauge turns to “read”. Unfold the call in Orchestration and compare the tokens
@@ -412,8 +412,8 @@ scenarios:
       The bricks of the previous scenario stay on. A cache does not last: with a provider
       it expires after 5 minutes or an hour without a read. Locally, you trigger it by
       hand. Send the first two prompts: the “Cache of the last call” gauge is mostly
-      “read”. Click “Clear the cache” (under the conversation, beside “Clear the
-      conversation”), then send the third: the engine has to read everything again, the
+      “read”. Click “Clear the cache” (at the top of the “Human view” pane, beside
+      “Clear the conversation”), then send the third: the engine has to read everything again, the
       gauge is entirely “written” and the cause is “cache cleared”. The conversation is
       intact, only the cache is lost: that is what expiry does. The button is greyed out
       with a cloud model, whose cache cannot be purged and expires on its side. The fourth
@@ -460,12 +460,12 @@ scenarios:
       and “Output”. Send the three prompts, then open “Spend” in the top bar. The “This
       conversation” column counts since the last “Clear the conversation”, “Since launch”
       since WaveStack started. Read it box by box: the read is the biggest, which is normal,
-      every call reads the whole context already seen again and a read costs a tenth of the
-      input. A write that exceeds the read signals a lost cache, broken prefix or expired
+      every call reads the whole context already seen again and, with Claude, a read costs a
+      tenth of the input. A write that exceeds the read signals a lost cache, broken prefix or expired
       cache: click “Clear the cache”, send a prompt, and the write climbs. “Uncached” is the
       part paid at full price, not applicable locally. The dollars follow the same split in
       the “where the money goes” ring as soon as a cloud model with a price has answered.
-      Compare with a real agent-cost-kit summary (`/agent-cost-kit:mesurer-couts`).
+      Compare with a real agent-cost-kit summary (`/agent-cost-kit:mesurer-couts`, if the plugin is installed).
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [read_file]
     mcp_lazy: true

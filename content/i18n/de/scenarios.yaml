@@ -390,8 +390,8 @@ scenarios:
     title_text: Den Cache lesen
     description_text: >-
       Die Bausteine der vorigen Module bleiben aktiv (MCP im Lazy Loading), ohne den
-      Sub-Agenten, ohne Kontext-Injektion (H3) und ohne Denkprozess und RAG. Hier gibt es
-      kein Tool: Nur der Cache zählt. Senden Sie den ersten Prompt: Neben der Kontext-Anzeige
+      Sub-Agenten, ohne Kontext-Injektion (H3) und ohne Denkprozess und RAG. Die Tools bleiben
+      an, aber kein Prompt ruft sie auf: Nur der Cache zählt. Senden Sie den ersten Prompt: Neben der Kontext-Anzeige
       zeigt die Anzeige „Cache des letzten Aufrufs“ überwiegend „geschrieben“, denn das
       Modell liest den Kontext zum ersten Mal. Senden Sie den zweiten: Der Anfang des
       Kontexts ist identisch, die Anzeige wechselt zu „gelesen“. Klappen Sie den Aufruf in
@@ -399,8 +399,8 @@ scenarios:
       denen des Prompts. Ein kleiner Teil bleibt geschrieben, die Nachricht, die Sie gerade
       hinzugefügt haben. Beim dritten Prompt wächst der gelesene Teil weiter: Der Cache
       folgt der Unterhaltung. Lokal behält die Engine alles, was sie ausgewertet hat: Es gibt
-      weder „nicht im Cache“ noch eine Lebensdauer, die Anzeige sagt es. Diese drei Felder,
-      gelesen, geschrieben und nicht im Cache, sind die der Token-Bilanz von agent-cost-kit
+      weder „nicht gecacht“ noch eine Lebensdauer, die Anzeige sagt es. Diese drei Felder,
+      gelesen, geschrieben und nicht gecacht, sind die der Token-Bilanz von agent-cost-kit
       (siehe das Merkblatt docs/cache-de-prompt.md, auf Französisch).
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [read_file]
@@ -443,7 +443,7 @@ scenarios:
       Die Bausteine des vorigen Szenarios bleiben aktiv. Ein Cache hält nicht ewig: Bei einem
       Anbieter läuft er nach 5 Minuten oder einer Stunde ohne Lesezugriff ab. Lokal lösen Sie
       das von Hand aus. Senden Sie die ersten beiden Prompts: Die Anzeige „Cache des letzten
-      Aufrufs“ ist überwiegend „gelesen“. Klicken Sie „Cache leeren“ (unter der Unterhaltung,
+      Aufrufs“ ist überwiegend „gelesen“. Klicken Sie „Cache leeren“ (oben im Bereich „Nutzeransicht“,
       neben „Unterhaltung leeren“) und senden Sie den dritten: Die Engine muss alles neu
       lesen, die Anzeige ist ganz „geschrieben“, und die Ursache lautet „Cache geleert“. Die
       Unterhaltung bleibt unversehrt, nur der Cache ist verloren: Das tut das Ablaufen. Mit
@@ -472,7 +472,7 @@ scenarios:
       „Prompt-Cache von Claude“ auf „5 Minuten“: Das Schreiben des Caches kostet dann das
       1,25-Fache des Eingabepreises. Fügen Sie einen langen Text in die Nachricht ein, etwa
       eine Dokumentationsseite, denn unter einer modellspezifischen Token-Schwelle cacht der
-      Anbieter nichts, und alles bleibt „nicht im Cache“. Der erste Aufruf schreibt, der
+      Anbieter nichts, und alles bleibt „nicht gecacht“. Der erste Aufruf schreibt, der
       nächste innerhalb von 5 Minuten liest: Sehen Sie „Cache-Lesen“ und „Cache-Schreiben 5
       Min.“ in der Bilanz „Ausgaben“. Wiederholen Sie es mit „1 Stunde“ (Schreiben zum
       2-Fachen des Eingabepreises): Die Zeile „Cache-Schreiben 1 Std.“ erscheint, der Cache
@@ -495,13 +495,13 @@ scenarios:
       „Ausgaben“ in der oberen Leiste. Die Spalte „Diese Unterhaltung“ zählt seit dem letzten
       „Unterhaltung leeren“, „Seit dem Start“ seit dem Start von WaveStack. Lesen Sie Feld
       für Feld: Das Lesen ist am größten, das ist normal, denn jeder Aufruf liest den ganzen
-      schon gesehenen Kontext erneut, und ein Lesen kostet ein Zehntel der Eingabe. Ein
+      schon gesehenen Kontext erneut, und bei Claude kostet ein Lesen ein Zehntel der Eingabe. Ein
       Schreiben, das das Lesen übersteigt, zeigt einen verlorenen Cache an, gebrochenes
       Präfix oder abgelaufener Cache: Klicken Sie „Cache leeren“, senden Sie einen Prompt,
       und das Schreiben steigt. „Nicht im Cache“ ist der zum vollen Preis bezahlte Teil,
       lokal nicht zutreffend. Die Dollar folgen derselben Aufteilung im Ring „wohin das Geld
       geht“, sobald ein Cloud-Modell mit Preis geantwortet hat. Halten Sie eine echte Bilanz
-      von agent-cost-kit daneben (`/agent-cost-kit:mesurer-couts`).
+      von agent-cost-kit daneben (`/agent-cost-kit:mesurer-couts`, falls das Plugin installiert ist).
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [read_file]
     mcp_lazy: true

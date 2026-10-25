@@ -58,3 +58,22 @@ context:
 
 - E2E : le scénario force le modèle local du faux llama-server et éteint Outils, MCP, Skills, Hooks et Compression (fenêtre du faux moteur trop petite) ; les consignes décrivent les briques complètes.
 - Parcours de la recette (`docs/guide-testeur.md`) : inchangé, il ne cite aucun module.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 95770bc)
+
+Base à jour (origin/main ff8c405, aucune fusion nécessaire).
+
+- Important, medium, second avis : « Vider le cache » situé « sous la conversation » alors que le bouton est dans l'en-tête du volet « Vue humain » (index.html:175). Corrigé en fr, en et de, dans le guide et dans la fiche.
+- Important, medium, reviewer : `test_content_language.py` rouge en de (`cache_claude` cite « nicht im Cache », qui n'est pas le libellé de la jauge allemande « nicht gecacht »). Le test n'était pas dans la vérification de la story. Corrigé.
+- Nit, low, second avis : « Aucun outil ici » alors que le scénario déclare `read_file`. Corrigé (« les outils restent allumés, mais aucun prompt ne les appelle »), dans les trois langues.
+- Nit, low, second avis : jauge allemande « nicht im Cache » au lieu de « nicht gecacht » (ui.yaml:780) dans `cache_read`. Corrigé ; le bilan garde « Nicht im Cache », son libellé à lui.
+- Nit, low, second avis : « la lecture coûte le dixième de l'entrée » dans un scénario local. Corrigé en « chez Claude, … », dans les trois langues.
+- Nit, low, second avis : fiche en français seul et commande `/agent-cost-kit:mesurer-couts` absente sur le poste pro. Corrigé pour la commande (« si le plugin est installé ») ; pour la fiche, rejeté : en et de disent déjà qu'elle est en français, la traduire sort du périmètre.
+- Nit, low, second avis : l'E2E éteint Outils, MCP, Skills, Hooks et Compression. Rejeté : limite connue du faux moteur, déjà consignée dans les reports ; les causes et les lectures du cache sont bien vérifiées.
+- Nit, low, second avis : ajustement AD-9 non exécuté. Rejeté : `test_program.py` vérifie déjà les briques du module, et les quatre fichiers ciblés passent (262 verts).
+- Nit, low, second avis : totaux (27 scénarios, 6 h 45) en conflit avec la 14.4. Rejeté : le second à fusionner refait les totaux, comme le prévoit la story.
+- Complexité : 0 constat (contenu et docs, aucune structure qui grossit).
+
+Tests : ruff, contrôle rapide, `pytest tests/test_program.py tests/test_scenarios.py tests/test_i18n.py tests/test_content_language.py` (262 verts), E2E `cache_module programme` (26 vérifications vertes, captures restaurées).

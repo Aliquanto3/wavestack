@@ -410,7 +410,7 @@ scenarios:
     description_text: >-
       Les briques des modules précédents restent actives (MCP en lazy loading), sans le
       sous-agent, sans l'injection de contexte (H3), et sans le raisonnement ni le RAG.
-      Aucun outil ici : seul le cache compte. Envoyez le premier prompt : à côté de la jauge
+      Les outils restent allumés, mais aucun prompt ne les appelle : seul le cache compte. Envoyez le premier prompt : à côté de la jauge
       de contexte, la jauge « Cache du dernier appel » montre surtout de l'« écrit », car
       le modèle lit le contexte pour la première fois. Envoyez le deuxième : le début du
       contexte est identique, la jauge passe en « lu ». Dépliez l'appel dans Orchestration et
@@ -459,8 +459,8 @@ scenarios:
       Les briques du scénario précédent restent actives. Un cache ne dure pas : chez un
       fournisseur, il expire au bout de 5 minutes ou d'une heure sans lecture. En local, vous
       le provoquez à la main. Envoyez les deux premiers prompts : la jauge « Cache du dernier
-      appel » est surtout en « lu ». Cliquez « Vider le cache » (sous la conversation, à côté
-      de « Vider la conversation »), puis envoyez le troisième : le moteur doit tout relire,
+      appel » est surtout en « lu ». Cliquez « Vider le cache » (en haut du volet « Vue humain », à
+      côté de « Vider la conversation »), puis envoyez le troisième : le moteur doit tout relire,
       la jauge est entièrement en « écrit » et la cause est « cache vidé ». La conversation
       est intacte, seul le cache est perdu : c'est ce que fait l'expiration. Le bouton est
       grisé avec un modèle cloud, dont le cache ne se purge pas et expire de son côté. Le
@@ -509,12 +509,12 @@ scenarios:
       « Dépense » dans la barre du haut. La colonne « Cette conversation » compte depuis le
       dernier « Vider la conversation », « Depuis le lancement » depuis le démarrage de
       WaveStack. Lisez case par case : la lecture est la plus grosse, c'est normal, chaque
-      appel relit tout le contexte déjà vu et la lecture coûte le dixième de l'entrée. Une
+      appel relit tout le contexte déjà vu et, chez Claude, la lecture coûte le dixième de l'entrée. Une
       écriture qui dépasse la lecture signale un cache perdu, préfixe cassé ou cache expiré :
       cliquez « Vider le cache », envoyez un prompt, et l'écriture grimpe. « Non caché »
       est la part payée au plein tarif, sans objet en local. Les dollars suivent la même
       répartition dans l'anneau « où part l'argent » dès qu'un modèle cloud avec prix a
-      répondu. Mettez en regard un vrai bilan d'agent-cost-kit (`/agent-cost-kit:mesurer-couts`).
+      répondu. Mettez en regard un vrai bilan d'agent-cost-kit (`/agent-cost-kit:mesurer-couts`, si le plugin est installé).
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [read_file]
     mcp_lazy: true

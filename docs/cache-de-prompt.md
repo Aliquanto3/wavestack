@@ -36,8 +36,8 @@ vidée, atelier qui a pris le cache du moteur. Règle : le stable d'abord, le va
 ## Durée de vie
 
 - **En local**, le moteur garde ce qu'il a évalué tant qu'il reste chargé et que personne ne
-  l'occupe : pas de « non caché », pas de durée de vie. Le bouton « Vider le cache » (sous la
-  conversation) le fait oublier à la demande, pour montrer l'expiration.
+  l'occupe : pas de « non caché », pas de durée de vie. Le bouton « Vider le cache » (en haut
+  du volet « Vue humain ») le fait oublier à la demande, pour montrer l'expiration.
 - **Chez Claude**, le cache expire sans lecture : 5 minutes (écriture ×1,25) ou 1 heure
   (écriture ×2). Chaque lecture le prolonge. Le bouton est grisé en cloud, le cache ne se purge pas.
   Réglage dans « Fenêtre », « Cache de prompt de Claude » (désactivé par défaut, grisé sans clé

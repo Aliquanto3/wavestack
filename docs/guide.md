@@ -241,7 +241,7 @@ d'agent-cost-kit, en cinq scénarios de 45 minutes en tout :
 |---|---|---|
 | Lire le cache | Envoyer deux ou trois prompts de suite | La jauge « Cache du dernier appel », à côté de celle du contexte, passe de « écrit » à « lu » |
 | Casser le préfixe | Éteindre la brique Prompt système entre deux prompts | Tout est réécrit ; la cause « message système modifié » et l'étape « Cache non réutilisé » dans Orchestration |
-| Faire expirer le cache | Cliquer « Vider le cache » sous la conversation | L'appel suivant réécrit tout, cause « cache vidé » ; la conversation reste intacte |
+| Faire expirer le cache | Cliquer « Vider le cache » en haut du volet « Vue humain » | L'appel suivant réécrit tout, cause « cache vidé » ; la conversation reste intacte |
 | Le cache de Claude (facultatif) | Avec une clé : « Fenêtre », « Cache de prompt de Claude », 5 minutes puis 1 heure, avec un texte long collé | Écriture au premier appel, lecture ensuite ; ×1,25 ou ×2 sur l'écriture. Sans clé, le formateur décrit le geste ; aucun appel payant n'est lancé par le scénario |
 | Lire un bilan d'agent-cost-kit | Ouvrir « Dépense » | Les colonnes « Cette conversation » et « Depuis le lancement » : lecture, écriture, non caché, mêmes mots que le bilan d'agent-cost-kit |
 
