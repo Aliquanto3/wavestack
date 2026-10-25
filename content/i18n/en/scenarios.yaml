@@ -23,8 +23,8 @@ program:
     duration_min: 45
     scenarios: [subagent]
   - title_text: Long context and map
-    duration_min: 45
-    scenarios: [compression, harness_map]
+    duration_min: 60
+    scenarios: [compression, compaction, harness_map]
   - title_text: Cache
     duration_min: 45
     scenarios: [cache_read, cache_prefix, cache_expiry, cache_claude, cache_bilan]
@@ -340,10 +340,40 @@ scenarios:
         last night's backup ran into.
       - In journal_serveur.log, at what time was batch 12 copied?
 
+  compaction:
+    title_text: Compaction and sliding window
+    description_text: >-
+      This scenario overflows on purpose (AD-9 exception): only the short memory, the system
+      prompt and the read_file tool are on. Send the three prompts in order: the first two
+      each read a file, which stays in the history; at the third, the context exceeds the
+      4,096-token window. The “Context exceeded” card then offers “Continue with:” two
+      strategies. Click “Compact”: the harness asks the active model to summarize the old
+      exchanges (“Compaction summary” step in Orchestration, with its tokens, duration and
+      cost), the summary replaces those exchanges in the conversation (“Summary
+      (compaction)” bubble), then the refused message goes again alone. The cache gauge
+      shows the next call writing, cause “compaction”. Then launch the scenario again,
+      make the conversation overflow again and choose “Sliding window”: no model call, the
+      oldest exchanges are removed (“N exchanges removed”), cause “sliding window”; compare
+      what the model still knows about the log. The “Compact ▾” button, next to “Clear the
+      conversation”, applies the same strategies outside an overflow.
+    bricks: [short_memory, system_prompt, tools]
+    tools: [read_file]
+    overflow_prompt: 3
+    prompts:
+      - >-
+        Call the read_file tool on journal_serveur.log, then tell me what serious error
+        last night's backup ran into.
+      - >-
+        Call the read_file tool on alertes_siem.log, then tell me which alert is the most
+        serious.
+      - >-
+        Call the read_file tool on journal_serveur.log again, then tell me whether the
+        backup's serious error matches one of the alerts.
+
   harness_map:
     title_text: Harness map
     description_text: >-
-      The compression bricks stay on, as in the previous scenario. No tool call here: click
+      The compression bricks stay on, as in the “Context compression” scenario. No tool call here: click
       “Harness map” under this text (or at the foot of the bricks panel) to open the map.
       Each brick is placed in one of the 7 subsystems of a harness, with its role: guide (it
       steers the model before it acts), sensor (it observes and blocks or corrects, computed

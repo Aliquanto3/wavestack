@@ -161,3 +161,18 @@ Les décisions du point de contrôle (plus bas) priment sur la rédaction initia
   - Cloud sans clé, jeu construit : `rag_lab_evaluate` n'exerce pas « Juger » (modèle requis) ; le refus 409 est vérifié par l'API.
   - `rag.html` garde la note `.rag-soon` de l'onglet Évaluer, masquée, car `rag.js` (`renderTabs`) y écrit son texte ; `rag.js` n'est pas modifié. `_rag_lab_tabs` (scénario `rag_lab_views`) ne cherche plus « à venir » dans Évaluer.
   - `rag_lab` (E2E) vérifie un dépôt intact par `git status` : il échoue tant que le worktree a des changements non commités, sans lien avec cette story.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 522ef4b)
+
+Base : fusion de `origin/integration/v1-2-atelier` (75864b7) dans la branche, sans conflit.
+
+- Important · medium · second avis : sondage du jugement borné à 200 × 1,5 s sans remettre `ev.busy` à faux (bouton bloqué, verdict jamais lu ; juge GGUF sur CPU > 300 s plausible). Corrigé : plus de borne de temps, arrêt après 5 échecs consécutifs du serveur, `ev.busy` remis à faux en sortie (le bouton reste désactivé tant que la session n'est pas `idle`).
+- Nit · low · second avis : réponse tardive d'un `refresh` qui repasse `ev.busy` à vrai. Corrigé : numéro de requête, une réponse plus ancienne que la dernière envoyée est ignorée.
+- Important · low · second avis : `next(...)` sans défaut sur le candidat local (StopIteration → 500 au lieu de 409). Corrigé : découverte faite une fois, `SendRefused` si absent.
+- Important · low · second avis : `_LocalJudge.complete`, `registry.grant` hors du `try` après création du moteur (moteur non fermé si l'octroi échoue). Corrigé : octroi dans le `try`, test `test_a_local_judge_whose_grant_fails_still_closes_its_engine`.
+- Nit · low · second avis : `JUDGE_MAX_TOKENS = 160` peut couper le JSON d'une justification de 300 caractères (sortie alors « illisible »). Corrigé : 256 (le modèle s'arrête à `}` sous grammaire, la borne ne coûte que si elle sert).
+- Nit · low · second avis : chaque tick du sondage renvoie toute la liste des exécutions (≤ `MAX_RUNS` = 40, calcul pur). Rejeté : borné, sans impact mesurable.
+- Vérifié sans constat : l'argument `grammar` (engine.py, servers.py, FakeEngine) est un mot-clé facultatif à `None`, aucun appel existant ne change ; garde-fou « aucune moyenne hors Évaluer » (critère 16) couvre les six scripts et les JSON de l'atelier et du diagnostic.
+- Complexité : 0 constat (verdicts de session bornés par `MAX_RAG_JUDGED`).

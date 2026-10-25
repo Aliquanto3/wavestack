@@ -10178,6 +10178,7 @@ def s_local_server(r: Run) -> None:
     _cache_not_reused(r)
     _cache_gauge(r)
     _cache_clear(r)
+    _compaction_cache(r)  # V1.4 story 4: causes « fenêtre glissante », « compaction »
 
     # Story 32: a reasoning cut by the harness stays one call; the harness's note sits
     # between the reflection and the answer. The LLM nu, so that the reasoning's reserve
@@ -16774,6 +16775,291 @@ def s_claude_cache(r: Run) -> None:
             _pick_model(r, a_label)
 
 
+# ---------- V1.4 story 4 (CAP-5): compaction and sliding window ----------
+
+# Chat mode (the fake model, 4 characters a token, « mot » one token): each long message
+# takes 42 % of the room the preview leaves, so two fit, the third overflows, and one
+# exchange kept still holds with a summary.
+_COMPACT_WORDS = [1100]
+
+
+def _compact_long(i: int) -> str:
+    return f"Note {i} pour la suite : " + "mot " * _COMPACT_WORDS[0]
+
+
+def _compact_overflow(r: Run) -> dict[str, Any]:
+    """The scenario `compaction` launched, two long messages, then a third refused; its
+    `turn_ended` envelope (`overflow`)."""
+    seq = r.ev.mark()
+    r.launch("compaction")
+    preview = r.ev.wait("context_preview", seq, timeout=10)["payload"]
+    _COMPACT_WORDS[0] = int((preview["usable"] - preview["used"]) * 0.42)
+    for i in (1, 2):
+        ended = r.send(_compact_long(i))
+        r.check(ended["payload"]["status"] == "completed", f"message long {i} : il tient")
+    seq = r.ev.mark()
+    ended = r.send(_compact_long(3))
+    ctx = [e["payload"] for e in r.ev.since(seq, "context_rendered")]
+    r.check(
+        ended["payload"]["status"] == "overflow",
+        "troisième message long : contexte dépassé",
+        f"{ended['payload']['status']} · {[(c['used'], c['usable']) for c in ctx]}",
+    )
+    return ended
+
+
+def _compact_buttons(r: Run, strategy: str) -> tuple[Any, Any]:
+    """The strategy's button in Orchestration's last card, then in the Vue humain's note."""
+    orch = r.page.locator(f"#orch-scroll .overflow-card button[data-strategy='{strategy}']").last
+    chat = r.page.locator(f"#chat .compact-choices button[data-strategy='{strategy}']").last
+    return orch, chat
+
+
+def s_compaction(r: Run) -> None:
+    """V1.4 story 4: at the main chat's overflow, « Continuer avec : » two buttons in both
+    views, then the other strategies as text; « Compacter »: both views' buttons disabled,
+    the step « Résumé de compaction », the summary's bubble in place of the first exchange it
+    took, the refused message sent again alone; Contexte LLM: the summary labelled."""
+    page = r.page
+    _compact_overflow(r)
+    card = page.locator("#orch-scroll .overflow-card").last
+    expect(card).to_be_visible(timeout=5000)
+    text = card.inner_text()
+    orch, chat = _compact_buttons(r, "compaction")
+    window_orch, window_chat = _compact_buttons(r, "sliding_window")
+    r.check(
+        "Continuer avec :" in text
+        and "Autres stratégies (non montrées ici) :" in text
+        and "Retrait des anciens résultats d'outils" in text
+        and "Lazy loading" in text
+        and orch.is_enabled()
+        and window_orch.is_enabled()
+        and chat.is_enabled()
+        and window_chat.is_enabled(),
+        "carte de débordement : « Continuer avec : » deux boutons dans les deux vues, puis "
+        "« Autres stratégies » et leurs deux textes",
+        text.replace("\n", " | ")[:400],
+    )
+    r.shot_element("80-carte-debordement-compaction", "#orch-scroll .overflow-card >> nth=-1")
+    first_ids = [e["turn_id"] for e in r.ev.since(0, "turn_started")][-3:-1]
+    seq = r.ev.mark()
+    orch.click()
+    ok, _ = r.poll(lambda: chat.is_disabled() and window_chat.is_disabled(), 5)
+    r.check(ok, "un clic désactive les boutons des deux vues")
+    compacted = r.ev.wait("history_compacted", seq, timeout=30)["payload"]
+    message = r.ev.wait(
+        "turn_started", seq, lambda p: p.get("kind", "message") == "message", timeout=30
+    )
+    resent = r.ev.wait("turn_ended", message["seq"] - 1, timeout=30)
+    r.wait_idle()
+    started = [e["payload"] for e in r.ev.since(seq, "turn_started")]
+    r.check(
+        [p.get("kind", "message") for p in started] == ["compaction", "message"]
+        and started[1]["replay_of"] is None
+        and started[1]["message"] == _compact_long(3).strip()
+        and compacted["removed_turn_ids"][0] == first_ids[0]
+        and resent["payload"]["status"] == "completed",
+        "« Compacter » : un tour de compaction, puis le message refusé renvoyé seul",
+        f"{[p.get('kind') for p in started]} · {compacted['removed_turn_ids']} · {first_ids}"
+        f" · {resent['payload']['status']}",
+    )
+    group = page.locator("#orch-scroll .turn-group").filter(
+        has_text="Résume notre conversation jusqu'ici."
+    )
+    group.locator("[aria-expanded]").first.click()  # an earlier turn folds back to its head
+    time.sleep(0.3)
+    rows = group.inner_text() if group.count() else ""
+    r.check(
+        "Résumé de compaction" in rows,
+        "Orchestration : l'étape « Résumé de compaction »",
+        rows[-600:].replace(chr(10), " | "),
+    )
+    bubble = page.locator("#chat .bubble.is-compaction")
+    expect(bubble).to_have_count(1, timeout=5000)
+    order = page.locator("#chat .bubble").evaluate_all(
+        "bs => bs.map(b => b.classList.contains('is-compaction') ? 'résumé'"
+        " : b.classList.contains('bubble-user') ? 'user' : 'model')"
+    )
+    r.check(
+        "Résumé (compaction)" in bubble.inner_text()
+        and order[:1] == ["résumé"]
+        and order.count("user") == 3,  # the kept exchange, the refused one, the resent one
+        "Vue humain : la bulle « Résumé (compaction) » à la place du premier échange résumé",
+        str(order),
+    )
+    ctx = page.locator("#ctx").inner_text()
+    r.check(
+        "Résumé (compaction)" in ctx,
+        "Contexte LLM : le résumé avec son libellé, les échanges résumés masqués",
+        ctx[:300].replace("\n", " | "),
+    )
+    r.shot("81-compaction-resume")
+
+
+def s_sliding_window(r: Run) -> None:
+    """V1.4 story 4: « Fenêtre glissante » on the overflow: no call before the resent turn,
+    the marker « N échanges retirés »; a click on a stale card: its refusal under the buttons,
+    the buttons enabled again."""
+    page = r.page
+    _compact_overflow(r)
+    calls = len(r.fake_calls())
+    seq = r.ev.mark()
+    _, chat = _compact_buttons(r, "sliding_window")
+    chat.click()
+    compacted = r.ev.wait("history_compacted", seq, timeout=30)["payload"]
+    r.ev.wait("turn_ended", seq, timeout=30)
+    r.wait_idle()
+    sent = r.fake_calls()[calls:]
+    marker = page.locator("#chat .compact-marker")
+    expect(marker).to_have_count(1, timeout=5000)
+    body = json.dumps(sent[0], ensure_ascii=False) if sent else ""
+    r.check(
+        compacted["strategy"] == "sliding_window"
+        and r.ev.since(seq, "turn_started")[0]["payload"].get("kind", "message") == "message"
+        and len(sent) == 1
+        and "Note 3 pour la suite" in body
+        and "Note 1 pour la suite" not in body,
+        "« Fenêtre glissante » : aucun appel avant le message renvoyé, l'ancien échange retiré",
+        f"{len(sent)} appel(s)",
+    )
+    r.check(
+        marker.inner_text() == compacted["message_text"]
+        and "(fenêtre glissante)" in marker.inner_text(),
+        "Vue humain : le marqueur « N échange(s) retiré(s) (fenêtre glissante) »",
+        marker.inner_text(),
+    )
+    r.shot("83-fenetre-glissante")
+    # A new overflow, then a short turn: that card is stale.
+    r.send(_compact_long(4))
+    r.send("Bonjour")
+    seq = r.ev.mark()
+    _, stale = _compact_buttons(r, "sliding_window")
+    stale.click()
+    error = page.locator("#chat .compact-error").last
+    try:
+        expect(error).to_contain_text("périmée", timeout=5000)
+        said = True
+    except AssertionError:
+        said = False
+    r.check(
+        said and stale.is_enabled() and not r.ev.since(seq, "history_compacted"),
+        "carte périmée : la raison du refus sous les boutons, boutons réactivés, rien appliqué",
+        error.inner_text() if error.count() else "(aucune raison)",
+    )
+
+
+def s_compact_button(r: Run) -> None:
+    """V1.4 story 4: « Compacter ▾ » disabled without a conversation (reason as tooltip and
+    accessible name), its menu by keyboard (Escape gives the focus back), an entry unavailable
+    with its reason, a compaction outside an overflow without any message sent; a first
+    message too long without history: the card of today, no button."""
+    page = r.page
+    toggle = page.locator("#compact-conversation")
+    r.launch("compaction")
+    expect(toggle).to_be_disabled(timeout=5000)
+    r.check(
+        "vide" in (toggle.get_attribute("title") or "")
+        and "vide" in (toggle.get_attribute("aria-label") or ""),
+        "« Compacter ▾ » désactivé sans conversation, raison en infobulle et en nom accessible",
+        toggle.get_attribute("title") or "",
+    )
+    ended = r.send("Résume : " + "mot " * 5000)  # alone too long: no exchange to compact
+    card = page.locator("#orch-scroll .overflow-card").last
+    r.check(
+        ended["payload"]["status"] == "overflow"
+        and card.locator("button[data-strategy]").count() == 0
+        and "En production, un harnais pourrait" in card.inner_text(),
+        "premier message trop long, sans historique : la carte d'aujourd'hui, sans bouton",
+    )
+    r.send("Bonjour")
+    expect(toggle).to_be_enabled(timeout=5000)
+    toggle.click()
+    panel = page.locator("#compact-menu-panel")
+    expect(panel).to_be_visible(timeout=5000)
+    item = panel.locator(".compact-menu-item[data-strategy='sliding_window']")
+    r.check(
+        item.is_disabled() and "Pas assez" in (item.get_attribute("title") or ""),
+        "menu : une entrée sans rien à retirer est désactivée, sa raison dite",
+        item.get_attribute("title") or "",
+    )
+    page.keyboard.press("Escape")
+    expect(panel).to_be_hidden(timeout=5000)
+    r.check(
+        page.evaluate("() => document.activeElement.id") == "compact-conversation",
+        "Échap ferme le menu et rend le focus au bouton",
+    )
+    for message in ("Et ensuite ?", "Encore une question"):
+        r.send(message)
+    seq = r.ev.mark()
+    toggle.click()
+    expect(panel).to_be_visible(timeout=5000)
+    r.check(
+        page.evaluate("() => document.activeElement.dataset.strategy") == "compaction",
+        "menu ouvert : le focus sur la première entrée disponible",
+    )
+    r.shot_element("82-compacter-menu", "#compact-menu-panel")
+    panel.locator(".compact-menu-item[data-strategy='compaction']").click()
+    r.ev.wait("history_compacted", seq, timeout=30)
+    r.wait_idle()
+    started = [e["payload"].get("kind", "message") for e in r.ev.since(seq, "turn_started")]
+    r.check(
+        started == ["compaction"],
+        "compaction hors débordement : un tour de compaction, aucun message renvoyé",
+        str(started),
+    )
+    # During a turn: disabled, its reason said.
+    seq = r.ev.mark()
+    page.fill("#composer-input", "Explique le harnais [lent] [long]")
+    page.press("#composer-input", "Enter")
+    r.ev.wait("model_first_token", seq, timeout=20)
+    r.check(
+        toggle.is_disabled() and bool(toggle.get_attribute("title")),
+        "« Compacter ▾ » désactivé pendant un tour, raison en infobulle",
+        toggle.get_attribute("title") or "",
+    )
+    page.click("#composer-stop")
+    r.ev.wait("turn_ended", seq)
+    r.wait_idle()
+
+
+def _compaction_cache(r: Run) -> None:
+    """V1.4 story 4, local text mode (the fake llama-server keeps its previous prompt): after
+    a sliding window then a compaction from « Compacter ▾ », the next call writes, with the
+    cause « fenêtre glissante » then « compaction »."""
+    page = r.page
+    gauge = page.locator("#cache-gauge")
+    catalogue = _ui_catalogue("fr")
+    r.set_brick("Mémoire courte", True)
+    for message in ("Un", "Deux", "Trois"):
+        r.send(f"Question {message}")
+    for strategy in ("sliding_window", "compaction"):
+        if strategy == "compaction":
+            r.send("Question Quatre")
+        seq = r.ev.mark()
+        page.click("#compact-conversation")
+        page.click(f"#compact-menu-panel .compact-menu-item[data-strategy='{strategy}']")
+        r.ev.wait("history_compacted", seq, timeout=30)
+        r.wait_idle()
+        seq = r.ev.mark()
+        r.send(f"Après {strategy}")
+        call = r.ev.since(seq, "model_call_ended")[0]["payload"]
+        reread = [e["payload"]["cause"] for e in r.ev.since(seq, "prefix_not_reused")]
+        try:
+            expect(gauge).to_have_attribute("data-cause", strategy, timeout=5000)
+            shown = True
+        except AssertionError:
+            shown = False
+        title = gauge.get_attribute("title") or ""
+        r.check(
+            shown
+            and reread == [strategy]
+            and call["cache_write_tokens"] > 0
+            and catalogue[f"main.orch.prefix_causes.{strategy}"] in title,
+            f"jauge du cache après « {strategy} » : une part écrite, la cause citée",
+            f"{reread} · {call.get('cache_write_tokens')} · {title}",
+        )
+
+
 def s_cache_module(r: Run) -> None:
     """V1.3 story 6 (CAP-6): the « Cache » module, 45 minutes, five scenarios; the gestures are
     in the instructions, nothing is scripted. On the fake local engine: two prompts of
@@ -16924,6 +17210,9 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),
     ("harness_map", s_harness_map),
+    ("compaction", s_compaction),  # V1.4 story 4 (CAP-5)
+    ("sliding_window", s_sliding_window),
+    ("compact_button", s_compact_button),
     ("busy_and_stop", s_busy_and_stop),
     ("reload_and_reset", s_reload_and_reset),
     ("language", s_language),

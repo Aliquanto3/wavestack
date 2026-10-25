@@ -47,6 +47,12 @@ read_timeout_s = 300
 # (réglage de l'interface, sinon cette valeur).
 window = 4096
 near_limit_ratio = 0.8
+# Compaction (V1.4) : sortie du résumé des anciens échanges, en tokens (64 à 512), et nombre
+# d'échanges récents que la compaction et la fenêtre glissante gardent quand on les demande hors
+# débordement, par le bouton « Compacter ▾ » (1 à 5). Au débordement, le harnais garde autant
+# d'échanges récents que la fenêtre en accepte.
+compaction_max_tokens = 256
+compaction_keep = 2
 
 [memory]
 # Budget mémoire de WaveStack (AD-8, NFR-2) : un changement de modèle est refusé si ce

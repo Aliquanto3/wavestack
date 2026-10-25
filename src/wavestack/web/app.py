@@ -86,6 +86,14 @@ class SendIntention(BaseModel):
     message: str = Field(min_length=1)
 
 
+class CompactIntention(BaseModel):
+    """V1.4 story 4 (CAP-5): a strategy on the main chat's history; `resend_turn_id`, the turn
+    an overflow refused, whose message goes again alone."""
+
+    strategy: Literal["compaction", "sliding_window"]
+    resend_turn_id: str | None = None
+
+
 class LanguageIntention(BaseModel):
     """Languages (1/5): one of `config.LANGUAGES`; any other value is refused (422)."""
 
@@ -1424,6 +1432,18 @@ def create_app(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
             ) from None
         return {"cleared": True}
+
+    @app.post("/api/intentions/compact")
+    def compact(intention: CompactIntention) -> dict[str, bool]:
+        """V1.4 story 4, class (b): refused outside `idle`, without an exchange, with the short
+        memory off or on a stale card, with the reason (409)."""
+        try:
+            app_session.compact(intention.strategy, intention.resend_turn_id)
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+        return {"started": True}
 
     @app.post("/api/intentions/clear_cache")
     def clear_cache() -> dict[str, bool]:
