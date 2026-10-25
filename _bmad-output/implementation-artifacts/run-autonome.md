@@ -547,3 +547,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:14 · 12.20 · décision · à revoir : copie de travail non vide = démarrage refusé ; argument profile en trop ignoré par le SDK ; « Arrêter » annule aussi un appel MCP ; matrix_row_of("workshop__…") renvoie network (à trancher avec la ligne « exposé ») · eda9fc8
 - 2026-10-25 13:14 · 12.20 · second-avis · lancé (jeton, exception du middleware, filtre hr, cycle de vie) · eda9fc8
 - 2026-10-25 13:14 · 12.14 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; worktree ../wavestack-v12-s14 depuis l'intégration cc3ec10 ; même schéma que 12.11 et 12.13) · cc3ec10
+- 2026-10-25 13:17 · 12.19b · CI · verte · 10106d8
+- 2026-10-25 13:17 · 12.19b · fusion · #117 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.13 et 12.14 prévenues (fiche obligatoire pour chaque option) · 99e71ac
