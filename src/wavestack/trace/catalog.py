@@ -1807,6 +1807,53 @@ class RagLabGraph(BaseModel):
     warnings: list[RagLabWarning] = []
 
 
+class RagLabRaptorPick(BaseModel):
+    """V1.2 story 12: a node RAPTOR's search kept: a passage (level 0) or a summary, its
+    documents, its audience (shown, never filtered), its BM25 score, its text only as a length
+    and a cut preview."""
+
+    node_id: str
+    level: int = 0
+    sources: list[str] = []
+    audience: str = "all"
+    score: float = 0.0
+    chars: int = 0
+    preview: str = ""
+
+
+class RagLabRaptor(BaseModel):
+    """V1.2 story 12 (CAP-7): RAPTOR's search of a Context stage (`raptor_search`): who wrote
+    the tree and its numbers, the labelled estimate (shipped tree), the nodes kept."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    rule_note_text: str | None = None
+    passages: int = 0
+    summaries: int = 0
+    levels: int = 0
+    stale: int = 0
+    estimate: RagLabGraphEstimate | None = None
+    picked: list[RagLabRaptorPick] = []
+    warnings: list[RagLabWarning] = []
+
+
+class RagLabFallback(BaseModel):
+    """V1.2 story 12 (CAP-7): Corrective RAG's fallback: its option, its verdict (`correct`,
+    `incorrect`, `corrected`), the passages kept before and after the second attempt, the
+    question rewritten, whether the workshop answered « je ne sais pas », never the web."""
+
+    option: str
+    verdict: str
+    kept_before: int = 0
+    rewritten: str | None = None
+    kept_after: int | None = None
+    abstained: bool = False
+    web: bool = False
+    warnings: list[RagLabWarning] = []
+
+
 class RagLabWikiShown(BaseModel):
     """V1.2 story 14: a page of the index shown to the model (its title and synthesis cut)."""
 
@@ -1905,6 +1952,9 @@ class RagLabStageEndedPayload(BaseModel):
     # sentence's), with their author, probability and threshold.
     decisions: list[RagLabDecision] = []
     graph: RagLabGraph | None = None  # V1.2 story 13: GraphRAG's query
+    # V1.2 story 12: RAPTOR's search on every level, Corrective RAG's fallback.
+    raptor: RagLabRaptor | None = None
+    fallback: RagLabFallback | None = None
     wiki: RagLabWiki | None = None  # V1.2 story 14
 
 

@@ -251,7 +251,11 @@ def test_invalid_sheets_are_refused_at_load(mutate):
 
 def test_a_story_is_required_outside_the_presets():
     data = copy.deepcopy(raw("fr"))
-    next(a for a in data["architectures"] if a["id"] == "raptor").pop("story")
+    # V1.2 story 12: RAPTOR joined the presets; any architecture still to come serves.
+    waiting = [a for a in data["architectures"] if "story" in a]
+    if not waiting:
+        pytest.skip("every architecture is a workshop preset")
+    waiting[0].pop("story")
     with pytest.raises(ValidationError):
         sheets.SheetsContent.model_validate(data)
 
@@ -346,9 +350,13 @@ def test_literature_hypotheses_sources_and_states():
                     arch.id,
                     h,
                 )
-    raptor = next(a for a in content["fr"].architectures if a.id == "raptor")
-    assert raptor.no_source_text
-    assert not any("raptor" in s.label_text.lower() for s in raptor.sources)
+    # V1.2 story 12: RAPTOR's and CRAG's primary sources, opened and added to the literature.
+    for arch_id, url in (
+        ("raptor", "https://arxiv.org/abs/2401.18059"),
+        ("crag", "https://arxiv.org/abs/2401.15884"),
+    ):
+        arch = next(a for a in content["fr"].architectures if a.id == arch_id)
+        assert not arch.no_source_text and url in {s.url for s in arch.sources}
 
 
 # ---------- compliance wording (criterion 10) ----------
