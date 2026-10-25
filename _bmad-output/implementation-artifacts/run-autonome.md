@@ -124,3 +124,4 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:13 · 15.4 · dev · lancé (Opus, partie 4a exécuteur et API, rebasé sur f29058e1) · —
 - 2026-10-25 22:14 · 15.5 · dev · fini (module 9, 4 scénarios, programme 9 modules et 7 h 45) · 088b1683
 - 2026-10-25 22:14 · 15.5 · second-avis · lancé · —
+- 2026-10-25 22:17 · 15.3 · CI · verte (8/8) sur l'ancienne base ; rebasée sur f29058e1 (cas fournis de 15.2), tests ciblés verts, CI relancée · 435739b9
