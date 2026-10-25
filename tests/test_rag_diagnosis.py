@@ -95,6 +95,24 @@ def test_a_cut_anchor_is_not_indexed_and_the_chunking_is_the_first_fault():
     assert result["steps"][0] == {"kind": "chunking", "intact": False, "rank": None, "of": None}
 
 
+def test_a_passage_retrieved_whole_is_indexed_whatever_the_shipped_cut():
+    # The list holds a chunk the chain indexed (a working copy, another cut): no chunking fault.
+    result = verdict([StageList("vector_search", listed(None, "x"))], whole=False)
+    assert fault_of(result) is None and result["steps"][0]["intact"] is True
+
+
+def test_empty_lists_and_no_list_at_all_are_missing():
+    empty = [StageList("vector_search", []), StageList("context", [])]
+    assert fault_of(verdict(empty)) == ("vector_search", "missing")
+    assert fault_of(verdict([])) == ("context", "missing")
+
+
+def test_a_budget_up_to_the_labs_bound_is_accepted():
+    assert (
+        diagnosis.LiveRequest(question_id="q", chunk_max_chars=700, top_k=20, stages=[]).top_k == 20
+    )
+
+
 def test_absent_from_every_search_list_is_missing_at_the_first_search():
     stages = [
         StageList("vector_search", listed("x", "y")),

@@ -2,14 +2,14 @@
 title: "V2 (4/6) : module « Où naît l'erreur d'un RAG »"
 type: 'feature'
 created: '2026-10-01'
-status: 'absorbed'
+status: 'draft'
 size: 'S à M'
 context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-v2/SPEC.md'
   - '{project-root}/_bmad-output/specs/spec-wavestack-v2/brownfield.md'
 ---
 
-> Absorbée par la V1.2, story 9 (CAP-10, `spec-wavestack-v1-2-atelier-recherche-documentaire/stories/9-diagnostic-du-bon-extrait.md`). Brouillon conservé pour mémoire.
+> Brouillon non déclenché. Dépend des stories 1 à 3. Partiellement absorbée par la V1.2, story 9 (CAP-10, `spec-wavestack-v1-2-atelier-recherche-documentaire/stories/9-diagnostic-du-bon-extrait.md`) : rang du bon extrait par étape de l'Atelier RAG, étape fautive et trois cas rejoués. Reste à faire : le module V2 et ses scénarios (`scenarios.yaml`), le rattachement des prompts suggérés aux questions, le lancement depuis la vue harnais.
 
 ## Intent
 

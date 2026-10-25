@@ -63,7 +63,7 @@ context:
 - [x] Règles de rang et d'étape fautive, sans moyenne.
 - [x] Trois cas enregistrés (`not_indexed`, `ranked_low`, `cut_by_budget`), en fr, en, de.
 - [x] Points d'accès et section de la page, sans toucher `rag.js` ni `lab.py`.
-- [x] CAP-2 à CAP-4 de la spec V2 marqués absorbés.
+- [x] CAP-2 à CAP-4 de la spec V2 marqués partiellement absorbés, restes listés, statut ouvert (décision de l'orchestrateur à la revue).
 - [x] Tests ciblés et E2E `rag_lab_diagnosis`.
 
 **Acceptance Criteria:**
@@ -82,6 +82,25 @@ context:
 
 ## Reports
 
-- Décisions à revoir : seuils par défaut (budget = `top_k` du contexte, chute tolérée N = 2) ; le milieu du contexte est une note, pas une faute ; le cas « coupé par le budget » prend le sens « au-delà de `top_k` », le contexte de l'atelier ne tronquant pas le texte d'un extrait ; trois cas enregistrés à la main, sur des chunks réels du corpus, et non relevés avec les vrais modèles d'embedding et de reranking (à refaire au passage manuel d'Anaël si l'on veut des rangs mesurés) ; la présence entière de l'ancre dans un chunk est recalculée par le serveur avec le découpage livré à la taille du run, ce qui ne tient pas compte de la copie de travail ni de l'index de la brique.
+- Décisions à revoir : seuils par défaut (budget = `top_k` du contexte, chute tolérée N = 2) ; le milieu du contexte est une note, pas une faute ; le cas « coupé par le budget » prend le sens « au-delà de `top_k` », le contexte de l'atelier ne tronquant pas le texte d'un extrait ; trois cas enregistrés à la main, sur des chunks réels du corpus, et non relevés avec les vrais modèles d'embedding et de reranking (à refaire au passage manuel d'Anaël si l'on veut des rangs mesurés) ; la présence entière de l'ancre est acquise dès qu'une liste de l'exécution contient le passage (un extrait listé est un chunk réellement indexé) ; sinon seulement, elle est recalculée avec le découpage livré à la taille du run, ce qui ne tient pas compte d'une copie de travail éditée.
 - Non fait : le diagnostic dans la vue harnais (CAP-2 de la V2 : Orchestration, Contexte LLM, événement au catalogue, tokens du contexte) ; la synthèse A/B nommant la meilleure chaîne (CAP-3 : l'A/B est retiré, la comparaison est celle de l'onglet Comparer, qui ne montre pas encore le rang du passage attendu) ; le rattachement des prompts suggérés aux questions et le module de scénarios `scenarios.yaml` (CAP-4).
 - Le diagnostic n'est pas relu dans `rag.js` (focus par étape) pour laisser la story 12.5 seule sur ce fichier.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 027c807)
+
+Base : origin/main fusionnée (#98, #100, #101, #102 = 1.3.0), sans conflit.
+
+- Important, medium, second avis : découpage jugé sur le corpus livré, un passage retrouvé pouvait être déclaré `not_indexed`. Corrigé : un passage présent dans une liste de l'exécution est entier dans l'index ; repli sur le découpage livré sinon (test ajouté).
+- Important, medium, second avis : sans étape de recherche, aucune faute. Corrigé à deux endroits : la page envoyait seulement les listes non vides (`runLists`), elle envoie maintenant toute étape classante terminée, même vide ; le serveur rend `context:missing` quand aucune étape classante n'est transmise (tests ajoutés).
+- Important, medium, second avis : budget et taille de chunk lus dans la chaîne courante. Corrigé : lus dans `store.run.stages[].params` (`rag_lab_run_started`), la chaîne éditée seulement en repli.
+- Important, medium, second avis : `top_k` borné à 10 contre 20 dans le lab (422). Corrigé : `le=20` pour la requête et les cas (test ajouté).
+- Important, medium, second avis : CAP-2 à CAP-4 de la V2 fermés à tort. Corrigé selon la décision de l'orchestrateur : « partiellement absorbé », restes listés, statut `draft`.
+- Nit, medium, second avis : JS testé seulement par chaînes du HTML, pas d'E2E en CI. Rejeté : la CI ne lance aucun E2E (hors périmètre) ; E2E `rag rag_rerank rag_lab_diagnosis` vert en local. Le scénario seul échoue (il suppose l'index de `rag`, comme documenté).
+- Nit, low, second avis : `lexical_search` masquée quand vide. Corrigé avec le constat 2 (une liste vide est envoyée et dessinée « absent »).
+- Nit, low, second avis : cas dupliqués par langue dans `rag_diagnosis.yaml`. Rejeté : les références sont des positions dans le corpus, identiques dans les trois fichiers, et `test_i18n` impose leur égalité ; seuls titres et explications sont traduits.
+- Nit, low, second avis : `test_i18n` ne vérifiait pas les placeholders. Corrigé : mêmes placeholders par texte dans les trois langues.
+- Nit, low, second avis : collisions probables avec 12.5 (`run_e2e.py` SCENARIOS, fin de `tools/e2e/README.md`, `rag.html`). Reporté à l'intégration : conflits textuels d'ajout, à résoudre en gardant les deux blocs.
+- Complexité : 0 constat (listes bornées à 50 items et 12 étapes ; `resolve` parcourt le corpus par item, sur trois cas fixes).
+

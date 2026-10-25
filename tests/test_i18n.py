@@ -385,6 +385,13 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
     ):  # V1.2 story 9: the same cases and references, texts translated
         fr, tr = diagnosis.load_diagnosis("fr"), diagnosis.load_diagnosis(lang)
         assert fr.texts.model_fields_set == tr.texts.model_fields_set
+
+        def holes(value: object) -> object:  # the placeholders of every text, by field
+            if isinstance(value, dict):
+                return {k: holes(v) for k, v in value.items()}
+            return sorted(re.findall(r"\{(\w+)\}", str(value)))
+
+        assert holes(tr.texts.model_dump()) == holes(fr.texts.model_dump())
         for fr_case, tr_case in zip(fr.cases, tr.cases, strict=True):
             assert fr_case.model_dump(exclude={"title_text", "explain_text"}) == tr_case.model_dump(
                 exclude={"title_text", "explain_text"}

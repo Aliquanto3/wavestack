@@ -8,7 +8,6 @@ import { $, el, fmtInt, quote, registerTab, store } from "./rag.js";
 
 const diag = { texts: null, cases: [] };
 const done = new Map(); // run id -> the diagnosis of that run (a journal event must not ask again)
-const chains = new Map(); // run id -> the chunk size and budget of the chain it ran
 let shownCase = null;
 
 const t = (path, values = {}) => {
@@ -18,10 +17,15 @@ const t = (path, values = {}) => {
   return value.replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ""));
 };
 
+// A setting of the chain the run ran (`rag_lab_run_started` carries its stages' params), not
+// of the chain as edited since; the chain under edit, then the shipped value, as a fallback.
 function paramOf(kind, name, fallback) {
-  const stage = store.pipelines[0]?.stages.find((s) => s.kind === kind);
-  return stage?.params?.[name] ?? fallback;
+  const ran = store.run?.stages.find((s) => s.kind === kind);
+  const edited = store.pipelines[0]?.stages.find((s) => s.kind === kind);
+  return ran?.params?.[name] ?? edited?.params?.[name] ?? fallback;
 }
+
+const RANKED = new Set(["vector_search", "lexical_search", "fusion", "rerank", "context"]);
 
 // ----- drawing one diagnosis (the same for a run and for a recorded case) -----
 
@@ -67,9 +71,10 @@ function drawResult(result) {
 const questionOfRun = () => store.questions.find((q) => q.question_text === store.run?.question) ?? null;
 const finishedWell = () => Boolean(store.run?.ended && store.run.ended.status === "ok");
 
+// An empty list is sent too: a search that found nothing is where the passage was lost.
 function runLists() {
   return store.run.stages
-    .filter((s) => s.status === "ok" && s.ended?.items?.length)
+    .filter((s) => s.status === "ok" && RANKED.has(s.kind) && Array.isArray(s.ended?.items))
     .map((s) => ({ kind: s.kind, items: s.ended.items.map((i) => ({ doc_id: i.doc_id, text: i.text })) }));
 }
 
@@ -82,8 +87,8 @@ async function askRun(question) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question_id: question.id,
-        chunk_max_chars: chains.get(runId).chunk,
-        top_k: chains.get(runId).topK,
+        chunk_max_chars: paramOf("chunking", "chunk_max_chars", 700),
+        top_k: paramOf("context", "top_k", 3),
         stages: runLists(),
       }),
     });
@@ -97,10 +102,6 @@ async function askRun(question) {
 function renderRun() {
   const box = $("rag-diag-run");
   if (!box || !diag.texts) return;
-  // The chain as it stands when the run is first seen (every event of the run renders).
-  if (store.run && !chains.has(store.run.runId)) {
-    chains.set(store.run.runId, { chunk: paramOf("chunking", "chunk_max_chars", 700), topK: paramOf("context", "top_k", 3) });
-  }
   let parts;
   if (!finishedWell()) {
     const typed = $("rag-question").value.trim();

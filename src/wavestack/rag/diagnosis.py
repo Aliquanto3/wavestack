@@ -98,20 +98,27 @@ def diagnose_passage(
         if fault is None:
             fault = {"kind": kind, "reason": reason}
 
-    intact = intact_in(chunks, passage)
-    steps.append({"kind": "chunking", "intact": intact, "rank": None, "of": None})
-    if not intact:
-        blame("chunking", "not_indexed")
-
     by_kind = {s.kind: s for s in stages if s.kind in RANKED}
     ranks: dict[str, int | None] = {}
+    ranked_steps: list[dict[str, Any]] = []
     for kind in RANKED:
         stage = by_kind.get(kind)
         if stage is None:
             continue
         rank = rank_in(stage.items, passage)
         ranks[kind] = rank
-        steps.append({"kind": kind, "rank": rank, "of": len(stage.items)})
+        ranked_steps.append({"kind": kind, "rank": rank, "of": len(stage.items)})
+
+    # A list item is a chunk the chain did index: the passage found whole in one is whole in
+    # the index, whatever the shipped corpus' cut (a working copy, another chunk size).
+    intact = any(r is not None for r in ranks.values()) or intact_in(chunks, passage)
+    steps.append({"kind": "chunking", "intact": intact, "rank": None, "of": None})
+    steps.extend(ranked_steps)
+    if not intact:
+        blame("chunking", "not_indexed")
+    if not ranks:
+        # No stage ordered passages (nothing retrieved, nothing in the context): not found.
+        blame("context", "missing")
 
     searched = [k for k in SEARCHES if k in ranks]
     best_search = min((r for k in searched if (r := ranks[k]) is not None), default=None)
@@ -215,7 +222,7 @@ class FailureCase(_Strict):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     question_id: str
     chunk_max_chars: int = Field(ge=200, le=1500)
-    top_k: int = Field(ge=1, le=10)
+    top_k: int = Field(ge=1, le=20)
     expected_fault: str  # `kind:reason`, held by the tests, never shown
     title_text: str = Field(min_length=1)
     explain_text: str = Field(min_length=1)
@@ -362,7 +369,7 @@ class LiveRequest(_Strict):
 
     question_id: str = Field(max_length=100)
     chunk_max_chars: int = Field(ge=200, le=1500)
-    top_k: int = Field(default=DEFAULT_BUDGET, ge=1, le=10)
+    top_k: int = Field(default=DEFAULT_BUDGET, ge=1, le=20)  # the lab's BOUNDS
     tolerance: int = Field(default=DEFAULT_TOLERANCE, ge=0, le=10)
     stages: list[LiveStage] = Field(max_length=12)
 
