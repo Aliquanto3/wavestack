@@ -6568,7 +6568,10 @@ class AppSession:
                 self._start(message, chained=True)
                 resent = True
         except SendRefused:
-            pass  # the model left meanwhile: nothing is sent
+            # The model left meanwhile: nothing is sent, and the replay, which holds the
+            # history before the strategy, goes (it would bring that history back).
+            with self._lock:
+                self._last = None
         except Exception as exc:  # noqa: BLE001 - AD-16: the session stays usable
             self._error(
                 Message("session.compaction.failed"), exc, Message("session.compaction.unchanged")
@@ -6593,7 +6596,7 @@ class AppSession:
         (never an earlier one: the last structural change); the replay goes when nothing is
         sent again; locally, the documentations read in a removed exchange are unloaded
         (D16-b). Returns the removed turn ids and the preview's tokens before."""
-        before = self._preview_payload()["used"]
+        before = self._preview_used(0)
         with self._lock:
             self._history[:] = [*head, *kept]
             self._cache_cause = strategy
@@ -6604,6 +6607,15 @@ class AppSession:
                 self._loaded_docs.intersection_update(compaction.kept_docs(kept, self._loaded_docs))
         return [ex.turn_id for ex in removed], before
 
+    def _preview_used(self, default: int) -> int:
+        """The preview's tokens for `history_compacted`, `default` if it cannot be rendered:
+        the history is rewritten already, a failure here must not report the strategy as
+        failed (criterion 9: a failed strategy leaves the history unchanged)."""
+        try:
+            return int(self._preview_payload()["used"])
+        except Exception:  # noqa: BLE001 - the figure only
+            return default
+
     def _apply_sliding_window(self, plan: compaction.Plan, forget_last: bool) -> bool:
         """The `n - kept` oldest exchanges removed, without any call nor turn."""
         with self._lock:
@@ -6611,7 +6623,7 @@ class AppSession:
         cut = len(history) - plan.kept
         removed, kept = history[:cut], history[cut:]
         ids, before = self._history_compacted("sliding_window", removed, kept, [], forget_last)
-        after = self._preview_payload()["used"]
+        after = self._preview_used(before)
         with scoped(turn_id=None, context_id=None, call_id=None, step_id=None, component=None):
             self._journal().emit(
                 "history_compacted",
@@ -6655,12 +6667,16 @@ class AppSession:
                     },
                     actor="harness",
                 ).seq
-                status, summary = self._summarize(turn_id, removed, cancel)
+                status, summary, dropped = self._summarize(turn_id, removed, cancel)
                 if status == "completed":
                     head = [Exchange(turn_id, request, summary, "")._replace(summary=True)]
                     ids, before = self._history_compacted(
                         "compaction", removed, kept, head, forget_last
                     )
+                    # The exchanges summarized, then those the transcript could not hold.
+                    told = self._t("session.compaction.summarized", count=len(ids) - dropped)
+                    if dropped:
+                        told += " · " + self._t("session.compaction.dropped", count=dropped)
                     journal.emit(
                         "history_compacted",
                         {
@@ -6668,10 +6684,8 @@ class AppSession:
                             "removed_turn_ids": ids,
                             "summary_text": summary,
                             "before_tokens": before,
-                            "after_tokens": self._preview_payload()["used"],
-                            "message_text": self._t(
-                                "session.compaction.summarized", count=len(ids)
-                            ),
+                            "after_tokens": self._preview_used(before),
+                            "message_text": told,
                         },
                         actor="harness",
                     )
@@ -6693,12 +6707,13 @@ class AppSession:
 
     def _summarize(
         self, turn_id: str, exchanges: list[Exchange], cancel: CancelToken
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, int]:
         """The summary call: `content/prompts/compaction.md` as its system message, the
         transcript of `exchanges` (masked texts of the history, the oldest dropped from the
         transcript when it does not hold), no tools, no reasoning, no hook, its output
         bounded to `compaction_max_tokens`. Locally, the main context's engine state is
-        saved and restored around it, as the RAG workshop does. Returns `(status, text)`."""
+        saved and restored around it, as the RAG workshop does. Returns `(status, text,
+        dropped)`, `dropped` the oldest exchanges left out of the transcript."""
         entries = compaction.transcript_entries(exchanges, self._transcript_labels())
         prompt = config.content_file("prompts/compaction.md", self._language)
         instruction = prompt.read_text(encoding="utf-8").strip()
@@ -6725,7 +6740,8 @@ class AppSession:
             self._journal().emit("context_rendered", payload)
             if payload["overflow"]:
                 self._emit_overflow(payload, getattr(rendered, "raw_total", None))
-                return "overflow", ""
+                return "overflow", "", 0
+            dropped = len(exchanges) - len(entries)
             if self._cloud is None:
                 saved = self._save_main_state()
                 try:
@@ -6736,8 +6752,8 @@ class AppSession:
                 out = self._call_model(rendered, cancel, (), bound)
         text = (out.text or "").strip()
         if out.status in ("completed", "limit") and text:
-            return "completed", text
-        return (out.status if out.status in ("cancelled", "limit") else "error"), ""
+            return "completed", text, dropped
+        return (out.status if out.status in ("cancelled", "limit") else "error"), "", 0
 
     def _render_summary(
         self, messages: list[dict[str, Any]], call_id: str, reserve: int

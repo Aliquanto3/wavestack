@@ -251,6 +251,10 @@ session:
     removed:
       one: "{count} échange retiré (fenêtre glissante)"
       other: "{count} échanges retirés (fenêtre glissante)"
+    # The oldest exchanges that did not fit in the summary call's transcript.
+    dropped:
+      one: "{count} plus ancien retiré sans résumé (transcription trop longue)"
+      other: "{count} plus anciens retirés sans résumé (transcription trop longue)"
     failed: "La compaction a échoué."
     unchanged: "La conversation reste telle qu'elle était ; aucun message n'est renvoyé."
     transcript:

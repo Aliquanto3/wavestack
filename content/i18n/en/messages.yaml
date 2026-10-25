@@ -245,6 +245,10 @@ session:
     removed:
       one: "{count} exchange removed (sliding window)"
       other: "{count} exchanges removed (sliding window)"
+    # The oldest exchanges that did not fit in the summary call's transcript.
+    dropped:
+      one: "{count} oldest removed without a summary (transcript too long)"
+      other: "{count} oldest removed without a summary (transcript too long)"
     failed: "The compaction failed."
     unchanged: "The conversation stays as it was; no message is sent again."
     transcript:

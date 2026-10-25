@@ -451,14 +451,51 @@ modules et de scénarios) et l'ancre `\n\ntransverse:` de `test_compression.py`.
 - E2E : `compaction`, `sliding_window`, `compact_button` ; la jauge du cache (« écrit », causes
   « fenêtre glissante » et « compaction ») est vérifiée en mode local par `_compaction_cache`,
   appelé dans `local_server` (le faux modèle cloud n'a pas de `prefix_not_reused`).
-- Non couverts par un test dédié : renvoi sans attente MCP depuis le worker (le code saute
-  `_wait_mcp_connections` quand `chained`), débordement d'atelier MCP (`choices` vide par
-  construction : `_emit_overflow` sans `main`).
+- Renvoi sans attente MCP depuis le worker : couvert à la revue
+  (`test_the_resend_from_the_worker_never_waits_for_the_mcp_connections`). Débordement d'atelier
+  MCP : sans test, l'atelier n'émet pas `context_overflow` (son refus passe par
+  `mcp_lab_model_ended`, `outcome: overflow`), aucune carte possible.
 
 ## Reports
 
 - Cause du cache côté cloud (point 2).
 - Calibrage du scénario `compaction` avec le vrai modèle en recette (point 1) : vérifier sur le PC cible
   que p1 et p2 tiennent, que p3 déborde, et que p3 tient après compaction et après fenêtre glissante.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu d6b5308)
+
+Fusion d'origin/main (#101 module 8 « Cache », #102, #103) avant la revue : module 7 à 60 min
+suivi du module 8, 28 scénarios, programme de 7 h (README, guide, `tools/demo/compose.py`).
+
+- Important · medium · second avis 4 · corrigé : conflits et totaux, résolus par la fusion ci-dessus.
+
+- Important · medium · second avis 1 · corrigé : la transcription du résumé perdait ses plus anciens
+  échanges sans le dire (« N échanges résumés » pour N retirés). `_summarize` rend le nombre laissé
+  hors transcription ; le marqueur dit « k échanges résumés · m plus anciens retirés sans résumé »
+  (fr, en, de). Test `test_exchanges_the_transcript_cannot_hold_are_counted_apart`.
+- Important · medium · second avis 2 · corrigé : boutons de la carte restés désactivés après une
+  compaction annulée ou en erreur (la carte reste valide côté session). `store.compactPending`, rendu
+  au `turn_ended` du tour de compaction non `completed`. Vérifié par E2E existants (pas de E2E dédié).
+- Important · low · second avis 5 · corrigé : `_preview_payload()` après la réécriture de
+  l'historique ; une exception passait le tour en `error` avec l'historique déjà changé (critère 9).
+  `_preview_used(default)`. Test `test_a_preview_failing_after_the_rewrite_keeps_the_strategy_applied`.
+- Important · low · second avis 9 · corrigé : `SendRefused` sur le renvoi chaîné laissait `_last` sur
+  l'historique d'avant la stratégie (« Rejouer » l'aurait rétabli) ; `_last = None`. Test
+  `test_a_refused_resend_forgets_the_replay`.
+- Nit · low · second avis 7 · corrigé : « Rejouer le dernier prompt » actif après une stratégie sans
+  renvoi (la session refusait) ; `store.replayGone`, levé au tour de message suivant.
+- Nit · low · second avis 8 · corrigé : test du renvoi sans attente MCP ajouté ; test d'atelier MCP
+  rejeté (l'atelier n'émet pas `context_overflow`).
+- Rejeté · medium · second avis 3 : débordement à un appel ultérieur, boutons affichés et tour rejoué
+  avec ses outils. C'est la décision 7 du point de contrôle (boutons dès qu'un échange existe, choix
+  indisponible si le `k` minimal ne tient pas) ; les outils de la démo sont en lecture seule, et
+  « Rejouer » rejoue déjà les outils. À revoir par Anaël avec la décision 7.
+- Nit · low · second avis 6 · reporté : Mémoire courte éteignable pendant une stratégie (le renvoi part
+  alors sans historique, sans incohérence d'état).
+- Nit · low · second avis 7 (suite) · reporté : le tour de compaction figure dans les listes de tours
+  (Comparer, Orchestration) ; voulu pour l'Orchestration (décision 5), à trancher pour Comparer.
+- Complexité : 0 constat (masquage par `Set`, plan en O(log n) rendus, marqueurs en nombre borné).
 
 </intent-contract>

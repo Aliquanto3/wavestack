@@ -82,6 +82,8 @@ const store = {
   compactUsed: new Set(),
   compactErrors: new Map(), // overflow turn id -> refusal text
   compactMenuError: null,
+  compactPending: null, // the overflow card whose compaction turn runs
+  replayGone: false, // a strategy without a resend forgot the replay (the session's `_last`)
   // Story 10: the last `scenario_changed` ({ program, active }); the seq of the last
   // `harness_reset`, the first journal index the event log shows, and the top bar's message.
   scenarios: null,
@@ -393,6 +395,7 @@ function applyEnvelope(envelope) {
         });
       }
       if (turn) turn.summaryText = p.summary_text;
+      store.replayGone = true; // until the resent message's turn, if any
       dropSelection();
       break;
     case "compaction_state":
@@ -446,6 +449,7 @@ function applyEnvelope(envelope) {
       store.topStatus = null;
       store.compare = null; // the new turn's live context shows in Contexte LLM
       store.ctxView = null; // story 22: each new turn opens on « Agent principal »
+      if ((p.kind ?? "message") === "message") store.replayGone = false; // V1.4 story 4
       store.turns.push({
         id: envelope.turn_id,
         message: p.message,
@@ -725,6 +729,11 @@ function applyEnvelope(envelope) {
         // GreenOps: its footprint likewise, when one of its calls had one.
         turn.footprint = p.energy_wh_min != null ? p : null;
         announce(turn);
+        // V1.4 story 4: a compaction cancelled or failed leaves its card valid: buttons back.
+        if (turn.kind === "compaction" && store.compactPending) {
+          if (p.status !== "completed") store.compactUsed.delete(store.compactPending);
+          store.compactPending = null;
+        }
       }
       break;
   }
@@ -3499,9 +3508,11 @@ async function postCompact(body) {
 async function compactFromCard(turnId, strategy) {
   store.compactUsed.add(turnId);
   store.compactErrors.delete(turnId);
+  if (strategy === "compaction") store.compactPending = turnId;
   render();
   const refused = await postCompact({ strategy, resend_turn_id: turnId });
   if (refused) {
+    if (store.compactPending === turnId) store.compactPending = null;
     store.compactUsed.delete(turnId);
     store.compactErrors.set(turnId, refused);
   }
@@ -3778,7 +3789,8 @@ function renderComposer() {
   clearCacheButton.title = clear.disabled ? clear.title : inCloud ? t("main.chat.clear_cache_cloud") : "";
   renderCompactMenu(state); // V1.4 story 4
   const replay = document.getElementById("replay-last");
-  replay.disabled = clear.disabled || shownTurns().length === 0; // class (b), story 9b
+  // Class (b), story 9b; V1.4 story 4: nothing to replay after a strategy without a resend.
+  replay.disabled = clear.disabled || shownTurns().length === 0 || store.replayGone;
   replay.title = clear.disabled ? clear.title : replay.disabled ? t("main.chat.nothing_to_replay") : "";
   const compare = document.getElementById("compare-turns");
   compare.disabled = shownTurns().length < 2;

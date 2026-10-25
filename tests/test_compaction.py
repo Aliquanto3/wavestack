@@ -16,7 +16,7 @@ from test_cloud_cap import _settings, _spent_already
 
 from wavestack import config
 from wavestack.session import compaction
-from wavestack.session.app_session import Exchange, SendRefused
+from wavestack.session.app_session import Exchange, Message, SendRefused
 from wavestack.trace.catalog import PAYLOAD_MODELS
 from wavestack.trace.journal import get_journal
 
@@ -329,6 +329,95 @@ def test_the_compact_menu_compacts_without_sending_and_forgets_the_replay():
     assert all(c["available"] for c in state["choices"])  # the summary counts: 3 > keep 2
     with pytest.raises(SendRefused):
         session.replay()
+    session.close()
+
+
+def test_exchanges_the_transcript_cannot_hold_are_counted_apart():
+    # Review: two old exchanges of ~1 100 bytes do not both fit in the summary call
+    # (2048 - 64 usable): the oldest leaves the transcript, and the marker says so instead
+    # of « 2 échanges résumés ».
+    _, session = session_with_history(["ok", "ok", "ok", "Résumé."])
+    first = session._history[0]
+    big = [first._replace(turn_id=f"{first.turn_id}{i}", user=f"{i}" + "x" * 1100) for i in "01"]
+    session._history[:1] = big  # four exchanges: the two oldest summarized (keep 2)
+    mark = get_journal().last_seq()
+
+    session.compact("compaction")
+    settle(session)
+
+    (compacted,) = payloads(mark, "history_compacted")
+    assert compacted["removed_turn_ids"] == [ex.turn_id for ex in big]
+    assert compacted["message_text"] == (
+        "1 échange résumé (compaction) · "
+        "1 plus ancien retiré sans résumé (transcription trop longue)"
+    )
+    summary_turn = events_of(mark, "turn_started")[0].turn_id
+    (ctx,) = [e.payload for e in events_of(mark, "context_rendered") if e.turn_id == summary_turn]
+    text = "".join(s["text"] for s in ctx["segments"])
+    assert "Utilisateur : 1x" in text and "Utilisateur : 0x" not in text
+    session.close()
+
+
+def test_a_preview_failing_after_the_rewrite_keeps_the_strategy_applied(monkeypatch):
+    # Review (criterion 9): once the history is rewritten, the figures of `history_compacted`
+    # cannot turn the compaction into a failure that left the history half changed.
+    _, session = session_with_history(["ok", "ok", "ok", "Résumé."])
+    mark = get_journal().last_seq()
+
+    def broken() -> dict:
+        raise RuntimeError("aperçu indisponible")
+
+    monkeypatch.setattr(session, "_preview_payload", broken)
+    session.compact("compaction")
+    settle(session)
+
+    (compacted,) = payloads(mark, "history_compacted")
+    assert compacted["before_tokens"] == compacted["after_tokens"] == 0
+    assert payloads(mark, "turn_ended")[-1]["status"] == "completed"
+    assert session._history[0].summary and len(session._history) == 3
+    session.close()
+
+
+def test_the_resend_from_the_worker_never_waits_for_the_mcp_connections():
+    # Decision 4: `_wait_mcp_connections` runs in `compact` (the caller's thread), never on
+    # the worker, which applies the connections and would wait for their whole delay.
+    _, session = session_with_history(["ok", "ok", "ok", "Résumé.", "Fini."])
+    turn_id, _ = overflow(session)
+    threads: list[threading.Thread] = []
+    wait = session._wait_mcp_connections
+
+    def spy() -> None:
+        threads.append(threading.current_thread())
+        wait()
+
+    session._wait_mcp_connections = spy
+    mark = get_journal().last_seq()
+    session.compact("compaction", turn_id)
+    settle(session)
+
+    assert threads == [threading.current_thread()]
+    assert [p.get("kind", "message") for p in payloads(mark, "turn_started")] == [
+        "compaction",
+        "message",
+    ]
+    session.close()
+
+
+def test_a_refused_resend_forgets_the_replay(monkeypatch):
+    # Review: the model gone before the resend, `_last` would replay the history from before
+    # the strategy, and bring it back.
+    _, session = session_with_history()
+    turn_id, _ = overflow(session)
+
+    def gone(message, chained=False):  # noqa: ANN001, ANN202
+        raise SendRefused(Message("session.refused.no_model"))
+
+    monkeypatch.setattr(session, "_start", gone)
+    session.compact("sliding_window", turn_id)
+    settle(session)
+
+    assert session._last is None and session.state == "idle"
+    assert len(session._history) == 1
     session.close()
 
 

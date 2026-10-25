@@ -247,6 +247,10 @@ session:
     removed:
       one: "{count} Austausch entfernt (gleitendes Fenster)"
       other: "{count} Austausche entfernt (gleitendes Fenster)"
+    # The oldest exchanges that did not fit in the summary call's transcript.
+    dropped:
+      one: "{count} ältester ohne Zusammenfassung entfernt (Transkript zu lang)"
+      other: "{count} älteste ohne Zusammenfassung entfernt (Transkript zu lang)"
     failed: "Die Kompaktierung ist fehlgeschlagen."
     unchanged: "Die Unterhaltung bleibt, wie sie war; keine Nachricht wird erneut gesendet."
     transcript:
