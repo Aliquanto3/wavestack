@@ -310,3 +310,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:53 · 12.15 · dev · phase 2 (code) lancée · 6b1898b
 - 2026-10-25 07:54 · 12.5 · second-avis · 0 high, 2 medium (course sur « Modifier » : fin émise avant la sauvegarde de la copie, préexistante, cause probable de l'échec E2E ; préambule du modèle pris pour une requête), 3 low · 9573146
 - 2026-10-25 07:54 · 12.5 · review · lancé (fusion de main d'abord) · 9573146
+- 2026-10-25 07:57 · 12.6 · review · spec approuvée ; STEPS et clé de cache de paragraphs inchangés, contexte heuristique « Extrait n/N de… » étiqueté « heuristique, sans LLM », intention rag_lab_rebuild, critère 14 ajouté · 282e90b
+- 2026-10-25 07:57 · 12.6 · décision · à revoir : 8 points tranchés par le relecteur Opus (late chunking reporté, contextes valables à 700 caractères seulement, enfants ≤ 300, contextes reconstruits dans le dossier de données) · 282e90b
+- 2026-10-25 07:57 · 12.6 · attente humaine · facultatif : regénérer rag_contexts.yaml avec un vrai modèle ; mesurer une reconstruction complète sur le PC cible ; vérifier les sources des fiches · —
+- 2026-10-25 07:57 · 12.6 · dev · phase 2 (code) lancée · 282e90b
