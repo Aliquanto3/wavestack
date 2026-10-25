@@ -14483,7 +14483,7 @@ def s_rag_lab_diagnosis(r: Run) -> None:
         expect(page.locator("#rag-diag-title")).to_have_text(
             "Où se perd le bon extrait ?", timeout=5000
         )
-        page.fill("#rag-question", "Une question libre")
+        _rag_lab_run(r, "Une question libre")
         r.check(
             "Question libre" in page.locator("#rag-diag-run").inner_text(),
             "diagnostic : une question libre n'a pas de passage attendu",
