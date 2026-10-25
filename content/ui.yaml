@@ -1204,6 +1204,7 @@ rag:
   cache_evaluated: "Évalués : {tokens} tokens"
   cache_build: "Préfixe construit en {ms} ms"
   cache_size: "Taille de l'état : {mb} Mo"
+  sheets_error: "Les fiches n'ont pas pu être chargées. Rouvrez l'onglet pour réessayer."
   # V1.2 story 11: the agent's rounds, PageIndex's descent and its « Arbre » card.
   agent_title: "Tours de la boucle d'outils : {rounds} / {max}"
   agent_round: "Tour {round}"
