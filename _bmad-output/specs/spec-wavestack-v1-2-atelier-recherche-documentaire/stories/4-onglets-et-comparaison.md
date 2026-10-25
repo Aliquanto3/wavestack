@@ -78,5 +78,21 @@ context:
 
 ## Reports
 
-- Décisions à revoir : épingle gardée dans le navigateur (`localStorage`), pas côté session ; titre renommé mais lien de la barre « RAG » et infobulles inchangés ; les préréglages en 11 boutons groupés, le rang du passage attendu et l'arbre des étapes ne sont pas faits ; questions de suivi (avec historique) exclues du sélecteur ; la ligne « contexte » compare les passages de l'étape Contexte.
+- Décisions à revoir : épingle gardée dans le navigateur (`localStorage`), pas côté session, et liée ni à la langue ni au corpus ; titre renommé mais lien de la barre « RAG » et infobulles inchangés ; les préréglages en 11 boutons groupés, le rang du passage attendu et l'arbre des étapes ne sont pas faits ; questions de suivi (avec historique) exclues du sélecteur ; la ligne « contexte » compare les passages de l'étape Contexte.
 - Les noms de l'atelier dans les messages et libellés du journal (« Atelier RAG : exécution en cours ») gardent l'ancien nom.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu a1b5265)
+
+Base : `origin/main` fusionnée (a1b5265, sans rebase) ; conflits de la 12.3 squashée résolus en gardant les ajouts de la story. Contrat d'onglets (`rag-<onglet>.js` enregistrés par `registerTab` auprès de `rag.js`) conservé.
+
+- Important · medium · second avis · corrigé : `_rag_lab_questions` n'attrapait pas `yaml.YAMLError` ; un `rag_questions.yaml` mal formé faisait échouer `GET /api/rag_lab` et `main()` de `rag.js` attendait sans fin. Test `test_a_broken_questions_file_leaves_the_page_without_questions` (rouge sans le correctif).
+- Important · medium · second avis · corrigé : rien ne vérifiait que `rag.html` charge chaque `rag-<onglet>.js` (la CI ne lance pas l'E2E). Test `test_the_page_loads_each_tab_file_after_the_shell`.
+- Nit · low · second avis · corrigé : `loadPin` acceptait une étape sans `items` (TypeError dans `roleOf`, onglets suivants cassés dans `everyTab`).
+- Nit · low · second avis · corrigé : le sélecteur de question préparée était reconstruit à chaque événement du journal et fermait un menu ouvert pendant un run ; reconstruit seulement quand la liste change.
+- Nit · low · second avis · corrigé : capture d'échec `echec-rag_lab_views.jpg` retirée, `tools/e2e/screenshots/echec-*.jpg` ignoré.
+- Nit · low · second avis · corrigé en partie : Début et Fin au clavier sur les onglets ; pas de `tabindex` sur les panneaux, rejeté : Construire et Comparer ont des contrôles focalisables, les trois « à venir » n'ont qu'une phrase.
+- Nit · low · second avis · rejeté : épingle non liée à la langue ni au corpus. Une autre question déclenche déjà l'avertissement, et un autre corpus se lit dans les passages ; lier l'épingle relève d'une décision d'Anaël (ajoutée aux décisions à revoir).
+- Complexité : 0 constat. À chaque événement, `render` des onglets : Construire ne fait plus qu'une recherche dans la liste des questions ; Comparer ne se redessine que s'il est affiché, en O(étapes × passages) d'une exécution bornée.
+- Note E2E : `rag_lab_views` et `rag_lab` supposent `rag` lancé avant (index construit, catalogue de téléchargements) ; seuls, ils échouent. Vert avec `--only rag rag_rerank rag_lab rag_lab_views` (163/163), sur un arbre propre : la vérification « dépôt intact » de `rag_lab` compare `git status` et échoue sur un arbre modifié pendant le run.
