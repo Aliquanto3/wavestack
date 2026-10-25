@@ -11,7 +11,7 @@ Lancé le 2026-10-24 à la demande d'Anaël, après le run SLM A/B (archivé dan
 
 Specs : `_bmad-output/specs/spec-wavestack-cache-visible/` (V1.3), `spec-wavestack-etat-de-l-art-harnais/` (V1.4), `spec-wavestack-v1-2-atelier-recherche-documentaire/` (V1.2).
 
-Au plus 2 stories en développement à la fois
+Au plus 3 stories en développement à la fois (3e créneau seulement pour une story sans fichier commun avec les deux autres ; sinon 2 ; décision d'Anaël du 2026-10-25)
 
 ## Sprint 1 — V1.3 cache visible
 
@@ -540,3 +540,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:09 · 12.13 · décision · à revoir : D1 graphe heuristique livré, D2 sans networkx, D5 construction du graphe livré moins chère que dense (surcoût prouvé sur graphe reconstruit), D7 pas de filtre hr (décision transverse) · 0cdc471
 - 2026-10-25 13:09 · 12.13 · attente humaine · done_checkpoint : reconstruction du graphe avec un vrai modèle sur le PC cible (durée, tokens, graph_passages_fallback), local et global contre l'hybride, coût dans Comparer · —
 - 2026-10-25 13:09 · 12.13 · dev · phase 2 (code) lancée (Opus, effort high ; fusion de l'intégration avec 12.11 d'abord) · 0cdc471
+- 2026-10-25 13:09 · run · décision · Anaël : 3 créneaux de développement, le 3e seulement pour une story sans fichier commun avec les deux en cours · —
