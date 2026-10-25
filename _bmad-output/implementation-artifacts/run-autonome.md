@@ -53,3 +53,6 @@ Au plus 2 stories en développement à la fois
 ## Journal
 
 - 2026-10-25 20:50 · run · décision · run V1.5 lancé ; run précédent archivé ; Ollama non requis (Anaël lance un benchmark) · —
+- 2026-10-25 20:58 · run · fusion · #134 MERGED dans main (squash) : spec V1.5 · 3214fec5
+- 2026-10-25 20:58 · 15.1 · dev · lancé (Opus, ../wavestack-v15-s1) · —
+- 2026-10-25 20:58 · 15.6 · dev · lancé (Sonnet, ../wavestack-v15-s6) · —
