@@ -1499,6 +1499,18 @@ body.rag-page {
   white-space: pre-wrap;
 }
 
+/* V1.2 story 5 (CAP-3): the queries the query understanding produced, in the focus. */
+.rag-focus-queries-title {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-focus-queries-list {
+  margin: 0;
+  padding-left: var(--spacing-5);
+  overflow-wrap: anywhere;
+}
+
 /* V1.2 story 9 (CAP-10): the rank of the expected passage at each stage, the stage at fault. */
 .rag-diag-passage {
   margin-top: var(--spacing-3);

@@ -575,6 +575,7 @@ session:
     generation_active: "Aktives Modell der Werkstatt: {model}"
     generation_no_model: "Kein Modell in der Werkstatt geladen: Der Schritt Generation wird übersprungen. Laden Sie ein Modell und starten Sie die Kette erneut."
     generation_stops: "Die Generierung der RAG-Werkstatt bricht ab; WaveStack bleibt nutzbar."
+    query_no_model: "In der Werkstatt ist kein Modell geladen: Das Verstehen der Anfrage wird übersprungen und die Frage unverändert gesucht. Laden Sie ein Modell und starten Sie die Kette erneut."
     update_too_long: "Text zu lang: höchstens {max} Zeichen."
     update_bad_id: "Ungültige Kennung: nur Kleinbuchstaben, Ziffern und _."
     update_id_taken: "Die Kennung {doc} gibt es im Korpus schon."
@@ -1001,6 +1002,7 @@ rag_lab:
     out_of_bounds: "Schritt „{stage}“: {bounds}."
     bounds: "{setting} zwischen {low} und {high} {unit}"
     too_few_candidates: "Schritt „{stage}“: {kept}, weniger als die {extracts}, die der Kontext behalten soll. Behalten Sie mindestens {candidates}, oder behalten Sie weniger Auszüge."
+    query_before: "Schritt „{stage}“: Er erzeugt die Anfragen, welche die Suchen ausführen, und muss daher vor ihnen stehen. Verschieben Sie ihn vor die Suchen."
   not_installed: "Nicht verfügbar: {library} ist nicht installiert. Im Ordner von WaveStack: `{command}`, dann starten Sie WaveStack neu. Ohne `--extra compression` würde Headroom entfernt."
   folder_held: "Der Ordner {folder} kann nicht gelöscht werden ({error}: {cause}): Möglicherweise hält ein anderes Programm ihn geöffnet. Schließen Sie es, oder löschen Sie den Ordner rag_lab bei gestopptem WaveStack."
   load_failed: "Das {noun} {model} konnte nicht geladen werden ({error}: {cause})."
@@ -1036,6 +1038,8 @@ rag_lab:
     score_reading: Lesart des Scores
     prompt_tokens: Tokens des Prompts
     output_tokens: Erzeugte Tokens
+    embedded_as: Vektorisiert
+    queries: Gesuchte Anfragen
   chunking:
     source_corpus: "dem Korpus (content/corpus), für diese Ausführung zerlegt"
     source_index: "dem Index des RAG-Bausteins (bei seiner Erstellung zerlegt)"
@@ -1163,6 +1167,23 @@ rag_lab:
     cut: "Antwort bei {max} Tokens abgeschnitten: Die Ausgabereserve einer Runde der Werkstatt ist erreicht."
     empty: "Das Modell hat nichts geantwortet."
     model_error: "Das Modell ist während der Generierung gescheitert: Das Ereignisprotokoll sagt, warum."
+  query:
+    input: "Frage: {question}."
+    input_history: "Frühere Fragen der Werkstatt: {history}."
+    unchanged: "Keine Anfrage erzeugt: Die Frage wird unverändert gesucht."
+    no_history: "Keine frühere Frage in dieser Sitzung: Die Frage wird unverändert gesucht."
+    no_history_reason: "Keine frühere Frage in dieser Sitzung: Stellen Sie zuerst eine erste Frage, dann die Nachfrage. Die Frage wird unverändert gesucht."
+    no_model: "In der Werkstatt ist kein Modell geladen: Das Verstehen der Anfrage wird übersprungen und die Frage unverändert gesucht. Laden Sie ein Modell und starten Sie die Kette erneut."
+    too_long: "Der Prompt der Aufgabe überschreitet das Fenster ({window} Tokens): Nichts wird an das Modell gesendet, die Frage wird unverändert gesucht."
+    model_error: "Das Modell ist beim Verstehen der Anfrage gescheitert: Die Frage wird unverändert gesucht; das Ereignisprotokoll sagt, warum."
+    empty: "Das Modell hat nichts Brauchbares geliefert: Die Frage wird unverändert gesucht."
+    as_passage: "wie eine Passage des Korpus, nicht wie eine Frage"
+    follow_up_user: "Frühere Fragen:\n{history}\n\nNachfrage: {question}"
+    instruction:
+      rewrite: "Du schreibst eine Frage für eine Suche in einer Basis von Unternehmensdokumenten um. Antworte mit einer einzigen Anfrage, ohne Erklärung und ohne Anführungszeichen: die Wörter und genauen Begriffe, die das gesuchte Dokument enthielte, in der Sprache der Frage."
+      decompose: "Du zerlegst eine komplexe Frage in einfache Teilfragen, die jeweils für sich in einer Basis von Unternehmensdokumenten gesucht werden können. Antworte mit höchstens {max} Teilfragen, eine pro Zeile, ohne Nummer und ohne Erklärung. Ist die Frage schon einfach, antworte nur mit ihr."
+      follow_up: "Du formulierst die letzte Frage eines Gesprächs so um, dass sie ohne die früheren Beiträge verständlich ist: Ersetze Pronomen und Andeutungen durch das, was sie meinen. Antworte mit einer einzigen Frage, ohne Erklärung."
+      hyde: "Du schreibst in einem kurzen Absatz die plausible Antwort auf die Frage, als stammte sie aus einem Unternehmensdokument. Sie darf sachliche Fehler enthalten: Sie dient nur dazu, nahe Passagen zu finden. Keine Einleitung."
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:

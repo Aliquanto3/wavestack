@@ -76,6 +76,7 @@ memory_text: "WaveStack's memory"
 last_run_text: "Last run"
 reset_chain_text: "Back to the default pipeline"
 unavailable_text: "unavailable"
+queries_text: "Queries produced"
 add_text: "Add a component"
 add_button_text: "Add"
 move_before_text: "Move before"
@@ -159,6 +160,14 @@ stages:
       depends on what the previous steps brought it. Here, the workshop's active model answers,
       with the workshop's system prompt and a turn's bounds (output reserve, reasoning budget);
       the answer does not join the conversation.
+  query:
+    label_text: "Query understanding"
+    explain_text: >-
+      Before the search, the workshop's active model rewrites the question, breaks it down into
+      sub-questions, makes it stand on its own or invents a plausible answer (HyDE); the
+      searches then look for these queries instead of the question as typed. Each query costs a
+      model call, and a model that gets it wrong rules out the right answer before the search
+      even starts.
 
 # Each option's name; those naming a declared model take its label.
 options:
@@ -199,6 +208,15 @@ options:
       label_text: "The workshop's active model"
     not_run:
       label_text: "Do not generate"
+  query:
+    rewrite:
+      label_text: "Question rewriting"
+    decompose:
+      label_text: "Decomposition into sub-questions"
+    follow_up:
+      label_text: "Follow-up question made standalone"
+    hyde:
+      label_text: "Hypothetical document (HyDE)"
 
 # The settings: their name and unit.
 params:
@@ -280,6 +298,10 @@ steps:
   generation:
     label_text: "Generation"
     action_text: "Generate the answer"
+  query:
+    label_text: "Query understanding"
+    action_text: "Produce the queries to search"
+    note_text: "The workshop has no conversation: the follow-up question reads the questions asked earlier in this session (three at most)."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -441,3 +463,45 @@ compare:
   differs_text: "The passages differ."
   lost_text: "lost"
   added_text: "added"
+
+# V1.2 story 5 (CAP-17) : la fiche de chaque option de la compréhension de la requête, en cinq
+# blocs ; « bench_text » reste vide tant que le projet de banc ne publie rien.
+sheets:
+  query.rewrite:
+    purpose_text: "Replace the question, often chatty or loose, with a query that resembles the documents' vocabulary, before the search."
+    when_text: "Use it when users' questions use other words than the corpus. Avoid it when the question is already precise: the model may change its meaning or add terms that are not there."
+    cost_text: "One model call (256 tokens written at most) before the search; a single query is then searched, so no extra search."
+    literature_text: "Ma et al. propose inserting a rewriting step between the question and the search engine (rewrite, retrieve, read) and report gains on question-answering tasks. The framing's hypotheses do not cover this option: the sheet rests on this primary source alone."
+    bench_text: ""
+    sources:
+      - label_text: "Ma et al., Query Rewriting for Retrieval-Augmented Large Language Models (2023)"
+        url: "https://arxiv.org/abs/2305.14283"
+  query.decompose:
+    purpose_text: "Split a multi-hop question into simple sub-questions, each searched on its own, their lists fused by reciprocal rank."
+    when_text: "Use it for questions that need two documents or more. Avoid it for a simple factual question: the sub-questions drift away from the right passages and multiply the searches."
+    cost_text: "One model call, then one search per sub-question (four at most): search and embedding time is multiplied accordingly, the final prompt keeps its size."
+    literature_text: "Press et al. measure a “compositionality gap”: a model answers the sub-questions but not the composed question, and asking the sub-questions explicitly narrows it. MultiHop-RAG shows that multi-hop remains hard for RAG systems (the framing's hypothesis H10: the gap comes partly from reasoning and synthesis, not only from retrieval)."
+    bench_text: ""
+    sources:
+      - label_text: "Press et al., Measuring and Narrowing the Compositionality Gap in Language Models (2022)"
+        url: "https://arxiv.org/abs/2210.03350"
+      - label_text: "Tang et Yang, MultiHop-RAG (2024)"
+        url: "https://arxiv.org/html/2401.15391"
+  query.follow_up:
+    purpose_text: "Make a follow-up question (“and for interns?”) understandable without the conversation, by rewriting it with the earlier questions."
+    when_text: "Use it in a conversation, where a search on the raw question would find unrelated passages. Avoid it without history: the option is then skipped. Here the workshop has no conversation; it reads the last three questions asked in the session."
+    cost_text: "One model call whose prompt holds the earlier questions (not the answers); a single query is then searched."
+    literature_text: "Anantha et al. publish QReCC, a set of conversational questions and answers, and show that rewriting the follow-up question before the search improves retrieval on these conversations. The framing's hypotheses do not cover this option."
+    bench_text: ""
+    sources:
+      - label_text: "Anantha et al., Open-Domain Question Answering Goes Conversational via Question Rewriting (2020)"
+        url: "https://arxiv.org/abs/2010.04898"
+  query.hyde:
+    purpose_text: "Have the model write a plausible answer, even one wrong in its details, then search the passages whose vector is close to that answer rather than to the question."
+    when_text: "Use it when a short question hardly resembles the passages that answer it. Avoid it with a small model that invents off-topic facts, or when keyword search is enough: the invented document leads the search into its own error."
+    cost_text: "One model call that writes a paragraph (256 tokens at most), the most expensive of the four in generation; a single query is searched, embedded as a passage."
+    literature_text: "Gao et al. propose HyDE: the model writes a hypothetical document, the encoder brings it back to real documents, and the paper reports gains over an unsupervised dense retriever, without relevance labels. The framing's hypotheses do not cover this option."
+    bench_text: ""
+    sources:
+      - label_text: "Gao et al., Precise Zero-Shot Dense Retrieval without Relevance Labels (2022)"
+        url: "https://arxiv.org/abs/2212.10496"

@@ -79,6 +79,7 @@ memory_text: "Speicher von WaveStack"
 last_run_text: "Letzte Ausführung"
 reset_chain_text: "Zurück zur ausgelieferten Kette"
 unavailable_text: "nicht verfügbar"
+queries_text: "Erzeugte Anfragen"
 add_text: "Komponente hinzufügen"
 add_button_text: "Hinzufügen"
 move_before_text: "Nach vorn"
@@ -165,6 +166,14 @@ stages:
       Antwort hängt davon ab, was die vorigen Schritte ihm geliefert haben. Hier antwortet das
       aktive Modell der Werkstatt, mit dem System-Prompt der Werkstatt und den Grenzen einer
       Runde (Ausgabereserve, Reasoning-Budget); die Antwort geht nicht in die Unterhaltung ein.
+  query:
+    label_text: "Query understanding"
+    explain_text: >-
+      Vor der Suche formuliert das aktive Modell der Werkstatt die Frage um, zerlegt sie in
+      Teilfragen, macht sie eigenständig verständlich oder erfindet eine plausible Antwort
+      (HyDE); die Suchen suchen dann diese Anfragen statt der Frage im Originalwortlaut. Jede
+      Anfrage kostet einen Modellaufruf, und ein Modell, das sich irrt, schließt die richtige
+      Antwort schon vor der Suche aus.
 
 # The name of each option; those naming a declared model take its label.
 options:
@@ -205,6 +214,15 @@ options:
       label_text: "Aktives Modell der Werkstatt"
     not_run:
       label_text: "Nicht generieren"
+  query:
+    rewrite:
+      label_text: "Umformulierung der Frage"
+    decompose:
+      label_text: "Zerlegung in Teilfragen"
+    follow_up:
+      label_text: "Nachfrage eigenständig formuliert"
+    hyde:
+      label_text: "Hypothetisches Dokument (HyDE)"
 
 # The settings: their name and unit.
 params:
@@ -289,6 +307,10 @@ steps:
   generation:
     label_text: "Generation"
     action_text: "Die Antwort generieren"
+  query:
+    label_text: "Query understanding"
+    action_text: "Die zu suchenden Anfragen erzeugen"
+    note_text: "Die Werkstatt hat kein Gespräch: Die Nachfrage liest die früher in dieser Sitzung gestellten Fragen (höchstens drei)."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -451,3 +473,45 @@ compare:
   differs_text: "Die Passagen unterscheiden sich."
   lost_text: "verloren"
   added_text: "hinzugefügt"
+
+# V1.2 story 5 (CAP-17) : la fiche de chaque option de la compréhension de la requête, en cinq
+# blocs ; « bench_text » reste vide tant que le projet de banc ne publie rien.
+sheets:
+  query.rewrite:
+    purpose_text: "Die oft geschwätzige oder ungenaue Frage vor der Suche durch eine Anfrage ersetzen, die dem Vokabular der Dokumente ähnelt."
+    when_text: "Einsetzen, wenn die Fragen der Nutzer andere Wörter verwenden als der Korpus. Vermeiden, wenn die Frage schon präzise ist: Das Modell kann ihren Sinn ändern oder Begriffe hinzufügen, die nicht vorkommen."
+    cost_text: "Ein Modellaufruf (höchstens 256 geschriebene Tokens) vor der Suche; danach wird nur eine Anfrage gesucht, also keine zusätzliche Suche."
+    literature_text: "Ma et al. schlagen vor, zwischen Frage und Suchmaschine einen Umformulierungsschritt einzufügen (umschreiben, suchen, lesen), und berichten von Gewinnen bei Frage-Antwort-Aufgaben. Die Hypothesen der Rahmung decken diese Option nicht ab: Die Karte stützt sich allein auf diese Primärquelle."
+    bench_text: ""
+    sources:
+      - label_text: "Ma et al., Query Rewriting for Retrieval-Augmented Large Language Models (2023)"
+        url: "https://arxiv.org/abs/2305.14283"
+  query.decompose:
+    purpose_text: "Eine Mehrsprung-Frage in einfache Teilfragen zerlegen, jede für sich gesucht, ihre Listen per reziprokem Rang fusioniert."
+    when_text: "Einsetzen bei Fragen, die zwei oder mehr Dokumente brauchen. Vermeiden bei einer einfachen Sachfrage: Die Teilfragen entfernen sich von den richtigen Passagen und vervielfachen die Suchen."
+    cost_text: "Ein Modellaufruf, dann eine Suche pro Teilfrage (höchstens vier): Such- und Embedding-Zeit vervielfachen sich entsprechend, der endgültige Prompt behält seine Größe."
+    literature_text: "Press et al. messen eine „Kompositionalitätslücke“: Ein Modell beantwortet die Teilfragen, aber nicht die zusammengesetzte Frage, und das ausdrückliche Stellen der Teilfragen verkleinert sie. MultiHop-RAG zeigt, dass Mehrsprung für RAG-Systeme schwierig bleibt (Hypothese H10 der Rahmung: Die Lücke liegt zum Teil im Schlussfolgern und in der Synthese, nicht nur in der Suche)."
+    bench_text: ""
+    sources:
+      - label_text: "Press et al., Measuring and Narrowing the Compositionality Gap in Language Models (2022)"
+        url: "https://arxiv.org/abs/2210.03350"
+      - label_text: "Tang et Yang, MultiHop-RAG (2024)"
+        url: "https://arxiv.org/html/2401.15391"
+  query.follow_up:
+    purpose_text: "Eine Nachfrage („und für Praktikanten?“) ohne das Gespräch verständlich machen, indem sie mit den früheren Fragen umformuliert wird."
+    when_text: "Einsetzen im Gespräch, wo eine Suche mit der rohen Frage unpassende Passagen fände. Vermeiden ohne Verlauf: Die Option wird dann übersprungen. Hier hat die Werkstatt kein Gespräch; sie liest die letzten drei in der Sitzung gestellten Fragen."
+    cost_text: "Ein Modellaufruf, dessen Prompt die früheren Fragen enthält (nicht die Antworten); danach wird nur eine Anfrage gesucht."
+    literature_text: "Anantha et al. veröffentlichen QReCC, eine Sammlung von Gesprächsfragen und -antworten, und zeigen, dass das Umformulieren der Nachfrage vor der Suche die Suche in diesen Gesprächen verbessert. Die Hypothesen der Rahmung decken diese Option nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Anantha et al., Open-Domain Question Answering Goes Conversational via Question Rewriting (2020)"
+        url: "https://arxiv.org/abs/2010.04898"
+  query.hyde:
+    purpose_text: "Das Modell eine plausible Antwort schreiben lassen, auch wenn sie im Detail falsch ist, und dann die Passagen suchen, deren Vektor ihr nahe ist statt der Frage."
+    when_text: "Einsetzen, wenn eine kurze Frage den antwortenden Passagen kaum ähnelt. Vermeiden bei einem kleinen Modell, das themenfremde Fakten erfindet, oder wenn die Stichwortsuche genügt: Das erfundene Dokument führt die Suche in den eigenen Fehler."
+    cost_text: "Ein Modellaufruf, der einen Absatz schreibt (höchstens 256 Tokens), der teuerste der vier bei der Generierung; es wird eine Anfrage gesucht, vektorisiert wie eine Passage."
+    literature_text: "Gao et al. schlagen HyDE vor: Das Modell schreibt ein hypothetisches Dokument, der Encoder führt es zu echten Dokumenten zurück, und der Artikel berichtet von Gewinnen gegenüber einem unüberwachten dichten Retriever, ohne Relevanzlabels. Die Hypothesen der Rahmung decken diese Option nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Gao et al., Precise Zero-Shot Dense Retrieval without Relevance Labels (2022)"
+        url: "https://arxiv.org/abs/2212.10496"
