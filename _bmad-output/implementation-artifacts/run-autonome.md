@@ -478,3 +478,8 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:23 · 12.2 · décision · à revoir : seuils du filtre 0,95 / 0,60 sans source, 2 répétitions en ligne, 0,33 $ par modèle, jeu en 3 langues avec affirmations écrites à la main, passages périmés comptés à part, tranche 3-4 Go à confirmer sur le PC cible, enregistrement en liste blanche · 8719ce3
 - 2026-10-25 11:23 · 12.2 · dev · phase 2 (banc, mode à sec, tests sans réseau) lancée ; banc réel non lancé · 8719ce3
 - 2026-10-25 11:23 · 12.2 · attente humaine · banc réel : ordre d'Anaël poste libre, clé OpenRouter créditée (limites du modèle :free), GGUF Qwen3.5-2B et reranker, ONNX deberta_xsmall et mdeberta à télécharger une fois ; 25 min à 1 h en ligne, ~1 h en local · —
+- 2026-10-25 11:29 · 12.19 · review · passe 1 : intégration fusionnée ; 1 high (contrat 12.10 : rag_sheets.yaml ne se chargeait plus, 22 tests) et 2 medium corrigés (25 fiches en E2E, .rag-badge restreinte à [data-state], 70 règles réactivées comparées sans autre doublon) ; 2 low corrigés, 2 écartés, 1 reporté en 19b ; 475 tests ciblés, E2E 161/161 · b16730e
+- 2026-10-25 11:29 · 12.19 · décision · à revoir : validateur de rag/erasure.py assoupli (story de l'architecture facultative), fichier dans la liste Never de la spec · b16730e
+- 2026-10-25 11:29 · 12.19 · décision · à revoir : accolade manquante de rag.css aussi sur main (v1.4.0), corrigée à la fusion de la V1.2 · —
+- 2026-10-25 11:29 · 12.19 · PR · #114 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · b16730e
+- 2026-10-25 11:29 · 12.2 · décision · Anaël : téléchargement des modèles du banc autorisé ; clé OpenRouter déjà en place (env et HKCU) ; téléchargement des ONNX et du reranker lancé · —
