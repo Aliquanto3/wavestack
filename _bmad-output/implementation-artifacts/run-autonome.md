@@ -557,3 +557,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:36 · 12.20 · CI · verte · 914cdcd
 - 2026-10-25 13:36 · 12.20 · fusion · #118 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.13 et 12.14 prévenues · 820d109
 - 2026-10-25 13:44 · run · décision · Anaël absent quelques heures : run en autonomie ; banc local et mémoire de 12.2 lancés sans attendre son accord dès que le poste est libre (Ollama fermé, applications fermées), puis reprise des développements · —
+- 2026-10-25 13:44 · run · décision · Anaël : une décision ou une ressource qui lui revient ne bloque que les stories qui en dépendent ; les autres développements continuent (attente humaine journalisée, choix provisoire marqué « à revoir » si besoin) · —
