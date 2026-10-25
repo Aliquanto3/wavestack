@@ -149,6 +149,12 @@ class Candidate:
     office: str = ""  # "écarté" verdict without measure
     office_reason: str = ""
     free: bool = False
+    # Pinned weights (decision 1 criteria: pinning). `revision` overrides the `v2s6` candidate's,
+    # which follows `main`; `repo`, `files` and `onnx_file` describe a candidate of its own.
+    revision: str = ""
+    repo: str = ""
+    files: tuple[str, ...] = ()
+    onnx_file: str = ""
 
 
 _NO_FIGURE = "aucun chiffre publié connu"
@@ -180,10 +186,28 @@ ONLINE = (
         free=True,
     ),
 )
-_CARD_REASON = (
-    "carte non lue (existence, format et licence à vérifier au commit fixé, sans torch ni "
-    "service) : aucun chiffre sans carte vérifiée"
+# Model cards read on 2026-10-25 (Hugging Face API and GitHub, card files only, no weight).
+DEBERTA_XSMALL_REVISION = "262ae02f29173eec1c250f90804dc7edc677dcff"
+MDEBERTA_REVISION = "b5113eb38ab63efdd7f280f8c144ea8b13f978ce"
+# Strands Decider 2B: the official checkpoints (StrandsAgents/strands-decider-2B-*) are a PEFT
+# adapter + head that need torch (`strands-decider` requires torch, transformers, peft); the
+# GGUF port needs a patched llama.cpp. The ONNX port of hobson v19 (onnx-community) runs on
+# ONNX Runtime's CPU provider: one fused graph, input_ids, attention_mask, answer_pos,
+# option_pos -> logits; prompt rendering of `strands_decider.prompting` (commit b81d443).
+STRANDS_REPO = "onnx-community/strands-decider-2B-hobson-v19-ONNX"
+STRANDS_REVISION = "31a83e0244b26d939ae33f87189d6c8204003e53"
+STRANDS_ONNX = "onnx/model_quantized.onnx"  # q8, the card's default (1.80 GB)
+STRANDS_FILES = ("config.json", "tokenizer.json", STRANDS_ONNX, STRANDS_ONNX + "_data")
+STRANDS_MAX_LENGTH = 4096
+# AnyJev (Nokia, Apache-2.0): a training-free readout of any causal LM, numpy only, with a
+# llama-cpp-python backend; run here on the application's own SLM (no second model).
+# The PyPI wheel 0.3.0 has no llama.cpp backend (added after it): the archive of the read
+# commit, a pure-Python build (setuptools, no compiler).
+ANYJEV_COMMIT = "35311c58955716cb8955ce1368a665988bc63735"
+ANYJEV_PACKAGE = (
+    f"anyjev @ https://github.com/nokia-applied-research/AnyJev/archive/{ANYJEV_COMMIT}.tar.gz"
 )
+ANYJEV_N_CTX = 4096
 LOCAL = (
     Candidate(
         "deberta_xsmall",
@@ -191,6 +215,7 @@ LOCAL = (
         "deberta-v3-xsmall zero-shot NLI (ONNX)",
         v2s6_id="deberta_xsmall",
         packages=("onnxruntime", "tokenizers", "huggingface-hub"),
+        revision=DEBERTA_XSMALL_REVISION,
     ),
     Candidate(
         "nli_mdeberta",
@@ -198,6 +223,7 @@ LOCAL = (
         "mDeBERTa-v3 xnli (petit NLI ONNX multilingue)",
         v2s6_id="mdeberta",
         packages=("onnxruntime", "tokenizers", "huggingface-hub"),
+        revision=MDEBERTA_REVISION,
     ),
     Candidate(
         "reranker_livre",
@@ -209,11 +235,19 @@ LOCAL = (
     Candidate(
         "strands_decider_2b",
         "local",
-        "Strands Decider 2B",
-        office="écarté",
-        office_reason=_CARD_REASON,
+        "Strands Decider 2B hobson v19 (port ONNX q8)",
+        packages=("onnxruntime", "tokenizers", "huggingface-hub", "numpy"),
+        revision=STRANDS_REVISION,
+        repo=STRANDS_REPO,
+        files=STRANDS_FILES,
+        onnx_file=STRANDS_ONNX,
     ),
-    Candidate("anyjev", "local", "AnyJev", office="écarté", office_reason=_CARD_REASON),
+    Candidate(
+        "anyjev",
+        "local",
+        "AnyJev 0.3.0 (commit 35311c5), lecture L0 du SLM Qwen3.5-2B (llama-cpp-python)",
+        packages=(ANYJEV_PACKAGE,),
+    ),
 )
 CANDIDATES = ONLINE + LOCAL
 BY_ID = {c.id: c for c in CANDIDATES}
@@ -559,7 +593,7 @@ class DecisionClient:
             payload = None
         err = ""
         if r.status_code >= 400 or payload is None:
-            err = redact(r.text, self._key)[:200]
+            err = redact(error_summary(r.status_code, payload), self._key)
         try:
             wait = float(r.headers.get("Retry-After", 0) or 0)
         except ValueError:
@@ -568,6 +602,24 @@ class DecisionClient:
 
     def close(self) -> None:
         self._http.close()
+
+
+def error_summary(status: int, payload: dict | None) -> str:
+    """Status and the `error.code` / `error.message` of the body, nothing else: the raw body
+    may carry a generation id or an account id (decision 6, white list)."""
+    out = f"HTTP {status}"
+    err = (payload or {}).get("error")
+    if isinstance(err, dict):
+        code, message = err.get("code"), err.get("message")
+        if isinstance(code, int | str) and not isinstance(code, bool):
+            out += f" {code}"
+        if isinstance(message, str):
+            out += f" : {message}"
+    elif isinstance(err, str):
+        out += f" : {err}"
+    elif payload is None and 200 <= status < 300:
+        out += " : réponse non JSON"
+    return " ".join(out.split())[:200]
 
 
 def retained(model: str, raw: Raw) -> dict:
@@ -660,8 +712,20 @@ class Budget:
         }
 
 
+AUTH_STATUSES = (401, 402, 403)  # key refused, credit exhausted, forbidden: the whole run
+RETRYABLE_4XX = (408, 429)
+
+
+def is_auth_error(raw: Raw) -> bool:
+    return raw.status in AUTH_STATUSES
+
+
 def is_unknown_model(raw: Raw) -> bool:
-    return raw.status is not None and 400 <= raw.status < 500 and raw.status != 429
+    return (
+        raw.status is not None
+        and 400 <= raw.status < 500
+        and raw.status not in AUTH_STATUSES + RETRYABLE_4XX
+    )
 
 
 class StopRun(Exception):
@@ -679,12 +743,16 @@ def call_one(
 ) -> tuple[Raw, int, str]:
     """One decision, with the retries of the spec: 429 waits `Retry-After` (at most 60 s) up
     to three tries and is not an error; 5xx, timeout or invalid JSON: one retry then error.
-    Returns (last raw, number of HTTP calls, outcome in ok | error | rate_limit | refused)."""
+    The budget is checked again before every retry. Returns (last raw, number of HTTP calls,
+    outcome in ok | error | rate_limit | refused | auth | budget)."""
     raw_body = body_bytes(request_body(model, item))
     calls = 0
     tries_429 = 0
     retried = False
+    raw = None
     while True:
+        if calls and budget.stop_reason(model):
+            return raw, calls, "budget"
         raw = client.post(raw_body)
         calls += 1
         budget.add(model, retained(model, raw)["cost"])
@@ -700,6 +768,8 @@ def call_one(
             and retained(model, raw)["noul"] is not None
         ):
             return raw, calls, "ok"
+        if is_auth_error(raw):
+            return raw, calls, "auth"
         if is_unknown_model(raw):
             return raw, calls, "refused"
         if retry_server and not retried:
@@ -726,13 +796,25 @@ def run_online(
     assert_provenance(items)
     probes_path = results_dir / "probes.json"
     probes = json.loads(probes_path.read_text("utf-8")) if probes_path.exists() else {}
-    state = {"incomplete": {}, "stopped": None}
+    state: dict = {"incomplete": {}, "stopped": None}
     last_call = 0.0
+    done_by_model: dict[str, set] = {}
+    # every recorded cost counts before the first call, whatever the order of the models
+    for c in ONLINE:
+        records = read_records(recorded_path(results_dir, c.id))
+        done_by_model[c.id] = {(r["item_id"], r["rep"]) for r in records}
+        for r in records:
+            budget.add(c.id, r.get("cost"), calls=r.get("calls", 1))
+
+    def stop(model: str, reason: str) -> None:
+        scope, why = reason.split(":")
+        state["incomplete"][model] = why
+        if scope == "global":
+            state["stopped"] = why
+
     for model in models:
         path = recorded_path(results_dir, model)
-        done = {(r["item_id"], r["rep"]) for r in read_records(path)}
-        for r in read_records(path):
-            budget.add(model, r.get("cost"), calls=r.get("calls", 1))
+        done = done_by_model.get(model, set())
         if probes.get(model, {}).get("status") == "unknown_model":
             continue
         for rep in range(1, reps + 1):
@@ -741,10 +823,7 @@ def run_online(
                     continue
                 reason = budget.stop_reason(model)
                 if reason:
-                    scope, why = reason.split(":")
-                    state["incomplete"][model] = why
-                    if scope == "global":
-                        state["stopped"] = why
+                    stop(model, reason)
                     break
                 if BY_ID[model].free:  # 20 requests per minute at most
                     wait = 60.0 / FREE_RATE_PER_MIN - (clock() - last_call)
@@ -752,6 +831,14 @@ def run_online(
                         sleep(wait)
                     last_call = clock()
                 raw, calls, outcome = call_one(client, model, item, budget, sleep)
+                if outcome == "auth":  # never a verdict on the model: the whole run stops
+                    state["stopped"] = f"auth:{raw.status}"
+                    state["incomplete"][model] = "auth"
+                    log(f"{model}: accès refusé (HTTP {raw.status}), banc arrêté : clé ou crédit")
+                    break
+                if outcome == "budget":  # cap reached between two tries: the item is not kept
+                    stop(model, budget.stop_reason(model) or "model:usd")
+                    break
                 if outcome == "refused" and model not in probes:
                     probes[model] = {"status": "unknown_model", "http": raw.status}
                     write_json(probes_path, probes)
@@ -764,6 +851,11 @@ def run_online(
                     state["incomplete"][model] = "rate_limit"
                     break
                 r = retained(model, raw)
+                if outcome == "ok" and r["cost"] is None and not BY_ID[model].free:
+                    missing = state.setdefault("cost_missing", {})
+                    missing[model] = missing.get(model, 0) + 1
+                    if missing[model] == 1:
+                        log(f"{model}: coût absent de la réponse, compté 0 (budget sous-estimé)")
                 append_record(
                     path,
                     {
@@ -881,19 +973,30 @@ def histogram(scores: list[float], bins: int = 10) -> list[int]:
 
 
 def evaluate_at(task: str, rows: list[dict], thr: float | None) -> dict:
-    """Metrics at one threshold. Rows: score, label, group ('main' | 'stale')."""
+    """Metrics at one threshold. Rows: score, label, group ('main' | 'stale'). A row whose
+    every try failed (score None) counts against the candidate: a positive is missed, a
+    negative is accepted (never a gain from an error)."""
     if thr is None:
         return {}
+
+    def keeps(r: dict) -> bool:
+        return r["score"] is None or r["score"] >= thr
+
     pos = [r for r in rows if r["label"]]
     neg = [r for r in rows if not r["label"] and r["group"] == "main"]
     stale = [r for r in rows if r["group"] == "stale"]
-    recall = sum(r["score"] >= thr for r in pos) / len(pos) if pos else None
-    accepted = sum(r["score"] >= thr for r in neg)
+    recall = (
+        sum(r["score"] is not None and r["score"] >= thr for r in pos) / len(pos) if pos else None
+    )
+    accepted = sum(keeps(r) for r in neg)
     out = {"threshold": round(thr, 4), "recall": _r(recall), "n_pos": len(pos), "n_neg": len(neg)}
+    failed = sum(r["score"] is None for r in rows)
+    if failed:
+        out["n_failed"] = failed
     if task == "filter":
         out["reject_share"] = _r(1 - accepted / len(neg)) if neg else None
         out["stale_reject_share"] = (
-            _r(sum(r["score"] < thr for r in stale) / len(stale)) if stale else None
+            _r(sum(not keeps(r) for r in stale) / len(stale)) if stale else None
         )
         out["n_stale"] = len(stale)
     else:
@@ -909,7 +1012,10 @@ def _r(x: float | None, nd: int = 4) -> float | None:
 def task_metrics(
     task: str, rows: list[dict], probabilistic: bool = True, calibrated: bool = True
 ) -> dict:
-    """All metrics of one candidate on one task, from scored rows."""
+    """All metrics of one candidate on one task, from scored rows (failed rows: only in the
+    metrics at a threshold, see `evaluate_at`)."""
+    all_rows = rows
+    rows = [r for r in rows if r["score"] is not None]
     scores = [r["score"] for r in rows]
     labels = [r["label"] for r in rows]
     main = [r for r in rows if r["group"] == "main"]
@@ -923,8 +1029,8 @@ def task_metrics(
         "auc_ci": auc_ci([r["score"] for r in main], [r["label"] for r in main])
         if probabilistic
         else None,
-        "tuned": evaluate_at(task, rows, thr),
-        "fixed_05": evaluate_at(task, rows, 0.5),
+        "tuned": evaluate_at(task, all_rows, thr),
+        "fixed_05": evaluate_at(task, all_rows, 0.5),
         "calibration": calibration(scores, labels) if probabilistic and calibrated else None,
         "histogram": histogram(scores),
         "switch_to_judge": {
@@ -934,7 +1040,7 @@ def task_metrics(
         "by_lang": {},
     }
     for lang in LANGS:
-        sub = [r for r in rows if r["lang"] == lang]
+        sub = [r for r in all_rows if r["lang"] == lang]
         if sub:
             out["by_lang"][lang] = evaluate_at(task, sub, thr)
     return out
@@ -979,6 +1085,7 @@ def score_rows(
         if item.task not in c.tasks:
             continue
         probs: list[float] = []
+        tried = False
         for rep in range(1, reps + 1):
             rec = by_key.get((item.id, rep))
             if rec is None:
@@ -988,6 +1095,7 @@ def score_rows(
             if c.kind == "online" and rec["request_sha256"] != request_sha256(c.id, item):
                 raise ReplayError(f"cas périmé (texte changé) : {c.id} / {item.id}")
             total += 1
+            tried = True
             cost += float(rec.get("cost") or 0.0)
             calls += rec.get("calls", 1)
             latencies.append(int(rec["latency_ms"]))
@@ -1001,11 +1109,11 @@ def score_rows(
                 probs.append(float(value))
         if len(probs) >= 2:
             gaps.append(max(probs) - min(probs))
-        if probs:
+        if probs or tried:  # every try in error: kept, counted against (`evaluate_at`)
             rows[item.task].append(
                 {
                     "id": item.id,
-                    "score": sum(probs) / len(probs),
+                    "score": sum(probs) / len(probs) if probs else None,
                     "label": item.label,
                     "group": item.group,
                     "lang": item.lang,
@@ -1154,13 +1262,10 @@ def choose(agg: dict) -> dict:
     if reranker and reranker["status"] == "measured" and "filter" in reranker.get("tasks", {}):
         ref_reject = reranker["tasks"]["filter"]["tuned"].get("reject_share")
     default_f = None
-    for c in pass_f:
-        if c["id"] == "reranker_livre":
+    for c in pass_f:  # without the reference measured, no decision model is the filter
+        if c["id"] == "reranker_livre" or ref_reject is None:
             continue
-        if (
-            ref_reject is None
-            or (c["tasks"]["filter"]["tuned"].get("reject_share") or 0) > ref_reject
-        ):
+        if (c["tasks"]["filter"]["tuned"].get("reject_share") or 0) > ref_reject:
             default_f = c
         break
     if default_f is None and ref_reject is not None:
@@ -1613,14 +1718,152 @@ def yes_probability(top: list[dict], lang: str) -> float | None:  # pragma: no c
     return softmax_pair(ly, ln)
 
 
+def v2_candidate(c: Candidate, v2):
+    """The `v2s6` candidate that downloads and opens `c`'s files, pinned to `c.revision`."""
+    import dataclasses
+
+    if c.v2s6_id:
+        v = v2.candidate(c.v2s6_id)
+        return dataclasses.replace(v, revision=c.revision) if c.revision else v
+    if not c.repo:
+        return None
+    return v2.Candidate(
+        id=c.id,
+        doc_name=c.label,
+        tier="-",
+        backend="onnx",
+        repos=((c.repo, c.files),),
+        onnx_file=c.onnx_file,
+        revision=c.revision,
+    )
+
+
+def pinned_snapshot(c: Candidate, models_dir: Path, v2) -> Path:  # pragma: no cover - model
+    """The local snapshot of `c` at its pinned commit; another commit is refused."""
+    v = v2_candidate(c, v2)
+    repo, files = v.repos[0]
+    root = v2._snapshot(models_dir, repo, files, v)
+    if v.revision and root.name != v.revision:
+        raise RuntimeError(f"{repo} : snapshot {root.name}, commit épinglé {v.revision}")
+    return root
+
+
+# Strands Decider prompt (port of `strands_decider.prompting`, commit b81d443, noul only).
+_STRANDS_NOUL_HEADER = "Decide whether the statement is true of the state."
+_STRANDS_NOUL_OPTIONS = (
+    ("false", "the statement does not hold for this state"),
+    ("true", "the statement holds for this state"),
+)
+
+
+def strands_render(state: object, instructions: str) -> tuple[str, str, list[tuple[int, int]]]:
+    """(state text, question text, character span of each option line in the question)."""
+    if isinstance(state, str):
+        content = state.strip()
+    else:
+        content = json.dumps(state, indent=2, ensure_ascii=False)
+    state_text = "<state>\n" + content + "\n</state>\n"
+    prefix = (
+        '<question type="noul">\n'
+        + _STRANDS_NOUL_HEADER
+        + "\n"
+        + instructions.strip()
+        + "\n<options>\n"
+    )
+    lines, spans, cursor = [], [], len(prefix)
+    for i, (name, desc) in enumerate(_STRANDS_NOUL_OPTIONS):
+        line = f"{i + 1}. {name} \u2014 {desc}"
+        lines.append(line)
+        spans.append((cursor, cursor + len(line)))
+        cursor += len(line) + 1
+    question = prefix + "\n".join(lines) + "\n</options>\n</question>\n<answer>"
+    return state_text, question, spans
+
+
+def strands_positions(
+    n_state: int, n_question: int, offsets: list[tuple[int, int]], spans: list[tuple[int, int]]
+) -> tuple[int, list[int]]:
+    """answer_pos (the last token, `<answer>`) and option_pos (last token of each option
+    line), in the whole prompt (state tokens then question tokens)."""
+    option_pos = []
+    for a, b in spans:
+        last = -1
+        for j, (lo, hi) in enumerate(offsets):
+            if hi > lo and lo >= a and hi <= b:
+                last = j
+        if last < 0:
+            raise ValueError(f"option ({a},{b}) sans jeton")
+        option_pos.append(n_state + last)
+    return n_state + n_question - 1, option_pos
+
+
+def strands_p_true(logits: list[float], temperature: float) -> float:
+    """Softmax of the two slots (false, true) after the noul temperature: P(true)."""
+    a, b = (x / temperature for x in logits[:2])
+    return 1.0 - softmax_pair(a, b)
+
+
+def _loader_strands(c: Candidate, models_dir: Path, v2):  # pragma: no cover - model
+    import numpy as np
+    import onnxruntime as ort
+    from tokenizers import Tokenizer
+
+    root = pinned_snapshot(c, models_dir, v2)
+    cfg = json.loads((root / "config.json").read_text("utf-8"))["decider"]
+    temperature = float(cfg["temperature_by_kind"]["noul"])
+    tok = Tokenizer.from_file(str(root / "tokenizer.json"))
+    session = ort.InferenceSession(str(root / c.onnx_file), providers=["CPUExecutionProvider"])
+
+    def score(item: Item) -> tuple[float, bool]:
+        state_text, question, spans = strands_render(
+            state_for(item), INSTRUCTIONS[item.task][item.lang]
+        )
+        s_ids = tok.encode(state_text, add_special_tokens=True).ids
+        q = tok.encode(question, add_special_tokens=False)
+        if len(s_ids) + len(q.ids) > STRANDS_MAX_LENGTH:
+            raise ValueError(f"invite de {len(s_ids) + len(q.ids)} jetons > {STRANDS_MAX_LENGTH}")
+        answer_pos, option_pos = strands_positions(len(s_ids), len(q.ids), q.offsets, spans)
+        ids = s_ids + q.ids
+        feeds = {
+            "input_ids": np.array([ids], dtype=np.int64),
+            "attention_mask": np.ones((1, len(ids)), dtype=np.int64),
+            "answer_pos": np.array([answer_pos], dtype=np.int64),
+            "option_pos": np.array([option_pos], dtype=np.int64),
+        }
+        logits = session.run(None, feeds)[0][0].tolist()
+        return strands_p_true(logits, temperature), False
+
+    return score, {"revisions": {c.repo: root.name}, "onnx_file": c.onnx_file}
+
+
+def _loader_anyjev(c: Candidate, slm: Path):  # pragma: no cover - model
+    from anyjev import Decider, Question
+    from anyjev.backends.llamacpp import LlamaCppBackend
+
+    backend = LlamaCppBackend(str(slm), n_ctx=ANYJEV_N_CTX)
+    # content-free prior: one correction per question, independent of the order of the items
+    decider = Decider(backend, level="L0", prior="content_free")
+    questions = {
+        (t, lang): Question.noul(INSTRUCTIONS[t][lang], name=QUESTION_KEY)
+        for t in ("filter", "grounding")
+        for lang in LANGS
+    }
+
+    def score(item: Item) -> tuple[float, bool]:
+        d = decider.decide(state_for(item), [questions[(item.task, item.lang)]])[QUESTION_KEY]
+        return float(d.p_true), False
+
+    return score, {"revisions": {"anyjev": ANYJEV_COMMIT, "slm": slm.name}}
+
+
 def _loader_nli(c: Candidate, models_dir: Path, v2):  # pragma: no cover - model
     import numpy as np
     import onnxruntime as ort
     from tokenizers import Tokenizer
 
-    v = v2.candidate(c.v2s6_id)
+    v = v2_candidate(c, v2)
     repo, files = v.repos[0]
-    root = v2._snapshot(models_dir, repo, files, v)
+    root = pinned_snapshot(c, models_dir, v2)
     cfg = json.loads((root / "config.json").read_text("utf-8"))
     entail = v2.entailment_index(cfg["id2label"])
     tok = Tokenizer.from_file(str(root / "config.json").replace("config.json", "tokenizer.json"))
@@ -1720,6 +1963,10 @@ def child_local(
             score, info = _loader_judge(c, models_dir, v2, slm_llm)
         elif c.id == "reranker_livre":
             score, info = _loader_reranker(c, models_dir, v2)
+        elif c.id == "strands_decider_2b":
+            score, info = _loader_strands(c, models_dir, v2)
+        elif c.id == "anyjev":
+            score, info = _loader_anyjev(c, slm)
         else:
             score, info = _loader_nli(c, models_dir, v2)
         state = info.pop("judge_state", None)
@@ -1778,7 +2025,8 @@ def child_local(
             out["rss_peak_mb"],
             (out["rss_loaded_mb"],),
         )
-        out["versions"] = v2._versions(c.packages + ("llama-cpp-python",))
+        names = tuple(re.split(r"[ =<>@\[]", pkg, maxsplit=1)[0] for pkg in c.packages)
+        out["versions"] = v2._versions(names + ("llama-cpp-python",))
         out["records"] = records
         out["status"] = "measured"
     except Exception as exc:  # noqa: BLE001 - a candidate that does not run is "écarté"
@@ -1843,8 +2091,8 @@ def child_memory(slm: Path) -> dict:  # pragma: no cover - needs the real GGUF
         "peak_private_mb": peaks["private"] >> 20,
         "ram_total_mb": psutil.virtual_memory().total >> 20,
         "kv_estimate_mb": kv,
-        "mmap": True,
-        "n_batch": 512,
+        "mmap": getattr(getattr(engine._llm, "model_params", None), "use_mmap", None),
+        "n_batch": getattr(engine._llm, "n_batch", None),
     }
 
 
@@ -2105,8 +2353,10 @@ def cmd_local(args) -> int:  # pragma: no cover - real run
             "--langs",
             args.langs,
         ]
-        if args.download and c.v2s6_id:
-            v2.download_candidate(v2.candidate(c.v2s6_id), Path(args.models_dir))
+        if args.download and v2_candidate(c, v2) is not None:
+            got = v2.download_candidate(v2_candidate(c, v2), Path(args.models_dir))
+            if got["errors"]:
+                print(f"{cid}: téléchargement en échec {got['errors']}")
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=7200, cwd=ROOT)
         last = next((ln for ln in reversed(proc.stdout.splitlines()) if ln.startswith("{")), "{}")
         out = json.loads(last)

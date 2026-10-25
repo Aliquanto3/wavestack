@@ -29,8 +29,8 @@ Règles : le défaut est local. Filtre : au seuil de probabilité le plus haut q
 | mDeBERTa-v3 xnli (petit NLI ONNX multilingue) (`nli_mdeberta`) | local | pas encore mesuré | — | pas encore mesuré |
 | bge-reranker-v2-m3 Q4_K_M de la brique (seuil sur le score) (`reranker_livre`) | local | pas encore mesuré | — | pas encore mesuré |
 | SLM juge Qwen3.5-2B + GBNF (référence et repli) (`slm_juge`) | local | pas encore mesuré | — | pas encore mesuré |
-| Strands Decider 2B (`strands_decider_2b`) | local | écarté | — | carte non lue (existence, format et licence à vérifier au commit fixé, sans torch ni service) : aucun chiffre sans carte vérifiée |
-| AnyJev (`anyjev`) | local | écarté | — | carte non lue (existence, format et licence à vérifier au commit fixé, sans torch ni service) : aucun chiffre sans carte vérifiée |
+| Strands Decider 2B hobson v19 (port ONNX q8) (`strands_decider_2b`) | local | pas encore mesuré | — | pas encore mesuré |
+| AnyJev 0.3.0 (commit 35311c5), lecture L0 du SLM Qwen3.5-2B (llama-cpp-python) (`anyjev`) | local | pas encore mesuré | — | pas encore mesuré |
 
 ## 4. Filtre de passages
 
@@ -61,8 +61,8 @@ Requête : `{model, state, questions: {decision: {type: "noul", instructions}}}`
 - mDeBERTa-v3 xnli (petit NLI ONNX multilingue) : pas encore mesuré (pas encore mesuré).
 - bge-reranker-v2-m3 Q4_K_M de la brique (seuil sur le score) : pas encore mesuré (pas encore mesuré).
 - SLM juge Qwen3.5-2B + GBNF (référence et repli) : pas encore mesuré (pas encore mesuré).
-- Strands Decider 2B : écarté (carte non lue (existence, format et licence à vérifier au commit fixé, sans torch ni service) : aucun chiffre sans carte vérifiée).
-- AnyJev : écarté (carte non lue (existence, format et licence à vérifier au commit fixé, sans torch ni service) : aucun chiffre sans carte vérifiée).
+- Strands Decider 2B hobson v19 (port ONNX q8) : pas encore mesuré (pas encore mesuré).
+- AnyJev 0.3.0 (commit 35311c5), lecture L0 du SLM Qwen3.5-2B (llama-cpp-python) : pas encore mesuré (pas encore mesuré).
 
 ## 9. Budget
 

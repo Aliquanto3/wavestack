@@ -194,7 +194,7 @@ def test_template_report_says_not_measured(tmp_path, built):
     report, _ = b.dry_run(tmp_path / "none", built.items)
     assert "pas encore mesuré" in report
     assert "Aucun choix" in report
-    assert "écarté" in report  # Strands Decider 2B and AnyJev, with the reason
+    assert "strands_decider_2b" in report and "anyjev" in report  # adapters, not measured
     assert "450" in report
 
 
@@ -493,3 +493,135 @@ def test_online_without_key_refuses_before_any_call(monkeypatch):
     with pytest.raises(SystemExit) as err:
         b.main(["online", "--confirm-idle"])
     assert b.KEY_ENV in str(err.value)
+
+
+# ---------- review, pass 1 ----------
+
+
+def test_auth_error_stops_run_without_model_verdict(built, tmp_path):
+    for status in (401, 402, 403):
+        calls = []
+
+        def handler(request, status=status, calls=calls):
+            calls.append(1)
+            return httpx.Response(status, json={"error": {"code": status, "message": "no"}})
+
+        out = tmp_path / str(status)
+        _, state = _run(built, out, handler, [JEV, "liquid/d1"])
+        assert len(calls) == 1  # no retry, the second model is never called
+        assert state["stopped"] == f"auth:{status}"
+        assert not (out / "probes.json").exists()  # never persisted as "unknown model"
+        assert b.read_records(b.recorded_path(out, JEV)) == []
+        assert b.choose({"stopped": state["stopped"], "candidates": {}})["state"] == "unmeasured"
+
+
+def test_resume_counts_every_recorded_cost_before_the_first_call(built, tmp_path):
+    other = "microsoft/microsoft-decision-1"
+    _run(built, tmp_path, _ok_handler(cost=0.0001), [other], reps=1, n=3)  # 0.0003 spent
+    budget = b.Budget(cap_usd=0.00045, cap_model_usd=1.0)
+    _, state = _run(built, tmp_path, _ok_handler(cost=0.0001), [JEV], budget, reps=1, n=3)
+    assert len(b.read_records(b.recorded_path(tmp_path, JEV))) == 1
+    assert state["stopped"] == "usd" and budget.spent <= 0.00045 + 1e-12
+
+
+def test_error_field_keeps_status_and_message_only(built, tmp_path):
+    def handler(request):
+        return httpx.Response(
+            500,
+            json={
+                "id": "gen-SECRET-ID",
+                "user_id": "user_ACCOUNT",
+                "error": {"code": 500, "message": f"upstream {FAKE_KEY}", "metadata": {"x": 1}},
+            },
+        )
+
+    _run(built, tmp_path, handler, [JEV], reps=1, n=1)
+    (row,) = b.read_records(b.recorded_path(tmp_path, JEV))
+    assert row["error"] == "HTTP 500 500 : upstream ***"
+    for path in tmp_path.rglob("*"):
+        if path.is_file():
+            text = path.read_text("utf-8")
+            assert "gen-SECRET-ID" not in text and "user_ACCOUNT" not in text
+    assert b.error_summary(502, None) == "HTTP 502"
+
+
+def test_budget_checked_before_every_retry(built, tmp_path):
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        return httpx.Response(503, json={"usage": {"cost": 0.0001}})
+
+    budget = b.Budget(cap_usd=0.00015, cap_model_usd=1.0)
+    _, state = _run(built, tmp_path, handler, [JEV], budget, reps=1, n=1)
+    assert len(calls) == 1 and state["stopped"] == "usd"
+    assert b.read_records(b.recorded_path(tmp_path, JEV)) == []  # called again on resume
+
+
+def test_missing_cost_is_counted_and_logged(built, tmp_path):
+    def handler(request):
+        return httpx.Response(200, json={"model": "m", "answers": {"decision": {"noul": 0.5}}})
+
+    _, state = _run(built, tmp_path, handler, [JEV], reps=1, n=2)
+    assert state["cost_missing"] == {JEV: 2}
+
+
+def _row(score, label, group="main"):
+    return {"id": "x", "score": score, "label": label, "group": group, "lang": "fr"}
+
+
+def test_failed_items_count_against_the_candidate():
+    rows = [_row(0.9, True), _row(None, True), _row(0.1, False), _row(None, False)]
+    m = b.evaluate_at("grounding", rows, 0.5)
+    assert m["recall"] == 0.5 and m["h7"] == 0.5 and m["n_failed"] == 2
+    f = b.evaluate_at("filter", rows + [_row(None, False, "stale")], 0.5)
+    assert f["reject_share"] == 0.5 and f["stale_reject_share"] == 0.0
+    t = b.task_metrics("grounding", rows)
+    assert t["n_scored"] == 2 and t["fixed_05"]["n_failed"] == 2
+    items = {i.id: i for i in b.fixture_items(b.build_all().items)}
+    some = next(i for i in items.values() if i.task == "grounding")
+    recs = [
+        {"item_id": some.id, "rep": r, "request_sha256": b.request_sha256(JEV, some),
+         "noul": None, "latency_ms": 1, "date": "2000-01-01", "calls": 1}
+        for r in (1, 2)
+    ]  # fmt: skip
+    rows_by_task, counters = b.score_rows(b.BY_ID[JEV], {some.id: some}, recs, 2, False)
+    assert rows_by_task["grounding"][0]["score"] is None and counters["errors"] == 2
+
+
+def test_no_decision_model_filter_without_the_reference():
+    agg = {
+        "stopped": None,
+        "candidates": {"deberta_xsmall": _cand("deberta_xsmall", "local", "filter", reject=0.9)},
+    }
+    ch = b.choose(agg)
+    assert ch["filter"]["default"] is None and ch["filter"]["fallback"] == "deberta_xsmall"
+
+
+def test_local_weights_are_pinned():
+    for c in b.LOCAL:
+        if c.v2s6_id or c.repo:
+            assert re.fullmatch(r"[0-9a-f]{40}", c.revision), c.id
+        assert not c.office, c.id  # Strands Decider 2B and AnyJev: cards read, adapters added
+    assert b.ANYJEV_COMMIT in b.ANYJEV_PACKAGE
+
+
+def test_strands_prompt_matches_the_reference_rendering():
+    data = json.loads((FIXTURE / "strands_reference_prompts.json").read_text("utf-8"))
+    assert len(data["cases"]) == 4
+    for case in data["cases"]:
+        state, question, spans = b.strands_render(case["state"], case["instructions"])
+        assert state + question == case["prompt"]
+        assert [question[a:e].split(" ")[1] for a, e in spans] == ["false", "true"]
+
+
+def test_strands_positions_and_probability():
+    # question "ab", newline, "cd<answer>": tokens (0,2) (2,3) (3,5) (5,13)
+    # options "ab" and "cd"
+    offsets = [(0, 2), (2, 3), (3, 5), (5, 13)]
+    answer, options = b.strands_positions(10, 4, offsets, [(0, 2), (3, 5)])
+    assert answer == 13 and options == [10, 12]
+    with pytest.raises(ValueError):
+        b.strands_positions(10, 4, offsets, [(20, 30)])
+    assert b.strands_p_true([0.0, 0.0], 0.9) == pytest.approx(0.5)
+    assert b.strands_p_true([0.0, 0.911], 0.911) == pytest.approx(1 / (1 + 2.718281828**-1))

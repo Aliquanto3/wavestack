@@ -137,10 +137,33 @@ Relu contre `stories.yaml` (id 2), SPEC.md, architectures.md, evaluation.md, cor
 ## Reports
 
 - Lancement réel (en ligne, local, mémoire) : attente humaine, notice dans `tools/bench/README.md` ; rapport et `.memlog.md` « pas encore mesuré » jusque-là. Critères 6 et 8 ouverts.
-- Strands Decider 2B et AnyJev : carte non lue en phase de développement (aucun réseau) ; « écartés » d'office avec ce motif, à lire au lancement réel.
+- Strands Decider 2B et AnyJev : cartes lues à la revue (2026-10-25, fichiers de carte seulement, aucun poids), adaptateurs ajoutés, à mesurer au lancement réel.
+  - Strands Decider 2B : les dépôts officiels (`StrandsAgents/strands-decider-2B-qwen3.5-v1-2610` au commit `216d1cc`, `…-hobson-v19` au commit `bb282d7`, Apache-2.0) sont un adaptateur PEFT et une tête de lecture sur `Qwen/Qwen3.5-2B-Base` ; le paquet `strands-decider` 0.2.0 exige torch, transformers et peft : écarté sous cette forme. Le port GGUF (`fabricant451/strands-decider-2B-hobson-v19-GGUF`) exige un llama.cpp modifié : écarté. Retenu : le port ONNX `onnx-community/strands-decider-2B-hobson-v19-ONNX` au commit `31a83e0244b26d939ae33f87189d6c8204003e53`, fichier `onnx/model_quantized.onnx` (q8, 1,80 Go, défaut de la carte ; `q4f16` 1,09 Go déplace les quasi-égalités sur les états longs), un seul graphe sur le fournisseur CPU d'ONNX Runtime ; invite portée de `strands_decider/prompting.py` (dépôt `strands-labs/strands-decider`, commit `b81d443`), vérifiée à l'identique sur les 4 cas `noul` de `conversion/fixtures/reference.json` (test). Sources : cartes Hugging Face des quatre dépôts, `config.json` du port ONNX, PyPI `strands-decider`.
+  - AnyJev (`nokia-applied-research/AnyJev`, commit `35311c58955716cb8955ce1368a665988bc63735`, Apache-2.0, version 0.3.0, « pre-alpha ») : lecture sans entraînement des logprobs d'un LM causal, numpy seul, back-end llama-cpp-python. La roue PyPI 0.3.0 n'a pas ce back-end : installation depuis l'archive du commit (construction pur Python), vérifiée ; compatible avec llama-cpp-python 0.3.35 du projet (symboles requis présents). Mesuré en L0 avec a priori « content_free » (indépendant de l'ordre des items) sur le SLM par défaut : pas de second modèle génératif. Sources : README et `pyproject.toml` au commit, `anyjev/backends/llamacpp.py`, `decider.py`, PyPI `anyjev`.
+- Décisions prises à la revue, à revoir : Strands en q8 plutôt qu'en q4f16 (RAM avec le SLM probablement au-delà de 4 096 Mo : la mesure tranche ; q4f16 en repli) ; Strands hobson v19 (seul port ONNX), pas le v1-2610 plus récent ; AnyJev en L0 « content_free » sur le SLM Qwen3.5-2B ; un item dont toutes les répétitions sont en erreur compte contre le candidat (positif manqué, négatif accepté) ; sans mesure du reranker, aucun modèle de décision n'est désigné comme filtre par défaut.
+- Révisions épinglées dans le banc (lues par l'API Hugging Face, confirmées par l'orchestrateur) : `deberta_xsmall` `262ae02f29173eec1c250f90804dc7edc677dcff`, `mdeberta` `b5113eb38ab63efdd7f280f8c144ea8b13f978ce` ; un snapshot d'un autre commit est refusé à la mesure.
 - Décisions prises sans Anaël, à revoir : verdict mémoire sur le plus grand du pic d'ensemble de travail et du pic de mémoire privée ; invites d'ancrage et de filtre en trois langues ; hypothèse NLI du filtre = « ce passage répond à la question » ; question suivie = dernier tour d'historique + question pour le BM25 du négatif difficile ; modèle de la sonde = premier item de la série (enregistré comme cas normal).
 
 - Modèles à poids ouverts (Kev 4B, Clef Flash) : story ultérieure.
 - Lancement réel du banc et mesure mémoire : ressource d'Anaël (poste libre de tout autre agent, clé disponible, GGUF Qwen3.5-2B et binaire llama-server épinglés comme pour `v2s6`).
 - Mesure mémoire sur le PC cible 16 Go si le pic mesuré sur 32 Go est entre 3 072 et 4 096 Mo (point 8 tranché).
 - Ressources du banc réel : ordre d'Anaël, poste libre ; clé OpenRouter avec crédit (limites quotidiennes du modèle `:free` à relire) ; GGUF Qwen3.5-2B par défaut et reranker de la brique déjà téléchargés ; snapshots ONNX `deberta_xsmall` et `mdeberta` (`--download`, une fois) ; llama-server `b11378` seulement si Strands Decider 2B ou AnyJev passent par lui. Durée estimée : ~25 min à 1 h en ligne, ~1 h en local (SLM juge, ~450 décisions), ~10 min pour la mémoire.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu b47fe6b)
+
+Base : `origin/integration/v1-2-atelier` fusionnée (12.19, #114), sans conflit. Lancement réel non fait (aucun appel OpenRouter, clé non lue).
+
+- Important, medium, second avis 1 : 401, 402 et 403 classés « modèle inconnu » et persistés dans `probes.json`. Corrigé : arrêt de tout le banc (`stopped = auth:<statut>`, code 3), rien de persisté, message sans clé ; 408 et 429 restent rejouables. Test.
+- Important, medium, second avis 2 : à la reprise, dépenses d'un modèle comptées seulement à son tour (`--only M2` puis complet pouvait dépasser 2 $). Corrigé : toutes les dépenses enregistrées chargées avant le premier appel. Test.
+- Important, medium, second avis 3 : champ `error` = corps HTTP brut (id de génération, id de compte). Corrigé : `error_summary`, statut + `error.code` + `error.message`, clé masquée. Test.
+- Important, medium, second avis 4 : items en erreur à chaque répétition sortis des lignes (rappel et H7 biaisés). Corrigé : gardés, comptés contre le candidat aux seuils (positif manqué, négatif accepté, `n_failed`), exclus de l'AUC et de la calibration. Test.
+- Important, low, second avis 5 : en partie confirmé. Sans mesure du reranker, un modèle de décision devenait filtre sans référence : corrigé (pas de défaut sans référence), test. Reranker par défaut alors qu'il échoue aux seuils : rejeté, c'est la règle 1(c) du point de contrôle (« sinon le reranker est le choix »).
+- Nit, low, second avis 6 : plafond vérifié par item et non avant chaque relance ; coût absent compté 0. Corrigé : contrôle avant chaque relance (issue `budget`, item non enregistré, rappelé à la reprise) ; coût absent compté dans `run_state.json` (`cost_missing`) et signalé une fois. Tests.
+- Nit, low, second avis 7 : `mmap` et `n_batch` écrits en dur dans la mesure mémoire. Corrigé : lus sur l'objet `Llama` du moteur.
+- Important, medium, orchestrateur : `deberta_xsmall` et `mdeberta` suivaient `main` (`revision=""` de `v2s6`). Corrigé : commits épinglés dans le banc, snapshot d'un autre commit refusé. Test.
+- Important, medium, revue : Strands Decider 2B et AnyJev écartés sans carte lue. Corrigé : cartes lues, adaptateurs ajoutés (voir Reports), test de parité de l'invite Strands.
+- Complexité : 0 constat (lectures JSONL une fois par modèle, agrégation linéaire).
+- Note : `controle_rapide.py` sort 0 sans rien afficher ; `ruff check` et `ruff format --check` lancés à part, verts.
+
