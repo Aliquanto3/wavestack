@@ -355,3 +355,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:46 · 12.6 · review · passe 1 : 2 medium corrigés (en-tête des contextes reconstruits cumulé, avertissement context.parents_short), 2 low corrigés ; E2E 160/160 · ca5a441
 - 2026-10-25 08:46 · 12.6 · décision · à revoir : avertir plutôt qu'élargir la recherche des parents ; fichier reconstruit remplacé en entier si la taille de chunk change · ca5a441
 - 2026-10-25 08:46 · 12.6 · PR · #107 ouverte vers integration/v1-2-atelier (empilée sur #105) · ca5a441
+- 2026-10-25 08:49 · 12.5 · CI · verte · 5e991af
+- 2026-10-25 08:49 · 12.5 · fusion · #105 MERGED dans integration/v1-2-atelier via file_prs.py · 83719c1
+- 2026-10-25 08:49 · 12.6 · CI · branche d'intégration fusionnée (conflits du squash de #105 résolus côté 12.6, écart vérifié = fichiers de version seuls), CI relancée · 6518c09
