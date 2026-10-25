@@ -720,7 +720,7 @@ revient à zéro qu'au relancement.
 [détail](securite.md#finops-visible-cache-compression-sous-agent-et-mémoire-de-contexte-locale))
 dès le premier appel payant : le total de la séance, entrée + sortie (arrondies au centième de
 cent), la phrase entière (4 chiffres significatifs, conversion en euros) dans l'infobulle. Ce
-total compte tous les appels payants : les tours, le sous-agent, « Tester » au diagnostic et
+total compte tous les appels payants : les tours, le sous-agent, « Tester » sur la page Modèles et
 l'Atelier LLM. Ni « Vider la conversation » ni « Réinitialiser » ne le remettent à zéro ; seul
 un relancement de WaveStack le fait (il n'est jamais écrit sur le disque). Les prix déclarés
 sont aussi sur la ligne « Prix » de la carte dépliée d'un modèle, page Modèles. Un modèle

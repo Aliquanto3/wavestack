@@ -988,7 +988,7 @@ main:
   panes:
     menu: "Panes"
     awaiting: "A human approval awaits your answer: show the Human view pane again"
-    diagnostic: "Diagnostics"
+    diagnostic: "Models"
   projection:
     name: "Projection mode"
     title: "Projection mode: enlarges all texts for the room; the browser remembers it"

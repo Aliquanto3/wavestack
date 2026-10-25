@@ -1000,7 +1000,7 @@ main:
   panes:
     menu: "Volets"
     awaiting: "Une validation humaine attend votre réponse : réafficher le volet Vue humain"
-    diagnostic: "Diagnostic"
+    diagnostic: "Modèles"
   projection:
     name: "Mode projection"
     title: "Mode projection : agrandit tous les textes pour la salle ; le navigateur s'en souvient"

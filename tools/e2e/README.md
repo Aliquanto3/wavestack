@@ -44,7 +44,7 @@ sinon le script essaie `/opt/pw-browsers/chromium`. Code de sortie 1 si une vér
 Les captures (JPEG) sont réécrites dans `tools/e2e/screenshots/`.
 
 Pour explorer à la main : `uv run python tools/e2e/stack.py` lance le faux modèle et WaveStack
-(adresse affichée), puis choisissez « Faux fournisseur (e2e) » au diagnostic. Le réseau sortant
+(adresse affichée), puis choisissez « Faux fournisseur (e2e) » sur la page Modèles. Le réseau sortant
 y est coupé comme pendant le parcours ; `--network` garde les proxys du poste, pour joindre les
 vrais services.
 
@@ -133,13 +133,13 @@ avertissement cloud dans la page (« Annuler » ne change rien, « Utiliser ce m
 chronomètre dans la barre haute et en fin de Vue humain, envoi et sélecteur désactivés avec la
 raison, conversation gardée, appel envoyé avec le nouveau modèle, lignes « Modèle : … », rejeu
 joué par le nouveau modèle, « Comparer » avec le modèle de chaque colonne, puis retour au
-premier modèle par « Choisir » au diagnostic, issue exacte « wavestack-fake est actif. », jamais
+premier modèle par « Choisir » sur la page Modèles, issue exacte « wavestack-fake est actif. », jamais
 « relancez WaveStack pour l'utiliser ». Capture :
 `22-changement-de-modele.jpg`.
 
 ## Serveur local déjà lancé (story 18)
 
-Le scénario `local_server` : au diagnostic, le modèle du faux
+Le scénario `local_server` : sur la page Modèles, le modèle du faux
 llama-server est listé (« Local », adresse, mémoire, « Choisir ») et celui du faux Ollama est
 incompatible, sans « Choisir » (GGUF introuvable) ; plus de mention « palier 2 ». Dans le
 sélecteur de la barre haute, le modèle servi est choisi puis chargé (« Préparation du modèle

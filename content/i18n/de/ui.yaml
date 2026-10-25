@@ -988,7 +988,7 @@ main:
   panes:
     menu: "Bereiche"
     awaiting: "Eine menschliche Freigabe wartet auf Ihre Antwort: Bereich Nutzeransicht wieder einblenden"
-    diagnostic: "Diagnose"
+    diagnostic: "Modelle"
   projection:
     name: "Projektionsmodus"
     title: "Projektionsmodus: vergrößert alle Texte für den Saal; der Browser merkt es sich"

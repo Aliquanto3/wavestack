@@ -78,7 +78,7 @@ arrête WaveStack. Mise à jour : `git pull` (ou un nouveau zip), `uv sync` avec
 ## Utiliser un modèle cloud (clé API)
 
 Facultatif : le modèle local suffit pour toute la formation. Préréglages : Groq, Mistral,
-Gemini, Gemma, Claude et GPT-6 Luna. Collez la clé du fournisseur au diagnostic, dans la ligne du
+Gemini, Gemma, Claude et GPT-6 Luna. Collez la clé du fournisseur sur la page Modèles, dans la ligne du
 modèle (« Enregistrer la clé », prise en compte sans relancer), puis « Tester », « Choisir ce
 modèle… » et « Utiliser ce modèle ». La clé reste sur ce poste, n'est jamais affichée ni tracée
 et ne part que vers l'hôte du fournisseur. Plans gratuits, proxy et conditions : [Modèles cloud](docs/modeles.md#modèles-cloud).
