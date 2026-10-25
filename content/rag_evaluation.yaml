@@ -1,0 +1,681 @@
+# Story 15 (CAP-11) : textes de la vue Évaluer, jeu enregistré, annotations de référence et
+# quatre pièges des juges. Les verdicts, rangs, étiquettes d'affirmations et préréglages sont
+# communs aux trois langues (le test le vérifie) ; seuls les textes et réponses sont traduits.
+# PROVENANCE : `constructed` = jeu écrit à la main pour la démonstration (aucun modèle réel n'a
+# été lancé) ; Anaël le réenregistre avec un vrai juge local non Qwen et un vrai juge cloud, puis
+# passe `provenance.kind` à `recorded` avec sa date. Les annotations (`annotated_by: draft`) sont
+# proposées par le développeur, à valider par Anaël.
+texts:
+  title_text: 'Évaluer : des juges face à la référence'
+  hint_text: 'Pour chaque question préparée, chaque architecture et chaque critère : le verdict de chaque
+    juge, l''annotation de référence, l''accord ou le désaccord. Les moyennes ne vivent que dans cet onglet,
+    toujours avec leur n. Les jugements en direct se demandent un à un, jamais « tout évaluer ».'
+  banner_text: 'Démonstration, pas un banc : n = {n} questions, {a} architectures, {j} juges'
+  reference_text: Référence
+  annotation_draft_text: Annotation de référence proposée, à valider
+  annotation_human_text: Annotée par {by} le {on}
+  provenance_constructed_text: Cas construit pour la démonstration (à enregistrer avec {local} et {cloud})
+  provenance_recorded_text: Enregistré le {date} avec {local} et {cloud}
+  translated_text: Justifications traduites de l'enregistrement ({lang})
+  session_source_text: Exécution de cette session
+  recorded_source_text: Jeu enregistré
+  question_col_text: Question
+  architecture_col_text: Architecture
+  roles:
+    local: local
+    cloud: cloud
+  recall_text: rappel@{k}
+  mrr_text: MRR
+  not_applicable_text: sans objet
+  rule_text: 'règle : refus {value}'
+  rule_values:
+    'yes': oui
+    'no': non
+  criteria:
+    context_precision:
+      label_text: Précision du contexte
+      explain_text: Les passages du contexte sont-ils pertinents pour la question ?
+    faithfulness:
+      label_text: Fidélité
+      explain_text: La réponse ne dit-elle que ce que le contexte soutient ?
+    relevance:
+      label_text: Pertinence
+      explain_text: La réponse traite-t-elle la question posée ?
+    accuracy:
+      label_text: Exactitude
+      explain_text: La réponse s'accorde-t-elle avec la réponse attendue ?
+    correct_refusal:
+      label_text: Refus correct
+      explain_text: Sur une question sans réponse dans le corpus, la réponse refuse-t-elle de répondre
+        ?
+  verdicts:
+    'yes': oui
+    partly: en partie
+    'no': non
+    unreadable: illisible
+  agreement:
+    agree_text: accord
+    disagree_text: 'désaccord : juge {judge}, référence {reference}'
+    unannotated_text: non annoté
+    unreadable_text: illisible, compté à part
+    none_text: pas de verdict
+  why:
+    context_precision:
+      yes_text: Les passages fournis traitent bien la question.
+      partly_text: Une partie des passages est hors sujet ou manque.
+      no_text: Les passages fournis ne permettent pas de répondre.
+    faithfulness:
+      yes_text: Chaque affirmation de la réponse figure dans le contexte.
+      partly_text: Certaines affirmations ne figurent pas dans le contexte.
+      no_text: La réponse affirme des choses que le contexte ne soutient pas.
+    relevance:
+      yes_text: La réponse traite la question posée.
+      partly_text: La réponse n'en traite qu'une partie.
+      no_text: La réponse est à côté de la question.
+    accuracy:
+      yes_text: La réponse s'accorde avec la réponse attendue.
+      partly_text: La réponse est incomplète par rapport à la réponse attendue.
+      no_text: La réponse contredit la réponse attendue.
+    correct_refusal:
+      yes_text: La réponse refuse, comme il le faut sans passage utile.
+      partly_text: La réponse hésite entre refuser et répondre.
+      no_text: La réponse invente au lieu de refuser.
+  aggregates:
+    title_text: Agrégats par architecture
+    hint_text: Moyenne des verdicts (oui = 1, en partie = 0,5, non = 0), pour chaque juge et pour la référence.
+      Les verdicts illisibles sont comptés à part, hors moyenne.
+    n_text: n = {n}
+    too_few_text: trop peu pour conclure
+    unreadable_text: '{n} illisible(s), hors moyenne'
+    agreement_text: 'accord avec la référence : {rate}'
+    who:
+      reference: Référence
+      rule: Règle
+      local: Juge local
+      cloud: Juge cloud
+    none_text: Rien à agréger.
+  panel:
+    title_text: Panel de juges
+    generator_text: 'Modèle jugé : {model} ({family})'
+    no_generator_text: 'Aucune exécution de cette session à juger : le panel s''applique au modèle qui
+      génère.'
+    local_title_text: Juge local
+    cloud_title_text: Juge cloud
+    no_local_text: 'Aucun juge local admissible sur ce poste : seuls les cas enregistrés sont affichés.'
+    cloud_choose_text: Choisir le juge cloud
+    no_cloud_text: Aucun modèle cloud déclaré.
+    rejected_text: 'écarté : {reason}'
+    same_family_text: même famille que le modèle jugé (biais d'auto-préférence)
+    unknown_judge_text: famille inconnue, écarté par prudence
+    unknown_generator_text: famille du modèle jugé inconnue, écarté par prudence
+    no_grammar_text: pas de grammaire GBNF (Ollama)
+    no_key_text: 'pas de clé : les cas s''affichent depuis l''enregistrement'
+    cap_text: 'Plafond de la session atteint ({spent} sur {cap}) : appel refusé avant envoi.'
+    spend_text: 'Dépense cloud de la session : {spent} sur {cap}'
+    no_generator_known_text: 'Le modèle qui a écrit cette exécution est inconnu : impossible de choisir
+      un juge d''une autre famille.'
+    busy_text: 'Une autre tâche est en cours : réessayez quand elle sera finie.'
+    unknown_judge_id_text: Ce juge n'existe pas.
+    no_local_reason_text: aucun juge local admissible sur ce poste
+    memory_text: 'Mémoire insuffisante pour charger le juge : {reason}'
+  live:
+    title_text: Juger une exécution de cette session
+    none_text: 'Lancez la chaîne sur une question préparée dans « Construire » : l''exécution s''ajoute
+      ici avec ses mesures sans modèle (rappel, MRR). Une question libre n''entre pas dans n.'
+    button_text: Juger cette exécution
+    judge_text: avec
+    criterion_text: sur
+    busy_text: Jugement en cours…
+    refused_text: 'Jugement refusé : {reason}'
+    unavailable_text: L'évaluation n'est pas joignable.
+    no_answer_text: Cette exécution n'a pas de réponse à juger.
+    failed_text: 'Le jugement a échoué : {reason}'
+  traps:
+    title_text: Quatre pièges des juges
+    hint_text: 'Quatre cas livrés, rejoués depuis leur enregistrement : aucun modèle, aucun réseau.'
+    badge_text: Cas enregistré, aucun appel au modèle
+    failed_text: Piège introuvable.
+    judge_says_text: '{judge} : {verdict}'
+    answer_text: Réponse jugée
+    pass_text: Passage {n}
+    causes_text: 'Causes possibles : {causes}'
+    causes:
+      temperature: la température d'échantillonnage
+      passage_order: l'ordre des passages dans l'invite
+    claims_text: Affirmations de la réponse, étiquetées
+    labels:
+      supported: soutenue
+      unsupported: non soutenue
+      contradicted: contredite
+    ragas_text: 'Fidélité au sens de Ragas : affirmations soutenues par le contexte / affirmations = {value}'
+    deepeval_text: 'Fidélité au sens de DeepEval : affirmations non contredites par le contexte / affirmations
+      = {value}'
+    ranking_text: 'Classement recalculé à partir des verdicts enregistrés, moyenne de tous les verdicts
+      du juge sur l''architecture :'
+    rank_line_text: '{rank}. {preset} ({value}, n = {n})'
+  sheet:
+    title_text: Fiche de la vue Évaluer
+    body_text: 'Un juge LLM est un modèle qui note la réponse d''un autre. Il se trompe, et pas toujours
+      comme un humain. Biais d''auto-préférence : un modèle note mieux les réponses de sa propre famille,
+      donc un juge n''évalue jamais un modèle de son éditeur (la famille est l''éditeur selon la table
+      des éditeurs ; Gemma et Gemini y sont deux familles distinctes, ce qui est une limite). Le jeu livré
+      est construit pour la démonstration : n est petit, les agrégats ne prouvent rien. Une annotation
+      « proposée » n''est pas une annotation humaine tant qu''elle n''est pas validée.'
+  prompts:
+    context_precision: Tu es un juge. Les passages ci-dessous sont-ils pertinents pour répondre à la question
+      ? Réponds « yes » si tous le sont, « partly » si une partie l'est, « no » si aucun ne l'est.
+    faithfulness: Tu es un juge. La réponse ne dit-elle que ce que le contexte soutient ? Réponds « yes
+      » si chaque affirmation est dans le contexte, « partly » si certaines n'y sont pas, « no » si la
+      réponse contredit ou invente.
+    relevance: Tu es un juge. La réponse traite-t-elle la question posée ? Réponds « yes », « partly »
+      ou « no ».
+    accuracy: Tu es un juge. La réponse s'accorde-t-elle avec la réponse attendue ? Réponds « yes », «
+      partly » (incomplète) ou « no » (contradictoire).
+    correct_refusal: Tu es un juge. La documentation ne contient pas la réponse à cette question. La réponse
+      refuse-t-elle de répondre ? Réponds « yes » si elle refuse, « partly » si elle hésite, « no » si
+      elle invente une réponse.
+    labels:
+      question: 'Question :'
+      context: 'Contexte :'
+      answer: 'Réponse :'
+      expected: 'Réponse attendue :'
+    format: 'Réponds uniquement par un objet JSON {"verdict": "yes|partly|no", "why": "une phrase"}.'
+refusal_markers:
+- je ne sais pas
+- pas couvert
+- ne couvre pas
+- n'est pas dans la documentation
+- aucune information
+recorded:
+  provenance:
+    kind: constructed
+    recorded_on: null
+    source_lang: fr
+  annotation:
+    annotated_by: draft
+    annotated_on: null
+  generator: Qwen3 0.6B
+  judges:
+    local:
+      label: Granite 4.0 Micro
+      model: granite-4.0-micro
+    cloud:
+      label: Mistral Small
+      model: mistral-small-latest
+  runs:
+  - question_id: q_fact_pwd
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: Un mot de passe doit compter au minimum 14 caractères.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_sauvegarde
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: Exemplia garde 3 copies de ses données, dont une hors du site principal.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+  - question_id: q_fact_badge
+    preset: dense
+    top_k: 3
+    ranks:
+    - 4
+    answer_text: Le badge est désactivé sous une semaine.
+    verdicts:
+      context_precision:
+        reference: 'no'
+        local: partly
+        cloud: 'no'
+      faithfulness:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_multi_crise
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    - null
+    answer_text: Appelez l'astreinte sécurité ; son numéro figure dans l'annexe des contacts.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: 'no'
+        local: unreadable
+        cloud: 'no'
+  - question_id: q_multi_prestataire
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    - 5
+    answer_text: Le prestataire doit confirmer l'effacement par écrit, sans délai précis.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_multi_messagerie
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    - 2
+    answer_text: 'Exemplia a changé de fournisseur de messagerie le 1er janvier 2026 : la taille maximale
+      passe de 10 à 25 Mo.'
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_taille
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: Une pièce jointe ne dépasse pas 10 Mo.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: 'no'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_temporal_retention
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: Les messages sont conservés 3 ans avant archivage.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_noanswer_parking
+    preset: dense
+    top_k: 3
+    ranks: []
+    answer_text: 'Je ne sais pas : la documentation d''Exemplia ne couvre pas ce thème.'
+    verdicts:
+      correct_refusal:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_noanswer_mutuelle
+    preset: dense
+    top_k: 3
+    ranks: []
+    answer_text: La mutuelle proposée est Alan, avec une prise en charge à 100 %.
+    verdicts:
+      correct_refusal:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_fact_pwd
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: Un mot de passe doit compter au minimum 14 caractères.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_sauvegarde
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: 'Exemplia applique la règle 3-2-1 : 3 copies, sur 2 supports différents, dont 1 hors
+      du site principal.'
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_badge
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: Le badge est désactivé dans les 24 heures qui suivent le départ.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'no'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_multi_crise
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    - 3
+    answer_text: Appelez le numéro unique d'astreinte (06 07 08 09 10), puis escaladez au responsable
+      de la sécurité.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'no'
+        cloud: 'yes'
+  - question_id: q_multi_prestataire
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    - 2
+    answer_text: Dans les 30 jours après la fin du contrat, sauvegardes comprises, avec confirmation écrite.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: partly
+        cloud: 'yes'
+  - question_id: q_multi_messagerie
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 2
+    - 1
+    answer_text: Le changement de fournisseur de messagerie du 1er janvier 2026 a fait passer la taille
+      maximale de 10 à 25 Mo.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_taille
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: 25 Mo, depuis la version 2 de la charte.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_retention
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 3
+    answer_text: Les messages sont conservés 1 an avant archivage.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'no'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'no'
+        cloud: 'no'
+  - question_id: q_noanswer_parking
+    preset: hybrid
+    top_k: 3
+    ranks: []
+    answer_text: Le stationnement est remboursé à 50 % sur justificatif.
+    verdicts:
+      correct_refusal:
+        reference: 'no'
+        local: 'no'
+        cloud: 'no'
+  - question_id: q_noanswer_mutuelle
+    preset: hybrid
+    top_k: 3
+    ranks: []
+    answer_text: Je ne sais pas, ce thème n'est pas dans la documentation.
+    verdicts:
+      correct_refusal:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+traps:
+- id: two_judges
+  kind: two_judges
+  question_id: q_fact_badge
+  criterion: faithfulness
+  title_text: Deux juges, deux verdicts
+  explain_text: 'Même question, même réponse : le juge local la dit fidèle, le juge cloud non. Chacun
+    a sa justification, et les deux sont plausibles.'
+  answer_text: Le badge est désactivé sous une semaine.
+  verdicts:
+    local:
+      verdict: 'yes'
+      why_text: 'La réponse reste dans le thème du contexte : un badge désactivé après le départ.'
+    cloud:
+      verdict: 'no'
+      why_text: Le contexte ne dit rien d'une semaine ; la règle livrée est de 24 heures, donc la durée
+        est inventée.
+- id: variance
+  kind: variance
+  question_id: q_temporal_taille
+  criterion: accuracy
+  title_text: Variance d'un même juge
+  explain_text: 'Le même juge, sur le même cas, deux fois : deux verdicts. Rien n''a changé dans le cas
+    ; la température et l''ordre des passages suffisent.'
+  answer_text: Une pièce jointe ne dépasse pas 10 Mo.
+  causes:
+  - temperature
+  - passage_order
+  passes:
+  - verdict: 'yes'
+    why_text: La réponse donne une taille de pièce jointe, comme attendu.
+  - verdict: 'no'
+    why_text: La taille donnée, 10 Mo, est celle de l'ancienne version, pas des 25 Mo attendus.
+- id: two_tools
+  kind: two_tools
+  question_id: q_multi_crise
+  title_text: Deux outils, deux définitions
+  explain_text: '« Fidélité » n''a pas une définition : Ragas compte les affirmations soutenues, DeepEval
+    celles qui ne sont pas contredites. Sur la même réponse, les deux notes diffèrent ; elles sont recalculées
+    ici depuis les mêmes affirmations étiquetées.'
+  answer_text: Appelez le numéro unique d'astreinte, le 06 07 08 09 10, à toute heure. L'astreinte répond
+    sous 30 minutes. Elle relève de la direction financière.
+  claims:
+  - text: Il existe un numéro unique d'astreinte.
+    label: supported
+  - text: Ce numéro est le 06 07 08 09 10.
+    label: supported
+  - text: On peut l'appeler à toute heure.
+    label: supported
+  - text: L'astreinte répond sous 30 minutes.
+    label: unsupported
+  - text: L'astreinte relève de la direction financière.
+    label: contradicted
+- id: ranking
+  kind: ranking
+  title_text: Le juge change le classement
+  explain_text: Sur le même jeu, le juge local classe « dense » avant « hybrid » et le juge cloud l'inverse.
+    Choisir le juge, c'est choisir le gagnant.

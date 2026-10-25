@@ -236,7 +236,37 @@
       </section>
     </div>
     <div id="rag-panel-evaluate" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-evaluate" hidden>
-      <p class="rag-note rag-soon"></p>
+      <!-- V1.2 story 15 (CAP-11): the judges against the reference, the aggregates, the traps.
+           The shell still writes its « à venir » text into this note; it stays hidden. -->
+      <p class="rag-note rag-soon" hidden></p>
+      <p class="rag-eval-banner" id="rag-eval-banner" role="status"></p>
+      <section class="rag-section" aria-labelledby="rag-eval-title">
+        <h2 class="rag-section-title" id="rag-eval-title"></h2>
+        <p class="rag-note" id="rag-eval-hint"></p>
+        <p class="rag-note" id="rag-eval-provenance"></p>
+        <p class="rag-note" id="rag-eval-translated" hidden></p>
+      </section>
+      <section class="rag-section" aria-labelledby="rag-eval-panel-title">
+        <h3 class="rag-cost-title" id="rag-eval-panel-title"></h3>
+        <div id="rag-eval-panel"></div>
+      </section>
+      <section class="rag-section" aria-label="Tableau" id="rag-eval-table-box">
+        <div class="rag-eval-scroll" id="rag-eval-table"></div>
+      </section>
+      <section class="rag-section" aria-labelledby="rag-eval-aggs-title">
+        <h3 class="rag-cost-title" id="rag-eval-aggs-title"></h3>
+        <div id="rag-eval-aggs"></div>
+      </section>
+      <section class="rag-section" aria-labelledby="rag-eval-traps-title">
+        <h3 class="rag-cost-title" id="rag-eval-traps-title"></h3>
+        <p class="rag-note" id="rag-eval-traps-hint"></p>
+        <div class="rag-copy-buttons" id="rag-eval-traps" role="group"></div>
+        <div id="rag-eval-trap" aria-live="polite"></div>
+      </section>
+      <section class="rag-section" aria-labelledby="rag-eval-sheet-title">
+        <h3 class="rag-cost-title" id="rag-eval-sheet-title"></h3>
+        <p class="rag-note" id="rag-eval-sheet"></p>
+      </section>
     </div>
     <div id="rag-panel-attack" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-attack" hidden>
       <p class="rag-note rag-soon"></p>

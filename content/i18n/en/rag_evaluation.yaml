@@ -1,0 +1,677 @@
+# Story 15 (CAP-11) : textes de la vue Évaluer, jeu enregistré, annotations de référence et
+# quatre pièges des juges. Les verdicts, rangs, étiquettes d'affirmations et préréglages sont
+# communs aux trois langues (le test le vérifie) ; seuls les textes et réponses sont traduits.
+# PROVENANCE : `constructed` = jeu écrit à la main pour la démonstration (aucun modèle réel n'a
+# été lancé) ; Anaël le réenregistre avec un vrai juge local non Qwen et un vrai juge cloud, puis
+# passe `provenance.kind` à `recorded` avec sa date. Les annotations (`annotated_by: draft`) sont
+# proposées par le développeur, à valider par Anaël.
+texts:
+  title_text: 'Evaluate: judges against the reference'
+  hint_text: 'For each prepared question, architecture and criterion: each judge''s verdict, the reference
+    annotation, and whether they agree. Averages live only in this tab, always with their n. Live judgments
+    are asked one at a time, never « evaluate everything ».'
+  banner_text: 'Demonstration, not a benchmark: n = {n} questions, {a} architectures, {j} judges'
+  reference_text: Reference
+  annotation_draft_text: Reference annotation proposed, to be validated
+  annotation_human_text: Annotated by {by} on {on}
+  provenance_constructed_text: Case constructed for the demonstration (to be recorded with {local} and
+    {cloud})
+  provenance_recorded_text: Recorded on {date} with {local} and {cloud}
+  translated_text: Justifications translated from the recording ({lang})
+  session_source_text: Run of this session
+  recorded_source_text: Recorded set
+  question_col_text: Question
+  architecture_col_text: Architecture
+  roles:
+    local: local
+    cloud: cloud
+  recall_text: recall@{k}
+  mrr_text: MRR
+  not_applicable_text: not applicable
+  rule_text: 'rule: refusal {value}'
+  rule_values:
+    'yes': 'yes'
+    'no': 'no'
+  criteria:
+    context_precision:
+      label_text: Context precision
+      explain_text: Are the context passages relevant to the question?
+    faithfulness:
+      label_text: Faithfulness
+      explain_text: Does the answer say only what the context supports?
+    relevance:
+      label_text: Relevance
+      explain_text: Does the answer address the question asked?
+    accuracy:
+      label_text: Accuracy
+      explain_text: Does the answer agree with the expected answer?
+    correct_refusal:
+      label_text: Correct refusal
+      explain_text: On a question with no answer in the corpus, does the answer decline?
+  verdicts:
+    'yes': 'yes'
+    partly: partly
+    'no': 'no'
+    unreadable: unreadable
+  agreement:
+    agree_text: agreement
+    disagree_text: 'disagreement: judge {judge}, reference {reference}'
+    unannotated_text: not annotated
+    unreadable_text: unreadable, counted apart
+    none_text: no verdict
+  why:
+    context_precision:
+      yes_text: The passages given do address the question.
+      partly_text: Part of the passages is off topic or missing.
+      no_text: The passages given do not allow an answer.
+    faithfulness:
+      yes_text: Every claim of the answer is in the context.
+      partly_text: Some claims are not in the context.
+      no_text: The answer states things the context does not support.
+    relevance:
+      yes_text: The answer addresses the question asked.
+      partly_text: The answer covers only part of it.
+      no_text: The answer misses the question.
+    accuracy:
+      yes_text: The answer agrees with the expected answer.
+      partly_text: The answer is incomplete against the expected answer.
+      no_text: The answer contradicts the expected answer.
+    correct_refusal:
+      yes_text: The answer declines, as it should without a useful passage.
+      partly_text: The answer hesitates between declining and answering.
+      no_text: The answer makes something up instead of declining.
+  aggregates:
+    title_text: Aggregates by architecture
+    hint_text: Mean of the verdicts (yes = 1, partly = 0.5, no = 0), for each judge and for the reference.
+      Unreadable verdicts are counted apart, outside the mean.
+    n_text: n = {n}
+    too_few_text: too few to conclude
+    unreadable_text: '{n} unreadable, outside the mean'
+    agreement_text: 'agreement with the reference: {rate}'
+    who:
+      reference: Reference
+      rule: Rule
+      local: Local judge
+      cloud: Cloud judge
+    none_text: Nothing to aggregate.
+  panel:
+    title_text: Panel of judges
+    generator_text: 'Model judged: {model} ({family})'
+    no_generator_text: 'No run of this session to judge: the panel applies to the generating model.'
+    local_title_text: Local judge
+    cloud_title_text: Cloud judge
+    no_local_text: 'No admissible local judge on this machine: only the recorded cases are shown.'
+    cloud_choose_text: Choose the cloud judge
+    no_cloud_text: No cloud model declared.
+    rejected_text: 'set aside: {reason}'
+    same_family_text: same family as the model judged (self-preference bias)
+    unknown_judge_text: unknown family, set aside as a precaution
+    unknown_generator_text: family of the model judged unknown, set aside as a precaution
+    no_grammar_text: no GBNF grammar (Ollama)
+    no_key_text: 'no key: the cases are shown from the recording'
+    cap_text: 'Session cap reached ({spent} of {cap}): call refused before sending.'
+    spend_text: 'Session cloud spend: {spent} of {cap}'
+    no_generator_known_text: 'The model that wrote this run is unknown: no way to pick a judge of another
+      family.'
+    busy_text: 'Another task is running: try again when it is over.'
+    unknown_judge_id_text: This judge does not exist.
+    no_local_reason_text: no admissible local judge on this machine
+    memory_text: 'Not enough memory to load the judge: {reason}'
+  live:
+    title_text: Judge a run of this session
+    none_text: 'Run the chain on a prepared question in « Build »: the run is added here with its measures
+      without a model (recall, MRR). A free question does not count in n.'
+    button_text: Judge this run
+    judge_text: with
+    criterion_text: 'on'
+    busy_text: Judging…
+    refused_text: 'Judgment refused: {reason}'
+    unavailable_text: The evaluation is not reachable.
+    no_answer_text: This run has no answer to judge.
+    failed_text: 'The judgment failed: {reason}'
+  traps:
+    title_text: Four traps of judges
+    hint_text: 'Four shipped cases, replayed from their recording: no model, no network.'
+    badge_text: Recorded case, no call to the model
+    failed_text: Trap not found.
+    judge_says_text: '{judge}: {verdict}'
+    answer_text: Answer judged
+    pass_text: Pass {n}
+    causes_text: 'Possible causes: {causes}'
+    causes:
+      temperature: the sampling temperature
+      passage_order: the order of the passages in the prompt
+    claims_text: Claims of the answer, labelled
+    labels:
+      supported: supported
+      unsupported: unsupported
+      contradicted: contradicted
+    ragas_text: 'Faithfulness as Ragas defines it: claims supported by the context / claims = {value}'
+    deepeval_text: 'Faithfulness as DeepEval defines it: claims not contradicted by the context / claims
+      = {value}'
+    ranking_text: 'Ranking recomputed from the recorded verdicts, the mean of all the judge''s verdicts
+      on the architecture:'
+    rank_line_text: '{rank}. {preset} ({value}, n = {n})'
+  sheet:
+    title_text: Evaluate view sheet
+    body_text: 'An LLM judge is a model that grades another one''s answer. It can be wrong, and not always
+      the way a human is. Self-preference bias: a model grades answers of its own family higher, so a
+      judge never evaluates a model of its own publisher (the family is the publisher in the publishers
+      table; Gemma and Gemini are two distinct families there, which is a limit). The shipped set is constructed
+      for the demonstration: n is small, the aggregates prove nothing. A « proposed » annotation is not
+      a human one until it is validated.'
+  prompts:
+    context_precision: You are a judge. Are the passages below relevant for answering the question? Answer
+      "yes" if all are, "partly" if some are, "no" if none is.
+    faithfulness: You are a judge. Does the answer say only what the context supports? Answer "yes" if
+      every claim is in the context, "partly" if some are not, "no" if the answer contradicts or invents.
+    relevance: You are a judge. Does the answer address the question asked? Answer "yes", "partly" or
+      "no".
+    accuracy: You are a judge. Does the answer agree with the expected answer? Answer "yes", "partly"
+      (incomplete) or "no" (contradictory).
+    correct_refusal: You are a judge. The documentation does not contain the answer to this question.
+      Does the answer decline? Answer "yes" if it declines, "partly" if it hesitates, "no" if it makes
+      an answer up.
+    labels:
+      question: 'Question:'
+      context: 'Context:'
+      answer: 'Answer:'
+      expected: 'Expected answer:'
+    format: 'Answer only with a JSON object {"verdict": "yes|partly|no", "why": "one sentence"}.'
+refusal_markers:
+- i don't know
+- not covered
+- does not cover
+- not in the documentation
+- no information
+recorded:
+  provenance:
+    kind: constructed
+    recorded_on: null
+    source_lang: fr
+  annotation:
+    annotated_by: draft
+    annotated_on: null
+  generator: Qwen3 0.6B
+  judges:
+    local:
+      label: Granite 4.0 Micro
+      model: granite-4.0-micro
+    cloud:
+      label: Mistral Small
+      model: mistral-small-latest
+  runs:
+  - question_id: q_fact_pwd
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: A password must be at least 14 characters long.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_sauvegarde
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: Exemplia keeps 3 copies of its data, one of them off the main site.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+  - question_id: q_fact_badge
+    preset: dense
+    top_k: 3
+    ranks:
+    - 4
+    answer_text: The badge is deactivated within a week.
+    verdicts:
+      context_precision:
+        reference: 'no'
+        local: partly
+        cloud: 'no'
+      faithfulness:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_multi_crise
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    - null
+    answer_text: Call the security on-call; its number is in the contacts annex.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: 'no'
+        local: unreadable
+        cloud: 'no'
+  - question_id: q_multi_prestataire
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    - 5
+    answer_text: The provider must confirm the erasure in writing, with no precise deadline.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: partly
+        local: 'yes'
+        cloud: partly
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_multi_messagerie
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    - 2
+    answer_text: 'Exemplia changed its mail provider on 1 January 2026: the maximum size goes from 10
+      to 25 MB.'
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_taille
+    preset: dense
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: An attachment does not exceed 10 MB.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'yes'
+        cloud: 'no'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_temporal_retention
+    preset: dense
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: Messages are kept 3 years before archiving.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_noanswer_parking
+    preset: dense
+    top_k: 3
+    ranks: []
+    answer_text: 'I don''t know: Exemplia''s documentation does not cover this topic.'
+    verdicts:
+      correct_refusal:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_noanswer_mutuelle
+    preset: dense
+    top_k: 3
+    ranks: []
+    answer_text: The health plan offered is Alan, with 100% coverage.
+    verdicts:
+      correct_refusal:
+        reference: 'no'
+        local: 'yes'
+        cloud: 'no'
+  - question_id: q_fact_pwd
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: A password must be at least 14 characters long.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_sauvegarde
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: 'Exemplia applies the 3-2-1 rule: 3 copies, on 2 different media, 1 of them off the main
+      site.'
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_fact_badge
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 2
+    answer_text: The badge is deactivated within 24 hours of departure.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'no'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_multi_crise
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    - 3
+    answer_text: Call the single on-call number (06 07 08 09 10), then escalate to the security manager.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'no'
+        cloud: 'yes'
+  - question_id: q_multi_prestataire
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    - 2
+    answer_text: Within 30 days of the end of the contract, backups included, with written confirmation.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: partly
+        cloud: 'yes'
+  - question_id: q_multi_messagerie
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 2
+    - 1
+    answer_text: The 1 January 2026 change of mail provider raised the maximum size from 10 to 25 MB.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_taille
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 1
+    answer_text: 25 MB, since version 2 of the charter.
+    verdicts:
+      context_precision:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+  - question_id: q_temporal_retention
+    preset: hybrid
+    top_k: 3
+    ranks:
+    - 3
+    answer_text: Messages are kept 1 year before archiving.
+    verdicts:
+      context_precision:
+        reference: partly
+        local: 'no'
+        cloud: partly
+      faithfulness:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      relevance:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+      accuracy:
+        reference: 'no'
+        local: 'no'
+        cloud: 'no'
+  - question_id: q_noanswer_parking
+    preset: hybrid
+    top_k: 3
+    ranks: []
+    answer_text: Parking is reimbursed at 50% on receipt.
+    verdicts:
+      correct_refusal:
+        reference: 'no'
+        local: 'no'
+        cloud: 'no'
+  - question_id: q_noanswer_mutuelle
+    preset: hybrid
+    top_k: 3
+    ranks: []
+    answer_text: I don't know, this topic is not in the documentation.
+    verdicts:
+      correct_refusal:
+        reference: 'yes'
+        local: 'yes'
+        cloud: 'yes'
+traps:
+- id: two_judges
+  kind: two_judges
+  question_id: q_fact_badge
+  criterion: faithfulness
+  title_text: Two judges, two verdicts
+  explain_text: 'Same question, same answer: the local judge calls it faithful, the cloud judge does not.
+    Each has its justification, and both are plausible.'
+  answer_text: The badge is deactivated within a week.
+  verdicts:
+    local:
+      verdict: 'yes'
+      why_text: 'The answer stays within the context''s theme: a badge deactivated after departure.'
+    cloud:
+      verdict: 'no'
+      why_text: The context says nothing of a week; the rule given is 24 hours, so the duration is made
+        up.
+- id: variance
+  kind: variance
+  question_id: q_temporal_taille
+  criterion: accuracy
+  title_text: Variance of the same judge
+  explain_text: 'The same judge, on the same case, twice: two verdicts. Nothing changed in the case; temperature
+    and passage order are enough.'
+  answer_text: An attachment does not exceed 10 MB.
+  causes:
+  - temperature
+  - passage_order
+  passes:
+  - verdict: 'yes'
+    why_text: The answer gives an attachment size, as expected.
+  - verdict: 'no'
+    why_text: The size given, 10 MB, is the old version's, not the expected 25 MB.
+- id: two_tools
+  kind: two_tools
+  question_id: q_multi_crise
+  title_text: Two tools, two definitions
+  explain_text: '« Faithfulness » has no single definition: Ragas counts the claims supported, DeepEval
+    those not contradicted. On the same answer the two scores differ; they are recomputed here from the
+    same labelled claims.'
+  answer_text: Call the single on-call number, 06 07 08 09 10, at any hour. The on-call answers within
+    30 minutes. It reports to the finance department.
+  claims:
+  - text: There is a single on-call number.
+    label: supported
+  - text: That number is 06 07 08 09 10.
+    label: supported
+  - text: It can be called at any hour.
+    label: supported
+  - text: The on-call answers within 30 minutes.
+    label: unsupported
+  - text: The on-call reports to the finance department.
+    label: contradicted
+- id: ranking
+  kind: ranking
+  title_text: The judge changes the ranking
+  explain_text: On the same set, the local judge ranks « dense » before « hybrid » and the cloud judge
+    the reverse. Choosing the judge is choosing the winner.
