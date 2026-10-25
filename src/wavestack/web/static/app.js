@@ -3468,7 +3468,7 @@ function compactChoices(turn, view) {
   const used = store.compactUsed.has(turn.id);
   for (const choice of turn.overflow.choices) {
     const row = el("div", "compact-choice");
-    const button = el("button", "pane-text-action", t(`main.orch.overflow.buttons.${choice.strategy}`));
+    const button = el("button", "compact-choice-button", t(`main.orch.overflow.buttons.${choice.strategy}`));
     button.type = "button";
     button.dataset.strategy = choice.strategy;
     button.dataset.focusKey = `compact:${view}:${turn.id}:${choice.strategy}`;

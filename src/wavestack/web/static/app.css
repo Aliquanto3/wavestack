@@ -5029,7 +5029,7 @@ body > .site-nav {
   gap: var(--spacing-2);
 }
 
-.compact-choice .pane-text-action {
+.compact-choice-button {
   min-height: var(--spacing-hit-target-min);
   padding: 0 var(--spacing-3);
   background: var(--color-surface-raised);
@@ -5041,7 +5041,7 @@ body > .site-nav {
   cursor: pointer;
 }
 
-.compact-choice .pane-text-action:disabled {
+.compact-choice-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }

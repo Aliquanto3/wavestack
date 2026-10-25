@@ -402,7 +402,7 @@ scenarios:
   harness_map:
     title_text: Harness-Karte
     description_text: >-
-      Die Kompressions-Bausteine bleiben aktiv, wie im Szenario zur Kompression. Hier gibt es keinen
+      Die Kompressions-Bausteine bleiben aktiv, wie im Szenario „Komprimierung des Kontexts“. Hier gibt es keinen
       Tool-Aufruf: Klicken Sie unter diesem Text (oder am Fuß des Baustein-Bereichs) auf
       „Harness-Karte“, um die Karte zu öffnen. Jeder Baustein ist dort in eines der 7
       Subsysteme eines Harness eingeordnet, mit seiner Rolle: Guide (er lenkt das Modell,
