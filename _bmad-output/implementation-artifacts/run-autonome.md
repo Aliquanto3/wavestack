@@ -642,3 +642,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:21 · run · décision · à revoir : 🛠️ gardé ; titre de page « Modèles » ; adresse /diagnostic et clés inchangées ; textes qui renvoient à la page alignés, « diagnostic » gardé quand il désigne une vérification ; captures non régénérées sauf celles qui vérifient le libellé · —
 - 2026-10-25 17:21 · run · décision · Anaël : à la fin de l'epic 12, refaire README.md et la démo (wavestack-demo.gif et .mp4, tools/demo/compose.py), l'interface ayant changé sur trois epics ; ajouté aux étapes de fin de lot · —
 - 2026-10-25 17:22 · 12.21 · dev · modèles téléchargés sur le WiFi (17:16 → 17:22) : colpali_v13_fp16 ok, colsmol_256m_onnx ok ; mesure seule sur poste libre après le renommage de l'onglet, avant la refusion de 12.16 · e647ad10
+- 2026-10-25 17:26 · run · dev · onglet « Modèles » fait (libellés, titres, renvois ×3, 6 pages HTML, docs, tests et E2E model_catalog) ; 5 727 tests ciblés, E2E 102/102 ; second avis lancé (lecture seule) · 3c1beb5e
+- 2026-10-25 17:26 · 12.21 · dev · mesure lancée seule (18,6 Go libres, CPU 0 %) · e647ad10
