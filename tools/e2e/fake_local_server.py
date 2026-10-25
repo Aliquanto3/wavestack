@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -77,12 +78,46 @@ def plan(prompt: str) -> str:
         # with the closure, so the relaunch gets the answer below.
         return LONG_REASONING
     thinking = "Je réfléchis.\n</think>\n\n" if prompt.endswith("<think>\n") else ""
+    scripted = workshop_plan(prompt, message)
+    if scripted is not None:
+        return scripted
     if "<tool_response>" in turn:
         result = turn.rsplit("<tool_response>", 1)[1].split("</tool_response>")[0].strip()
         return f"{thinking}D'après le résultat de l'outil : {result}"
     if "heure" in message.lower() and "get_datetime" in prompt:
         return f"{thinking}<tool_call>\n<function=get_datetime>\n</function>\n</tool_call>"
     return f"{thinking}Réponse du faux llama-server au message : « {message} »"
+
+
+def workshop_plan(prompt: str, message: str) -> str | None:
+    """V1.2 story 11: the RAG workshop's short tasks, scripted. The agent's loop (its system
+    prompt names `ACTION: read_file <…>`): `grep` the question, `read_file` the télétravail
+    document, `ANSWER`; a question that names `.env` asks `read_file ../../.env` first. The
+    tree's descent (`CHOICE: NONE` in its system prompt): the télétravail document among the
+    documents, then the first two sections. A summary to rewrite: a fixed sentence."""
+    lines = message.splitlines()
+    if "ACTION: read_file <" in prompt:
+        question = lines[-2] if len(lines) >= 2 else message
+        done = sum(1 for line in lines if line.startswith("ACTION:"))
+        if ".env" in question:
+            script = ["ACTION: read_file ../../.env", "ACTION: ANSWER"]
+        else:
+            asked = question.split(":", 1)[-1].strip()
+            script = [f"ACTION: grep {asked}", "ACTION: read_file corpus/teletravail.md"]
+            script.append("ACTION: ANSWER")
+        return script[min(done, len(script) - 1)]
+    if "CHOICE: NONE" in prompt:
+        listed = [line for line in lines if re.match(r"^\d+\. ", line)]
+        if len(listed) > 12:  # the documents
+            for line in listed:
+                if re.search(r"télétravail|telework|telearbeit", line, re.I):
+                    return f"CHOICE: {line.split('.', 1)[0]}"
+        return "CHOICE: 1, 2"
+    if re.search(
+        r"Le résumé, en une phrase|The summary, in one sentence|Die Zusammenfassung", message
+    ):
+        return "Résumé écrit par le faux llama-server."
+    return None
 
 
 def create_app(flavor: str) -> Starlette:

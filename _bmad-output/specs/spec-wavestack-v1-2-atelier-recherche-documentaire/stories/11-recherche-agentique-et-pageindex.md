@@ -2,7 +2,7 @@
 title: 'Story 11 : recherche agentique et PageIndex'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -101,14 +101,14 @@ Les deux s'appuient sur l'existant : la brique outils de la V1.4-3 (noms `read_f
 
 ## Tasks & Acceptance
 
-- [ ] Options `agent_loop` / `section_tree`, préréglages `agentic` / `pageindex`, famille « Structure », `SEARCHLESS_OPTIONS`.
-- [ ] `rag/agent_tools.py` : outils confinés à la copie de travail, analyse des actions.
-- [ ] Boucle d'outils dans l'étape Contexte (tours, plafond, avertissements, contexte en éléments), appels au modèle comptés.
-- [ ] `rag/pageindex.py`, constructeur déterministe, `content/rag_pageindex.yaml` ×3, descente, « Reconstruire » / « Rétablir ».
-- [ ] Coûts en trois temps des deux architectures, mise à jour du sous-arbre.
-- [ ] Endroits `pageindex_tree` et agentique mesurés ; `available` ; fiches.
-- [ ] Séquence, focus, carte Arbre, charge utile de l'événement.
-- [ ] Textes en fr, en, de ; tests ciblés ; scénario E2E `rag_lab_agentic`.
+- [x] Options `agent_loop` / `section_tree`, préréglages `agentic` / `pageindex`, famille « Structure », `SEARCHLESS_OPTIONS`.
+- [x] `rag/agent_tools.py` : outils confinés à la copie de travail, analyse des actions.
+- [x] Boucle d'outils dans l'étape Contexte (tours, plafond, avertissements, contexte en éléments), appels au modèle comptés.
+- [x] `rag/pageindex.py`, constructeur déterministe, `content/rag_pageindex.yaml` ×3, descente, « Reconstruire » / « Rétablir ».
+- [x] Coûts en trois temps des deux architectures, mise à jour du sous-arbre.
+- [x] Endroits `pageindex_tree` et agentique mesurés ; `available` ; fiches.
+- [x] Séquence, focus, carte Arbre, charge utile de l'événement.
+- [x] Textes en fr, en, de ; tests ciblés ; scénario E2E `rag_lab_agentic`.
 
 **Acceptance Criteria:**
 1. Given `PRESETS` et le catalogue, then `dense`, `hybrid`, `rerank`, `long_context` et `cag` donnent les mêmes chaînes et disponibilités qu'avant (tests existants verts) ; `PRESET_FAMILIES` vaut, dans cet ordre, `search`, `structure` (`pageindex`), `no_index` (`long_context`, `cag`, `agentic`), et la page dessine les familles dans cet ordre (maquette) ; segment vide, Contexte `agent_loop` / `section_tree` ; un préréglage hors famille ou dans deux familles fait toujours échouer `RagLabContent` ; le catalogue garde `corpus_options == ["full_corpus", "cached_corpus"]` et gagne `searchless_options` (les quatre).
@@ -165,6 +165,17 @@ Point de contrôle de la spec du 2026-10-25 (reviewer, Opus 5.5). Les neuf point
 
 - 2026-10-25 : première rédaction (draft), en attente du point de contrôle de la spec.
 - 2026-10-25 : point de contrôle de la spec (reviewer). Corrigé : ordre des familles (Structure entre Recherche et Sans index, maquette) ; usages de `SEARCHLESS_OPTIONS` complétés (`_whole_corpus`, clé `searchless_options` lue par `rag.js`, sinon changer de préréglage casse la chaîne) et message `searches_itself` (« lit le corpus entier » faux pour les nouvelles options) ; confinement par liste de noms virtuels sur les `DocText` de la copie de travail (pas de chemin), extraction `native.match_lines` au lieu d'une modification interdite de `search_documents` ; bornes `ACTION_ARG_MAX_CHARS`, `AGENT_RESULT_MAX_TOKENS`, `TREE_SUMMARY_MAX_CHARS` chiffrées ; boucle annulable, prompt de chaque tour borné, `agent_unreadable` et `tree_unreadable` expliqués ; descente : une liste par niveau ; fichier livré sans durée (reproductible) ; API inexistantes remplacées (`Deps` → `LabDeps`, `heuristic` / `SUMMARY_MAX_CHARS`, `rag-chain.js`) ; route de rétablissement ; effacement : `pageindex_tree` mesuré par la carte pure (arbre heuristique en mémoire), `story: 11` retiré ; critère 14 sans comparaison de durées ; lien symbolique sauté si l'OS le refuse ; tests liés ajoutés au plan. Neuf points tranchés. Statut ready-for-dev.
+- 2026-10-25, développement (statut `review`) : implémenté contre les 21 critères, intégration `integration/v1-2-atelier` refusionnée (story 10 revue, puis story 19 et son contrat : `story: 11` retiré des fiches ×3, E2E `rag_lab_sheets` à 27 entrées, 16 composants). Choix à revoir par Anaël, sans toucher au bloc d'intention :
+  (a) Pas de `model_call` / `ModelAsk` : la boucle, la descente et les résumés passent par le `generator` existant (`GenerationAsk` avec `instruction` et `reserve = AGENT_RESERVE = 128`, le chemin de la compréhension de requête), donc même encadrement local / nuage ; `LabDeps` gagne `model_scope` (l'état du contexte principal sauvé une fois autour des appels d'une étape, `_rag_lab_hold`, testé) et `reserve` (réserve de la génération pour la règle de fenêtre).
+  (b) Lignes de séquence nommées en anglais comme les autres (« Tool calls », « Tree descent », convention i18n des noms techniques, comme « Prefix caching ») ; une troisième ligne `tree_build` (phase BUILD, écrit le composant « Arbre de sections ») porte la construction de l'arbre.
+  (c) Éléments du contexte : un par résultat d'outil réussi, `grep` et `list_files` compris (source `corpus`) ; une action refusée ou un `grep` sans résultat n'en donne pas. Une action de nom inconnu est refusée (tour compté), pas illisible.
+  (d) `AGENT_RESULT_MAX_TOKENS = 400` coupe la plupart des documents du corpus livré (environ 1 600 caractères lus, `[…]`) : le modèle complète par `grep`. À juger au point de contrôle.
+  (e) Arbre : titre de section suivi de « … » seulement au-delà de huit mots ; racine `corpus` (résumé = titres des documents, jamais réécrit) ; sous-titres `##` en niveau intermédiaire (test sur corpus de test). 25 documents actifs (27 avec le piégé et la sentinelle, inactifs).
+  (f) « Arrêter » pendant « Reconstruire : PageIndex » n'écrit rien (l'ancien état reste), alors que les contextes de la story 6 gardent la partie faite.
+  (g) Mise à jour PageIndex avec arbre reconstruit et modèle chargé : les résumés du document touché sont écrits dans le fichier reconstruit pendant la partie (fusion par id et empreinte).
+  (h) Coût `build` de l'arbre par la règle : durée de `load_tree` mesurée (`perf_counter`, arrondie au-dessus, jamais 0), 0 token, empreinte non mesurée.
+  (i) `CHOICE: NONE` à un niveau profond arrête aussi la descente (`no_node_chosen`), le contexte = sections déjà atteintes.
+  (j) E2E `rag_lab_agentic` (captures 84 et 85) ; faux llama-server scripté (`workshop_plan`) ; le changement de langue exige une conversation vidée. `rag_lab`, `rag_lab_no_index`, `test_rag_lab.py`, `test_rag_lab_no_index.py`, `test_rag_erasure.py` (agentique et PageIndex `available`, `pageindex_tree` mesuré) et `test_i18n.py` (parité de `rag_pageindex.yaml`) réalignés.
 
 ## Reports
 

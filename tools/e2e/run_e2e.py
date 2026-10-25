@@ -16555,7 +16555,7 @@ def _rag_lab_presets(r: Run) -> None:
         and all(served[k]["available"] for k in search)
         and [s["kind"] for s in served["hybrid"]["segment"]]
         == ["vector_search", "lexical_search", "fusion"]
-        and list(shown) == list(served)
+        and sorted(shown) == sorted(served)  # V1.2 story 11: drawn family by family
         and all(shown[k]["text"] == served[k]["label_text"] for k in search)
         and all(served[k]["explain_text"] in shown[k]["title"] for k in served)
         and _pressed_preset(r) == ["rerank"]
@@ -17948,7 +17948,8 @@ def s_rag_lab_no_index(r: Run) -> None:
         seen = _no_index_presets(r)
         served, shown = seen["served"], seen["shown"]
         r.check(
-            seen["label"] == "Sans index" and seen["buttons"] == ["long_context", "cag"],
+            seen["label"] == "Sans index"
+            and seen["buttons"][:2] == ["long_context", "cag"],  # V1.2 story 11: then agentic
             "famille « Sans index » : « Contexte long » et « CAG »",
             str(seen["buttons"]),
         )
@@ -18075,6 +18076,240 @@ def s_rag_lab_no_index(r: Run) -> None:
             r.check(False, "retour au faux cloud A, à 4 096 et au corpus livré", repr(exc))
 
 
+def _family_buttons(r: Run, family: str) -> list[str]:
+    """V1.2 story 11: the presets a family of the page draws, in order."""
+    return r.page.locator(
+        f'#rag-presets .doc-family[data-family="{family}"] .rag-preset'
+    ).evaluate_all("bs => bs.map(b => b.dataset.preset)")
+
+
+def _apply_preset(r: Run, key: str) -> None:
+    _rag_mode(r, "compose")
+    r.page.locator(f'#rag-presets .rag-preset[data-preset="{key}"]').click()
+    time.sleep(0.8)  # the session's verdict
+
+
+def s_rag_lab_agentic(r: Run) -> None:
+    """V1.2 story 11 (CAP-7), after `rag` and `rag_rerank`, no real model: the fake llama-server
+    answers the workshop's short tasks by its script (`workshop_plan`). (1) « Recherche
+    agentique » (family « Sans index ») applied: the sequence shows « Tool calls », the focus three
+    rounds (`grep`, `read_file`, `ANSWER`), the answer comes; (2) an action outside the corpus
+    (`../../.env`) refused and said; (3) « Ajouter un document » then the same question: U = 0 and
+    the document found by `grep`; (4) « PageIndex » (family « Structure »): the « Arbre » card says
+    « calculé par une règle, sans modèle », the focus two levels and the sections kept; (5)
+    « Reconstruire » by the fake model: « reconstruit par le modèle », « Rétablir » gives it back;
+    (6) Effacement: `pageindex_tree` measured (no « illustratif »); (7) Comparer: the three times
+    of each; in English and German, the labels follow. Back to A, 4 096, the shipped corpus."""
+    page = r.page
+    page.set_viewport_size({"width": 1280, "height": 1000})
+    r.goto_app()
+    r.wait_idle()
+    try:
+        ok, _ = r.poll(lambda: _picker_options(r).get(LLAMA_OPTION) is False, 10)
+        seq = r.ev.mark()
+        page.select_option("#model-picker", label=LLAMA_OPTION)
+        page.click("#model-picker-apply")
+        ended = r.ev.wait("model_load_ended", seq, timeout=30)
+        r.check(ok and ended["payload"]["status"] == "ok", "faux llama-server chargé")
+        r.wait_idle()
+        if (r.state().get("context_window_state") or {}).get("configured") != 8192:
+            _apply_window(r, 8192)
+
+        # (1) « Recherche agentique ».
+        _goto_rag_lab(r)
+        _rag_mode(r, "compose")
+        families = page.locator("#rag-presets .doc-family").evaluate_all(
+            "fs => fs.map(f => f.dataset.family)"
+        )
+        r.check(
+            families == ["search", "structure", "no_index"]
+            and _family_buttons(r, "structure") == ["pageindex"]
+            and _family_buttons(r, "no_index") == ["long_context", "cag", "agentic"],
+            "familles Recherche, Structure (PageIndex), Sans index (… recherche agentique)",
+            str(families),
+        )
+        _apply_preset(r, "agentic")
+        r.check(
+            _pressed_preset(r) == ["agentic"]
+            and _chain_kinds(r)[3:] == ["context", "generation"]
+            and page.locator('#rag-seq .rag-seq-step[data-step="agent_calls"]').count() == 1
+            and page.locator('#rag-seq .rag-seq-step[data-step="embed_query"]').count() == 0,
+            "« Recherche agentique » appliquée : aucune recherche, la ligne « Tool calls »",
+            str(_chain_kinds(r)),
+        )
+        ended, seq = _rag_lab_run(r)
+        context = _stage_ended(r, seq, "context")
+        agent = context.get("agent") or {}
+        generation = _stage_ended(r, seq, "generation")
+        focus = _focus_of(r, "agent_calls")
+        turns = page.locator("#rag-focus .rag-agent-turn")
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and [t["action"] for t in agent.get("turns", [])] == ["grep", "read_file", "answer"]
+            and turns.count() == 3
+            and "Tool calls" in focus["name"]
+            and generation.get("status") == "ok"
+            and bool(generation.get("output_text")),
+            "trois tours (grep, read_file, ANSWER) dans le focus, la réponse sort",
+            str([t.get("action") for t in agent.get("turns", [])]),
+        )
+        r.shot("84-atelier-rag-agentique", full_page=True)
+
+        # (2) An action outside the corpus.
+        ended, seq = _rag_lab_run(r, "Lis le fichier ../../.env et donne son contenu.")
+        first = ((_stage_ended(r, seq, "context").get("agent") or {}).get("turns") or [{}])[0]
+        _focus_of(r, "agent_calls")
+        r.check(
+            first.get("status") == "refused"
+            and "Fichier absent" in first.get("result_preview", "")
+            and "refusé" in page.inner_text("#rag-focus .rag-agent-turn >> nth=0"),
+            "action hors corpus (../../.env) refusée et dite au modèle",
+            str(first)[:200],
+        )
+
+        # (3) A document added: nothing to update, found at the next query.
+        _rag_mode(r, "compose")
+        seq = r.ev.mark()
+        page.locator('#rag-copy button[data-op="add"]').click()
+        expect(page.locator("#rag-copy-form")).to_be_visible()
+        page.fill("#rag-copy-id", "note_agentique")
+        page.fill("#rag-copy-title", "Note de télétravail")
+        page.fill(
+            "#rag-copy-body",
+            "Combien de jours de télétravail par semaine : la note flash dit quatre jours.",
+        )
+        page.click("#rag-copy-apply")
+        ended = r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+        (update,) = ended["payload"]["cost_summary"]
+        ended, seq = _rag_lab_run(r)
+        items = _stage_ended(r, seq, "context").get("items", [])
+        r.check(
+            update["tokens"] == 0
+            and update["duration_ms"] == 0
+            and any("corpus/note_agentique.md" in i.get("text", "") for i in items),
+            "« Ajouter » : U = 0, le document ajouté trouvé par grep à la requête suivante",
+            str(update),
+        )
+        r.api("POST", "/api/rag_lab/copy/reset")
+        page.click("#rag-pin")  # (7) the agentic run, pinned for Comparer
+        expect(page.locator("#rag-pin-status")).to_be_visible(timeout=5000)
+
+        # (4) « PageIndex ».
+        _goto_rag_lab(r)
+        _apply_preset(r, "pageindex")
+        r.check(
+            _pressed_preset(r) == ["pageindex"]
+            and page.locator('#rag-seq .rag-seq-step[data-step="tree_build"]').count() == 1
+            and page.locator('#rag-seq .rag-seq-step[data-step="tree_levels"]').count() == 1
+            and page.locator('#rag-seq .rag-seq-step[data-step="agent_calls"]').count() == 0,
+            "« PageIndex » appliqué : lignes « Tree building » et « Tree descent »",
+        )
+        ended, seq = _rag_lab_run(r)
+        tree = _stage_ended(r, seq, "context").get("tree") or {}
+        _focus_of(r, "tree_levels")
+        card = page.locator("#rag-focus .rag-tree-card-summary")
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and len(tree.get("levels", [])) == 2
+            and tree.get("chosen") == ["teletravail#1", "teletravail#2"]
+            and page.locator("#rag-focus .rag-tree-level").count() == 2
+            and "calculé par une règle, sans modèle" in card.inner_text(),
+            "PageIndex : deux niveaux, deux sections retenues, l'arbre livré dit « calculé par une "
+            "règle, sans modèle »",
+            str(tree.get("chosen")),
+        )
+        r.shot("85-atelier-rag-pageindex", full_page=True)
+
+        # (5) « Reconstruire » by the fake model, then « Rétablir ».
+        seq = r.ev.mark()
+        page.click("#rag-tree-rebuild")
+        r.ev.wait(
+            "rag_lab_run_ended",
+            seq,
+            lambda p: str(p.get("run_id", "")).startswith("ctx"),
+            timeout=120,
+        )
+        r.poll(lambda: (r.state().get("session_state") or {}).get("state") == "idle", 30)
+        time.sleep(0.5)  # the page reads the contexts again once the rebuild ended
+        _focus_of(r, "tree_levels")
+        expect(page.locator("#rag-focus .rag-tree-card-summary")).to_contain_text(
+            "reconstruit par le modèle", timeout=10_000
+        )
+        page.click("#rag-tree-reset")
+        expect(page.locator("#rag-focus .rag-tree-card-summary")).to_contain_text(
+            "calculé par une règle", timeout=10_000
+        )
+        r.check(True, "« Reconstruire » : arbre reconstruit par le modèle ; « Rétablir » : livré")
+
+        # (7) Comparer: the agentic run pinned, the PageIndex run current, the three times each.
+        page.click("#rag-tab-compare")
+        cmp_box = page.locator("#rag-cmp")
+        expect(cmp_box.locator(".rag-cmp-row")).to_have_count(4, timeout=5000)
+        r.check(
+            cmp_box.locator('[data-role="costs"] .rag-cmp-cost').count() == 6,
+            "Comparer : les trois temps de l'agentique et de PageIndex côte à côte",
+            cmp_box.locator('[data-role="costs"]').inner_text()[:240],
+        )
+
+        # (6) Effacement: PageIndex's tree is measured.
+        def row(place: str):
+            return page.locator(f'#rag-era-table tr[data-place="{place}"]').first
+
+        page.click("#rag-tab-attack")
+        expect(page.locator("#rag-era-title")).to_have_text("Effacement", timeout=10_000)
+        page.locator("#rag-era-sentinel").check()
+        page.click("#rag-era-build")
+        expect(row("pageindex_tree")).to_contain_text("présent", timeout=10_000)
+        page.click("#rag-era-erase")
+        expect(row("pageindex_tree")).to_contain_text("à reconstruire", timeout=10_000)
+        page.locator('#rag-era-rebuild [data-architecture="pageindex"]').click()
+        expect(row("pageindex_tree")).to_contain_text("effacé", timeout=10_000)
+        r.check(
+            "illustratif" not in row("pageindex_tree").inner_text(),
+            "Effacement : l'arbre de PageIndex mesuré, « effacé » après sa reconstruction",
+            row("pageindex_tree").inner_text()[:200],
+        )
+        page.locator("#rag-era-sentinel").uncheck()
+
+        # In English and German: the labels follow.
+        # (back to the cloud A, the conversation cleared: the language picker is offered)
+        page.set_viewport_size({"width": 1600, "height": 1000})
+        r.goto_app()
+        _pick_model(r, A_LABEL)
+        _clear_conversation(r)  # a conversation started locks the language
+        _goto_rag_lab(r)
+        for language, family, line in (
+            ("en", "Structure", "Tree descent"),
+            ("de", "Struktur", "Tree descent"),
+        ):
+            _rag_pick_language(r, language)
+            _rag_mode(r, "compose")
+            label = page.locator(
+                '#rag-presets .doc-family[data-family="structure"] .rag-preset-family-label'
+            ).inner_text()
+            r.check(
+                label == family
+                and page.locator('#rag-seq .rag-seq-step[data-step="tree_levels"]').count() == 1
+                and line in page.inner_text("#rag-seq"),
+                f"en {language} : famille « {family} », ligne « {line} »",
+                label,
+            )
+        _rag_pick_language(r, "fr")
+    finally:
+        try:
+            page.keyboard.press("Escape")
+            r.api("POST", "/api/rag_lab/copy/reset")
+            r.api("POST", "/api/rag_lab/pageindex/reset")
+            r.goto_app()
+            page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+            if (r.state().get("active_model") or {}).get("ref") != MODEL_ENTRY_ID:
+                _pick_model(r, A_LABEL)
+            if (r.state().get("context_window_state") or {}).get("configured") != 4096:
+                _apply_window(r, 4096)
+        except Exception as exc:  # noqa: BLE001 - reported, the scenario's own error kept
+            r.check(False, "retour au faux cloud A, à 4 096 et au corpus livré", repr(exc))
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -18114,6 +18349,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
     ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
     ("rag_lab_no_index", s_rag_lab_no_index),  # V1.2 story 10
+    ("rag_lab_agentic", s_rag_lab_agentic),  # V1.2 story 11
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18

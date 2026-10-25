@@ -829,9 +829,19 @@ d'autres (story 21) :
   la carte « Document piégé » répond encore ; corpus de Construire inchangé ; aucune requête hors de
   `127.0.0.1` ; capture `69-atelier-rag-attaquer-effacement-droits.jpg`.
 - `rag_lab_sheets`, V1.2 story 19 (CAP-16, CAP-17), après `rag` et `rag_rerank` : l'onglet Fiches,
-  sans modèle, sans index, sans clé. Liste (14 composants, 11 architectures, familles en attente
+  sans modèle, sans index, sans clé. Liste (16 composants, 11 architectures, familles en attente
   « story 19b »), fiche `chunking.semantic` (cinq blocs, « Pas encore mesuré »), fiche `hybrid`
   (sept axes, six niveaux en mot, axe réglementaire sans niveau, « proposition, à relire »,
   « pas un avis juridique »), lien de l'axe Droits vers la carte de l'onglet Attaquer (à l'écran,
   focus, pas Construire), fiche `graphrag` « à venir (story 13) », contrastes AA clair et sombre,
   en puis de ; aucune requête hors de `127.0.0.1` ; captures `70-atelier-rag-fiches*.jpg`.
+- `rag_lab_agentic`, V1.2 story 11 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le
+  faux llama-server répond aux tâches courtes de l'atelier par son script (`workshop_plan` de
+  `fake_local_server.py` : `grep` de la question, `read_file corpus/teletravail.md`, `ANSWER` ;
+  `CHOICE:` du document de télétravail puis de ses deux premières sections ; un résumé fixe).
+  Familles Recherche, Structure, Sans index ; « Recherche agentique » : ligne « Tool calls », trois
+  tours dans le focus, la réponse ; `../../.env` refusé et dit ; « Ajouter » : U = 0 et le document
+  trouvé ; « PageIndex » : lignes « Tree building » et « Tree descent », deux niveaux, carte
+  « Arbre » « calculé par une règle, sans modèle » ; « Reconstruire » puis « Rétablir » ; Comparer
+  (les trois temps des deux) ; Effacement (`pageindex_tree` mesuré, « effacé » après sa
+  reconstruction) ; en puis de ; captures `84-atelier-rag-agentique.jpg`, `85-atelier-rag-pageindex.jpg`.
