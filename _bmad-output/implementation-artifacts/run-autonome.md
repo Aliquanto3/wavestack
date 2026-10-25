@@ -142,3 +142,6 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 23:01 · 15.4 · fusion · #140 MERGED dans main (squash, partie 4a) · dd66ed03
 - 2026-10-25 23:08 · 15.4 · dev · 4b fini (vue, E2E agent_eval 38/38 et agent_case 37/37 ; rebasé sur dd66ed03 ; libellés cités par 15.5 conservés) · de816b5d
 - 2026-10-25 23:08 · 15.4 · second-avis · 4b lancé · —
+- 2026-10-25 23:13 · 15.5 · décision · libellé allemand « Agent bewerten öffnen » sans guillemets internes (comme fr et en) ; 15.5 rebasée sur dd66ed03 ; intégration d'essai sur 4b : 335 tests de contenu verts · 67fb4e9b
+- 2026-10-25 23:13 · 15.4 · second-avis · 4b : 4 medium (état de session absent après rechargement ; panneau reconstruit à chaque poll ; focus perdu après Arrêter ; alerte relue chaque seconde), 7 low · de816b5d
+- 2026-10-25 23:13 · 15.4 · review · 4b lancé (Opus) · —
