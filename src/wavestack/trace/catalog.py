@@ -491,6 +491,55 @@ class ModelCallEndedPayload(BaseModel):
     kv_prompt_per_second: float | None = None
 
 
+class CacheCellTotal(BaseModel):
+    """V1.3 CAP-3: one cache cell summed over a column's calls: the declared values (0
+    included), how many calls declared it, how many did not (never summed as 0)."""
+
+    tokens: int = 0
+    declared: int = 0
+    undeclared: int = 0
+
+
+class CacheTotals(BaseModel):
+    read: CacheCellTotal = CacheCellTotal()
+    write: CacheCellTotal = CacheCellTotal()
+    write_1h: CacheCellTotal = CacheCellTotal()
+    uncached: CacheCellTotal = CacheCellTotal()
+
+
+class RingUsd(BaseModel):
+    """The cost by post of a column's priced calls (the ring « où part l'argent »)."""
+
+    read: float = 0.0
+    write_5m: float = 0.0
+    write_1h: float = 0.0
+    fresh: float = 0.0
+    out: float = 0.0
+
+
+class SpendColumn(BaseModel):
+    """V1.3 CAP-3: « Cette conversation », the same totals as the session's (the flat fields
+    of `ConsumptionUpdatedPayload`), for the calls of the conversation's turns; reset with it."""
+
+    total_in_usd: float = 0.0
+    total_out_usd: float = 0.0
+    total_usd: float = 0.0
+    calls: int = 0
+    approx: bool = False
+    cache_saved_usd: float = 0.0
+    compression_saved_usd: float = 0.0
+    kv_time_saved_s: float = 0.0
+    saved_calls: int = 0
+    cache: CacheTotals = CacheTotals()
+    cache_calls: int = 0
+    cache_priced_calls: int = 0
+    local_read_calls: int = 0
+    cold_write_tokens: int = 0
+    ring: RingUsd = RingUsd()
+    ring_calls: int = 0
+    unpriced_calls: int = 0
+
+
 class ConsumptionUpdatedPayload(BaseModel):
     """FinOps: the session's API spend after a paid call (turns, sub-agent, « Tester », « LLM
     nu »), in dollars; reset by a relaunch only. `approx`: one of its calls was estimated.
@@ -518,6 +567,17 @@ class ConsumptionUpdatedPayload(BaseModel):
     compression_saved_usd: float = 0.0
     kv_time_saved_s: float = 0.0
     saved_calls: int = 0  # priced economies counted above (0: nothing measured)
+    # V1.3 CAP-3 (bilan consolidé): the session's cache cells, ring and counters (« Depuis le
+    # lancement », the flat fields above), and « Cette conversation » in `conversation`.
+    cache: CacheTotals = CacheTotals()
+    cache_calls: int = 0  # calls whose cache cells are counted
+    cache_priced_calls: int = 0  # calls whose cache saving is priced (`cache_saved_usd`)
+    local_read_calls: int = 0  # local calls that read from the engine's context memory
+    cold_write_tokens: int = 0  # the first declared write (priming), out of the write signal
+    ring: RingUsd = RingUsd()
+    ring_calls: int = 0
+    unpriced_calls: int = 0  # counted calls with no declared price, out of the ring
+    conversation: SpendColumn = SpendColumn()
 
 
 class SpecialTokenNeutralizedPayload(BaseModel):
@@ -750,6 +810,7 @@ PrefixCause = Literal[
     "llm",  # story 29: the « LLM nu » screen took the engine's cache
     "mcp_lab",  # lot 4 of 2026-10-04: the MCP workshop's model took the engine's cache
     "rag_lab",  # lot 5c-3: the RAG workshop's generation took the engine's cache
+    "cache_cleared",  # V1.3 story 3: « Vider le cache » emptied the engine's memory
 ]
 
 

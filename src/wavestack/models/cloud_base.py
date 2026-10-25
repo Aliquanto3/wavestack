@@ -17,6 +17,7 @@ spend) and the spacing registry live here once, whatever the API.
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import re
@@ -37,6 +38,7 @@ from wavestack.models.engine import CancelToken, EngineSnapshot
 from wavestack.net.factory import create_client
 from wavestack.net.guard import find_blocked
 from wavestack.trace.journal import get_journal
+from wavestack.trace.scope import current
 
 DELTA_INTERVAL_S = 0.05  # AD-2: model_delta grouped every 50 ms at most
 # Anthropic's 400 says « prompt is too long » (native providers 3/5).
@@ -330,6 +332,42 @@ def call_cost(
     )
 
 
+CACHE_CELLS = ("read", "write", "write_1h", "uncached")
+RING_POSTS = ("read", "write_5m", "write_1h", "fresh", "out")
+
+
+def cost_ring(
+    pricing: CloudPricing,
+    cached_read: int,
+    cached_write: int,
+    prompt_tokens: int,
+    cost: CallCost,
+    cached_write_1h: int = 0,
+) -> dict[str, float]:
+    """V1.3 CAP-3: a priced call's cost by post, for the bilan's ring « où part l'argent ».
+    Same bounded counts and same fallback prices as `call_cost`. `fresh` is the rest of the
+    input (the uncached part at the input price, and the rounding), so that the posts sum to
+    `cost.input_usd + cost.output_usd`. `cached_write_1h` is the same 1 h part `call_cost` was
+    given, at `write_1h_price`; absent, the whole write is the 5 min post."""
+    price_in = pricing.input_usd_per_mtok
+    read_price = pricing.cache_read_usd_per_mtok
+    write_price = pricing.cache_write_usd_per_mtok
+    cached_read = max(0, min(cached_read, prompt_tokens))
+    cached_write = max(0, min(cached_write, prompt_tokens - cached_read))
+    cached_write_1h = max(0, min(cached_write_1h, cached_write))
+    read = cached_read * (price_in if read_price is None else read_price) / 1_000_000
+    write = (price_in if write_price is None else write_price) / 1_000_000
+    write_1h = cached_write_1h * write_1h_price(pricing) / 1_000_000
+    write_5m = (cached_write - cached_write_1h) * write
+    return {
+        "read": read,
+        "write_5m": write_5m,
+        "write_1h": write_1h,
+        "fresh": cost.input_usd - read - write_5m - write_1h,
+        "out": cost.output_usd,
+    }
+
+
 # CAP-7: where each API reports its cached input tokens (the « Source » of the cache line).
 _CACHE_SOURCE = {
     "openai_chat": "usage.prompt_tokens_details.cached_tokens",
@@ -472,13 +510,128 @@ _EMPTY: dict[str, Any] = {
     # How many priced economies (a cache with declared prices, a priced compression) the
     # totals above hold: 0 means "nothing measured", never a fabricated « économisé 0 $ ».
     "saved_calls": 0,
+    # V1.3 CAP-3: the cache cells and the cost's ring. Per cell: the sum of the declared values
+    # (`tokens`), how many calls declared it and how many did not (`undeclared`); a `None` is
+    # never summed as 0.
+    "cache": {name: {"tokens": 0, "declared": 0, "undeclared": 0} for name in CACHE_CELLS},
+    "cache_calls": 0,  # calls whose cells are counted (a `cache_origin` and a produced answer)
+    "cache_priced_calls": 0,  # calls whose cache saving is priced (counted in `cache_saved_usd`)
+    "local_read_calls": 0,  # local calls that read from the engine's context memory
+    "cold_write_tokens": 0,  # the first declared write of the column (the cache's priming)
+    "cold_set": False,
+    "ring": dict.fromkeys(RING_POSTS, 0.0),
+    "ring_calls": 0,  # priced calls in the ring
+    "unpriced_calls": 0,  # counted calls with no declared price, out of the ring
 }
-_spend: dict[str, Any] = dict(_EMPTY)
+
+
+def _fresh() -> dict[str, Any]:
+    return copy.deepcopy(_EMPTY)
+
+
+_spend: dict[str, Any] = _fresh()
+# « Cette conversation »: the calls of the conversation's turns (sub-agent included), reset
+# with it (`reset_conversation_spend`); « Depuis le lancement » is `_spend` above.
+_spend_conv: dict[str, Any] = _fresh()
+
+
+def _add_cells(reg: dict[str, Any], cells: dict[str, Any] | None, priced: bool) -> None:
+    """One call's cache cells into a registry. `local` + an uncached `None` is « sans
+    objet »: neither declared nor undeclared. A call with no `cache_origin` (a trace from
+    before the batch) is not counted."""
+    if not cells or cells.get("cache_origin") is None:
+        return
+    origin = cells["cache_origin"]
+    reg["cache_calls"] += 1
+    if not priced and origin != "local":  # a local call is free, not « sans prix déclaré »
+        reg["unpriced_calls"] += 1
+    for name in CACHE_CELLS:
+        value = cells.get(f"cache_{name}_tokens")
+        entry = reg["cache"][name]
+        if value is not None:
+            entry["tokens"] += value
+            entry["declared"] += 1
+        elif not (origin == "local" and name == "uncached"):
+            entry["undeclared"] += 1
+    write = cells.get("cache_write_tokens")
+    if write is not None and not reg["cold_set"]:
+        reg["cold_set"] = True
+        reg["cold_write_tokens"] = write
+    if origin == "local" and (cells.get("cache_read_tokens") or 0) > 0:
+        reg["local_read_calls"] += 1
+
+
+def _accumulate(
+    reg: dict[str, Any],
+    cost: CallCost | None,
+    impact: Impact | None,
+    cache_saved_usd: float | None,
+    compression_saved_usd: float | None,
+    kv_time_saved_s: float | None,
+    cache: dict[str, Any] | None,
+    ring: dict[str, float] | None,
+) -> None:
+    if cost is not None:
+        reg["in"] += cost.input_usd
+        reg["out"] += cost.output_usd
+        reg["calls"] += 1
+        reg["approx"] = reg["approx"] or cost.source == "estimate"
+    if impact is not None and impact.estimated:
+        reg["wh_min"] += impact.energy_wh_min
+        reg["wh_max"] += impact.energy_wh_max
+        reg["g_min"] += impact.gco2e_min
+        reg["g_max"] += impact.gco2e_max
+        reg["impact_calls"] += 1
+    if cache_saved_usd is not None:
+        reg["cache_saved_usd"] += cache_saved_usd
+        reg["saved_calls"] += 1
+        reg["cache_priced_calls"] += 1
+    if compression_saved_usd is not None:
+        reg["compression_saved_usd"] += compression_saved_usd
+        reg["saved_calls"] += 1
+    if kv_time_saved_s is not None:
+        reg["kv_time_saved_s"] += kv_time_saved_s
+    _add_cells(reg, cache, priced=ring is not None)
+    if ring is not None:
+        for post in RING_POSTS:
+            reg["ring"][post] += ring[post]
+        reg["ring_calls"] += 1
+
+
+def _column(reg: dict[str, Any]) -> dict[str, Any]:
+    """A registry as the payload's « Cette conversation » column carries it."""
+    return {
+        "total_in_usd": reg["in"],
+        "total_out_usd": reg["out"],
+        "total_usd": reg["in"] + reg["out"],
+        "calls": reg["calls"],
+        "approx": reg["approx"],
+        "cache_saved_usd": reg["cache_saved_usd"],
+        "compression_saved_usd": reg["compression_saved_usd"],
+        "kv_time_saved_s": reg["kv_time_saved_s"],
+        "saved_calls": reg["saved_calls"],
+        **_cache_part(reg),
+    }
+
+
+def _cache_part(reg: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "cache": copy.deepcopy(reg["cache"]),
+        "cache_calls": reg["cache_calls"],
+        "cache_priced_calls": reg["cache_priced_calls"],
+        "local_read_calls": reg["local_read_calls"],
+        "cold_write_tokens": reg["cold_write_tokens"],
+        "ring": dict(reg["ring"]),
+        "ring_calls": reg["ring_calls"],
+        "unpriced_calls": reg["unpriced_calls"],
+    }
 
 
 def _spend_payload(eur_per_usd: float) -> dict[str, Any]:
     total = _spend["in"] + _spend["out"]
     return {
+        **_cache_part(_spend),
+        "conversation": _column(_spend_conv),
         "total_in_usd": _spend["in"],
         "total_out_usd": _spend["out"],
         "total_usd": total,
@@ -507,6 +660,9 @@ def record_spend(
     cache_saved_usd: float | None = None,
     compression_saved_usd: float | None = None,
     kv_time_saved_s: float | None = None,
+    cache: dict[str, Any] | None = None,
+    ring: dict[str, float] | None = None,
+    in_conversation: bool = False,
 ) -> dict[str, Any]:
     """Adds one call's cost (a cloud call with prices) and its footprint (GreenOps, when
     estimated; a local call has one and no cost) to the session's registry; returns the
@@ -514,27 +670,15 @@ def record_spend(
     too: two concurrent calls emit their totals in the order they were added. Story 9
     (CAP-7): `cache_saved_usd` (a call's net signed saving), `compression_saved_usd` (a
     compression pass's, when priced) and `kv_time_saved_s` (a local call's KV-cache reuse,
-    in seconds) add to the session's running totals, for the bar-flyout's bilan."""
+    in seconds) add to the session's running totals, for the bar-flyout's bilan.
+    V1.3 CAP-3: `cache` (the call's five `cache_*` fields of `model_call_ended`) and `ring`
+    (its cost by post, `cost_ring`, a priced call only) join them too; `in_conversation` (a
+    call of a turn) adds the call to « Cette conversation » as well as to the session."""
     with _spend_lock:
-        if cost is not None:
-            _spend["in"] += cost.input_usd
-            _spend["out"] += cost.output_usd
-            _spend["calls"] += 1
-            _spend["approx"] = _spend["approx"] or cost.source == "estimate"
-        if impact is not None and impact.estimated:
-            _spend["wh_min"] += impact.energy_wh_min
-            _spend["wh_max"] += impact.energy_wh_max
-            _spend["g_min"] += impact.gco2e_min
-            _spend["g_max"] += impact.gco2e_max
-            _spend["impact_calls"] += 1
-        if cache_saved_usd is not None:
-            _spend["cache_saved_usd"] += cache_saved_usd
-            _spend["saved_calls"] += 1
-        if compression_saved_usd is not None:
-            _spend["compression_saved_usd"] += compression_saved_usd
-            _spend["saved_calls"] += 1
-        if kv_time_saved_s is not None:
-            _spend["kv_time_saved_s"] += kv_time_saved_s
+        args = (cost, impact, cache_saved_usd, compression_saved_usd, kv_time_saved_s, cache, ring)
+        _accumulate(_spend, *args)
+        if in_conversation:
+            _accumulate(_spend_conv, *args)
         payload = _spend_payload(eur_per_usd)
         if emit is not None:
             emit(payload)
@@ -545,8 +689,36 @@ def session_spend(eur_per_usd: float) -> dict[str, Any] | None:
     """The session's spend and footprint as `consumption_updated` carries them; `None`
     before a paid call or a call with a footprint."""
     with _spend_lock:
-        counted = _spend["calls"] or _spend["impact_calls"] or _spend["kv_time_saved_s"]
+        counted = (
+            _spend["calls"]
+            or _spend["impact_calls"]
+            or _spend["kv_time_saved_s"]
+            or _spend["cache_calls"]
+        )
         return _spend_payload(eur_per_usd) if counted else None
+
+
+def reset_conversation_spend(
+    eur_per_usd: float, emit: Callable[[dict[str, Any]], Any] | None = None
+) -> bool:
+    """V1.3 CAP-3: « Vider la conversation », « Réinitialiser » and a scenario reset the
+    conversation's column, never the session's. When it held something, the new totals are
+    emitted (under the lock, like `record_spend`, to keep the order); returns whether it held
+    something. `app_session` resets under its own lock with no `emit` (a turn starting just
+    after must not lose its calls), then emits with `emit_spend`."""
+    with _spend_lock:
+        touched = _spend_conv != _EMPTY
+        _spend_conv.clear()
+        _spend_conv.update(_fresh())
+        if touched and emit is not None:
+            emit(_spend_payload(eur_per_usd))
+        return touched
+
+
+def emit_spend(eur_per_usd: float, emit: Callable[[dict[str, Any]], Any]) -> None:
+    """The current totals, emitted under the lock (same order as `record_spend`)."""
+    with _spend_lock:
+        emit(_spend_payload(eur_per_usd))
 
 
 def session_cap_error(entry: CloudModel, max_session_usd: float | None) -> ProviderError | None:
@@ -578,7 +750,10 @@ def session_cap_error(entry: CloudModel, max_session_usd: float | None) -> Provi
 def reset_spend() -> None:
     """Tests only: a relaunch is the one reset of the session's spend."""
     with _spend_lock:
-        _spend.update(_EMPTY)
+        _spend.clear()
+        _spend.update(_fresh())
+        _spend_conv.clear()
+        _spend_conv.update(_fresh())
 
 
 class CloudEngine:
@@ -1093,6 +1268,7 @@ def run_call(
         }
         pricing = entry.pricing if isinstance(entry, CloudModel) else None
         cache: dict[str, Any] | None = None
+        ring: dict[str, float] | None = None
         # FinOps: a call refused before any output (an HTTP error, the network) is not billed,
         # unless the provider's usage came before the error (native providers 3/5).
         produced = stop_reason != "error" or first_at is not None or out.usage is not None
@@ -1116,6 +1292,9 @@ def run_call(
                 "cost_out_usd": out.cost.output_usd,
                 "cost_source": source,
             }
+            ring = cost_ring(
+                pricing, cached_read, cached_write, prompt_tokens, out.cost, cached_write_1h
+            )
             cache = cache_savings(
                 pricing,
                 prompt_tokens,
@@ -1139,13 +1318,19 @@ def run_call(
         # only when its prices are declared (`cache_priced`): an unknown net is not a 0.
         priced = cache is not None and cache["cache_priced"]
         cache_saved_usd = cache["cache_saved_usd"] if priced else None
-        if out.cost is not None or impact is not None:
+        # V1.3 CAP-3: a counted call (cells of a produced answer) joins the totals even with
+        # no cost nor footprint (Groq, Mistral…); its ring only when priced.
+        cells = {k: v for k, v in payload.items() if k.startswith("cache_")} if produced else None
+        if out.cost is not None or impact is not None or cells is not None:
             record_spend(
                 out.cost,
                 eur_per_usd,
                 lambda spend: journal.emit("consumption_updated", spend),
                 impact=impact,
                 cache_saved_usd=cache_saved_usd,
+                cache=cells,
+                ring=ring,
+                in_conversation=current().turn_id is not None,
             )
 
     try:

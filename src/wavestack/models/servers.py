@@ -446,6 +446,22 @@ class LlamaServerEngine:
         """The prompt tokens the server says it evaluated in the last call, if it said."""
         return self._last_evaluated
 
+    def clear_cache(self) -> bool:
+        """V1.3 story 3: every slot of the server erased (`POST /slots/{id}?action=erase`),
+        the server and its model untouched. A server started with several slots (`-np`,
+        several by default in recent builds) picks one per call: all are listed
+        (`GET /slots`), slot 0 alone when it does not list them. A server without the slots
+        API raises `ServerError`."""
+        try:
+            listed = self._client.request("GET", self.url + "/slots")
+            listed.raise_for_status()
+            slots = [s["id"] for s in listed.json() if isinstance(s, dict) and "id" in s]
+        except (httpx.HTTPError, ValueError, TypeError):
+            slots = []
+        for slot in [s for s in slots if isinstance(s, int)] or [0]:
+            _json(self._client, self.url, "POST", f"/slots/{slot}?action=erase")
+        return True
+
     @property
     def last_cache_reuse(self) -> tuple[int, float | None] | None:
         """Story 7 (CAP-7, « Mémoire de contexte »): `(cache_n, prompt_per_second)` from the

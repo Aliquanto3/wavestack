@@ -122,6 +122,7 @@ session:
       llm: "Die LLM-Werkstatt hat den Cache der Engine belegt{why}."
       mcp_lab: "Die MCP-Werkstatt hat den Cache der Engine belegt{why}."
       rag_lab: "Die RAG-Werkstatt hat den Cache der Engine für ihre Generierung belegt{why}."
+      cache_cleared: "Der Cache der Engine wurde auf Wunsch geleert (Schaltfläche « Cache leeren »): der gesamte Kontext wird neu gelesen."
     evicted:
       stateless: ": Diese Engine kann den Zustand des Hauptkontexts nicht sichern"
       failed: ": Das Sichern oder Wiederherstellen des Zustands des Hauptkontexts ist fehlgeschlagen"
@@ -227,6 +228,9 @@ session:
     turn: "Es läuft bereits eine Runde: Warten Sie ihr Ende ab oder klicken Sie auf „Stoppen“."
     no_model: "Es ist kein Modell geladen: Schließen Sie die Startdiagnose ab."
     nothing_to_replay: "Kein Prompt zum Wiederholen: Senden Sie zuerst eine Nachricht."
+    cache_cloud: "Der Cache eines Cloud-Anbieters lässt sich nicht leeren: Er läuft auf dessen Seite ab."
+    cache_unsupported: "Diese Engine kann ihren Cache nicht leeren."
+    cache_failed: "Der Cache der Engine konnte nicht geleert werden: {cause}"
   # AD-19: a content file that cannot be read makes its brick unavailable.
   content:
     file_invalid: "Die Datei {file} fehlt oder ist ungültig: Korrigieren Sie sie und starten Sie WaveStack dann neu."
@@ -703,8 +707,12 @@ tools:
     unreadable: "Unlesbarer Ausdruck: „{expression}“. Verwende {allowed}."
   read_file:
     outside: "Zugriff verweigert: „{path}“ liegt außerhalb des Demo-Ordners. Nur die Dateien in content/demo_files/ sind lesbar, über einen relativen Pfad."
-    listing: "Verfügbare Dateien:\n{files}"
+    listing: "Verfügbare Dateien (die Dokumente des Korpus öffnen sich unter corpus/):\n{files}"
     missing: "Datei fehlt: „{path}“. Verfügbare Dateien: {files}."
+  search_documents:
+    header: "{count} Zeile(n) von {total} angezeigt, im Format Datei:Zeile: Text. Lesen Sie die Datei danach mit read_file."
+    empty: "Leere Anfrage: Geben Sie mindestens ein Wort mit {min} Buchstaben oder mehr an."
+    none: "Kein Ergebnis für „{query}“ im Korpus. Versuchen Sie andere Wörter oder ein einzelnes Stichwort."
   network:
     blocked: "Verbindung vom Harness abgelehnt ({cause})."
     unreachable: "Dienst nicht erreichbar ({kind}): Der Arbeitsplatz hat keinen Zugang zu {host}."

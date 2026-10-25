@@ -1853,3 +1853,104 @@ body.focus-mode .pane.is-focused .pane-body {
 .mcp-layout .pane[data-pane="arch"] > .pane-body {
   padding: var(--spacing-1) var(--spacing-3) var(--spacing-2);
 }
+
+/* V1.3 CAP-3: the cache bilan's two columns and the ring « où part l'argent ». The ring's
+   colors are the existing segment tokens (light and dark variants included); the legend,
+   in text, carries the information, so the color is never alone. */
+.bar-cache-bilan {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.bar-cache-bilan[hidden] {
+  display: none;
+}
+
+.bar-cache-title,
+.bar-cache-col h3,
+.bar-ring h4 {
+  margin: 0;
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.bar-cache-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--spacing-3);
+}
+
+.bar-cache-col,
+.bar-ring {
+  display: grid;
+  gap: var(--spacing-1);
+  align-content: start;
+}
+
+.bar-cache-cells {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--spacing-1) var(--spacing-2);
+  margin: 0;
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.bar-cache-cells dd {
+  margin: 0;
+  text-align: right;
+}
+
+.bar-cache-signal {
+  margin: 0;
+  font-size: var(--typography-body-sm-font-size);
+  font-weight: 600;
+  color: var(--color-ink);
+  border-left: 3px solid var(--color-segment-tool-results);
+  padding-left: var(--spacing-2);
+}
+
+.bar-ring-svg {
+  width: 7rem;
+  height: 7rem;
+}
+
+.bar-ring-svg circle {
+  stroke-width: 6;
+}
+
+.bar-ring-track {
+  stroke: var(--color-line);
+}
+
+.bar-ring-legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-1);
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.bar-ring-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.bar-ring-dot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--rounded-sm);
+  flex: none;
+}
+
+.bar-ring-seg.bar-ring-read { stroke: var(--color-segment-global-memory); }
+.bar-ring-seg.bar-ring-write_5m { stroke: var(--color-segment-tool-results); }
+.bar-ring-seg.bar-ring-write_1h { stroke: var(--color-segment-message); }
+.bar-ring-seg.bar-ring-fresh { stroke: var(--color-segment-tool-descriptions); }
+.bar-ring-seg.bar-ring-out { stroke: var(--color-segment-system-prompt); }
+.bar-ring-dot.bar-ring-read { background: var(--color-segment-global-memory); }
+.bar-ring-dot.bar-ring-write_5m { background: var(--color-segment-tool-results); }
+.bar-ring-dot.bar-ring-write_1h { background: var(--color-segment-message); }
+.bar-ring-dot.bar-ring-fresh { background: var(--color-segment-tool-descriptions); }
+.bar-ring-dot.bar-ring-out { background: var(--color-segment-system-prompt); }

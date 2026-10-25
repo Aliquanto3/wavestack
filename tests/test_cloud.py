@@ -1745,9 +1745,12 @@ def test_an_entry_without_pricing_has_no_cost_and_leaves_the_total_alone():
 
     (ended,) = (e.payload for e in _of(events, "model_call_ended"))
     assert "cost_in_usd" not in ended and "cost_source" not in ended
-    assert _of(events, "consumption_updated") == [] and _spent() is None
+    # V1.3 CAP-3: no cost, but its cache cells (not declared by this provider) are counted.
+    (spend,) = (e.payload for e in _of(events, "consumption_updated"))
+    assert spend["calls"] == 0 and spend["total_usd"] == 0 and spend["cache_calls"] == 1
+    assert spend["cache"]["read"]["undeclared"] == 1 and spend["cache"]["read"]["tokens"] == 0
     assert "cost_in_usd" not in _of(events, "turn_ended")[0].payload
-    assert session.consumption() is None
+    assert session.consumption()["calls"] == 0
 
 
 def test_the_turn_sums_every_call_the_sub_agent_included():
@@ -1822,7 +1825,11 @@ def test_neither_clearing_nor_resetting_gives_the_money_back():
     session.reset()
     session.join()
 
-    assert session.consumption() == before
+    after = session.consumption()
+    assert after["conversation"]["calls"] == 0  # V1.3 CAP-3: only « Cette conversation » restarts
+    assert {k: v for k, v in after.items() if k != "conversation"} == {
+        k: v for k, v in before.items() if k != "conversation"
+    }
     events = _turn(session, "Encore")
     assert _of(events, "consumption_updated")[0].payload["calls"] == 2
 

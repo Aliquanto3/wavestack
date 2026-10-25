@@ -1016,6 +1016,42 @@ def _cache_gauge(r: Run) -> None:
             follow.click()
 
 
+def _cache_clear(r: Run) -> None:
+    """V1.3 story 3 (CAP-4), local text mode (the fake llama-server really forgets its prompt
+    when its slot is erased): a second question reads the cache; after « Vider le cache » the
+    next call writes everything, with the cause « cache vidé », and the gauge says so."""
+    page = r.page
+    button = page.locator("#clear-cache")
+    r.send("Avant le vidage")
+    seq = r.ev.mark()
+    r.send("Juste avant le vidage")
+    before = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    expect(button).to_be_enabled(timeout=5000)
+    seq = r.ev.mark()
+    button.click()
+    r.wait_idle()
+    ended = r.send("Après le vidage")
+    call = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    cleared = [e["payload"] for e in r.ev.since(seq, "prefix_not_reused")]
+    gauge = page.locator("#cache-gauge")
+    expect(gauge).to_have_attribute("data-cause", "cache_cleared", timeout=5000)
+    catalogue = _ui_catalogue("fr")
+    r.check(
+        before["cache_read_tokens"] > 0
+        and ended["payload"]["status"] == "completed"
+        and call["cache_read_tokens"] == 0
+        and call["cache_write_tokens"] == call["prompt_tokens"]
+        and len(cleared) == 1
+        and cleared[0]["cause"] == "cache_cleared"
+        and cleared[0]["common_tokens"] == 0
+        and catalogue["main.orch.prefix_causes.cache_cleared"]
+        in (gauge.get_attribute("title") or ""),
+        "vider le cache : l'appel suivant passe tout en écriture, cause « cache vidé », citée par "
+        "la jauge",
+        f"{before.get('cache_read_tokens')} · {call} · {cleared}",
+    )
+
+
 def _cache_not_reused(r: Run) -> None:
     """Lot 1 of 2026-10-04, in local text mode (the ids of the fake llama-server, AD-4): the
     system message changed between two turns (« Prompt système » switched), the next turn's
@@ -10141,6 +10177,7 @@ def s_local_server(r: Run) -> None:
     _braces_stay_text(r, "mode local")
     _cache_not_reused(r)
     _cache_gauge(r)
+    _cache_clear(r)
 
     # Story 32: a reasoning cut by the harness stays one call; the harness's note sits
     # between the reflection and the answer. The LLM nu, so that the reasoning's reserve
@@ -16174,6 +16211,73 @@ def s_bar_panels(r: Run) -> None:
     r.goto_app()
 
 
+def _cache_bilan_columns(r: Run) -> dict[str, str]:
+    """V1.3 story 4: opens « Dépense », reads the cache bilan's two columns (title -> text),
+    closes it again (Échap)."""
+    page = r.page
+    panel = page.locator("#bar-spend-panel")
+    if not panel.is_visible():
+        page.locator("#bar-spend-toggle").click()
+    expect(panel).to_be_visible(timeout=3000)
+    expect(page.locator("#bar-cache-bilan .bar-cache-col")).to_have_count(2, timeout=5000)
+    columns = {
+        col.locator("h3").inner_text(): col.inner_text()
+        for col in page.locator("#bar-cache-bilan .bar-cache-col").all()
+    }
+    page.keyboard.press("Escape")
+    expect(panel).to_be_hidden(timeout=3000)
+    return columns
+
+
+def s_cache_bilan(r: Run) -> None:
+    """V1.3 story 4 (CAP-3): the bilan's two columns on the fake model (a provider with no
+    `prompt_tokens_details` and no price: « non déclaré » cells, never 0; the exact local
+    sums are `tests/test_cache_bilan.py`'s). After two
+    questions, « Cette conversation » and « Depuis le lancement » show their reads and writes
+    (the uncached part has no meaning locally); « Vider la conversation » empties the first
+    column and leaves the second as it was."""
+    r.goto_app()
+    r.wait_idle()
+    seq = r.ev.mark()
+    r.page.click("#clear-conversation")
+    r.ev.wait("conversation_cleared", seq, timeout=10)
+    r.send("Bonjour, comment ça va ?")
+    r.send("Bonjour, comment ça va ?")
+    columns = _cache_bilan_columns(r)
+    conversation = columns.get("Cette conversation", "")
+    launch = columns.get("Depuis le lancement", "")
+    r.check(
+        list(columns) == ["Cette conversation", "Depuis le lancement"],
+        "bilan du cache : deux colonnes, « Cette conversation » puis « Depuis le lancement »",
+        str(list(columns)),
+    )
+    r.check(
+        "Lecture cache" in conversation
+        and "Écriture cache 5 min" in conversation
+        and "Non caché" in conversation
+        and conversation.count("non déclaré") == 3
+        and "Hors anneau : 2 appels sans prix déclaré" in conversation,
+        "Cette conversation : le faux fournisseur ne détaille pas son cache, trois cases « non "
+        "déclaré » (jamais 0), deux appels hors anneau",
+        conversation.replace("\n", " | "),
+    )
+    r.check(
+        "Rien de compté" not in launch and "Lecture cache" in launch,
+        "Depuis le lancement : les cases du cache sont comptées aussi",
+        launch.replace("\n", " | "),
+    )
+    seq = r.ev.mark()
+    r.page.click("#clear-conversation")
+    r.ev.wait("conversation_cleared", seq, timeout=10)
+    after = _cache_bilan_columns(r)
+    r.check(
+        "Rien de compté" in after.get("Cette conversation", "")
+        and after.get("Depuis le lancement") == launch,
+        "après « Vider la conversation » : conversation à zéro, lancement inchangé",
+        str(after).replace("\n", " | "),
+    )
+
+
 # A journal of the session as `/api/security_journal` would give it after flux 1's GitHub
 # merge refusal (ux/EXPERIENCE.md, étape 4) : the RSSI's row (étape 7), the fusion refused by
 # the WaveStack policy, explicit about what never reached GitHub.
@@ -16261,6 +16365,44 @@ def s_security_page(r: Run) -> None:
         download.suggested_filename,
     )
     r.goto_app()
+
+
+def s_rag_agentic(r: Run) -> None:
+    """V1.4 story 3 (CAP-4): the RAG module's third scenario, 60 minutes in all; the tool
+    `search_documents` is off at launch, ticked on the Tools card, then a search followed by a
+    reading of the corpus document it found (the same path `read_file` opens), H1 allowing it."""
+    r.launch("rag_agentic")
+    module = next(
+        m for m in r.state()["scenario_changed"]["program"]["modules"] if m["title_text"] == "RAG"
+    )
+    r.check(
+        module["duration_min"] == 60
+        and [s["id"] for s in module["scenarios"]] == ["rag", "rag_rerank", "rag_agentic"],
+        "module RAG : 60 min et le scénario de comparaison en dernier",
+        str((module["duration_min"], [s["id"] for s in module["scenarios"]])),
+    )
+    off = next(o for o in r.bricks()["tools"]["options"] if o["id"] == "search_documents")
+    r.check(not off["enabled"], "search_documents décoché au lancement", str(off))
+    r.set_option("Outils", "Recherche dans les documents", True)
+    prompt = next(s for s in module["scenarios"] if s["id"] == "rag_agentic")["prompts"][1]
+    seq = r.ev.mark()
+    ended = r.send(prompt)
+    tools = [e["payload"]["tool"] for e in r.ev.since(seq, "tool_started")]
+    results = [e["payload"] for e in r.ev.since(seq, "tool_ended")]
+    r.check(tools == ["search_documents", "read_file"], "chercher puis lire", str(tools))
+    r.check(
+        len(results) == 2
+        and all(x["status"] == "ok" for x in results)
+        and "corpus/mots_de_passe.md:" in results[0]["result"]
+        and "Coffrix" in results[1]["result"],
+        "la recherche renvoie fichier:ligne, la lecture ouvre le document trouvé",
+        str(results)[:300],
+    )
+    r.check(
+        ended["payload"]["status"] == "completed" and "14 caractères" in r.last_answer(),
+        "réponse finale d'après le document lu",
+        r.last_answer()[:160],
+    )
 
 
 def s_claude_cache(r: Run) -> None:
@@ -16389,6 +16531,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("global_memory", s_global_memory),
     ("rag", s_rag),
     ("rag_rerank", s_rag_rerank),
+    ("rag_agentic", s_rag_agentic),
     ("rag_lab", s_rag_lab),
     ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
@@ -16417,6 +16560,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("llm_loop", s_llm_loop),  # lot 6 of 2026-10-04: the model's loop in three stages
     ("relaunch", s_relaunch),
     ("bar_panels", s_bar_panels),  # story 9 (V1.1 vague 2): the barre commune's two flyouts
+    ("cache_bilan", s_cache_bilan),  # V1.3 story 4 (CAP-3): the bilan's two columns
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
     ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
 ]

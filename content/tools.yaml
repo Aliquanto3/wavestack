@@ -50,6 +50,14 @@ tools:
         args: {path: journal_serveur.log}
       - label_text: Guide du harnais (prose, compression)
         args: {path: guide_harnais.md}
+  search_documents:
+    label_text: Recherche dans les documents
+    description: >-
+      Cherche des mots dans les documents du corpus Exemplia et renvoie les lignes
+      trouvées, au format fichier:ligne: texte. Chercher d'abord, puis lire le
+      fichier trouvé avec read_file.
+    parameters:
+      query: Un ou deux mots-clés, par exemple télétravail ou mot de passe.
   public_holidays:
     label_text: Jours fériés
     sends_text: l'année demandée
