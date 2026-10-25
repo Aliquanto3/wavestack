@@ -17851,7 +17851,7 @@ def s_rag_lab_no_index(r: Run) -> None:
             "sélecteur « Fenêtre »",
             " | ".join(reasons),
         )
-        r.shot("68-atelier-rag-sans-index", full_page=True)
+        r.shot("77-atelier-rag-sans-index", full_page=True)
 
         # (2) 16 384 by the Conversation page's selector: bounded to 8 192 by the server.
         r.goto_app()
@@ -17916,7 +17916,7 @@ def s_rag_lab_no_index(r: Run) -> None:
             f"{[h.get('status') for h in heads]} · {len(context.get('items', []))} · "
             f"{focus['rows']}",
         )
-        r.shot("69-atelier-rag-contexte-long", full_page=True)
+        r.shot("78-atelier-rag-contexte-long", full_page=True)
         _rag_mode(r, "compose")
         seq = r.ev.mark()
         page.locator('#rag-copy button[data-op="add"]').click()

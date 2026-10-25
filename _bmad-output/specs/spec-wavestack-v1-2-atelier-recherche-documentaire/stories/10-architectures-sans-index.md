@@ -2,7 +2,7 @@
 title: 'Story 10 : architectures sans index (contexte long et CAG)'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -94,15 +94,15 @@ context:
 
 ## Tasks & Acceptance
 
-- [ ] Options `full_corpus` / `cached_corpus`, préréglages `long_context` / `cag`, `PRESET_CONTEXT`, `PRESET_FAMILIES`, `check_pipeline` pour une chaîne sans recherche.
-- [ ] Étape Contexte du corpus entier (documents de la chaîne, éléments par document, faits, source, aperçu du prompt), tête `skipped`.
-- [ ] Disponibilité : fenêtre effective ≥ 16 384 et sa borne, moteur local pour le CAG, raisons en fr, en, de.
-- [ ] CAG moteur à état : coupe du préfixe en tokens, `_cag_cache`, `clear_cache` / `prefill` / `snapshot` / `restore`, contrôle mémoire, invalidation, contexte principal remis.
-- [ ] CAG moteur sans état : chauffe à un token, lecture du cache, cas `lost` et `unknown`.
-- [ ] Coûts en trois temps des deux architectures ; mise à jour (zéro partie, partie « Préfixe » gardée).
-- [ ] Séquence (ligne `cache_prefix`, composant), focus, charge utile `cache` ; jauge du chat protégée.
-- [ ] Fiches des deux options et textes des deux préréglages et des familles en fr, en, de.
-- [ ] Tests ciblés et scénario E2E `rag_lab_no_index`.
+- [x] Options `full_corpus` / `cached_corpus`, préréglages `long_context` / `cag`, `PRESET_CONTEXT`, `PRESET_FAMILIES`, `check_pipeline` pour une chaîne sans recherche.
+- [x] Étape Contexte du corpus entier (documents de la chaîne, éléments par document, faits, source, aperçu du prompt), tête `skipped`.
+- [x] Disponibilité : fenêtre effective ≥ 16 384 et sa borne, moteur local pour le CAG, raisons en fr, en, de.
+- [x] CAG moteur à état : coupe du préfixe en tokens, `_cag_cache`, `clear_cache` / `prefill` / `snapshot` / `restore`, contrôle mémoire, invalidation, contexte principal remis.
+- [x] CAG moteur sans état : chauffe à un token, lecture du cache, cas `lost` et `unknown`.
+- [x] Coûts en trois temps des deux architectures ; mise à jour (zéro partie, partie « Préfixe » gardée).
+- [x] Séquence (ligne `cache_prefix`, composant), focus, charge utile `cache` ; jauge du chat protégée.
+- [x] Fiches des deux options et textes des deux préréglages et des familles en fr, en, de.
+- [x] Tests ciblés et scénario E2E `rag_lab_no_index`.
 
 **Acceptance Criteria:**
 1. Given `PRESETS` et le catalogue, then `dense`, `hybrid` et `rerank` donnent les mêmes chaînes et les mêmes disponibilités qu'avant (tests existants verts) dans la famille `search`, et `long_context` / `cag` s'ajoutent en fin, famille `no_index`, avec un segment vide et le Contexte `full_corpus` / `cached_corpus` ; un préréglage hors famille ou dans deux familles fait échouer `RagLabContent`.
@@ -154,6 +154,16 @@ Tranchées le 2026-10-25 (point de contrôle de spec, relu contre SPEC.md, `arch
 
 - 2026-10-25 : création, statut `draft`, en attente du point de contrôle de spec (`spec_checkpoint` de relecture avant le code).
 - 2026-10-25, point de contrôle de spec (statut `ready-for-dev`) : corrections dans le bloc d'intention, encore non approuvé. (a) Corpus : la chaîne lit la copie de travail depuis la revue de la story 3 ; la spec disait le contraire. (b) Fenêtre effective (bornée par modèle, serveur, nuage) au lieu de « configurée », règle `>=`, même règle en nuage. (c) Coupe du préfixe en tokens, préfixe exact des ids envoyés, au lieu d'une limite de ligne non vérifiée ; la tâche humaine de tokenisation devient un test (critère 7). (d) Garantie mémoire du CAG (estimation, `LoadRegistry`, contrôle après `snapshot`, libération) et contexte principal remis, avec tests (critères 9, 10). (e) Jauge du chat : `app.js` lisait aussi les appels de l'atelier, contraire à V1.3 story 2 ; condition ajoutée. (f) Coût `query` du CAG = tokens évalués + produits (la règle actuelle compte le prompt entier). (g) `check_pipeline` : tout le segment refusé avec ces options, disponibilité de la tête non contrôlée. (h) Mise à jour : zéro partie dite par `RagLabCostSummary.note_text`, état reconstruit gardé, reconstruction depuis une mémoire vidée. (i) Familles de préréglages (`PRESET_FAMILIES`), absentes du code. (j) Plan de tests : les faux moteurs comptent un octet par token (corpus livré ~40 000 tokens) et le faux serveur borne la fenêtre à 8 192 ; tests de session sur un petit corpus, E2E réduit à ce qu'il peut prouver. (k) Lieu du réglage de la fenêtre : le sélecteur « Fenêtre » de la page Conversation (la maquette dit « Diagnostic et modèles »). (l) Critères renumérotés (19 au lieu de 18).
+
+- 2026-10-25, développement (statut `review`) : implémenté contre les 19 critères. Écarts et choix à revoir par Anaël, sans toucher au bloc d'intention :
+  (a) Ligne « Préfixe en cache » : événements d'une partie (`part` « prefix », kind `cache_prefix`, étape `….prefix`) de l'étape Contexte, comme l'index BM25 ; `rag_lab_stage_started` émis quand la session commence à construire le préfixe (`GenerationAsk.on_prefix`), `rag_lab_stage_ended` après la génération. À chaud, la partie est `ok` et porte le coût `build` relu de l'entrée (`measured_at_build`), comme un index livré.
+  (b) `SequenceStep` gagne `options` (ligne tirée seulement pour ces options de son étape) et `hidden_with` (ligne jamais tirée avec ces options de Contexte) ; le catalogue les envoie, `rag.js` les lit. Les préréglages gagnent `context` et `replaces_context` : un préréglage de recherche appliqué à une chaîne sans index lui rend le Contexte livré (sinon la chaîne serait refusée).
+  (c) Fenêtre du focus : nouveau champ optionnel `RagLabStageEndedPayload.window` (la jauge « {used} / {window} »), plutôt que de détourner `budget`.
+  (d) `snapshot` en échec ou RSS au-dessus du budget **après** le `prefill` : aucun état gardé (`none`, avertissement chiffré), mais la génération lit le préfixe resté dans la mémoire du moteur (le vider coûterait une seconde évaluation complète, des minutes sur CPU) ; le texte dit « aucun état n'est conservé pour les questions suivantes ». Refus par l'estimation : ni `clear_cache` ni `prefill`, prompt évalué comme le contexte long.
+  (e) Mise à jour du CAG trop longue pour la fenêtre : la partie « Préfixe » est en erreur (`rag_lab.cache.update_too_long`) et la copie n'est pas gardée.
+  (f) Correctif hors liste, trouvé par l'E2E : le catalogue de la validation (gardé 5 s) est relu dès que le modèle actif ou la fenêtre effective change, sinon un préréglage rendu disponible restait refusé à la validation.
+  (g) Tests de session sur un petit corpus : trois documents actifs du corpus livré (`mots_de_passe`, `teletravail`, `classification`), les autres rendus inactifs dans la `RagContent` de la session.
+  (h) E2E `rag_lab_no_index` (captures 77 et 78) ; `rag_lab` et `rag_lab_context` réalignés (famille « Recherche », six options du Contexte).
 
 ## Reports
 
