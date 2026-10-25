@@ -82,12 +82,12 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - (Avancée dans le run le 2026-10-25, décision d'Anaël.) Story d'outillage : accélérer les tests lents propres à Windows de `tests/test_model_servers.py` et `tests/test_context_window_setting.py` (11 à 33 s chacun sous Windows, absents du haut de la liste sous Ubuntu ; piste : connexion à un port fermé qui met ~2 s à échouer sous Windows). Gain mesuré attendu : ~2 min 30 de tests Windows. Décision d'Anaël du 2026-10-25.
 - Rafraîchir `test-durations-windows-latest.json` et `test-durations-ubuntu-latest.json` depuis les artefacts `test-durations-<os>-<groupe>` d'une CI récente (fusion des 4 fichiers par système), quand l'écart entre groupes dépasse ~2 min.
 
-## Prochaines étapes (mise à jour du 2026-10-25 13:35)
+## Prochaines étapes (mise à jour du 2026-10-25 17:20)
 
-1. (Fait : #118 fusionnée, 820d109 ; 12.13 et 12.14 prévenues.)
-2. Banc 12.2, partie en ligne : en cours dans ../wavestack-v12-s2, résultats dans tools/bench/results/2026-10-25-v12s2 (journal de la commande : scratchpad s2/online.log).
-3. Créneau sans agent réservé (décision d'Anaël) : dès que les dev de 12.13 et 12.14 ont rendu leur rapport et que la partie en ligne est finie, ne lancer aucun agent ; puis dans ../wavestack-v12-s2 : `local --confirm-idle --download --results-dir tools/bench/results/2026-10-25-v12s2` (uv run --with onnxruntime --with tokenizers --with huggingface-hub, ~1 h), `memory --confirm-idle --append-memlog --results-dir …` (~10 min), `dry-run` ; commiter rapport, .memlog.md et recorded/*.jsonl sur une branche de suivi de 12.2, PR vers l'intégration. Ensuite seulement : second avis et revue de 12.13 et 12.14.
-4. Après le rapport de 12.2 : 12.8, puis 12.12. Après 12.13 et 12.14 : 12.16, puis 12.21 (mesure sur poste libre aussi).
+1. #123 (12.12) : file_prs.py --methode merge en cours ; à la fusion, refusionner l'intégration dans 12.16 (worktree s16, revue faite 7e97f4c9 ; vérifier que les parties run.sN.rewrite / retry_<kind> / abstain de 12.12 apparaissent dans l'arbre), PR, fusion.
+2. 12.21 : téléchargement des modèles (ColPali ~5,9 Go, ColSmol ~1 Go) en cours dans ../wavestack-v12-s21 ; puis, poste libre de tout agent : `uv run --with fastembed==0.9.1 python tools/bench/v12s21_visual_search_bench.py measure --confirm-idle`, `report --write`, second avis, revue, PR.
+3. Correctif préexistant de 12.13 : _update_graph écrit avant la copie gardée et garde des extractions partielles si le modèle échoue (même règle que 12.12 : StageFailed, écriture après keep) ; petite PR vers l'intégration.
+4. Fin du lot V1.2 : PR integration/v1-2-atelier → main (merge), CI verte ; PR de version 1.5.0, tag annoté v1.5.0, release GitHub ; rapport de fin de run (fusionné, reporté, liste « à revoir », recettes d'Anaël) ; mémoire du projet ; suppression des worktrees ../wavestack-v12-s* en fin de run.
 
 ## Journal
 
