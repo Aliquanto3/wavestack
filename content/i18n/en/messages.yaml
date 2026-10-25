@@ -580,6 +580,9 @@ session:
     update_empty: "The title and the text cannot be empty."
     update_unknown_operation: "Unknown operation: {op}."
     update_unknown_doc: "The document {doc} is not in the corpus's work copy."
+    update_chunking: "The corpus update is only measured for the paragraph chunking: choose it, or restore the shipped chain."
+    rebuild_no_model: "No model loaded in the workshop: load a model to rewrite the contexts."
+    rebuild_expected: "One model call per chunk ({chunks} at the shipped size), a few seconds each on CPU: expect several minutes. “Stop” keeps the contexts already rewritten."
     noun:
       embedding: embedding model
       reranking: reranking model
@@ -972,6 +975,15 @@ rag_lab:
     reordered_candidate:
       one: reordered candidate
       other: reordered candidates
+    parent:
+      one: parent
+      other: parents
+    child:
+      one: child
+      other: children
+    sentence:
+      one: sentence
+      other: sentences
   # A rank: « 1er », « 2ᵉ » (English: 1st, 2nd, 3rd, 4th; 21st, 22nd, 23rd).
   rank:
     first: "1st"
@@ -1037,6 +1049,7 @@ rag_lab:
     output_tokens: Tokens produced
     embedded_as: Embedded
     queries: Queries searched
+    children_read: Children read
   chunking:
     source_corpus: "the corpus (content/corpus), split for this run"
     source_index: "the RAG brick's index (split when it was built)"
@@ -1050,6 +1063,39 @@ rag_lab:
     mean: Mean length
     longest: Longest
     characters: "{n} characters"
+    output_semantic: "{extracts} cut where the similarity between neighbouring sentences drops ({sentences} embedded), {size} characters at most, read from {source}."
+    output_parent_child: "{children} of {child} characters at most, indexed; each returns its parent, among {parents} of {size} characters at most, read from {source}."
+    output_contextual: "{extracts} of {size} characters at most, {with_context} with their context, added before the embedding and the lexical search, read from {source}."
+    parents: Parents
+    child_max: Maximum size of a child
+    sentences: Sentences embedded
+    sentences_duration: Duration of the sentence embedding
+    with_context: Chunks with a context
+    without_context: Chunks without a context
+    ignored_contexts: Contexts ignored
+    context_origin: Origin of the contexts
+    no_contexts: no context
+    semantic_fallback: "No usable embedding model to cut at sentences ({reason}): the chunking falls back to paragraphs."
+    contexts_unreadable: "The file of shipped contexts cannot be read ({error}): the chunks are indexed without a context."
+    contexts_stale: "{missing} without a valid context and {ignored} contexts ignored (their fingerprint no longer matches a chunk: size changed or work copy). “Rebuild” makes them again at the current size."
+    mark:
+      shipped: precomputed
+      rebuilt: rebuilt
+      heuristic: "heuristic, no LLM"
+      llm: "by the model {model}"
+  contexts:
+    run_label: "Rebuilding the contexts"
+    summary: "Contexts read: {mark} · {chunks} contexts · model {model} · {tokens} tokens written · built in {duration}"
+    heuristic: "Chunk {position}/{total} of “{title}”. The document begins with: {first}"
+    no_model: "No model loaded in the workshop: the contexts cannot be rewritten."
+    instruction: "You place a chunk in the document it comes from. Write a short context, one or two sentences in English, saying what the document is about and where the chunk sits in it, so that the chunk can be found by searching. Answer with the context alone, no introduction."
+    document: "Document “{title}”:\n{text}"
+    user: "Here is the chunk to place in this document:\n{chunk}"
+    input: "{chunks} to place in their whole document."
+    output: "{done} contexts rewritten out of {total}; {failed} chunks keep their context."
+    fact_rebuilt: Contexts rewritten
+    fact_kept: Chunks that kept their context
+    fact_tokens: Tokens written
   embedding:
     brick_passages: "Passages (document title, then excerpt): {passages}, already vectorised in the RAG brick's index, computed when it was built."
     brick_unusable: "The passages are not vectorised here: the RAG brick's index cannot be used (see Vector database)."
@@ -1130,9 +1176,11 @@ rag_lab:
     input: "The ranking of the previous step: {extracts}."
     empty: "No excerpt: the model would only receive the question."
     kept: "{kept} of {total}"
+    parents_short: "{kept} distinct parents of the {top_k} asked: the {read} best children cover no more. Raise the search's candidates to get more."
   costs:
     build_unknown: "Build cost not recorded for this precomputed content: rebuild it to measure it."
     generation_unpriced: "Cost in dollars not priced: the model has no declared price."
+    contexts_measure: "Measure recorded when the contexts were built (model: {model}), not made again at each run."
   update:
     op:
       add: "Adding the document {doc}"

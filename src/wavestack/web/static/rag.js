@@ -51,6 +51,9 @@ const store = {
   costs: { build: null, query: null }, // V1.2 story 3: the last run's sums by time
   update: null, // the last update run: { runId, label, ended, summary }
   workCopy: null, // the corpus's work copy (where it lives, what it changes, its documents)
+  contexts: null, // V1.2 story 6: the contexts read (header, rebuilt or not, why no rebuild)
+  rebuild: null, // the last rebuild of the contexts: { runId, done, total, ended, error, output }
+  contextError: null, // a rebuild or a reset refused, said in the focus
   copyOp: null, // the operation whose form is open: add, modify or delete
   tab: "build", // V1.2 story 4: the view tab shown
   questions: [], // V1.2 story 4: the prepared questions (CAP-2), from `GET /api/rag_lab`
@@ -1052,6 +1055,8 @@ function focusRun(box, step) {
     box.append(facts);
   }
   if (ended.queries?.length) box.append(queriesList(ended.queries));
+  if (step.key === "chunking" && ended.chunks?.length) box.append(chunksList(ended));
+  if (step.key === "chunking" && stage.option === "contextual") box.append(contextControls());
   if (step.key !== "embed_query" && ended.items?.length) box.append(itemsTable(ended.items));
   if (ownFigures(step) && ["ok", "error", "cancelled"].includes(stage.status)) {
     const foot = el("p", "rag-stage-figures");
@@ -1326,6 +1331,10 @@ function applyEnvelope(envelope) {
   const p = envelope.payload;
   if (isUpdateEvent(envelope)) {
     applyUpdateEnvelope(envelope);
+    return;
+  }
+  if (isRebuildEvent(envelope)) {
+    applyRebuildEnvelope(envelope);
     return;
   }
   switch (envelope.kind) {
@@ -1724,6 +1733,137 @@ function wireCopy() {
   $("rag-copy-reset").addEventListener("click", resetCopy);
 }
 
+// ---------- V1.2 story 6 (CAP-4): the chunks the chunking made, and the contexts' rebuild ----------
+
+// The chunking stage's first chunks (the session cut them, AD-1): document and rank, text,
+// parent (parent_child), context with its mark (contextual).
+function chunksList(ended) {
+  const box = el("div", "rag-chunks");
+  box.append(el("p", "rag-chunks-title", t("rag.chunks_shown", { shown: fmtInt(ended.chunks.length), total: fmtInt(ended.chunks_total) })));
+  const list = el("ol", "rag-chunks-list");
+  for (const chunk of ended.chunks) {
+    const item = el("li", "rag-chunk");
+    item.dataset.doc = chunk.doc_id;
+    item.dataset.position = String(chunk.position);
+    item.append(el("p", "rag-chunk-title", t("rag.chunk_title", { title: chunk.title_text, position: chunk.position })));
+    if (chunk.context_text) {
+      const context = el("p", "rag-chunk-context");
+      context.append(el("span", "rag-chunk-label", `${t("rag.chunk_context")} · `), el("span", "rag-chunk-mark", chunk.context_label), ` : ${chunk.context_text}`);
+      item.append(context);
+    }
+    item.append(el("p", "rag-chunk-text", chunk.text));
+    if (chunk.parent_text) {
+      const parent = el("p", "rag-chunk-parent");
+      parent.append(el("span", "rag-chunk-label", `${t("rag.chunk_parent", { position: chunk.parent_position })} `), chunk.parent_text);
+      item.append(parent);
+    }
+    list.append(item);
+  }
+  box.append(list);
+  return box;
+}
+
+// « Reconstruire » and « Rétablir les contextes livrés », in the focus of a contextual chunking.
+function contextControls() {
+  const box = el("div", "rag-contexts");
+  const info = store.contexts;
+  if (info?.summary_text) box.append(el("p", "rag-contexts-summary", info.summary_text));
+  if (info?.expected_text) box.append(el("p", "rag-note", info.expected_text));
+  const buttons = el("p", "rag-contexts-buttons");
+  const rebuild = el("button", "rag-button-secondary", t("rag.contexts_rebuild"));
+  rebuild.type = "button";
+  rebuild.id = "rag-contexts-rebuild";
+  rebuild.dataset.action = "rebuild";
+  rebuild.addEventListener("click", rebuildContexts);
+  const reset = el("button", "rag-button-secondary", t("rag.contexts_reset"));
+  reset.type = "button";
+  reset.id = "rag-contexts-reset";
+  reset.dataset.action = "reset";
+  reset.addEventListener("click", resetContexts);
+  buttons.append(rebuild, reset);
+  box.append(buttons);
+  if (info?.rebuild_blocked_text) box.append(el("p", "rag-note rag-contexts-blocked", info.rebuild_blocked_text));
+  const job = store.rebuild;
+  if (job && !job.ended) {
+    box.append(el("p", "rag-contexts-progress", t("rag.contexts_progress", { done: fmtInt(job.done), total: fmtInt(job.total) })));
+  } else if (job?.error) {
+    box.append(el("p", "rag-stage-error", t("rag.contexts_failed", { reason: job.error })));
+  } else if (job?.output) {
+    box.append(el("p", "rag-contexts-done", job.output));
+  }
+  if (store.contextError) box.append(el("p", "rag-stage-error", store.contextError));
+  setContextButtons(box);
+  return box;
+}
+
+// Why a button waits: the session busy, a POST under way, no model (rebuild), nothing rebuilt (reset).
+function setContextButtons(root = document) {
+  const blocked = Boolean(busyReason()) || store.pending;
+  for (const button of root.querySelectorAll(".rag-contexts button")) {
+    const rebuild = button.dataset.action === "rebuild";
+    button.disabled = blocked || (rebuild ? Boolean(store.contexts?.rebuild_blocked_text) : !store.contexts?.rebuilt);
+    button.title = (rebuild && store.contexts?.rebuild_blocked_text) || "";
+  }
+}
+
+async function rebuildContexts() {
+  store.contextError = null;
+  store.pending = true;
+  renderBusy();
+  const answer = await post("/api/intentions/rag_lab_rebuild", { pipelines: store.pipelines });
+  store.pending = false;
+  if (!answer.ok) store.contextError = refusalText(answer);
+  renderBusy();
+  renderCurrent();
+}
+
+async function resetContexts() {
+  store.contextError = null;
+  const answer = await post("/api/rag_lab/contexts/reset", {});
+  if (answer.ok) {
+    store.contexts = answer.body.contexts;
+    store.rebuild = null;
+  } else {
+    store.contextError = refusalText(answer);
+  }
+  renderCurrent();
+}
+
+async function reloadContexts() {
+  try {
+    const response = await fetch("/api/rag_lab");
+    if (!response.ok) return;
+    store.contexts = (await response.json()).contexts;
+  } catch {
+    return;
+  }
+  renderCurrent();
+}
+
+const isRebuildEvent = (envelope) => String(envelope.payload?.run_id ?? "").startsWith("ctx");
+
+// A rebuild's events (`ctx{n}`): its progress in chunks, its outcome; never the last run's.
+function applyRebuildEnvelope(envelope) {
+  const p = envelope.payload;
+  if (envelope.kind === "rag_lab_run_started") {
+    store.rebuild = { runId: p.run_id, done: 0, total: 0, ended: null, error: null, output: null };
+  } else if (store.rebuild?.runId !== p.run_id) {
+    return;
+  } else if (envelope.kind === "rag_lab_stage_progress") {
+    store.rebuild.done = p.done;
+    store.rebuild.total = p.total;
+  } else if (envelope.kind === "rag_lab_stage_ended") {
+    store.rebuild.error = p.error_text;
+    store.rebuild.output = p.output_text;
+  } else if (envelope.kind === "rag_lab_run_ended") {
+    store.rebuild.ended = p;
+    if (!store.replaying) reloadContexts();
+  } else {
+    return;
+  }
+  if (!store.replaying) renderCurrent();
+}
+
 // ---------- state of the session: what may be asked now ----------
 
 function busyReason() {
@@ -1751,6 +1891,7 @@ function renderBusy() {
   // Lot 5c-4: « Arrêter » stops a download too (even one launched before a reload).
   $("rag-stop").disabled = !["rag_lab", "download"].includes(store.session.state);
   renderCopyControls();
+  setContextButtons();
 }
 
 // ---------- V1.2 story 4: the view tabs (vues.md) ----------
@@ -1960,6 +2101,7 @@ async function refresh() {
     for (const envelope of body.last_run) applyEnvelope(envelope);
     for (const envelope of body.last_update ?? []) applyEnvelope(envelope);
     store.workCopy = body.work_copy;
+    store.contexts = body.contexts ?? null;
   } finally {
     store.replaying = false;
   }

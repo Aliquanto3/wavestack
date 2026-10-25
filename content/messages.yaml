@@ -587,6 +587,9 @@ session:
     update_empty: "Le titre et le texte ne peuvent pas être vides."
     update_unknown_operation: "Opération inconnue : {op}."
     update_unknown_doc: "Le document {doc} n'est pas dans la copie de travail du corpus."
+    update_chunking: "La mise à jour de corpus n'est mesurée que pour le découpage par paragraphes : choisissez-le, ou rétablissez la chaîne livrée."
+    rebuild_no_model: "Aucun modèle chargé dans l'atelier : chargez un modèle pour réécrire les contextes."
+    rebuild_expected: "Un appel du modèle par extrait ({chunks} à la taille livrée), quelques secondes chacun sur CPU : comptez plusieurs minutes. « Arrêter » garde les contextes déjà réécrits."
     noun:
       embedding: modèle d'embedding
       reranking: modèle de reranking
@@ -990,6 +993,15 @@ rag_lab:
     reordered_candidate:
       one: candidat réordonné
       other: candidats réordonnés
+    parent:
+      one: parent
+      other: parents
+    child:
+      one: enfant
+      other: enfants
+    sentence:
+      one: phrase
+      other: phrases
   # A rank: « 1er », « 2ᵉ » (English: 1st, 2nd, 3rd, 4th; 21st, 22nd, 23rd).
   rank:
     first: "1er"
@@ -1055,6 +1067,7 @@ rag_lab:
     output_tokens: Tokens produits
     embedded_as: Vectorisée
     queries: Requêtes cherchées
+    children_read: Enfants lus
   chunking:
     source_corpus: "le corpus (content/corpus), découpé pour cette exécution"
     source_index: "l'index de la brique RAG (découpé à sa construction)"
@@ -1068,6 +1081,39 @@ rag_lab:
     mean: Longueur moyenne
     longest: Plus long
     characters: "{n} caractères"
+    output_semantic: "{extracts} coupés là où la similarité entre phrases voisines chute ({sentences} embeddées), {size} caractères au plus, lus dans {source}."
+    output_parent_child: "{children} de {child} caractères au plus, indexés ; chacun renvoie son parent, parmi {parents} de {size} caractères au plus, lus dans {source}."
+    output_contextual: "{extracts} de {size} caractères au plus, dont {with_context} avec leur contexte, ajouté avant l'embedding et la recherche lexicale, lus dans {source}."
+    parents: Parents
+    child_max: Taille maximale d'un enfant
+    sentences: Phrases embeddées
+    sentences_duration: Durée de l'embedding des phrases
+    with_context: Extraits avec contexte
+    without_context: Extraits sans contexte
+    ignored_contexts: Contextes ignorés
+    context_origin: Origine des contextes
+    no_contexts: aucun contexte
+    semantic_fallback: "Aucun modèle d'embedding utilisable pour couper aux phrases ({reason}) : le découpage retombe sur celui par paragraphes."
+    contexts_unreadable: "Le fichier des contextes livrés ne se lit pas ({error}) : les extraits sont indexés sans contexte."
+    contexts_stale: "{missing} sans contexte valide et {ignored} contextes ignorés (leur empreinte ne correspond plus à un extrait : taille changée ou copie de travail). « Reconstruire » les refait à la taille courante."
+    mark:
+      shipped: précalculé
+      rebuilt: reconstruit
+      heuristic: "heuristique, sans LLM"
+      llm: "par le modèle {model}"
+  contexts:
+    run_label: "Reconstruction des contextes"
+    summary: "Contextes lus : {mark} · {chunks} contextes · modèle {model} · {tokens} tokens écrits · construits en {duration}"
+    heuristic: "Extrait {position}/{total} de « {title} ». Le document commence par : {first}"
+    no_model: "Aucun modèle chargé dans l'atelier : les contextes ne peuvent pas être réécrits."
+    instruction: "Tu situes un extrait dans le document dont il est tiré. Écris un contexte court, une ou deux phrases en français, qui dit de quoi parle le document et où l'extrait s'y place, pour qu'on retrouve l'extrait en le cherchant. Réponds par le contexte seul, sans introduction."
+    document: "Document « {title} » :\n{text}"
+    user: "Voici l'extrait à situer dans ce document :\n{chunk}"
+    input: "{chunks} à situer dans leur document entier."
+    output: "{done} contextes réécrits sur {total} ; {failed} extraits gardent leur contexte."
+    fact_rebuilt: Contextes réécrits
+    fact_kept: Extraits ayant gardé leur contexte
+    fact_tokens: Tokens écrits
   embedding:
     brick_passages: "Passages (titre du document, puis extrait) : {passages}, déjà vectorisés dans l'index de la brique RAG, calculés à sa construction."
     brick_unusable: "Les passages ne sont pas vectorisés ici : l'index de la brique RAG ne peut pas servir (voir Base vectorielle)."
@@ -1149,9 +1195,11 @@ rag_lab:
     input: "Le classement de l'étape précédente : {extracts}."
     empty: "Aucun extrait : le modèle ne recevrait que la question."
     kept: "{kept} sur {total}"
+    parents_short: "{kept} parents distincts sur {top_k} demandés : les {read} meilleurs enfants n'en couvrent pas plus. Augmentez les candidats de la recherche pour en avoir davantage."
   costs:
     build_unknown: "Coût de construction non enregistré pour ce contenu précalculé : reconstruisez-le pour le mesurer."
     generation_unpriced: "Coût en dollars non chiffré : le modèle n'a pas de tarif déclaré."
+    contexts_measure: "Mesure enregistrée à la construction des contextes (modèle : {model}), non refaite à chaque exécution."
   update:
     op:
       add: "Ajout du document {doc}"
