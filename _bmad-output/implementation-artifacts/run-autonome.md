@@ -611,3 +611,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 16:19 · 12.14 · dev · refusion de l'intégration (avec 12.8) lancée avant la PR · e3e734b2
 - 2026-10-25 16:26 · 12.14 · dev · intégration fusionnée (avec 12.8) sans conflit ; 648 tests ciblés, E2E 164/164 et 92/92 · 5be654fe
 - 2026-10-25 16:26 · 12.14 · PR · #122 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 5be654fe
+- 2026-10-25 16:33 · 12.14 · CI · verte · 5be654fe
+- 2026-10-25 16:33 · 12.14 · fusion · #122 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.12 prévenue · 3525323
+- 2026-10-25 16:33 · 12.16 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; worktree ../wavestack-v12-s16 depuis l'intégration 3525323) · 3525323
