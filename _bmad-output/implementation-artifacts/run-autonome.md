@@ -75,3 +75,6 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:12 · 15.2 · review · spec ready-for-dev, 9 points tranchés · 6afc1faa
 - 2026-10-25 21:12 · 15.2 · décision · cas de recette get_datetime (Mistral) gardé comme régression · à revoir
 - 2026-10-25 21:12 · 15.2 · attente humaine · mesure des plafonds sur le PC cible (tools/eval/measure_cases.py), après fusion · —
+- 2026-10-25 21:16 · 15.6 · review · prête (1 medium et 3 low corrigés, 2 faux, 1 laissé) · 4179682c
+- 2026-10-25 21:16 · 15.6 · fusion · PR #135 ouverte, CI en cours · 4179682c
+- 2026-10-25 21:16 · 15.3 · dev · lancé (Sonnet, phase spec, ../wavestack-v15-s3) · —
