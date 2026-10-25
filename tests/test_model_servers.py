@@ -16,6 +16,7 @@ from pathlib import Path
 import httpx
 import pytest
 from fake_engine import FakeEngine
+from gguf_writer import make_sparse
 from starlette.testclient import TestClient
 
 from wavestack import config
@@ -699,8 +700,7 @@ def test_another_ollama_500_stays_a_server_error(fake):
 def test_budget_exceeded_keeps_the_previous_model(fake, tmp_path):
     """An Ollama model not loaded yet costs its file, its KV cache and the margin."""
     blob = tmp_path / "blob"
-    with open(blob, "wb") as f:
-        f.truncate(5 * GIB - 256 * 1024**2)  # sparse: 4,75 Go on disk, nothing written
+    make_sparse(blob, 5 * GIB - 256 * 1024**2)  # sparse: 4,75 Go, nothing written
     cfg = config.load_config()
     cfg.values["memory"] = {"budget_mb": 4096, "load_margin_mb": 256}
     session = AppSession(
@@ -1793,8 +1793,7 @@ def test_refusal_with_a_served_model_active_counts_wavestack_whole(fake, tmp_pat
     """E3: llama-server's model is in another process: WaveStack's RSS is not reduced by it
     (the refusal said « 0,0 Go »)."""
     blob = tmp_path / "blob"
-    with open(blob, "wb") as f:
-        f.truncate(5 * GIB)  # sparse: nothing written
+    make_sparse(blob, 5 * GIB)  # sparse: nothing written
     session = _session(rss_fn=lambda: 210 * 1024**2)
     assert session.boot_server(_candidate("llama_server")).result() == "ok"
 
@@ -1835,8 +1834,7 @@ def _ollama_blob(monkeypatch, tmp_path, header: dict | None, size: int) -> Path:
         blob.write_bytes(b"GGUF" + b"\0" * 60)
     else:
         write_gguf(blob, header)
-    with open(blob, "r+b") as f:
-        f.truncate(size)
+    make_sparse(blob, size)
     layer = {"mediaType": "application/vnd.ollama.image.model", "digest": "sha256:abc"}
     manifest.write_text(json.dumps({"layers": [layer]}), encoding="utf-8")
     return blob
