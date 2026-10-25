@@ -81,3 +81,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:18 · 15.1 · review · prête (2 medium et 3 low corrigés ; ajout cases.POSITIVE_KINDS) · e53f3702
 - 2026-10-25 21:18 · 15.1 · décision · précision de contrat-des-cas.md sortie de la branche de story vers la PR docs #136 · aa2ca985
 - 2026-10-25 21:18 · 15.1 · fusion · PR #137 ouverte, CI en cours · aa2ca985
+- 2026-10-25 21:19 · 15.3 · dev · fini (phase spec, 9 points ouverts) · 69b8840e
+- 2026-10-25 21:19 · 15.3 · review · lancé (spec_checkpoint, Opus) · —
