@@ -124,7 +124,17 @@ Les deux boutons appellent `stop()` : « Arrêter » de la vue et le bouton exis
 
 ## Points d'accroche dans `app_session.py`
 
-Chaque point est petit et nommé, pour limiter les conflits avec le fichier de 15 000 lignes :
+**API de configuration d'un cas.** Aucun code hors d'`app_session.py` ne lit ni n'écrit d'attribut privé de la session : `_bricks`, `_tools_enabled`, `_skills_enabled`, `_hooks_enabled`, `_mcp_enabled`, `_history`. C'est pourtant ce que fait aujourd'hui `tools/eval/case_player.py` (story 2, commit `74b431a7`). L'exécuteur, l'outil de mesure et les tests passent par trois méthodes publiques d'`AppSession`. Toutes exigent l'état `agent_eval` et lèvent `SendRefused` sinon :
+
+```python
+def case_config_snapshot(self) -> CaseConfigSnapshot   # instantané figé (dataclass gelée) de la configuration courante
+def apply_case(self, case: AgentCase, session_prompt: str | None) -> None   # point 6
+def restore_case_config(self, snapshot: CaseConfigSnapshot) -> None         # point 7
+```
+
+Les points 6 et 7 en sont l'implémentation (`_apply_case` et `_restore_after_run` dans le reste de ce document). `case_player.py` est supprimé (voir « Reprise »), et ne s'appuie donc sur rien.
+
+Chaque point d'accroche est petit et nommé, pour limiter les conflits avec ce fichier de 15 000 lignes :
 
 1. `self.agent_eval = AgentEvalRunner(self)` dans `__init__`, et `self._eval_run: Run | None = None`. L'exécution courante est lue sous `_lock`.
 2. **`_rest_state()`** : rend `("agent_eval", <raison>)` pendant une exécution, `("idle", None)` sinon. Elle remplace `_set_state("idle")` partout où un tour ou une stratégie se termine : fin de `_run_turn` (vers la l. 7767), `finally` de `_run_strategy` (vers la l. 6677), et tout autre retour à `idle` atteint depuis un tour (le dev les relève avec `git grep '_set_state("idle")'`). Les retours à `idle` du chargement de modèle, du téléchargement et des ateliers ne changent pas.
@@ -319,7 +329,7 @@ Le badge et la trace se calculent côté serveur. La langue affichée est celle 
    - le compositeur montre `session.state.agent_eval`, et son bouton « Arrêter » est visible.
 7. **Résultat par cas** :
    - « Réussi » ou « Échoué ». Pour un échec : « {type de vérification} : {reason_text} ». Le libellé du type vient des clés de la story 3 (`main.agent_case.form.checks.kind.*`), et de `check.model_calls_max` pour le plafond ;
-   - « Non lancé » avec sa raison : fenêtre, arrêté, plafond de dépense ;
+   - « Non lancé » avec sa raison : fenêtre, arrêté, plafond de dépense. Pour la fenêtre, la raison est suivie de `case.window_hint`. La vue ne propose jamais de changer la fenêtre elle-même : changer de fenêtre recharge le modèle, et le formateur le fait hors d'une exécution, par « Fenêtre ▾ » ;
    - « Voir le tour » (`aria-expanded`) charge la trace (`GET /runs/{id}/trace`) et la déplie en `ol.ae-trace`. L'élément fautif porte `class="fault"` et un texte caché « (événement fautif) ». « Masquer le tour » la replie. Avec 3 essais, un sélecteur d'essai (1, 2, 3) est placé au-dessus de la trace ;
    - k = 3 : un rond par essai (`ae-dots`, `i.ok`, `i.ko`, `i.skip`, avec un `aria-label` qui énumère les statuts), puis « 2 réussis sur 3 · pass@3 : oui · pass^3 : non ».
 8. **Exécutions de la séance** : `table.ae-table`, avec deux colonnes de boutons radio, « A » et « B », puis heure (HH:MM), modèle, prompt système (« par défaut » ou « modifié »), résultat (« 6 réussis sur 7 lancés » et « · 1 non lancé » s'il y en a), et la portée pour une exécution d'un cas (« L'heure, 3 essais »). Une exécution arrêtée ou bloquée par le plafond l'affiche après le résultat. Par défaut : A est l'avant-dernière exécution, B la dernière.
@@ -352,6 +362,7 @@ Fichiers : `content/ui.yaml`, `content/i18n/en/ui.yaml`, `content/i18n/de/ui.yam
 | `mine.unreadable` | Le fichier de vos cas est illisible : vos cas ne peuvent pas être lancés. « Effacer mes cas » le vide ; les cas fournis restent jouables. | The file with your cases is unreadable: your cases cannot be run. “Clear my cases” empties it; the provided cases can still be run. | Die Datei mit Ihren Fällen ist nicht lesbar: Ihre Fälle können nicht gestartet werden. „Meine Fälle löschen“ leert sie; die mitgelieferten Fälle bleiben spielbar. |
 | `case.meta` | · {brick} · plafond {max} | · {brick} · limit {max} | · {brick} · Obergrenze {max} |
 | `case.meta_session` | · séance · {turn} · plafond {max} | · session · {turn} · limit {max} | · Sitzung · {turn} · Obergrenze {max} |
+| `case.window_hint` | Pour le jouer, choisissez cette fenêtre dans « Fenêtre ▾ » (le modèle se recharge), puis relancez ce cas. | To run it, pick this window in “Window ▾” (the model reloads), then run this case again. | Um ihn zu spielen, wählen Sie dieses Fenster unter „Fenster ▾“ (das Modell wird neu geladen) und starten Sie den Fall erneut. |
 | `case.run` | Lancer | Run | Starten |
 | `case.run_label` | Lancer le cas « {title} » | Run the case “{title}” | Fall „{title}“ starten |
 | `case.trials.one` | {count} essai | {count} try | {count} Versuch |
@@ -464,7 +475,9 @@ Les libellés `{status}`, `{decision}`, `{limit}`, `{strategy}` et `{point}` ré
 
 - `case_player.play_case` est **supprimé**. Ses règles passent dans l'exécuteur : configuration, historique, réponse H5, `on_overflow` et filtrage des tours. La seule différence voulue est `_apply_case`, qui ne passe plus par `reset()` (pas de restauration de la mémoire, pas de `harness_reset`).
 - `tools/eval/measure_cases.py` passe par `session.agent_eval.start([case_id], k=3)`, puis `wait(run_id)`, et lit `model_calls` dans chaque `TrialOutcome`. `--runs` accepte seulement 1 ou 3 (constraint de la SPEC : k ∈ {1, 3}). Un cas `not_run` (`window`) reste « non mesurable ici ». `README.md` est mis à jour.
-- `tests/test_agent_cases_provided.py` : les tests 5 à 7 (réussit, échoue, plafonds tenus) passent par `start([case_id], k=1)` puis `wait`, et lisent `trials[0].verdict`. Les attentes restent les mêmes. Le test 9 (outil) n'est pas modifié, sauf l'appel.
+- `tests/test_agent_cases_provided.py` : les tests 5 à 7 (réussit, échoue, plafonds tenus) passent par `start([case_id], k=1)` puis `wait`, et lisent `trials[0].verdict`. Les attentes restent celles du commit de la story 2. Le test 9 (outil) ne change que par son appel. Deux points relevés dans la story 2 codée :
+  - **Boucle de 6 `get_datetime`** : elle finit en `limit` (limite d'étapes, `[tools] max_calls`), donc en « tour incomplet (fini en « limit ») » sur toutes les vérifications, plafond compris. Le test garde l'attente du commit de la story 2. S'il veut lire la raison du plafond (« 6 appels au modèle pour un plafond de 3 »), il relève `[tools] max_calls` au-dessus de 6 par `values`. L'exécuteur n'y change rien : c'est `verify` qui décide.
+  - **Fenêtre** : le faux moteur compte 1 token par octet. Le test des deux sens tourne donc sur une session de 16 384 tokens, alors que `code_talvane_apres_compaction` déclare `window: 4096`. Avec l'exécuteur, ce cas serait `not_run` (`window`) sur une telle session. Règle retenue : la fixture paramétrée démarre une session par cas, `booted_session(engine, window=case.window or 16384)`. Le cas qui exige une fenêtre la reçoit dès le démarrage, et c'est bien ce que le cas veut tester : déborder à 4 096. Les autres jouent sur 16 384. Si le prompt et le schéma des outils d'un cas à `window` dépassent la fenêtre exigée, ce cas est mal conçu : le dev ajuste son remplissage (règle de la story 2), pas l'exécuteur. Un test ajoute la contre-épreuve : le même cas sur une session de 16 384 est `not_run` (`window`), et le moteur n'est pas appelé.
 - `git grep case_player` ne doit plus rien renvoyer, hors des specs.
 
 ## Tests
@@ -513,6 +526,7 @@ Les tests utilisent le faux moteur (`booted_session`, `FakeEngine`) et `WAVESTAC
 12. **k = 3.** Les trois essais partagent le même moteur : on lui donne des sorties enchaînées qui font réussir l'essai 1, échouer le 2 et réussir le 3. `successes == 2`, `ran == 3`, `pass_at_k is True`, `pass_pow_k is False`, statut `passed`.
 13. **Bornes de boucle.** `values={"tools": {"max_calls": 2}}` et un moteur qui rappelle l'outil sans fin. Le cas 1 est `failed`, raison « tour incomplet (fini en « limit ») ». Le cas 2 est lancé ensuite et réussit.
 14. **Exception dans l'exécuteur** : un cas dont `_apply_case` lève (serveur MCP inconnu de la session si les ids inconnus lèvent, sinon un `prompt` refusé par un garde-fou), selon ce que le dev retient au point ouvert 1. `run.status == "error"`, les cas restants sont `not_run` (`cancelled`), l'état final est `idle` et la configuration est rétablie.
+15. **Pas d'accès privé** : un test de garde lit les sources de `tools/eval/`, `src/wavestack/session/agent_eval_runner.py` et `tests/test_agent_cases_provided.py`, et vérifie qu'aucun ne contient `session._bricks`, `_tools_enabled`, `_skills_enabled`, `_hooks_enabled`, `_mcp_enabled` ni `_history` (expression `session\._(bricks|tools_enabled|skills_enabled|hooks_enabled|mcp_enabled|history)`).
 
 ### `tests/test_agent_eval_runs.py` (pur, journaux construits)
 
