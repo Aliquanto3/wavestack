@@ -602,6 +602,7 @@ session:
       refused: "Import refused: {label} could not be loaded ({kind}: {cause}). A security policy (AppLocker, WDAC) may be blocking its unsigned libraries; the other vector databases stay usable."
       failed: "Import failed: {label} could not be loaded ({kind}: {cause}). Its installation may be damaged: run `{install}` again from the WaveStack folder; the other options stay usable."
     interrupted: The RAG workshop stopped on an error.
+    compress_not_wanted: "The Compression card is not active: activate it for the option to compress the excerpts."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "The MCP workshop's texts cannot be read (content/mcp_lab.yaml): fix the file, then reload the page."
@@ -1050,6 +1051,14 @@ rag_lab:
     embedded_as: Embedded
     queries: Queries searched
     children_read: Children read
+    whole: Whole passages
+    cut: Cut passage
+    dropped: Dropped passages
+    tokens_used: Context tokens (estimated)
+    order: Order
+    compression: Compression
+    compressed: Compressed excerpts
+    compress_failures: Compression failures
   chunking:
     source_corpus: "the corpus (content/corpus), split for this run"
     source_index: "the RAG brick's index (split when it was built)"
@@ -1177,6 +1186,24 @@ rag_lab:
     empty: "No excerpt: the model would only receive the question."
     kept: "{kept} of {total}"
     parents_short: "{kept} distinct parents of the {top_k} asked: the {read} best children cover no more. Raise the search's candidates to get more."
+    budget_cut: "The budget of {budget} estimated tokens does not let everything through: whole {whole}, cut {cut}, dropped {dropped}."
+    budget_tiny: "The budget is smaller than the introduction and the best excerpt: the excerpt is cut all the same, the context is never empty."
+    budget_over: "Even cut to its first sentence, the best excerpt goes over the budget: {used} estimated tokens out of {budget}."
+    budget_used: "{used} of {budget}"
+    cut_some: "1 (−{tokens} estimated tokens)"
+    cut_none: none
+    order_edges: "extremities first, relevance ranks in the order of the context: {ranks}"
+    order_short: "fewer than three excerpts: the order stays that of relevance"
+    compress_off: unavailable, context built as with the order
+    compress_unavailable: "Compression unavailable ({reason}): the context is built without it, as with the order."
+    compress_tokens: "{before} → {after} estimated tokens ({compressor})"
+    compress_count: "{changed} of {total}"
+    compress_failed_item: "{error}: {cause}"
+    compress_failed: "{count} excerpt(s) not compressed, kept as they were (first failure: {first})."
+  prompt:
+    system: System instruction
+    context: Context
+    question: Question
   costs:
     build_unknown: "Build cost not recorded for this precomputed content: rebuild it to measure it."
     generation_unpriced: "Cost in dollars not priced: the model has no declared price."

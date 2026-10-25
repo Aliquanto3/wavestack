@@ -209,6 +209,12 @@ options:
   context:
     excerpts:
       label_text: "Numbered excerpts (RAG brick format)"
+    budget:
+      label_text: "Context budget"
+    order:
+      label_text: "Passage ordering"
+    compress:
+      label_text: "Compression"
   generation:
     active:
       label_text: "The workshop's active model"
@@ -235,6 +241,9 @@ params:
   top_k:
     label_text: "Chunks in the prompt"
     unit_text: "chunks"
+  budget_tokens:
+    label_text: "Context budget"
+    unit_text: "tokens (estimated)"
 
 # Lot 5a: the lines of the sequence. The technical name is the same in the three languages;
 # the action and the explanation are in the page's language. Without `explain_text`, the
@@ -551,3 +560,41 @@ sheets:
     sources:
       - label_text: "Anthropic, Introducing Contextual Retrieval (2024)"
         url: "https://www.anthropic.com/news/contextual-retrieval"
+
+# V1.2 story 7 (CAP-17): the sheet of each context option, in five blocks.
+  context.excerpts:
+    purpose_text: "Keep the first passages of the ranked list, in relevance order, and paste their whole text after the introduction. This is the RAG brick's context."
+    when_text: "Use it as a starting point: simple, no model, no surprise. Avoid it when passages are long or many: nothing bounds the size of the context, which can exceed the model's window."
+    cost_text: "No model call. The prompt grows with the number of passages kept and their length, and every token the model reads costs reading time and, in the cloud, dollars."
+    literature_text: "Lewis et al. introduce retrieval-augmented generation: the retrieved passages are given to the model with the question. The framing's hypotheses do not cover this option: the sheet rests on this source alone."
+    bench_text: ""
+    sources:
+      - label_text: "Lewis et al., Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (2020)"
+        url: "https://arxiv.org/abs/2005.11401"
+  context.budget:
+    purpose_text: "Make the context fit a fixed number of tokens: passages enter whole in relevance order, the first that overflows is cut at the end of a sentence and marked “[…]”, the others are dropped."
+    when_text: "Use it when the model's window is narrow (4,096 tokens by default for the workshop's model, answer included) or to bound the cost. Avoid it if the decisive passage is dropped or cut: the diagnosis then names it as lost at the Context step."
+    cost_text: "No model call: tokens are counted (estimated, not the model's own) and the text is cut. The generation cost is bounded by the budget, at the price of lost passages."
+    literature_text: "Liu et al. show that the performance of language models drops when the useful information is buried in a longer context: a reason to bound the context. The framing's hypotheses do not cover the cut itself."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023, TACL 2024)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.order:
+    purpose_text: "After the budget, place the passages “extremities first”: the best one first, the second one last, the third one second, and so on, so that the weakest sit in the middle."
+    when_text: "Use it with a context of several passages, when the model seems to ignore those in the middle. Avoid it with two passages or fewer (the order stays that of relevance, and the step says so): the effect was only measured on long contexts, and may be weak with a small model."
+    cost_text: "No model call and no extra token: only the order changes, hence the excerpts' numbering (it follows the position in the context)."
+    literature_text: "Liu et al. (“Lost in the Middle”) measure a U-shaped curve: models answer best when the useful information is at the start or the end of the context, and worse in the middle. They measure it on models and contexts far larger than the workshop's: the effect remains to be checked here."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023, TACL 2024)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.compress:
+    purpose_text: "After the budget and the order, pass each excerpt (never the introduction) to the Headroom compressor of the Compression card, and show the tokens before and after."
+    when_text: "Use it when excerpts are structured outputs (JSON, logs, tables). Avoid it on prose: Headroom is designed for structured outputs and shrinks written text little, so “unchanged” is then the honest result. The option needs the Compression card to be active; otherwise the context is built as with the order, and the step says why."
+    cost_text: "One pass per excerpt above the session's threshold, on the processor; the tokens saved in the prompt are counted against that time. No model call, no download: the compressor is the one the card already loaded."
+    literature_text: "Headroom (Apache-2.0) is the context compression library of the Compression brick; its documentation aims it at structured tool outputs. No measure on the Exemplia corpus is reported here: measuring on the target PC remains to be done."
+    bench_text: ""
+    sources:
+      - label_text: "Headroom (headroom-ai), context compression for agents"
+        url: "https://pypi.org/project/headroom-ai/"

@@ -1174,6 +1174,21 @@ rag:
   contexts_reset: "Rétablir les contextes livrés"
   contexts_progress: "Reconstruction : {done} / {total} extraits"
   contexts_failed: "La reconstruction n'a pas abouti : {reason}"
+  # V1.2 story 7 (CAP-5): the focus of the Context step.
+  col_state: "Dans le contexte"
+  item_whole: "entier"
+  item_cut: "coupé"
+  item_dropped: "écarté"
+  item_placed: "position {n}"
+  item_tokens: "{tokens} tokens"
+  item_tokens_after: "{before} → {after} tokens"
+  item_unchanged: "inchangé"
+  item_transforms: "transformations : {names}"
+  budget_used: "Budget : {used} sur {budget} tokens (estimés)"
+  budget_compressed: "Après compression : {after} tokens (estimés), contre {before} avant"
+  dropped_title: "Écartés par le budget ({count})"
+  prompt_title: "Prompt final, tel qu'il part au modèle (tokens estimés ; le gabarit du modèle s'ajoute à la génération)"
+  prompt_total: "Total : {tokens} tokens (estimés)"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`); its
 # pedagogical texts are in mcp_lab.yaml.
