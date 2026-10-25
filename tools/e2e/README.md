@@ -836,6 +836,12 @@ d'autres (story 21) :
   « pas un avis juridique »), lien de l'axe Droits vers la carte de l'onglet Attaquer (à l'écran,
   focus, pas Construire), fiche `graphrag` « à venir (story 13) », contrastes AA clair et sombre,
   en puis de ; aucune requête hors de `127.0.0.1` ; captures `70-atelier-rag-fiches*.jpg`.
+- `rag_lab_mcp`, V1.2 story 20 (CAP-18), après `rag` (index de la brique construit) : la carte
+  « Exposer en MCP » de Construire. Arrêtée (deux outils « faible »), démarrée sur `hybrid` (adresse
+  `127.0.0.1`, jeton masqué puis révélé, commande `claude mcp add`), client JSON-RPC brut sans
+  `Origin` (`initialize`, `tools/list`, `tools/call`) : passages cités, aucun passage RH même pour
+  `q_global_rh`, 401 sans jeton ; contrastes AA clair et sombre ; arrêtée, 404 ; `cag` refusé avec
+  sa raison ; en puis de ; aucune requête hors de `127.0.0.1` ; captures `71-atelier-rag-mcp*.jpg`.
 - `rag_lab_agentic`, V1.2 story 11 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le
   faux llama-server répond aux tâches courtes de l'atelier par son script (`workshop_plan` de
   `fake_local_server.py` : `grep` de la question, `read_file corpus/teletravail.md`, `ANSWER` ;

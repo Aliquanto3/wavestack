@@ -36,8 +36,10 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from starlette.routing import Route
 
 from wavestack import config
+from wavestack.mcp import architecture_server  # V1.2 story 20
 from wavestack.messages import in_language, msg, render
 from wavestack.models import catalog
 from wavestack.models.cloud_base import session_spend
@@ -298,6 +300,12 @@ class LlmExampleDistributionRequest(BaseModel):
     sampling: SamplingIntention
 
 
+class RagMcpStartIntention(BaseModel):
+    """V1.2 story 20: the chain to expose (the shipped one when absent), a list of one."""
+
+    pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+
+
 class RagLabRunIntention(BaseModel):
     """Story 30: the question the RAG workshop's chain runs on (500 characters at most), and
     the chain (the shipped one when absent). Lot 5c-1: one chain, a list of one (two: 422)."""
@@ -489,7 +497,9 @@ def create_app(
         if request.method == "POST":
             origin = request.headers.get("origin")
             expected = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
-            if origin not in expected:
+            # V1.2 story 20: an MCP client sends no `Origin`; the endpoint's guard checks it.
+            exposed_path = architecture_server.is_exposed_path(request.url.path)
+            if origin not in expected and not exposed_path:
                 return JSONResponse({"detail": t("web.origin_refused")}, status_code=403)
             if request.headers.get("content-type", "").split(";")[0] != "application/json":
                 return JSONResponse({"detail": t("web.json_expected")}, status_code=415)
@@ -894,6 +904,36 @@ def create_app(
             return app_session.rag_lab_sheet_architecture(arch_id)
         except rag_sheets.UnknownSheet:
             raise HTTPException(status_code=404, detail="unknown sheet") from None
+
+    # V1.2 story 20 (CAP-18): the workshop's chain exposed as a read-only MCP server.
+    @app.get("/api/rag_lab/mcp")
+    def rag_lab_mcp() -> dict[str, object]:
+        """The card's state, with the token: same origin only (no CORS, `TrustedHostMiddleware`),
+        the one place the token is rendered."""
+        return shown(app_session.rag_mcp_state(with_token=True))
+
+    @app.post("/api/intentions/rag_mcp_start")
+    def rag_mcp_start(intention: RagMcpStartIntention) -> dict[str, object]:
+        """The chain of the page (the shipped one when absent) frozen and exposed; refused with
+        its reason (409). Already running: the same state."""
+        try:
+            chain = intention.pipelines[0] if intention.pipelines else None
+            return shown(app_session.rag_mcp_start(chain))
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/intentions/rag_mcp_stop")
+    def rag_mcp_stop() -> dict[str, object]:
+        """Stopped: 404 at the address from now on."""
+        return shown(app_session.rag_mcp_stop())
+
+    rag_mcp_endpoint = architecture_server.ExposedEndpoint(port)
+    app_session.attach_rag_mcp(rag_mcp_endpoint)
+    # Mounted once; `/mcp/architecture` itself too (a mount alone would redirect it to `…/`).
+    app.router.routes.append(Route(architecture_server.PATH, rag_mcp_endpoint))
+    app.mount(architecture_server.PATH, rag_mcp_endpoint)
 
     @app.get("/mcp")
     def mcp_page() -> FileResponse:
