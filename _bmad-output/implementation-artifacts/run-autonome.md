@@ -416,3 +416,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:54 · 12.19 · review · relecture de la spec lancée · a29f707
 - 2026-10-25 09:54 · 12.17 · CI · verte après le correctif du test instable · 4d6cc03
 - 2026-10-25 09:54 · 12.17 · fusion · #109 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 16c4eca
+- 2026-10-25 09:58 · 12.7 · CI · rouge (même test instable, branche sans correctif) ; intégration fusionnée, 269 tests ciblés verts, CI relancée · c7408d2
