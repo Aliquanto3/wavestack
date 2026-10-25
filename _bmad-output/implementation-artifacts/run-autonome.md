@@ -606,3 +606,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 16:10 · 12.8 · PR · #121 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé ; 12.12 prévenue · 5285a128
 - 2026-10-25 16:12 · 12.14 · review · passe 1 : intégration fusionnée (12.13, 22 fichiers en conflit, deux côtés gardés, structure = pageindex, graphrag, llm_wiki) ; 2 high corrigés (fiche honnête sur le coût du wiki livré, forget à chaque copie gardée), 1 medium corrigé (anciennes pages d'un document modifié), 1 low corrigé en partie, 2 écartés ; capture renumérotée 89 ; E2E 164/164 et 86/86 · e3e734b2
 - 2026-10-25 16:12 · 12.14 · report · PR après la fusion de #121 (12.8) et refusion de l'intégration · e3e734b2
+- 2026-10-25 16:19 · 12.8 · CI · verte · 5285a128
+- 2026-10-25 16:19 · 12.8 · fusion · #121 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.12 prévenue · 2b0a49e
+- 2026-10-25 16:19 · 12.14 · dev · refusion de l'intégration (avec 12.8) lancée avant la PR · e3e734b2
