@@ -95,3 +95,4 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:30 · run · fusion · #136 MERGED dans main (précision de contrat-des-cas.md) · 85534df4
 - 2026-10-25 21:30 · 15.2 · dev · lancé (Sonnet, code, rebasé sur 85534df4) · —
 - 2026-10-25 21:30 · 15.3 · dev · lancé (Sonnet, code, rebasé sur 85534df4) · —
+- 2026-10-25 21:31 · 15.4 · dev · lancé (Opus, phase spec, ../wavestack-v15-s4) · —
