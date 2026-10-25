@@ -343,3 +343,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:40 · 12.15 · second-avis · 0 high, 1 medium (sondage arrêté à 300 s sans rétablir le bouton), 5 low ; grammar sans effet sur les appels existants vérifié · b7d33be
 - 2026-10-25 08:40 · 12.15 · review · lancé (base integration/v1-2-atelier) · b7d33be
 - 2026-10-25 08:40 · 12.17 · dev · lancé (phase spec, empilé sur 12.15, worktree ../wavestack-v12-s17) · b7d33be
+- 2026-10-25 08:41 · run · fusion · #106 MERGED (version 1.4.0) via file_prs.py · ee6d251
+- 2026-10-25 08:41 · run · décision · release v1.4.0 publiée (epics 13 et 14) ; integration/v1-2-atelier avancée à ee6d251 · ee6d251
