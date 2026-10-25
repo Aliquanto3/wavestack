@@ -1498,3 +1498,15 @@ body.rag-page {
 .rag-cmp-prompt .rag-prompt {
   white-space: pre-wrap;
 }
+
+/* V1.2 story 5 (CAP-3): the queries the query understanding produced, in the focus. */
+.rag-focus-queries-title {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-focus-queries-list {
+  margin: 0;
+  padding-left: var(--spacing-5);
+  overflow-wrap: anywhere;
+}

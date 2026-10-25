@@ -541,6 +541,7 @@ session:
     generation_active: "Modèle actif de l'atelier : {model}"
     generation_no_model: "Aucun modèle chargé dans l'atelier : l'étape Generation sera sautée. Chargez un modèle, puis relancez la chaîne."
     generation_stops: "La génération de l'Atelier RAG s'arrête ; WaveStack reste utilisable."
+    query_no_model: "Aucun modèle chargé dans l'atelier : la compréhension de la requête sera sautée et la question cherchée telle quelle. Chargez un modèle, puis relancez la chaîne."
     update_too_long: "Texte trop long : {max} caractères au plus."
     update_bad_id: "Identifiant invalide : lettres minuscules, chiffres et _ seulement."
     update_id_taken: "L'identifiant {doc} existe déjà dans le corpus."
@@ -977,6 +978,7 @@ rag_lab:
     out_of_bounds: "Étape « {stage} » : {bounds}."
     bounds: "{setting} entre {low} et {high} {unit}"
     too_few_candidates: "Étape « {stage} » : {kept}, moins que les {extracts} que le contexte doit garder. Retenez au moins {candidates}, ou gardez moins d'extraits."
+    query_before: "Étape « {stage} » : elle produit les requêtes que les recherches exécutent, elle doit venir avant elles. Déplacez-la avant les recherches."
   not_installed: "Indisponible : {library} n'est pas installé. Depuis le dossier de WaveStack : `{command}`, puis relancez WaveStack. Sans `--extra compression`, Headroom serait retiré."
   folder_held: "Le dossier {folder} ne peut pas être supprimé ({error} : {cause}) : un autre programme le tient peut-être ouvert. Fermez-le, ou supprimez le dossier rag_lab WaveStack arrêté."
   load_failed: "Le {noun} {model} n'a pas pu être chargé ({error} : {cause})."
@@ -1012,6 +1014,8 @@ rag_lab:
     score_reading: Lecture du score
     prompt_tokens: Tokens du prompt
     output_tokens: Tokens produits
+    embedded_as: Vectorisée
+    queries: Requêtes cherchées
   chunking:
     source_corpus: "le corpus (content/corpus), découpé pour cette exécution"
     source_index: "l'index de la brique RAG (découpé à sa construction)"
@@ -1140,6 +1144,23 @@ rag_lab:
     cut: "Réponse coupée à {max} tokens : la réserve de sortie d'un tour de l'atelier est atteinte."
     empty: "Le modèle n'a rien répondu."
     model_error: "Le modèle a échoué pendant la génération : le journal des événements dit pourquoi."
+  query:
+    input: "Question : {question}."
+    input_history: "Questions précédentes de l'atelier : {history}."
+    unchanged: "Aucune requête produite : la question est cherchée telle quelle."
+    no_history: "Aucune question précédente dans cette session : la question est cherchée telle quelle."
+    no_history_reason: "Aucune question précédente dans cette session : posez d'abord une première question, puis la question de suivi. La question est cherchée telle quelle."
+    no_model: "Aucun modèle chargé dans l'atelier : la compréhension de la requête est sautée et la question est cherchée telle quelle. Chargez un modèle, puis relancez la chaîne."
+    too_long: "Le prompt de la tâche dépasse la fenêtre ({window} tokens) : rien n'est envoyé au modèle et la question est cherchée telle quelle."
+    model_error: "Le modèle a échoué pendant la compréhension de la requête : la question est cherchée telle quelle ; le journal des événements dit pourquoi."
+    empty: "Le modèle n'a rien donné d'exploitable : la question est cherchée telle quelle."
+    as_passage: "comme un passage du corpus, non comme une question"
+    follow_up_user: "Questions précédentes :\n{history}\n\nQuestion de suivi : {question}"
+    instruction:
+      rewrite: "Tu réécris une question pour une recherche dans une base de documents d'entreprise. Réponds par une seule requête, sans explication ni guillemets : les mots et les termes précis qu'aurait le document cherché, dans la langue de la question."
+      decompose: "Tu décomposes une question complexe en sous-questions simples, chacune cherchable seule dans une base de documents d'entreprise. Réponds par {max} sous-questions au plus, une par ligne, sans numéro ni explication. Si la question est déjà simple, réponds par elle seule."
+      follow_up: "Tu reformules la dernière question d'une conversation pour qu'elle se comprenne seule, sans les échanges précédents : remplace les pronoms et les sous-entendus par ce qu'ils désignent. Réponds par une seule question, sans explication."
+      hyde: "Tu écris, en un court paragraphe, la réponse plausible à la question, comme si elle était extraite d'un document d'entreprise. Elle peut contenir des erreurs de fait : elle sert seulement à retrouver des passages proches. Pas d'introduction."
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:

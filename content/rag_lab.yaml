@@ -80,6 +80,7 @@ memory_text: "Mémoire de WaveStack"
 last_run_text: "Dernière exécution"
 reset_chain_text: "Revenir à la chaîne livrée"
 unavailable_text: "indisponible"
+queries_text: "Requêtes produites"
 add_text: "Ajouter un composant"
 add_button_text: "Ajouter"
 move_before_text: "Déplacer avant"
@@ -164,6 +165,14 @@ stages:
       dépend de ce que les étapes précédentes lui ont apporté. Ici, c'est le modèle actif de
       l'atelier qui répond, avec le prompt système de l'atelier et les bornes d'un tour (réserve
       de sortie, budget de raisonnement) ; la réponse ne rejoint pas la conversation.
+  query:
+    label_text: "Query understanding"
+    explain_text: >-
+      Avant la recherche, le modèle actif de l'atelier réécrit la question, la décompose en
+      sous-questions, la rend autonome ou invente une réponse plausible (HyDE) ; les recherches
+      cherchent ensuite ces requêtes à la place de la question telle quelle. Chaque requête
+      coûte un appel de modèle, et un modèle qui se trompe écarte la bonne réponse avant même
+      la recherche.
 
 # Le nom de chaque option ; celles qui nomment un modèle déclaré prennent son libellé.
 options:
@@ -204,6 +213,15 @@ options:
       label_text: "Modèle actif de l'atelier"
     not_run:
       label_text: "Ne pas générer"
+  query:
+    rewrite:
+      label_text: "Réécriture de la question"
+    decompose:
+      label_text: "Décomposition en sous-questions"
+    follow_up:
+      label_text: "Question de suivi rendue autonome"
+    hyde:
+      label_text: "Document hypothétique (HyDE)"
 
 # Les réglages : leur nom et leur unité.
 params:
@@ -288,6 +306,10 @@ steps:
   generation:
     label_text: "Generation"
     action_text: "Générer la réponse"
+  query:
+    label_text: "Query understanding"
+    action_text: "Produire les requêtes à chercher"
+    note_text: "L'atelier n'a pas de conversation : la question de suivi lit les questions posées plus tôt dans cette session (trois au plus)."
 
 # Les tuiles de l'architecture : leur nom, et leur sous-titre quand aucune option ne le donne.
 components:
@@ -450,3 +472,45 @@ compare:
   differs_text: "Les passages diffèrent."
   lost_text: "perdu"
   added_text: "ajouté"
+
+# V1.2 story 5 (CAP-17) : la fiche de chaque option de la compréhension de la requête, en cinq
+# blocs ; « bench_text » reste vide tant que le projet de banc ne publie rien.
+sheets:
+  query.rewrite:
+    purpose_text: "Remplacer la question, souvent bavarde ou approximative, par une requête qui ressemble au vocabulaire des documents, avant la recherche."
+    when_text: "À utiliser quand les questions des utilisateurs emploient d'autres mots que le corpus. À éviter quand la question est déjà précise : le modèle peut en changer le sens ou y ajouter des termes absents."
+    cost_text: "Un appel de modèle (256 tokens écrits au plus) avant la recherche ; une seule requête cherchée ensuite, donc aucune recherche de plus."
+    literature_text: "L'article de Ma et al. propose d'insérer une réécriture entre la question et le moteur de recherche (réécrire, chercher, lire) et rapporte des gains sur des tâches de questions-réponses. Les hypothèses du cadrage ne couvrent pas cette option : la fiche s'appuie sur cette source primaire seule."
+    bench_text: ""
+    sources:
+      - label_text: "Ma et al., Query Rewriting for Retrieval-Augmented Large Language Models (2023)"
+        url: "https://arxiv.org/abs/2305.14283"
+  query.decompose:
+    purpose_text: "Couper une question à plusieurs sauts en sous-questions simples, cherchées chacune à part, dont les listes sont fusionnées par rangs réciproques."
+    when_text: "À utiliser pour les questions qui demandent deux documents ou plus. À éviter pour une question factuelle simple : les sous-questions éloignent des bons passages et multiplient les recherches."
+    cost_text: "Un appel de modèle, puis une recherche par sous-question (quatre au plus) : le temps de recherche et d'embedding est multiplié d'autant, le prompt final ne change pas de taille."
+    literature_text: "Press et al. mesurent un « écart de compositionnalité » : un modèle répond aux sous-questions mais pas à la question composée, et poser les sous-questions explicitement le réduit. MultiHop-RAG montre que le multi-sauts reste difficile pour les systèmes RAG (hypothèse H10 du cadrage : l'écart vient en partie du raisonnement et de la synthèse, pas seulement de la recherche)."
+    bench_text: ""
+    sources:
+      - label_text: "Press et al., Measuring and Narrowing the Compositionality Gap in Language Models (2022)"
+        url: "https://arxiv.org/abs/2210.03350"
+      - label_text: "Tang et Yang, MultiHop-RAG (2024)"
+        url: "https://arxiv.org/html/2401.15391"
+  query.follow_up:
+    purpose_text: "Rendre une question de suivi (« et pour les stagiaires ? ») compréhensible sans la conversation, en la réécrivant avec les questions précédentes."
+    when_text: "À utiliser dans une conversation, où une recherche sur la question brute trouverait des passages sans rapport. À éviter sans historique : l'option est alors sautée. Ici l'atelier n'a pas de conversation, elle lit les trois dernières questions posées dans la session."
+    cost_text: "Un appel de modèle dont le prompt contient les questions précédentes (les réponses n'y sont pas) ; une seule requête cherchée ensuite."
+    literature_text: "Anantha et al. publient QReCC, un jeu de questions-réponses conversationnelles, et montrent que réécrire la question de suivi avant la recherche améliore la recherche sur ces conversations. Les hypothèses du cadrage ne couvrent pas cette option."
+    bench_text: ""
+    sources:
+      - label_text: "Anantha et al., Open-Domain Question Answering Goes Conversational via Question Rewriting (2020)"
+        url: "https://arxiv.org/abs/2010.04898"
+  query.hyde:
+    purpose_text: "Faire écrire au modèle une réponse plausible, même fausse en détail, puis chercher les passages dont le vecteur est proche de cette réponse plutôt que de la question."
+    when_text: "À utiliser quand une question courte ressemble peu aux passages qui y répondent. À éviter avec un petit modèle qui invente des faits hors sujet, ou quand la recherche par mots-clés suffit : le document inventé entraîne la recherche sur sa propre erreur."
+    cost_text: "Un appel de modèle qui écrit un paragraphe (256 tokens au plus), le plus coûteux des quatre en génération ; une seule requête cherchée, vectorisée comme un passage."
+    literature_text: "Gao et al. proposent HyDE : le modèle écrit un document hypothétique, l'encodeur le ramène aux vrais documents, et l'article rapporte des gains sur un retriever dense non supervisé, sans étiquette de pertinence. Les hypothèses du cadrage ne couvrent pas cette option."
+    bench_text: ""
+    sources:
+      - label_text: "Gao et al., Precise Zero-Shot Dense Retrieval without Relevance Labels (2022)"
+        url: "https://arxiv.org/abs/2212.10496"

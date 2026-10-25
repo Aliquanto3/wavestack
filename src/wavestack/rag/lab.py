@@ -47,6 +47,7 @@ KINDS = (
     "chunking",
     "embedding",
     "vector_store",
+    "query",
     "vector_search",
     "lexical_search",
     "fusion",
@@ -56,7 +57,8 @@ KINDS = (
 )
 # Increment 4: the retrieval segment, between the vector store and the context, in any order
 # (the chain's other stages are fixed); a stage of it is added before the context.
-RETRIEVAL = ("vector_search", "lexical_search", "fusion", "rerank")
+# V1.2 story 5 (CAP-3): the query understanding opens the segment, before the searches.
+RETRIEVAL = ("query", "vector_search", "lexical_search", "fusion", "rerank")
 SEARCHES = ("vector_search", "lexical_search")
 FIXED_HEAD = ("chunking", "embedding", "vector_store")
 FIXED_TAIL = ("context", "generation")
@@ -68,6 +70,9 @@ OPTIONS: dict[str, tuple[str, ...]] = {
     "chunking": ("paragraphs",),
     "embedding": ("declared", "fastembed"),
     "vector_store": ("sqlite_vec", "memory", "faiss", "lancedb"),
+    # V1.2 story 5 (CAP-3): what is searched is no longer the question as typed. Each option
+    # asks the workshop's active model for the queries to search.
+    "query": ("rewrite", "decompose", "follow_up", "hyde"),
     "vector_search": ("cosine",),
     "lexical_search": ("bm25",),
     "fusion": ("rrf",),
@@ -88,6 +93,16 @@ BOUNDS: dict[str, tuple[int, int]] = {
     "candidates": (1, 20),
     "top_k": (1, 20),
 }
+# V1.2 story 5: the query understanding's bounds (characters of a query, queries of a
+# decomposition, previous questions read by `follow_up`, tokens the model may write).
+QUERY_MAX_CHARS = 300
+HYDE_MAX_CHARS = 800
+SUBQUERIES_MAX = 4
+HISTORY_MAX = 3
+QUERY_RESERVE = 256
+# The kinds whose every option has a component sheet (CAP-17) in `rag_lab.yaml`; each story
+# that adds options adds its kind here.
+SHEETED_KINDS = ("query",)
 QUESTION_MAX = 500  # the characters of a question the workshop accepts
 STATUSES = ("ok", "error", "skipped", "cancelled", "not_run")
 EMBED_BATCH = 8  # passages embedded at a time: « Arrêter » and the progress between batches
@@ -158,6 +173,8 @@ STEPS: dict[str, SequenceStep] = {
     "embed_query": SequenceStep(
         "run", "embedding", own=False, reads=("question",), calls=("embedding_model",)
     ),
+    # V1.2 story 5: the queries the searches will run (the question, rewritten or split).
+    "query": SequenceStep("run", "query", reads=("question",), calls=("llm",)),
     "vector_search": SequenceStep("run", "vector_search", reads=("vector_store",)),
     "lexical_search": SequenceStep("run", "lexical_search", reads=("lexical_index", "question")),
     "fusion": SequenceStep("run", "fusion"),
@@ -311,6 +328,24 @@ class TabTexts(_Strict):
     soon_text: str = Field(min_length=1)  # `{name}`: the tab, not yet built
 
 
+class SourceText(_Strict):
+    label_text: str = Field(min_length=1)
+    url: str = Field(pattern=r"^https://")
+
+
+class SheetText(_Strict):
+    """V1.2 story 5 (CAP-17): the component sheet of an option, five blocks: what it is for,
+    when to use or avoid it, what it costs, what the literature says (with its sources, at
+    least one) and what the bench measured (empty while nothing is published)."""
+
+    purpose_text: str = Field(min_length=1)
+    when_text: str = Field(min_length=1)
+    cost_text: str = Field(min_length=1)
+    literature_text: str = Field(min_length=1)
+    bench_text: str = ""
+    sources: list[SourceText] = Field(min_length=1)
+
+
 class QuestionTypeTexts(_Strict):
     factual_text: str = Field(min_length=1)
     multi_hop_text: str = Field(min_length=1)
@@ -430,6 +465,7 @@ class RagLabContent(_Strict):
     remove_text: str = Field(min_length=1)
     reset_chain_text: str = Field(min_length=1)
     unavailable_text: str = Field(min_length=1)
+    queries_text: str = Field(min_length=1)  # V1.2 story 5: « Requêtes produites »
     costs: CostTexts
     tabs: TabTexts
     prepared: PreparedTexts
@@ -444,6 +480,8 @@ class RagLabContent(_Strict):
     groups: dict[str, GroupText]
     phases: dict[str, PhaseText]
     presets: dict[str, PresetText]
+    # V1.2 story 5 (CAP-17): « kind.option » -> its sheet.
+    sheets: dict[str, SheetText] = {}
 
     @model_validator(mode="after")
     def _every_kind_option_and_setting(self) -> RagLabContent:
@@ -472,6 +510,9 @@ class RagLabContent(_Strict):
             raise ValueError(f"options : il faut exactement {', '.join(OPTIONS)}")
         if set(self.params) != set(BOUNDS):
             raise ValueError(f"params : il faut exactement {', '.join(BOUNDS)}")
+        wanted = {f"{k}.{o}" for k in SHEETED_KINDS for o in OPTIONS[k]}
+        if set(self.sheets) != wanted:
+            raise ValueError(f"sheets : il faut exactement {', '.join(sorted(wanted))}")
         return self
 
 
@@ -610,6 +651,8 @@ class Catalog:
                     "label_text": text.label_text,
                     "explain_text": text.explain_text,
                     "movable": kind in RETRIEVAL,
+                    # V1.2 story 5: a stage added opens the retrieval segment, after this one.
+                    "insert_after": "vector_store" if kind == "query" else None,
                     "options": options,
                     # B1 (2026-10-05): the models to download from this stage, the figure the
                     # architecture's tile says (« 2 modèles à télécharger »).
@@ -807,6 +850,9 @@ def check_pipeline(
     rerank = next((s for s in segment if s.kind == "rerank"), None)
     if rerank is not None and position[rerank.id] < position[searches[0].id]:
         return text("rerank_before", stage=names["rerank"]), rerank.id
+    understanding = next((s for s in segment if s.kind == "query"), None)
+    if understanding is not None and position[understanding.id] > position[searches[0].id]:
+        return text("query_before", stage=names["query"]), understanding.id
     for stage in stages:
         label = names[stage.kind]
         state = catalog.options.get((stage.kind, stage.option))
@@ -1452,6 +1498,11 @@ class GenerationAsk:
     step_id: str
     progress: Callable[[int, int], None]
     cancelled: Callable[[], bool]
+    # V1.2 story 5 (CAP-3): a short task (the query understanding) instead of an answer: the
+    # system prompt is this instruction (never the brick's), no reasoning, and at most
+    # `reserve` tokens written.
+    instruction: str | None = None
+    reserve: int | None = None
 
 
 @dataclass
@@ -1514,6 +1565,9 @@ class LabDeps:
     # V1.2 story 3: the work copy of the corpus, read by the chain instead of the shipped
     # corpus when it changes something (`None` or empty: the shipped corpus).
     work_copy: workcopy.WorkCopy | None = None
+    # V1.2 story 5: the questions asked before in the session (oldest first), which the
+    # `follow_up` option reads as the conversation the workshop does not have.
+    history: Sequence[str] = ()
 
 
 @dataclass
@@ -1555,6 +1609,8 @@ class _Result:
     prompt_text: str | None = None
     # V1.2 story 3: what the stage cost, by time; `None`: the stage's duration, in its time.
     costs: list[StageCost] | None = None
+    # V1.2 story 5: the queries the query understanding produced, shown in the focus.
+    queries: list[str] = field(default_factory=list)
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -1581,6 +1637,10 @@ class _Chain:
     embedder: Embedder | None = None
     embedder_label: str = ""
     query_vector: list[float] | None = None
+    # V1.2 story 5: what the searches run; empty: the question as typed. `as_document`: the
+    # text is a hypothetical answer (HyDE), embedded as a passage is.
+    queries: list[str] = field(default_factory=list)
+    as_document: bool = False
     vectors: list[list[float]] | None = None  # the passages', when the store needs them
     key: str = ""  # the cache's folder of this corpus and model
     store: Any = None  # `MemoryStore`, `_SqliteStore`…
@@ -1756,7 +1816,7 @@ class LabRun:
             except StageFailed as failed:
                 status, error_text = "error", failed.render(self._lang)
                 if failed.soft:
-                    result = self._passed_on(chain, error_text)
+                    result = failed.result or self._passed_on(chain, error_text)
                 else:
                     chain.status, stopped = "error", True
                     result = failed.result or result
@@ -1868,6 +1928,7 @@ class LabRun:
                 "duration_ms": duration_ms,
                 "rss_bytes": rss,
                 "memory_text": memory_text,
+                "queries": result.queries,
             },
             step_id,
             component,
@@ -1903,6 +1964,8 @@ class LabRun:
             return self._embedding(chain, stage, progress)
         if stage.kind == "vector_store":
             return self._vector_store(chain, stage)
+        if stage.kind == "query":
+            return self._query(chain, stage, step_id, progress)
         if stage.kind == "vector_search":
             return self._vector_search(chain, stage)
         if stage.kind == "lexical_search":
@@ -2265,16 +2328,121 @@ class LabRun:
             )
         raise StageFailed(Message("rag_lab.vector_store.unknown", option=stage.option))
 
+    def _query(
+        self, chain: _Chain, stage: Stage, step_id: str, progress: Callable[[int, int], None]
+    ) -> _Result:
+        """V1.2 story 5 (CAP-3): the workshop's active model turns the question into the
+        queries the searches run (`rewrite`: one, `decompose`: several, `follow_up`: one that
+        stands alone, `hyde`: a hypothetical answer). Without a model, without a previous
+        question for `follow_up`, or when the model gives nothing usable, the question goes on
+        as typed and the stage says why (skipped, or a warning); a failed call is a soft
+        failure."""
+        option, text = stage.option, self._text
+        history = [h for h in self.deps.history if h.strip()][-HISTORY_MAX:]
+        shown = text("query.input", question=self._quoted(self.question))
+        if option == "follow_up":
+            shown += " " + text(
+                "query.input_history", history=join([self._quoted(h) for h in history], self._lang)
+            )
+        unchanged = _Result(input_text=shown, output_text=text("query.unchanged"))
+        if option == "follow_up" and not history:
+            unchanged.output_text = text("query.no_history")
+            raise StageSkipped(Message("rag_lab.query.no_history_reason"), result=unchanged)
+        if self.deps.generator is None:
+            raise StageSkipped(Message("rag_lab.query.no_model"), result=unchanged)
+        self._check()
+        user = self.question
+        if option == "follow_up":
+            user = text(
+                "query.follow_up_user",
+                history="\n".join(f"- {h}" for h in history),
+                question=self.question,
+            )
+        ask = GenerationAsk(
+            context_text="",
+            question=user,
+            step_id=step_id,
+            progress=progress,
+            cancelled=self.deps.cancelled,
+            instruction=text(f"query.instruction.{option}", max=SUBQUERIES_MAX),
+            reserve=QUERY_RESERVE,
+        )
+        try:
+            got = self.deps.generator(ask)
+        except StageSkipped as skipped:
+            skipped.result = skipped.result or unchanged
+            raise
+        result = _Result(
+            input_text=shown,
+            output_text=text("query.unchanged"),
+            facts=[(text("fact.model"), got.model_label)],
+            prompt_text=got.prompt_text,
+        )
+        result.costs = [
+            StageCost(
+                "query",
+                "query",
+                got.prompt_tokens + got.output_tokens,
+                got.duration_ms,
+                got.cost_usd,
+                got.impact,
+                note_text=None
+                if got.cost_usd is not None or got.impact is not None
+                else Message("rag_lab.costs.generation_unpriced"),
+            )
+        ]
+        if got.status == "cancelled":
+            raise LabCancelled(result)
+        if got.status == "too_long":
+            result.costs = []
+            raise StageFailed(
+                Message("rag_lab.query.too_long", window=self._int(got.window)),
+                soft=True,
+                result=result,
+            )
+        if got.status not in ("completed", "limit"):
+            raise StageFailed(
+                got.error_text or Message("rag_lab.query.model_error"), soft=True, result=result
+            )
+        queries = parse_queries(option, got.answer_text)
+        if not queries:
+            result.warning_text = text("query.empty")
+            return result
+        chain.queries = queries
+        chain.as_document = option == "hyde"
+        result.queries = queries
+        if len(queries) == 1:
+            result.output_text = queries[0]
+        else:
+            result.output_text = "\n".join(f"{n}. {q}" for n, q in enumerate(queries, start=1))
+        result.facts.append((text("fact.queries"), self._int(len(queries))))
+        if option == "hyde":
+            result.facts.append((text("fact.embedded_as"), text("query.as_passage")))
+        return result
+
     def _vector_search(self, chain: _Chain, stage: Stage) -> _Result:
         if chain.store is None or chain.query_vector is None:
             raise StageFailed(Message("rag_lab.vector_search.no_store"))
         k = param(stage, "candidates", self.deps.catalog)
-        hits = chain.store.search(chain.query_vector, k)
+        if chain.queries:  # V1.2 story 5: the queries the query understanding produced
+            vectors = self._embed_queries(chain)
+            found = [chain.store.search(vector, k) for vector in vectors]
+            hits, sources = self._merged(chain, "vector_search", found, k)
+        else:
+            hits, sources = chain.store.search(chain.query_vector, k), {}
         items = []
         for rank, (chunk_id, score) in enumerate(hits, start=1):
             chunk = chain.chunks[chunk_id - 1]
             items.append(
-                Item(chunk_id, chunk.doc_id, chunk.title_text, chunk.text, score, rank=rank)
+                Item(
+                    chunk_id,
+                    chunk.doc_id,
+                    chunk.title_text,
+                    chunk.text,
+                    score,
+                    rank=rank,
+                    sources=sources.get(chunk_id, []),
+                )
             )
         chain.lists.append(items)
         chain.list_kinds.append("vector_search")
@@ -2294,9 +2462,55 @@ class LabRun:
             facts=[
                 (text("fact.requested"), self._int(k)),
                 (text("fact.found"), self._int(len(items))),
+                *self._queries_fact(chain),
             ],
             items=items,
         )
+
+    def _embed_queries(self, chain: _Chain) -> list[list[float]]:
+        """V1.2 story 5: the vector of each query, by the chain's embedding model; a
+        hypothetical answer (HyDE) is embedded as a passage is, not as a question."""
+        embedder = chain.embedder
+        if embedder is None:
+            raise StageFailed(Message("rag_lab.vector_search.no_store"))
+        queries = chain.queries
+        if chain.as_document:
+            vectors = embedder.embed_passages(queries)
+        else:
+            vectors = embedder.embed_queries(queries)
+        if len(vectors) != len(queries) or not all(any(v) for v in vectors):
+            raise StageFailed(Message("rag_lab.embedding.null_vector"))
+        return vectors
+
+    def _merged(
+        self, chain: _Chain, kind: str, found: list[list[tuple[int, float]]], k: int
+    ) -> tuple[list[tuple[int, float]], dict[int, list[dict[str, Any]]]]:
+        """V1.2 story 5: a search run once per query gives one list; with several queries the
+        lists are fused by reciprocal rank (as the Fusion stage does), the first `k` kept, and
+        each excerpt says where each query ranked it. One query: its list as it is."""
+        if len(found) == 1:
+            return found[0], {}
+        label = self.deps.texts.stages[kind].label_text
+        ranks = [{c: (r, sc) for r, (c, sc) in enumerate(hits, start=1)} for hits in found]
+        fused = rrf([[c for c, _ in hits] for hits in found])[:k]
+        sources = {
+            chunk_id: [
+                {
+                    "kind": kind,
+                    "label_text": f"{label} {n}",
+                    "rank": seen.get(chunk_id, (None, None))[0],
+                    "score": seen.get(chunk_id, (None, None))[1],
+                }
+                for n, seen in enumerate(ranks, start=1)
+            ]
+            for chunk_id, _ in fused
+        }
+        return [(c, round(score, 4)) for c, score in fused], sources
+
+    def _queries_fact(self, chain: _Chain) -> list[tuple[str, str]]:
+        if not chain.queries:
+            return []
+        return [(self._text("fact.queries"), self._int(len(chain.queries)))]
 
     def _rerank(self, chain: _Chain, stage: Stage, progress: Callable[[int, int], None]) -> _Result:
         candidates = chain.ranked
@@ -2475,23 +2689,38 @@ class LabRun:
         k = param(stage, "candidates", self.deps.catalog)
         if chain.lexical is None:  # its part not run (never in a chain run): built here
             self._lexical_index(chain)
-        scored = bm25_scores(chain.lexical, self.question, self.deps.lang)
-        found = sorted(
-            ((score, i + 1) for i, score in enumerate(scored) if score > 0),
-            key=lambda x: (-round(x[0], TIE_DIGITS), x[1]),
-        )[:k]
+        queries = chain.queries or [self.question]
+        per_query = []
+        for query in queries:
+            scored = bm25_scores(chain.lexical, query, self.deps.lang)
+            per_query.append(
+                [
+                    (chunk_id, round(score, 3))
+                    for score, chunk_id in sorted(
+                        ((score, i + 1) for i, score in enumerate(scored) if score > 0),
+                        key=lambda x: (-round(x[0], TIE_DIGITS), x[1]),
+                    )[:k]
+                ]
+            )
+        found, sources = self._merged(chain, "lexical_search", per_query, k)
         items = []
-        for rank, (score, chunk_id) in enumerate(found, start=1):
+        for rank, (chunk_id, score) in enumerate(found, start=1):
             chunk = chain.chunks[chunk_id - 1]
             items.append(
                 Item(
-                    chunk_id, chunk.doc_id, chunk.title_text, chunk.text, round(score, 3), rank=rank
+                    chunk_id,
+                    chunk.doc_id,
+                    chunk.title_text,
+                    chunk.text,
+                    score,
+                    rank=rank,
+                    sources=sources.get(chunk_id, []),
                 )
             )
         chain.lists.append(items)
         chain.list_kinds.append("lexical_search")
         text = self._text
-        terms = bm25_terms(self.question, self.deps.lang)
+        terms = [t for query in queries for t in bm25_terms(query, self.deps.lang)]
         words = ", ".join(self._quoted(w) for w in dict.fromkeys(terms))
         return _Result(
             input_text=text(
@@ -2503,6 +2732,7 @@ class LabRun:
             facts=[
                 (text("fact.requested"), self._int(k)),
                 (text("fact.found"), self._int(len(items))),
+                *self._queries_fact(chain),
             ],
             items=items,
         )
@@ -3008,6 +3238,30 @@ STOP_WORDS_BY_LANG: dict[str, frozenset[str]] = {
         "wird wo zu zum zur".split()
     ),
 }
+
+
+_BULLET = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
+_QUOTES = " \t\"'«»“”„`"
+
+
+def _clean_line(line: str) -> str:
+    return _BULLET.sub("", line).strip(_QUOTES)
+
+
+def parse_queries(option: str, answer: str) -> list[str]:
+    """V1.2 story 5 (CAP-3): the queries in a model's answer to the query understanding.
+    `rewrite` and `follow_up`: the first non-empty line (a model that adds a preamble is read
+    by its first line). `decompose`: one query per line, bullets and numbers removed,
+    duplicates dropped, `SUBQUERIES_MAX` kept. `hyde`: the whole answer, one paragraph.
+    Each is cut at its bound; nothing usable gives an empty list."""
+    lines = [c for line in answer.splitlines() if (c := _clean_line(line))]
+    if option == "hyde":
+        whole = " ".join(lines)
+        return [whole[:HYDE_MAX_CHARS].strip()] if whole else []
+    if option == "decompose":
+        unique = dict.fromkeys(line[:QUERY_MAX_CHARS].strip() for line in lines)
+        return list(unique)[:SUBQUERIES_MAX]
+    return [lines[0][:QUERY_MAX_CHARS].strip()] if lines else []
 
 
 def fold(text: str) -> str:

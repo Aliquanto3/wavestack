@@ -498,7 +498,9 @@ function renderPalette() {
       params: Object.fromEntries(choice.params.map((p) => [p.name, p.default])),
     };
     const before = pipeline.stages.findIndex((s) => s.kind === store.catalog.insert_before);
-    pipeline.stages.splice(before < 0 ? pipeline.stages.length : before, 0, stage);
+    // A stage that opens the retrieval segment (the query understanding) goes after its anchor.
+    const anchor = info.insert_after ? pipeline.stages.findIndex((s) => s.kind === info.insert_after) : -1;
+    pipeline.stages.splice(anchor >= 0 ? anchor + 1 : before < 0 ? pipeline.stages.length : before, 0, stage);
     changed();
     document.querySelector("#rag-palette-a select")?.focus();
   });
@@ -983,6 +985,16 @@ function focusIo(rows) {
   return dl;
 }
 
+// V1.2 story 5 (CAP-3): the queries the query understanding produced, one line each.
+function queriesList(queries) {
+  const box = el("div", "rag-focus-queries");
+  box.append(el("p", "rag-focus-queries-title", text("queries_text")));
+  const list = el("ol", "rag-focus-queries-list");
+  for (const query of queries) list.append(el("li", null, query));
+  box.append(list);
+  return box;
+}
+
 // What the step received, produced and cost in the last run (« Dérouler » only, §5, §7).
 function focusRun(box, step) {
   const run = shownRun();
@@ -1039,6 +1051,7 @@ function focusRun(box, step) {
     for (const fact of ended.facts) facts.append(el("li", null, labelled(fact.label_text, fact.value_text)));
     box.append(facts);
   }
+  if (ended.queries?.length) box.append(queriesList(ended.queries));
   if (step.key !== "embed_query" && ended.items?.length) box.append(itemsTable(ended.items));
   if (ownFigures(step) && ["ok", "error", "cancelled"].includes(stage.status)) {
     const foot = el("p", "rag-stage-figures");

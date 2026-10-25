@@ -40,6 +40,7 @@ N_CTX = 8192
 READ_DELAY_S = 0.02  # story 26: the prompt's read, before the first chunk
 # Story 32: streamed one character per chunk (the adapter counts a token per chunk), without
 # delay, so that it passes the reasoning budget (768 by default) quickly.
+DECOMPOSE_MARK = "sous-questions simples"  # the workshop's decomposition instruction (fr)
 LONG_REASONING = "Je réfléchis longuement à la question. " * 25
 
 
@@ -77,6 +78,11 @@ def plan(prompt: str) -> str:
         # with the closure, so the relaunch gets the answer below.
         return LONG_REASONING
     thinking = "Je réfléchis.\n</think>\n\n" if prompt.endswith("<think>\n") else ""
+    if DECOMPOSE_MARK in prompt:
+        # V1.2 story 5: the query understanding's decomposition, a question cut in two.
+        words = message.rstrip(" ?").split()
+        middle = max(1, len(words) // 2)
+        return f"{thinking}{' '.join(words[:middle])} ?\n{' '.join(words[middle:])} ?"
     if "<tool_response>" in turn:
         result = turn.rsplit("<tool_response>", 1)[1].split("</tool_response>")[0].strip()
         return f"{thinking}D'après le résultat de l'outil : {result}"

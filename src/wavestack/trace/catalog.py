@@ -1559,6 +1559,8 @@ class RagLabStageEndedPayload(BaseModel):
     part: str | None = None
     # V1.2 story 3 (CAP-8): what the stage cost, by time (build, update, query).
     costs: list[RagLabCost] = []
+    # V1.2 story 5 (CAP-3): the queries the query understanding produced (empty elsewhere).
+    queries: list[str] = []
 
 
 class RagLabRunEndedPayload(BaseModel):
