@@ -321,3 +321,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:13 · 12.5 · décision · à revoir : questions annulées gardées dans l'historique du suivi ; échec de sauvegarde de la copie = session.rag_lab.interrupted · d767ef0
 - 2026-10-25 08:13 · 12.5 · PR · #105 ouverte · d767ef0
 - 2026-10-25 08:21 · 14.4 · CI · rouge (Windows, Ubuntu) : harness_map en de ne citait pas le scénario Compression ; règle .compact-choice .pane-text-action hors de pages.css ; corrigé (classe compact-choice-button), tests ciblés verts · a29fecf
+- 2026-10-25 08:23 · 12.6 · dev · fini ; 14 critères, build_rag_contexts.py déterministe, 485 tests ciblés verts, E2E rag rag_rerank rag_lab rag_lab_chunking 160/160 ; 12.5 revue fusionnée · 88b9a7d
+- 2026-10-25 08:23 · 12.6 · décision · à revoir : coupe sémantique au 80e centile (gap >= seuil), reconstruction fusionnée avec l'existant, coût du contextual lu dans l'en-tête, outil sans --model, sources des fiches à vérifier · 88b9a7d
+- 2026-10-25 08:23 · 12.6 · second-avis · lancé · 88b9a7d
+- 2026-10-25 08:23 · 12.7 · dev · lancé (phase spec, empilé sur 12.6, worktree ../wavestack-v12-s7) · 88b9a7d
