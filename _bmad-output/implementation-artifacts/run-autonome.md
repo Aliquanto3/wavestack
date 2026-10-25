@@ -71,7 +71,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - Une story dont le dev a commité sans rapport : relancer la chaîne à partir de `second-avis` sur son dernier commit.
 - Fusions par `scripts/file_prs.py` du kit (vérifie `MERGED`), puis journal. Sur `integration/v1-2-atelier` : `--methode merge` (les branches V1.2 sont empilées ; un squash recrée des conflits dans la story suivante).
 - Fin de lot : PR de version (SemVer mineure), tag annoté, release GitHub ; V1.3 dès la fusion de 13.6, V1.4 dès celle de 14.4.
-- E2E : `TEMP` et `TMP` en chemin long (`C:SERSTILISATEURAPPDATAocaltemp`) ; un `temp` en nom court 8.3 peut faire �chouer `rag` (� index non construit �) et tous les sc�narios en aval (constat de 12.7).
+- E2E : `TEMP` et `TMP` en chemin long (`C:\Users\Utilisateur\AppData\Local\Temp`) ; un `TEMP` en nom court 8.3 peut faire échouer `rag` (« index non construit ») et tous les scénarios en aval (constat de 12.7).
 - Fin de run : `rapport-nuit-2026-10-25.md` (fusionné, bloqué, reporté, liste « à revoir », tests manuels du matin), mémoire du projet, suppression des worktrees.
 
 ## Après le run
