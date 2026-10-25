@@ -773,3 +773,9 @@ d'autres (story 21) :
   autre question : passages perdus et ajoutés marqués, avertissement), les coûts B/U/Q des deux
   colonnes, l'épingle conservée après rechargement (`/rag#compare` ouvre l'onglet) ; capture
   `62-atelier-rag-comparer.jpg`.
+
+- `rag_lab_diagnosis`, V1.2 story 9 (CAP-10), après `rag` et `rag_rerank` : sur une question
+  préparée, le rang du passage attendu à chaque étape et l'étape fautive désignée (sans moyenne) ;
+  une question libre et une question sans passage le disent ; les trois cas « Où naît l'erreur »
+  (`not_indexed`, `ranked_low`, `cut_by_budget`) se rejouent en un clic, chacun avec son étape
+  fautive, sans aucun événement de l'atelier ; capture `63-atelier-rag-diagnostic.jpg`.

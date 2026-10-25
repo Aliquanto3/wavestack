@@ -1,0 +1,141 @@
+# Story 9 (CAP-10), English overlay: same cases, same references, translated texts.
+texts:
+  title_text: "Where is the right excerpt lost?"
+  hint_text: >-
+    For a prepared question, the rank of the expected passage at each stage, and the stage where
+    it disappears or drops. No answer of the model is read: only the ranks count. One question,
+    one run: the mean over several questions is the Evaluate tab's.
+  free_question_text: "Free question: pick a prepared question to know which passage was expected."
+  no_expected_text: "This question has no passage to find: there is nothing to diagnose."
+  wait_text: "Run the chain on this question to see the rank of the expected passage at each stage."
+  passage_text: "Expected passage in {doc}"
+  rank_text: "rank {rank} of {of}"
+  absent_text: "absent"
+  whole_text: "whole in a chunk"
+  cut_chunk_text: "cut between two chunks"
+  fault_text: "Stage at fault: {stage}"
+  no_fault_text: "No stage at fault: the passage reaches the context."
+  rescued_text: "Rescued afterwards by: {stage}"
+  middle_text: "In the middle of the context: models read the first and last excerpts better."
+  budget_text: "Context budget: {budget} passages. Drop tolerated: {tolerance} ranks."
+  stages:
+    chunking_text: "Chunking"
+    vector_search_text: "Vector search"
+    lexical_search_text: "BM25 search"
+    fusion_text: "Fusion"
+    rerank_text: "Reranking"
+    context_text: "Context"
+  reasons:
+    not_indexed_text: "The passage is in no chunk: it is not in the index."
+    missing_text: "The passage is no longer in this stage's list."
+    ranked_low_text: "The passage is ranked beyond the context budget."
+    fell_text: "The passage drops by more ranks than the tolerated drop."
+    cut_text: "The passage is found, but the context budget cuts it."
+  cases_title_text: "Where the error is born"
+  cases_hint_text: "Three recorded failures, each born at a different stage. One click replays them: no model, no index, no vectors computed."
+  replay_badge_text: "Recorded run, no call to the model"
+  replay_failed_text: "Case not found."
+  run_unavailable_text: "The diagnosis cannot be reached."
+cases:
+  - id: not_indexed
+    question_id: q_cross_lyon
+    chunk_max_chars: 200
+    top_k: 3
+    expected_fault: chunking:not_indexed
+    title_text: "The passage is not in the index"
+    explain_text: >-
+      The Lyon continuity plan states its rule in one long sentence. With chunks of at most 200 characters, the chunking cuts it in two: no chunk holds the whole sentence. Nothing further down the chain can find it again, whatever the reranking.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 1}
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 1}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: context
+        items:
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+  - id: ranked_low
+    question_id: q_fact_sauvegarde
+    chunk_max_chars: 700
+    top_k: 3
+    expected_fault: vector_search:ranked_low
+    title_text: "Ranked low by the search, rescued by the reranking"
+    explain_text: >-
+      The vector search puts the passage on the 3-2-1 rule in sixth place, outside the budget of 3 passages. The reranking lifts it to the top: without it, the context would have lost it. The error is born at the search; another stage repairs it.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: ia_generative, other: 0}
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: ia_generative, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: context
+        items:
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+  - id: cut_by_budget
+    question_id: q_fact_badge
+    chunk_max_chars: 700
+    top_k: 3
+    expected_fault: context:cut
+    title_text: "In the list, but cut by the budget"
+    explain_text: >-
+      The search ranks it third and the reranking leaves it fourth: the gap is small, neither stage is at fault. But the context keeps only 3 passages: the fourth is cut before the prompt, and the model will never know.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: acces_physique, passage: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: acces_physique, passage: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+      - kind: context
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}

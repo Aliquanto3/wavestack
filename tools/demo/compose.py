@@ -297,7 +297,7 @@ def build(frames: Path) -> Film:
 
     end = [
         ("uv run wavestack", "consolab.ttf", 64, ACCENT),
-        ("7 modules de formation · 6 h · 3 ateliers", "seguisb.ttf", 36, "white"),
+        ("8 modules de formation · 7 h · 3 ateliers", "seguisb.ttf", 36, "white"),
         (
             "Raisonnement · mémoire · outils · RAG · MCP · skills · hooks · sous-agent",
             "segoeui.ttf",

@@ -10,7 +10,7 @@ context:
   - '{project-root}/_bmad-output/planning-artifacts/architecture/architecture-agentic-harness-training-demo-2026-09-23/ARCHITECTURE-SPINE.md'
 ---
 
-> Brouillon non déclenché. Dépend de la story 1.
+> Brouillon non déclenché. Dépend de la story 1. Partiellement absorbée par la V1.2, story 9 (CAP-10, `spec-wavestack-v1-2-atelier-recherche-documentaire/stories/9-diagnostic-du-bon-extrait.md`) : rang du bon extrait par étape de l'Atelier RAG, étape fautive et trois cas rejoués. Reste à faire : le calcul avant la génération pour un tour du harnais, l'affichage dans Orchestration et Contexte LLM, l'événement au catalogue, les tokens et la position dans le contexte.
 
 ## Intent
 
