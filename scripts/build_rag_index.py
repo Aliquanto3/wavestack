@@ -29,18 +29,21 @@ _install_guard(_config.load_config().allowed_hosts if "--download" in sys.argv[1
 from pydantic import ValidationError  # noqa: E402
 
 from wavestack import config  # noqa: E402
+from wavestack.greenops import LocalMeter, Probe, StageCost  # noqa: E402
 from wavestack.messages import msg, render  # noqa: E402
 from wavestack.models import download  # noqa: E402
 from wavestack.models.embedding import LlamaCppEmbedder, model_path  # noqa: E402
 from wavestack.models.engine import CancelToken  # noqa: E402
-from wavestack.rag.corpus import load_rag_content  # noqa: E402
+from wavestack.rag.corpus import chunk_corpus, load_rag_content  # noqa: E402
 from wavestack.rag.index import (  # noqa: E402
     IndexInUse,
     VecUnavailable,
     build_index,
     exception_text,
     file_sha256,
+    passage_text,
 )
+from wavestack.rag.lab import brick_costs_path, write_build_cost  # noqa: E402
 
 TERMINAL = "en"  # the terminal's language (languages 5/5), never `settings.json`'s
 
@@ -110,6 +113,9 @@ def main(argv: list[str] | None = None, embedder_factory=LlamaCppEmbedder) -> in
     except (ValueError, OSError) as exc:
         return _fail(_en("model_unusable", cause=exception_text(exc, TERMINAL)))
     target = cfg.rag_index_path(args.lang)
+    # V1.2 story 3 (CAP-8): the build's cost, kept next to the index (`rag_index.cost.json`),
+    # which the workshop shows, marked « mesuré à la construction », for this precomputed index.
+    probe = Probe(lambda: LocalMeter(cfg.local_gco2e_per_kwh).start(machine=False))
     try:
         meta = build_index(
             content,
@@ -128,6 +134,11 @@ def main(argv: list[str] | None = None, embedder_factory=LlamaCppEmbedder) -> in
         return _fail("\n" + _en("not_built", cause=exception_text(exc, TERMINAL)), 1)
     finally:
         embedder.close()
+    duration_ms, impact = probe.stop()
+    chunks = chunk_corpus(content, cfg.rag_chunk_max_chars, args.lang)
+    tokens = sum(_config.estimate_tokens(passage_text(c), cfg.chars_per_token) for c in chunks)
+    cost = StageCost("build", "embedding", tokens, duration_ms, 0.0, impact)
+    write_build_cost(brick_costs_path(target), "embedding", cost)
     lines = [
         _en("written", path=target),
         _en("documents", count=len(content.documents)),

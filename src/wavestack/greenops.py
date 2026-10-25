@@ -20,6 +20,7 @@ import importlib.util
 import logging
 import math
 import threading
+import time
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -344,3 +345,143 @@ class LocalMeter:
                 Message("greenops.local.not_started", kind=type(exc).__name__),
             )
         return Measure(tracker, machine, self.gco2e_per_kwh)
+
+
+# ---------- V1.2 story 3 (CAP-8): the three times of a RAG architecture ----------
+
+PHASES = ("build", "update", "query")  # construction, update of a document, one question
+
+
+@dataclass(frozen=True)
+class StageCost:
+    """What one part of a RAG run cost, in one of the three times (`phase`): tokens, duration,
+    dollars (0 for a local model: nothing is billed) and footprint (`impact`, `None` when not
+    measured). `measured_at_build`: the figures were measured when the content was built and
+    read back from the record (a cache, a shipped index), not measured by this run.
+    `note_text`: a `Message` saying what is missing or approximate."""
+
+    phase: str
+    kind: str
+    tokens: int | None = None
+    duration_ms: int | None = None
+    usd: float | None = None
+    impact: Impact | None = None
+    measured_at_build: bool = False
+    note_text: Any = None
+
+    def payload(self, lang: str = "fr") -> dict[str, Any]:
+        """`RagLabCost`'s fields; the footprint's note is the method's, said in `lang`."""
+        out: dict[str, Any] = {
+            "phase": self.phase,
+            "kind": self.kind,
+            "tokens": self.tokens,
+            "duration_ms": self.duration_ms,
+            "usd": self.usd,
+            "measured_at_build": self.measured_at_build,
+            "note_text": render(self.note_text, lang) if self.note_text else None,
+        }
+        if self.impact is not None and self.impact.estimated:
+            out |= {
+                "energy_wh_min": self.impact.energy_wh_min,
+                "energy_wh_max": self.impact.energy_wh_max,
+                "gco2e_min": self.impact.gco2e_min,
+                "gco2e_max": self.impact.gco2e_max,
+                "impact_method": self.impact.method,
+            }
+        return out
+
+    def record(self) -> dict[str, Any]:
+        """What is kept next to a built content (JSON), to be shown again without being
+        measured again."""
+        out = self.payload("fr")
+        for key in ("phase", "kind", "measured_at_build", "note_text"):
+            out.pop(key)
+        return out
+
+    @classmethod
+    def from_record(cls, phase: str, kind: str, record: Any) -> StageCost | None:
+        """A cost read back from a record, marked `measured_at_build`; `None` when the record
+        is not what `record()` wrote (an older or damaged file)."""
+        if not isinstance(record, dict):
+            return None
+
+        def number(key: str) -> float | None:
+            value = record.get(key)
+            ok = isinstance(value, int | float) and not isinstance(value, bool)
+            return float(value) if ok and math.isfinite(value) else None
+
+        tokens, duration = number("tokens"), number("duration_ms")
+        impact = None
+        if number("energy_wh_min") is not None and number("gco2e_min") is not None:
+            impact = Impact(
+                str(record.get("impact_method") or CODECARBON),
+                None,
+                number("energy_wh_min"),
+                number("energy_wh_max") or number("energy_wh_min"),
+                number("gco2e_min"),
+                number("gco2e_max") or number("gco2e_min"),
+            )
+        return cls(
+            phase,
+            kind,
+            None if tokens is None else int(tokens),
+            None if duration is None else int(duration),
+            number("usd"),
+            impact,
+            measured_at_build=True,
+        )
+
+
+def summarize(costs: list[StageCost], phase: str, lang: str = "fr") -> dict[str, Any]:
+    """The sum of a phase's costs (`RagLabCostSummary`): each figure is the sum of those that
+    are known, `None` when none is. `partial`: a part has no footprint or no figures, so the
+    sums are lower bounds; `measured_at_build`: a part comes from the build's record."""
+    mine = [c for c in costs if c.phase == phase]
+
+    def total(values: list[float | None]) -> float | None:
+        known = [v for v in values if v is not None]
+        return sum(known) if known else None
+
+    impacts = [c.impact for c in mine if c.impact is not None and c.impact.estimated]
+    tokens = total([c.tokens for c in mine])
+    duration = total([c.duration_ms for c in mine])
+    notes = [render(c.note_text, lang) for c in mine if c.note_text]
+    return {
+        "phase": phase,
+        "parts": len(mine),
+        "tokens": None if tokens is None else int(tokens),
+        "duration_ms": None if duration is None else int(duration),
+        "usd": total([c.usd for c in mine]),
+        "energy_wh_min": total([i.energy_wh_min for i in impacts]),
+        "energy_wh_max": total([i.energy_wh_max for i in impacts]),
+        "gco2e_min": total([i.gco2e_min for i in impacts]),
+        "gco2e_max": total([i.gco2e_max for i in impacts]),
+        "partial": any(c.impact is None or not c.impact.estimated for c in mine),
+        "measured_at_build": any(c.measured_at_build for c in mine),
+        "note_text": " ".join(dict.fromkeys(notes)) or None,
+    }
+
+
+class Probe:
+    """A stopwatch and, when a `meter` is given, a local tracker around one part of a run
+    (embedding, reranking, indexing). `stop()` gives the duration and the footprint
+    (`None` without a meter); it never raises."""
+
+    def __init__(self, meter: Callable[[], Measure] | None = None) -> None:
+        self._measure: Measure | None = None
+        if meter is not None:
+            try:
+                self._measure = meter()
+            except Exception as exc:  # noqa: BLE001 - an estimate never stops a run
+                logger.warning("Mesure de l'empreinte non démarrée : %s", exc)
+        self._started = time.monotonic()
+
+    def stop(self) -> tuple[int, Impact | None]:
+        duration = round((time.monotonic() - self._started) * 1000)
+        if self._measure is None:
+            return duration, None
+        try:
+            return duration, self._measure.stop()
+        except Exception as exc:  # noqa: BLE001 - an estimate never stops a run
+            logger.warning("Mesure de l'empreinte en échec : %s", exc)
+            return duration, None

@@ -150,6 +150,42 @@
         </div>
         <article class="rag-focus" id="rag-focus"></article>
       </div>
+      <!-- V1.2 story 3 (CAP-8): the costs in three times, then the work copy's buttons. -->
+      <section class="rag-costs" id="rag-costs" aria-labelledby="rag-costs-title">
+        <h3 class="rag-costs-title" id="rag-costs-title" data-text="costs.title_text">Coûts en trois temps</h3>
+        <p class="rag-note" data-text="costs.hint_text"></p>
+        <div class="rag-cost-cards" id="rag-cost-cards"></div>
+        <p class="rag-note rag-cost-perimeters" id="rag-cost-perimeters" data-text="costs.perimeters_text"></p>
+        <div class="rag-copy" id="rag-copy">
+          <h4 class="rag-cost-title" data-text="costs.copy_title_text"></h4>
+          <p class="rag-note" id="rag-copy-info"></p>
+          <div class="rag-copy-buttons">
+            <button type="button" class="rag-button-secondary" data-op="add" data-text="costs.add_doc_text">Ajouter un document</button>
+            <button type="button" class="rag-button-secondary" data-op="modify" data-text="costs.modify_doc_text">Modifier un document</button>
+            <button type="button" class="rag-button-secondary" data-op="delete" data-text="costs.delete_doc_text">Supprimer un document</button>
+            <button type="button" class="rag-button-secondary" id="rag-copy-reset" data-text="costs.reset_copy_text" hidden>Revenir à l'état livré</button>
+          </div>
+          <div class="rag-copy-form" id="rag-copy-form" hidden>
+            <strong id="rag-copy-form-title"></strong>
+            <label id="rag-copy-pick"><span data-text="costs.doc_label_text"></span>
+              <select id="rag-copy-doc" autocomplete="off"></select></label>
+            <div id="rag-copy-new" hidden>
+              <label><span data-text="costs.id_label_text"></span>
+                <input type="text" id="rag-copy-id" maxlength="64" autocomplete="off" /></label>
+              <label><span data-text="costs.doc_title_label_text"></span>
+                <input type="text" id="rag-copy-title" maxlength="200" autocomplete="off" /></label>
+            </div>
+            <label id="rag-copy-body-box"><span data-text="costs.doc_body_label_text"></span>
+              <textarea id="rag-copy-body" rows="4" maxlength="20000" autocomplete="off"></textarea></label>
+            <p class="rag-note" id="rag-copy-hint" data-text="costs.modify_hint_text" hidden></p>
+            <p class="rag-copy-error" id="rag-copy-error" role="alert"></p>
+            <div class="rag-copy-buttons">
+              <button type="button" class="rag-button-primary" id="rag-copy-apply" data-text="costs.apply_text">Mesurer</button>
+              <button type="button" class="rag-button-secondary" id="rag-copy-cancel" data-text="costs.cancel_text">Annuler</button>
+            </div>
+          </div>
+        </div>
+      </section>
       <details class="rag-details" id="rag-details">
         <summary data-text="details_text">Toutes les étapes en détail</summary>
         <p class="rag-note" id="rag-results-empty" data-text="results_empty_text"></p>
