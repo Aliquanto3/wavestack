@@ -126,7 +126,14 @@ def test_erase_chunks_and_bm25_are_erased_the_rest_stays(lang):
 @pytest.mark.parametrize("lang", LANGS)
 def test_rebuild_one_architecture_touches_only_its_places(lang):
     body = ask(make_session(lang), sentinel_active=True, step="rebuild", rebuilt=["graphrag"])
-    assert statuses(body) == {**ERASED, "graph_communities": "erased", "graph_entities": "erased"}
+    # constructed places are never « erased » (measured): their rebuilt text is written by hand
+    assert statuses(body) == {
+        **ERASED,
+        "graph_communities": "erased_illustrative",
+        "graph_entities": "erased_illustrative",
+    }
+    rebuilt = next(p for p in body["places"] if p["id"] == "graph_communities")
+    assert rebuilt["status_text"] != rebuilt_measured_text(lang) and rebuilt["status_note_text"]
     assert body["costs"] and body["costs"][0]["architecture"] == "graphrag"
     assert not re.search(r"\d+\s*(ms|s|tokens?|\$|€)", body["costs"][0]["text"])
 
@@ -145,13 +152,33 @@ def test_a_cache_turns_erased_by_its_own_architecture_only():
     found = statuses(
         ask(make_session(), sentinel_active=True, step="rebuild", rebuilt=["cag", "pageindex"])
     )
-    assert found["cag_cache"] == "erased" and found["pageindex_tree"] == "erased"
+    assert found["cag_cache"] == "erased_illustrative"
+    assert found["pageindex_tree"] == "erased_illustrative"
     assert found["long_context_prefix"] == "to_reload"
 
 
+def rebuilt_measured_text(lang: str) -> str:
+    return erasure.load_erasure(lang).texts["status"]["erased"]
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_the_source_says_whether_the_code_is_still_read_in_it(lang):
+    texts = erasure.load_erasure(lang).texts
+    for step, key, hits in (("start", "source_found_text", 1), ("erase", "source_gone_text", 0)):
+        body = ask(make_session(lang), sentinel_active=True, step=step)
+        source = next(p for p in body["places"] if p["id"] == "source")
+        assert source["status"] == "no_copy" and source["hits"] == hits
+        assert source["status_text"] == f"{texts['status']['no_copy']} · {texts[key]}"
+
+
+def test_rebuild_without_an_architecture_is_refused():
+    with pytest.raises(ValidationError):
+        erasure.ErasureRequest(sentinel_active=True, step="rebuild")
+
+
 def test_the_guard_without_a_sentinel_gives_the_message_and_no_status():
-    for step in ("erase", "rebuild"):
-        body = ask(make_session(), sentinel_active=False, step=step)
+    for step, rebuilt in (("erase", []), ("rebuild", ["graphrag"])):
+        body = ask(make_session(), sentinel_active=False, step=step, rebuilt=rebuilt)
         assert body["guard_text"] == "Rien à effacer : construisez d'abord les copies."
         assert body["step"] == "idle" and body["results"] is None
         assert all(p["status"] is None for p in body["places"])
@@ -313,6 +340,9 @@ def test_invalid_data_is_refused_at_the_load():
         lambda d: place(d, "chunks").update(text="x"),
         lambda d: d.update(unknown=1),
         lambda d: d["architectures"].pop(),
+        lambda d: d["texts"].pop("guard_text"),
+        lambda d: d["texts"]["status"].pop("erased_illustrative"),
+        lambda d: d["texts"]["provenance"].pop("constructed_text"),
     ]
     for case in cases:
         with pytest.raises(ValidationError):
@@ -418,7 +448,11 @@ def test_the_card_is_played_without_a_model_an_index_or_a_key():
         response = client.post(
             "/api/rag_lab/erasure",
             headers=HEADERS,
-            json={"sentinel_active": True, "step": step},
+            json={
+                "sentinel_active": True,
+                "step": step,
+                "rebuilt": ["graphrag"] if step == "rebuild" else [],
+            },
         )
         assert response.status_code == 200
 

@@ -177,6 +177,9 @@ def test_invalid_data_is_refused_at_the_load():
         access.AccessContent.model_validate(bad)
     with pytest.raises(ValidationError):
         access.AccessContent.model_validate({**data, "unknown": 1})
+    notes = {k: v for k, v in data["texts"]["notes"].items() if k != "leak_text"}
+    with pytest.raises(ValidationError, match="notes.leak_text"):
+        access.AccessContent.model_validate({**data, "texts": {**data["texts"], "notes": notes}})
 
 
 def test_an_unknown_question_is_refused_at_the_load(tmp_path, monkeypatch):

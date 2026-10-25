@@ -13,7 +13,7 @@ question_id: q_global_rh
 rewrite:
   provenance:
     kind: constructed
-    to_record_with: "le modèle actif, en direct (story ultérieure)"
+    to_record_with: "le modèle actif, en direct, dans une story ultérieure"
   doc_id: entretiens_annuels
   text: "Réécriture de la requête pour la recherche : « processus RH entre Exemplia et ses collaborateurs : {title}, grille des rémunérations, procédure disciplinaire ». Le passage RH a été lu pour écrire cette phrase, avant d'être retiré."
 

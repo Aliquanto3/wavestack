@@ -123,6 +123,7 @@ function tableNode(places) {
       word.dataset.status = place.status;
       status.append(word, el("span", "rag-note", ` — ${place.hits_text}`));
       if (place.shared_text) status.append(" ", el("span", "rag-note", `(${place.shared_text})`));
+      if (place.status_note_text) status.append(el("span", "rag-era-status-note", place.status_note_text));
       tr.append(status);
       body.append(tr);
     });
