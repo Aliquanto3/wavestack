@@ -1514,6 +1514,7 @@ rag_lab:
     measure: "Mesure de la reconstruction : {tokens} tokens, {calls} appels au modèle, {duration}."
     run_label: "Reconstruction du graphe"
     rebuild_model_error: "Le modèle a échoué pendant la reconstruction du graphe : rien n'est écrit, le graphe en place est gardé ; le journal des événements dit pourquoi."
+    update_model_error: "Le modèle a échoué pendant la mise à jour du graphe : rien n'est écrit, la copie de travail et le graphe en place sont gardés ; le journal des événements dit pourquoi."
     rebuild_nothing: "Aucune réponse du modèle n'a suivi le protocole (ni ligne ENTITY: ou RELATION:, ni résumé) : rien n'est écrit, le graphe en place est gardé."
     by_rule: "par la règle, sans modèle"
     by_model: "par le modèle (graphe reconstruit)"

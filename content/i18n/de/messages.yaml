@@ -1498,6 +1498,7 @@ rag_lab:
     measure: "Messung des Neuaufbaus: {tokens} Tokens, {calls} Modellaufrufe, {duration}."
     run_label: "Neuaufbau des Graphen"
     rebuild_model_error: "Das Modell ist beim Neuaufbau des Graphen gescheitert: Nichts wird geschrieben, der vorhandene Graph bleibt; das Ereignisprotokoll sagt, warum."
+    update_model_error: "Das Modell ist beim Aktualisieren des Graphen gescheitert: Nichts wird geschrieben, die Arbeitskopie und der vorhandene Graph bleiben; das Ereignisprotokoll sagt, warum."
     rebuild_nothing: "Keine Antwort des Modells hat das Protokoll befolgt (keine Zeile ENTITY: oder RELATION:, keine Zusammenfassung): Nichts wird geschrieben, der vorhandene Graph bleibt."
     by_rule: "per Regel, ohne Modell"
     by_model: "vom Modell (neu aufgebauter Graph)"
