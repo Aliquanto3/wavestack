@@ -327,3 +327,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:23 · 12.7 · dev · lancé (phase spec, empilé sur 12.6, worktree ../wavestack-v12-s7) · 88b9a7d
 - 2026-10-25 08:28 · 12.7 · dev · spec prête (15 critères, 8 points ouverts : options budget / edges / compressed, budget 450 tokens estimés, compresseur emprunté à la session…) · 9feaba7
 - 2026-10-25 08:28 · 12.7 · review · relecture de la spec lancée · 9feaba7
+- 2026-10-25 08:31 · 12.6 · second-avis · 0 high, 2 medium (en-tête des contextes reconstruits limité au dernier run, top_k parents distincts non garanti), 4 low ; clé de cache paragraphs inchangée vérifiée · 88b9a7d
+- 2026-10-25 08:31 · 12.6 · décision · à revoir : build_rag_contexts.py sans --model (pas de moteur testable sans modèle), spec mise en accord · —
+- 2026-10-25 08:31 · 12.6 · review · lancé · 88b9a7d
