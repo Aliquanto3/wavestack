@@ -4,19 +4,22 @@
 
 Les scripts de ce dossier régénèrent `docs/assets/wavestack-demo.gif` et
 `docs/assets/wavestack-demo.mp4` à partir de la vraie interface : le scénario « LLM nu » puis
-« Outils natifs » sur « Quelle heure est-il ? », puis les trois étapes de l'Atelier LLM (INPUT,
-TRANSFORMATION, OUTPUT) sur « La capitale de la France est », jusqu'au token tiré, la visite
-guidée de l'Atelier RAG (« Dérouler », sans exécution : aucun modèle du RAG n'est nécessaire) et
-la poignée de main de l'Atelier MCP avec le glossaire local (sans réseau), puis la page
-Sécurité (un contrôle et une limite dépliés). À refaire quand
-l'interface change.
+« Outils natifs » sur « Quelle heure est-il ? » (avec le bilan de la séance et la jauge du cache
+de la barre du bas), la carte du harnais de cette conversation, puis les trois étapes de
+l'Atelier LLM (INPUT, TRANSFORMATION, OUTPUT) sur « La capitale de la France est », jusqu'au
+token tiré, la visite guidée de l'Atelier recherche documentaire (« Dérouler », sans exécution :
+aucun modèle du RAG n'est nécessaire) puis son onglet Fiches (conformité d'une architecture), la
+poignée de main de l'Atelier MCP avec le glossaire local (sans réseau), et la page Sécurité (un
+contrôle et une limite dépliés). À refaire quand l'interface change.
 
 ## Prérequis
 
 - Windows, pour les polices Segoe UI et Segoe UI Emoji des légendes.
 - `ffmpeg` dans le `PATH` (par exemple `winget install Gyan.FFmpeg`, sans droits
-  administrateur).
-- Google Chrome installé (Playwright le pilote par le canal `chrome`).
+  administrateur). À défaut, `compose.py` prend le binaire du paquet `imageio-ffmpeg` : ajoutez
+  `--with imageio-ffmpeg` à sa commande `uv run`, rien à installer sur le système.
+- Google Chrome installé (Playwright le pilote par le canal `chrome`), ou Microsoft Edge avec
+  `--channel msedge` pour `drive.py`.
 - Le modèle local Qwen3.5-2B (voir [l'installation](../../docs/installation.md#le-modèle-local)).
 
 ## Régénérer
@@ -41,18 +44,21 @@ l'interface change.
 
    ```powershell
    uv run --with playwright==1.56.0 python tools/demo/drive.py $env:TEMP\wavestack-frames
-   uv run --with pillow python tools/demo/compose.py $env:TEMP\wavestack-frames
+   uv run --with pillow --with imageio-ffmpeg python tools/demo/compose.py $env:TEMP\wavestack-frames
    ```
+
+   Sans Chrome, ajoutez `--channel msedge` à la commande de `drive.py`.
 
 4. Regardez le résultat avant de le committer. Le modèle ne répond pas deux fois pareil : si une
    prise est ratée (réponse du LLM nu qui ne montre pas qu'il ignore l'heure, token tiré peu
-   parlant), refaites-la seule, `main`, `llm`, `rag`, `mcp` ou `security`, en ajoutant son nom à la commande
-   de `drive.py`, puis relancez `compose.py`. Les cadres de mise en évidence nommés (réponse du
+   parlant), refaites-la seule, `main`, `map`, `llm`, `rag`, `mcp` ou `security`, en ajoutant son nom à la commande
+   de `drive.py` (`map` lit la conversation laissée par `main` : rejouez `main` d'abord si le
+   serveur a redémarré), puis relancez `compose.py`. Les cadres de mise en évidence nommés (réponse du
    modèle, sélecteur de scénario, éléments des ateliers) sont mesurés sur chaque capture ;
    ceux de l'écran principal après le tour avec outils sont placés en pixels, et les nombres de
    leurs étiquettes (17 et 271 tokens de contexte) sont écrits dans `compose.py` (fonction
    `build`) : vérifiez-les si la mise en page, le modèle ou les descriptions d'outils ont changé.
 
-Le GIF pèse environ 2,4 Mo et dure 61 s. La dernière capture de l'écran principal (dossier
+Le GIF pèse environ 2,7 Mo et dure 72 s (la vidéo MP4, 2,1 Mo). La dernière capture de l'écran principal (dossier
 `main`, phase `tools_final`) sert aussi d'illustration au guide : `docs/assets/atelier.jpg`,
 en 1280 × 720.
