@@ -6437,6 +6437,8 @@ class AppSession:
                 return not compacted or payload["used"] + bound <= payload["usable"]
 
             plans = compaction.compaction_plan(n, fits, self.cfg.compaction_keep, True)
+        if main is None:  # the sub-agent's or the summary's own: the main card stays
+            return {}
         with self._lock:
             self._overflowed = current().turn_id if plans else None
             self._overflow_plans = plans

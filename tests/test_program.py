@@ -742,7 +742,12 @@ def test_every_scenario_fits_the_default_window_with_every_prompt(index, loop, w
                 measured[(scenario_id, n + 1)] = (used, ctx["usable"], history, room)
                 if scenario.overflow_prompt == n + 1:  # V1.4 story 4: it overflows on purpose
                     _check_overflow_prompt(
-                        scenario_id, scenario, used, ctx, (history if tokenizer else lower, last, prompt, room), tokenizer
+                        scenario_id,
+                        scenario,
+                        used,
+                        ctx,
+                        (history if tokenizer else lower, last, prompt, room),
+                        tokenizer,
                     )
                     break
                 verdict = _verdict(scenario, used, ctx, history + prompt, room, safety)

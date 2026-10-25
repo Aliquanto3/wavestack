@@ -2,7 +2,7 @@
 title: 'WaveStack V1.4 (4) : compaction et fenêtre glissante'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 baseline_revision: 'ff8c405'
 spec_checkpoint: true
 context:
@@ -436,6 +436,24 @@ modules et de scénarios) et l'ancre `\n\ntransverse:` de `test_compression.py`.
   renvoi sans attente MCP, `send` concurrent, transcription masquée ; E2E : Contexte LLM et libellé du
   résumé, carte périmée (409), carte sans boutons ; `s_programme` au lieu de `s_scenarios`, inexistant.
 - Numéros de ligne réalignés sur `ff8c405` (`:4502`, `:7300`, `:8422`, `:3326`, `:5155`).
+
+## Notes d'implémentation
+
+- Écarts : `CompactionChoice` porte en plus `kept` (échanges gardés, pour « les {keep} derniers
+  échanges » du menu) ; le libellé du résumé dans le Contexte LLM vient de
+  `session.compaction.label` (messages.yaml, rendu côté session) en plus de
+  `main.ctx.compaction_summary` ; `ContextOverflowPayload` n'écrit `choices` et
+  `other_strategies_text` que pour le chat principal (défauts vides ailleurs).
+- `_overflowed` n'est posé que par le débordement du chat principal : celui du sous-agent ou de
+  l'appel de résumé ne rend pas la carte périmée.
+- Scénario `compaction` : p2 lit `alertes_siem.log` (au lieu de `guide_harnais.md`), p3 relit le
+  journal ; calibrage réel en recette (report ci-dessous).
+- E2E : `compaction`, `sliding_window`, `compact_button` ; la jauge du cache (« écrit », causes
+  « fenêtre glissante » et « compaction ») est vérifiée en mode local par `_compaction_cache`,
+  appelé dans `local_server` (le faux modèle cloud n'a pas de `prefix_not_reused`).
+- Non couverts par un test dédié : renvoi sans attente MCP depuis le worker (le code saute
+  `_wait_mcp_connections` quand `chained`), débordement d'atelier MCP (`choices` vide par
+  construction : `_emit_overflow` sans `main`).
 
 ## Reports
 
