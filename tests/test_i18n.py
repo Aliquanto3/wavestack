@@ -364,6 +364,41 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert [p.model_dump(include=fixed) for p in tr.publishers] == [
             p.model_dump(include=fixed) for p in fr.publishers
         ]
+    elif rel == "rag_contexts.yaml":  # V1.2 story 6: its own corpus's chunks, the header's rule
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model", "chunk_max_chars"):
+            assert tr[key] == fr[key]
+        assert tr["chunks"] == len(tr["entries"]) and tr["entries"] != fr["entries"]
+    elif rel == "rag_pageindex.yaml":  # V1.2 story 11: its own corpus's tree, the same shape
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model"):
+            assert tr[key] == fr[key]
+        shape = [(n["id"], n.get("parent"), n["kind"]) for n in fr["nodes"]]
+        assert [(n["id"], n.get("parent"), n["kind"]) for n in tr["nodes"]] == shape
+        assert tr["nodes"] != fr["nodes"]
+    elif rel == "rag_graph.yaml":  # V1.2 story 13: its own corpus's graph, the same header
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model", "chunk_max_chars"):
+            assert tr[key] == fr[key]
+        assert tr["entities_total"] == len(tr["entities"]) >= 80
+        assert tr["communities_total"] == len(tr["communities"]) >= 8
+        assert tr["entities"] != fr["entities"]
+    elif rel == "rag_raptor.yaml":  # V1.2 story 12: its own corpus's tree, the same header
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model", "chunk_max_chars"):
+            assert tr[key] == fr[key]
+        assert tr["nodes_total"] == len(tr["nodes"]) >= 15 and tr["levels"] >= 2
+        assert tr["nodes"] != fr["nodes"]
+    elif rel == "rag_wiki.yaml":  # V1.2 story 14: its own corpus's wiki, the same sources
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model"):
+            assert tr[key] == fr[key]
+
+        def sources(file):
+            return [(p["id"], p["sources"]) for p in file["pages"] if p["kind"] == "source"]
+
+        assert sources(tr) == sources(fr) and tr["pages"][0]["id"] == "index"
+        assert tr["concepts"] and tr["pages"] != fr["pages"]
     elif rel == "rag_questions.yaml":  # story 1: same ids, types and doc_ids, texts translated
         fr, tr = load_rag_questions("fr"), load_rag_questions(lang)
 
@@ -398,6 +433,109 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
                 exclude={"title_text", "explain_text"}
             )
             assert tr_case.title_text != fr_case.title_text
+    elif rel == "rag_evaluation.yaml":  # V1.2 story 15: same verdicts, ranks and labels
+        from wavestack.rag import evaluation as rag_evaluation
+
+        fr, tr = rag_evaluation.load_evaluation("fr"), rag_evaluation.load_evaluation(lang)
+
+        def holes(value: object) -> object:  # the placeholders of every text, by path
+            if isinstance(value, dict):
+                return {k: holes(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [holes(v) for v in value]
+            return sorted(re.findall(r"\{(\w+)\}", str(value)))
+
+        assert holes(tr.texts) == holes(fr.texts)
+        answers = {"answer_text"}
+        for fr_run, tr_run in zip(fr.recorded.runs, tr.recorded.runs, strict=True):
+            assert fr_run.model_dump(exclude=answers) == tr_run.model_dump(exclude=answers)
+            assert tr_run.answer_text != fr_run.answer_text
+        assert fr.recorded.model_dump(exclude={"runs"}) == tr.recorded.model_dump(exclude={"runs"})
+        for fr_trap, tr_trap in zip(fr.traps, tr.traps, strict=True):
+            assert fr_trap.id == tr_trap.id
+            assert tr_trap.title_text != fr_trap.title_text
+            assert [c.label for c in fr_trap.claims] == [c.label for c in tr_trap.claims]
+            assert [p.verdict for p in fr_trap.passes] == [p.verdict for p in tr_trap.passes]
+            assert {r: v.verdict for r, v in fr_trap.verdicts.items()} == {
+                r: v.verdict for r, v in tr_trap.verdicts.items()
+            }
+            assert (fr_trap.kind, fr_trap.causes) == (tr_trap.kind, tr_trap.causes)
+    elif rel == "rag_attack.yaml":  # V1.2 story 17: the same scenarios, roles, verdicts, graph
+        from wavestack.rag import attack as rag_attack
+
+        fr, tr = rag_attack.load_attack("fr"), rag_attack.load_attack(lang)
+
+        def holes(value: object) -> object:  # the placeholders of every text, by path
+            if isinstance(value, dict):
+                return {k: holes(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [holes(v) for v in value]
+            return sorted(re.findall(r"\{(\w+)\}", str(value)))
+
+        assert holes(tr.texts) == holes(fr.texts)
+        texts = {"title_text", "explain_text", "answers", "provenance"}
+        for fr_s, tr_s in zip(fr.scenarios, tr.scenarios, strict=True):
+            assert fr_s.provenance.kind == tr_s.provenance.kind
+            assert fr_s.model_dump(exclude=texts) == tr_s.model_dump(exclude=texts)
+            assert tr_s.title_text != fr_s.title_text or fr_s.id == "poisoning"
+        assert fr.fallback_verdicts.by_role == tr.fallback_verdicts.by_role
+        keep = {"id", "source", "target", "is_false"}
+        assert [r.model_dump(include=keep) for r in tr.graph.relations] == [
+            r.model_dump(include=keep) for r in fr.graph.relations
+        ]
+    elif rel in ("rag_erasure.yaml", "rag_access.yaml"):  # V1.2 story 18: same ids and structure
+        raw = {
+            lng: yaml.safe_load(config.content_file(rel, lng).read_text(encoding="utf-8"))
+            for lng in ("fr", lang)
+        }
+
+        def shape(value: object) -> object:  # keys and lengths, no text
+            if isinstance(value, dict):
+                return {k: shape(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [shape(v) for v in value]
+            return None
+
+        assert shape(raw[lang]["texts"]) == shape(raw["fr"]["texts"])
+        if rel == "rag_erasure.yaml":
+            from wavestack.rag import erasure
+
+            fr, tr = erasure.load_erasure("fr"), erasure.load_erasure(lang)
+            texts = {"label_text", "update_text", "unit_text", "measured_on_text", "text"}
+            texts |= {"rebuilt_text", "provenance"}
+            assert [a.id for a in tr.architectures] == [a.id for a in fr.architectures]
+            for f, t in zip(fr.places, tr.places, strict=True):
+                assert f.model_dump(exclude=texts) == t.model_dump(exclude=texts)
+                assert (f.provenance and f.provenance.kind) == (t.provenance and t.provenance.kind)
+        else:
+            assert raw[lang]["rewrite"]["doc_id"] == raw["fr"]["rewrite"]["doc_id"]
+            assert raw[lang]["question_id"] == raw["fr"]["question_id"]
+    elif rel == "rag_sheets.yaml":  # V1.2 story 19: same ids, levels, classes, links; texts differ
+        from wavestack.rag import sheets
+
+        fr, tr = sheets.load_sheets("fr"), sheets.load_sheets(lang)
+        assert set(tr.texts) == set(fr.texts)
+        assert [a.id for a in tr.architectures] == [a.id for a in fr.architectures]
+        free = {"purpose_text", "when_text", "cost_text", "literature_text", "no_source_text"}
+        for f, t in zip(fr.architectures, tr.architectures, strict=True):
+            plain = lambda a: {  # noqa: E731
+                **a.model_dump(by_alias=True, exclude=free | {"axes"}),
+                "axes": {
+                    n: {k: v for k, v in x.model_dump(by_alias=True).items() if k != "text"}
+                    for n, x in a.axes.items()
+                },
+            }
+            assert plain(f) == plain(t)
+            assert bool(f.no_source_text) == bool(t.no_source_text)
+            assert t.purpose_text != f.purpose_text
+    elif rel == "rag_mcp.yaml":  # V1.2 story 20: same keys and limits, the descriptions translated
+        from wavestack.rag import exposed
+
+        fr, tr = exposed.load_texts("fr"), exposed.load_texts(lang)
+        assert len(tr.describe.limits) == len(fr.describe.limits)
+        tool, fr_tool = tr.tools.search_documents, fr.tools.search_documents
+        assert tool.description_text != fr_tool.description_text
+        assert tr.card.title_text != fr.card.title_text
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()

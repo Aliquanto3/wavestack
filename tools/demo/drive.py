@@ -1,14 +1,17 @@
 """Drive a running WaveStack for the README demo: screenshots and a manifest per sequence.
 
-Four sequences, one folder each under `<frames>`: `main`, the « LLM nu » scenario then « Outils
-natifs » on the same prompt; `llm`, the Atelier LLM's three stages (INPUT, TRANSFORMATION,
-OUTPUT) on a sentence to complete; `rag`, the Atelier RAG's guided tour; `mcp`, the Atelier MCP's
-handshake with the local server. WaveStack must already run on 127.0.0.1:8420, in French, with a
-local model loaded (see README.md next to this file).
+Six sequences, one folder each under `<frames>`: `main`, the « LLM nu » scenario then « Outils
+natifs » on the same prompt; `map`, the harness map of that conversation; `llm`, the Atelier LLM's
+three stages (INPUT, TRANSFORMATION, OUTPUT) on a sentence to complete; `rag`, the Atelier
+recherche documentaire's guided tour then its Fiches tab; `mcp`, the Atelier MCP's handshake with
+the local server; `security`, the Sécurité page. WaveStack must already run on 127.0.0.1:8420, in
+French, with a local model loaded (see README.md next to this file). `--channel` picks the browser
+(`chrome` by default, `msedge` where Chrome is not installed).
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import time
@@ -28,7 +31,14 @@ LAB_BOXES = {
     "logits": "#part-logits .llm-output-logits-main",
     "token": "#part-token",
 }
-RAG_BOXES = {"seq": "#rag-seq", "arch": "#rag-arch", "focus": "#rag-focus"}
+MAIN_BOXES = {
+    "picker": "#scenario-picker",
+    "gauge": "#cache-gauge",
+    "spend": "#bar-spend-toggle",
+}
+SHEET_INDEX = 0  # which entry of the Fiches list the take opens
+MAP_BOXES = {"map": "#harness-map-body .harness-map-grid"}
+RAG_BOXES = {"seq": "#rag-seq", "arch": "#rag-arch", "focus": "#rag-focus", "tabs": "#rag-tabs"}
 MCP_BOXES = {"seq": "#mcp-seq-body", "model": "#mcp-model-body"}
 SEC_BOXES = {
     "questions": "#sec-questions",
@@ -134,7 +144,7 @@ def turn(rec: Recorder, phase: str, timeout: float = 300) -> None:
 
 
 def main_sequence(page: Page, folder: Path) -> None:
-    rec = Recorder(page, folder, {"picker": "#scenario-picker"})
+    rec = Recorder(page, folder, MAIN_BOXES)
     page.goto(BASE + "/")
     page.wait_for_timeout(2500)
     for scenario, prefix in (("bare_llm", "bare"), ("native_tools", "tools")):
@@ -144,6 +154,18 @@ def main_sequence(page: Page, folder: Path) -> None:
         rec.type(PROMPT, f"{prefix}_type")
         turn(rec, f"{prefix}_turn")
     rec.hold("tools_final", 2)
+    rec.save()
+
+
+def map_sequence(page: Page, folder: Path) -> None:
+    """V1.4: the harness map (seven subsystems) of the conversation `main` just held."""
+    rec = Recorder(page, folder, MAP_BOXES)
+    page.goto(BASE + "/")
+    page.wait_for_selector("#harness-map-open:not([disabled])", timeout=15000)
+    page.wait_for_timeout(1500)
+    page.locator("#harness-map-open").click()
+    page.wait_for_timeout(600)
+    rec.hold("map_open", 3.5)
     rec.save()
 
 
@@ -207,6 +229,18 @@ def rag_sequence(page: Page, folder: Path) -> None:
         next_step(page, "rag-stepper")
         rec.hold("rag_steps", 0.6)
     rec.hold("rag_done", 1.2)
+    page.locator("#rag-tab-sheets").click()  # V1.2: the sheets, one of the five tabs
+    page.wait_for_selector("#rag-sh-list .rag-sh-entry", timeout=15000)
+    page.locator("#rag-sh-list .rag-sh-entry[data-sheet-type=architecture]").nth(
+        SHEET_INDEX
+    ).click()
+    page.wait_for_selector("#rag-sh-sheet .rag-sh-block", timeout=15000)
+    page.evaluate("window.scrollTo(0, 0)")
+    rec.hold("rag_sheet_top", 0.8)
+    page.locator("#rag-sh-sheet .rag-sh-block[data-block=compliance]").scroll_into_view_if_needed()
+    page.evaluate("window.scrollBy(0, -120)")  # the sheet's compliance grid, below its heading
+    page.wait_for_timeout(500)
+    rec.hold("rag_sheet", 1.2)
     rec.save()
 
 
@@ -242,24 +276,28 @@ def security_sequence(page: Page, folder: Path) -> None:
 if __name__ == "__main__":
     sequences = {
         "main": main_sequence,
+        "map": map_sequence,
         "llm": llm_sequence,
         "rag": rag_sequence,
         "mcp": mcp_sequence,
         "security": security_sequence,
     }
-    if len(sys.argv) not in (2, 3) or sys.argv[2:] and sys.argv[2] not in sequences:
-        names = "|".join(sequences)
-        sys.exit(f"usage : drive.py <dossier des captures> [{names}] (toutes par défaut)")
+    parser = argparse.ArgumentParser(description="Capture WaveStack for the README demo.")
+    parser.add_argument("frames", type=Path, help="dossier des captures")
+    parser.add_argument(
+        "sequence", nargs="*", choices=list(sequences), help="prises à refaire (toutes par défaut)"
+    )
+    parser.add_argument("--channel", default="chrome", help="chrome ou msedge")
+    args = parser.parse_args()
     state = api_state()
     if (state.get("session_state") or {}).get("language") != "fr":
         sys.exit("WaveStack doit tourner en français (les libellés cherchés sont en français).")
     if session_state() != "idle":
         sys.exit("WaveStack doit avoir un modèle chargé et attendre (état « idle »).")
-    frames = Path(sys.argv[1])
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="chrome")
+        browser = playwright.chromium.launch(channel=args.channel)
         page = browser.new_page(viewport=VIEWPORT)
-        for name in sys.argv[2:] or sequences:  # one alone, to replay a take that came out badly
-            sequences[name](page, frames / name)
+        for name in args.sequence or sequences:  # some alone: takes that came out badly
+            sequences[name](page, args.frames / name)
         browser.close()
-    print(f"Images dans {frames}")
+    print(f"Images dans {args.frames}")

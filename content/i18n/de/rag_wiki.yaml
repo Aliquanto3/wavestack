@@ -1,0 +1,1889 @@
+# The LLM Wiki (V1.2 story 14). Built by tools/build_wiki.py, not by hand: compiled by a
+# rule, without a model; a page belongs to what it is compiled from by its sha256.
+author: shipped
+method: heuristic
+model: heuristic
+concepts:
+- abteilung
+- anvertraut
+- anwendung
+- anwendungen
+- außerhalb
+- berechtigungen
+- datenschutzbeauftragten
+- deaktiviert
+- dienstleister
+- durchwahl
+- einheit
+- empfang
+- erlaubt
+- fragebogen
+- geheim
+- geschaftsleitung
+- gesendete
+- gesperrt
+- gesprach
+- hochstens
+- informationen
+- klauseln
+- konto
+- krisenstab
+- loschung
+- nachricht
+- person
+- rechner
+- register
+- richtlinie
+- schriftlich
+- schulung
+- standard
+- uberprufung
+- uhrzeit
+- version
+- vertraulich
+- vorfall
+- wechsel
+- woche
+- zentrale
+pages:
+- id: index
+  kind: index
+  title_text: Wiki-Index
+  synthesis_text: 'Wiki-Seiten: 66.'
+  sources:
+  - acces_physique
+  - astreinte
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - classification
+  - clauses_contrats
+  - deplacements
+  - donnees_personnelles
+  - dossier_disciplinaire
+  - entretiens_annuels
+  - formation_securite
+  - gestion_crise
+  - grille_remunerations
+  - ia_generative
+  - incidents
+  - mots_de_passe
+  - note_changement_messagerie
+  - plan_continuite_lyon
+  - prestataires
+  - registre_sous_traitants
+  - revue_habilitations
+  - rundschreiben_usb
+  - sauvegardes
+  - teletravail
+  - uk_visitor_badges
+  audience: hr
+  sha256: 8dcf8127276cb05ec588650eb6bacd27ac2aea117c5d636c822914b8804c768c
+  text: '# Wiki-Index
+
+
+    Wiki-Seiten: 66.
+
+
+    ## Quellenseiten
+
+    - [[source/mots_de_passe]] Passwortrichtlinie — Bei Exemplia hat ein Passwort für ein Benutzerkonto mindestens 14 Zeichen. Die Länge zählt mehr als die Komplexität: Em…
+
+    - [[source/teletravail]] Vereinbarung zur Telearbeit — Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche…
+
+    - [[source/classification]] Klassifizierung von Informationen — Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Inte…
+
+    - [[source/incidents]] Sicherheitsvorfälle — Ein Sicherheitsvorfall ist jedes Ereignis, das die Vertraulichkeit, Integrität oder Verfügbarkeit der Informationen von…
+
+    - [[source/donnees_personnelles]] Aufbewahrung personenbezogener Daten — Personenbezogene Daten werden nur so lange aufbewahrt, wie es der Zweck erfordert, für den sie erhoben wurden. Das Vera…
+
+    - [[source/ia_generative]] Nutzung generativer KI — Exemplia fördert die Nutzung generativer künstlicher Intelligenz, um beim Verfassen, Zusammenfassen und Übersetzen Zeit…
+
+    - [[source/deplacements]] Dienstreisen und Spesenabrechnungen — Jede Dienstreise wird vorab von der Führungskraft im Buchungstool Voyagex genehmigt, das die folgenden Regeln automatis…
+
+    - [[source/sauvegardes]] Datensicherungen — Die Daten von Exemplia folgen der 3-2-1-Regel: mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon…
+
+    - [[source/prestataires]] Sicherheitsrichtlinie für Dienstleister — Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wen…
+
+    - [[source/clauses_contrats]] Sicherheitsklauseln der Verträge — Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einhei…
+
+    - [[source/registre_sous_traitants]] Register der Unterauftragnehmer — Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, d…
+
+    - [[source/gestion_crise]] Krisenmanagementverfahren — Dieses Verfahren übernimmt vom Meldeverfahren für Vorfälle, sobald ein Vorfall der Stufe 3 erklärt wird oder mehrere St…
+
+    - [[source/astreinte]] Anlage der Bereitschaftskontakte — Diese Anlage zum Krisenmanagementverfahren listet die Kontakte, die außerhalb der Geschäftszeiten, Tag und Nacht, je na…
+
+    - [[source/charte_messagerie_v1]] E-Mail-Richtlinie, Version 1 (2024) — Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv au…
+
+    - [[source/charte_messagerie_v2]] E-Mail-Richtlinie, Version 2 (2026) — Diese Version ersetzt Version 1 seit dem 1. Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen…
+
+    - [[source/note_changement_messagerie]] Änderungsmitteilung zur Messaging-Umstellung — Diese Mitteilung erklärt den Übergang von Version 1 zu Version 2 der E-Mail-Richtlinie, gültig seit dem 1. Januar 2026.
+
+    - [[source/rundschreiben_usb]] Rundschreiben zu USB-Speichermedien — Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es…
+
+    - [[source/uk_visitor_badges]] Besucherausweise der britischen Niederlassung (nur auf Englisch) — This policy applies only to Exemplia''s United Kingdom subsidiary, in Manchester; it exists in English only, as the loca…
+
+    - [[source/plan_continuite_lyon]] Kontinuitätsplan des Standorts Lyon (nur auf Französisch) — Ce document concerne uniquement le site de Lyon d''Exemplia ; il n''existe qu''en français, car il relève d''une équipe loc…
+
+    - [[source/grille_remunerations]] Vergütungstabelle — Dieses Dokument beschreibt die Vergütungsstruktur von Exemplia; es ist als vertraulich eingestuft, und der Zugang ist d…
+
+    - [[source/dossier_disciplinaire]] Disziplinarverfahren — Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, un…
+
+    - [[source/entretiens_annuels]] Verfahren der Jahresgespräche — Dieses Dokument beschreibt das Jahresgespräch von Exemplia, das von der direkten Führungskraft jeder Person geführt wir…
+
+    - [[source/acces_physique]] Physischer Zugang zu den Räumlichkeiten — Jeder Standort von Exemplia ist in 3 Zonen unterteilt: normal (Empfang, Großraumbüro), eingeschränkt (sensible Besprech…
+
+    - [[source/revue_habilitations]] Überprüfung der Berechtigungen — Eine Berechtigung ist ein Zugangsrecht zu einer Anwendung, einem gemeinsamen Ordner oder einer physischen Zone, wie in…
+
+    - [[source/formation_securite]] Sicherheitsschulung — Jede Person bei Exemplia nimmt an einer zweistündigen Online-Schulung zur Informationssicherheit teil und besteht ansch…
+
+
+    ## Begriffsseiten
+
+    - [[concept/abteilung]] abteilung — Der Eigentümer der Information, in der Regel die Leitung der Abteilung, kann diese Stufe anheben oder absenken.
+
+    - [[concept/anvertraut]] anvertraut — Das Standardwerkzeug ist ExempliaGPT, ein Assistent, der im Rechenzentrum von Exemplia betrieben wird: Die Texte, die m…
+
+    - [[concept/anwendung]] anwendung — Die Wiederherstellungsziele werden pro Anwendung festgelegt.
+
+    - [[concept/anwendungen]] anwendungen — Anmeldeprotokolle der Anwendungen werden 12 Monate aufbewahrt, Aufnahmen der Videoüberwachung der Räume 30 Tage, und de…
+
+    - [[concept/außerhalb]] außerhalb — Außerhalb des Standorts verbindet sich der Arbeitsrechner über das VPN des Unternehmens mit dem Netz von Exemplia.
+
+    - [[concept/berechtigungen]] berechtigungen — Jeder Zugang, ob gewährt oder verweigert, wird protokolliert und 6 Monate aufbewahrt, einsehbar bei einer Sicherheitsun…
+
+    - [[concept/datenschutzbeauftragten]] datenschutzbeauftragten — Sie löscht oder anonymisiert Daten, deren Frist abgelaufen ist, und erstellt einen Bericht an den Datenschutzbeauftragt…
+
+    - [[concept/deaktiviert]] deaktiviert — Ein verlorenes Abzeichen wird sofort dem Empfang gemeldet, der es innerhalb einer Stunde deaktiviert; ein neues Abzeich…
+
+    - [[concept/dienstleister]] dienstleister — Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wen…
+
+    - [[concept/durchwahl]] durchwahl — Bei der dritten Sperre am selben Tag bleibt das Konto gesperrt, bis der Support eingreift, erreichbar unter der Durchwa…
+
+    - [[concept/einheit]] einheit — Die Stufe wird vor der Vertragsunterzeichnung von der Dienstleister-Einheit festgelegt und jedes Jahr überprüft.
+
+    - [[concept/empfang]] empfang — Externe Besucher und Lieferanten dürfen an der Zentrale keinen eigenen USB-Speicher anschließen; für einen Datenaustaus…
+
+    - [[concept/erlaubt]] erlaubt — Arbeiten in einem öffentlichen WLAN, im Zug, im Café oder im Hotel, ist nur mit aktiviertem VPN und einem Blickschutzfi…
+
+    - [[concept/fragebogen]] fragebogen — Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen F…
+
+    - [[concept/geheim]] geheim — Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Inte…
+
+    - [[concept/geschaftsleitung]] geschäftsleitung — Der zweite Faktor ist die App ExempliaPass auf dem Diensthandy; Administratoren und Mitglieder der Geschäftsleitung erh…
+
+    - [[concept/gesendete]] gesendete — Außerhalb dieser Zeiten gilt das Recht auf Nichterreichbarkeit: Keine nach 20 Uhr gesendete E-Mail verlangt vor dem näc…
+
+    - [[concept/gesperrt]] gesperrt — Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt.
+
+    - [[concept/gesprach]] gespräch — Jeder Maßnahme außer der mündlichen Ermahnung geht ein Gespräch voraus, bei dem sich die betroffene Person von einer Pe…
+
+    - [[concept/hochstens]] höchstens — Exemplia zahlt eine Pauschale von 2,50 Euro pro Telearbeitstag, höchstens 55 Euro pro Monat.
+
+    - [[concept/informationen]] informationen — Die Stufe Geheim ist einer kurzen Liste strategischer Informationen vorbehalten, etwa Übernahmeprojekten oder detaillie…
+
+    - [[concept/klauseln]] klauseln — Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einhei…
+
+    - [[concept/konto]] konto — Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt.
+
+    - [[concept/krisenstab]] krisenstab — Ein Vorfall der Stufe 3 ruft den Krisenstab zusammen, der sich in weniger als 2 Stunden unter dem Vorsitz des Geschäfts…
+
+    - [[concept/loschung]] löschung — Nicht berücksichtigte Bewerbungen werden 2 Jahre nach dem letzten Kontakt mit dem Bewerber aufbewahrt; er wird darüber…
+
+    - [[concept/nachricht]] nachricht — Jede Nachricht darf mit ihren Anhängen 10 MB nicht überschreiten; darüber hinaus ist ein temporärer Freigabelink zu ver…
+
+    - [[concept/person]] person — Jede Person kann ihre Rechte auf Auskunft, Berichtigung und Löschung geltend machen, indem sie dem Datenschutzbeauftrag…
+
+    - [[concept/rechner]] rechner — Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner o…
+
+    - [[concept/register]] register — Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner o…
+
+    - [[concept/richtlinie]] richtlinie — Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv au…
+
+    - [[concept/schriftlich]] schriftlich — Am Ende eines Vertrags löscht der Dienstleister die Daten von Exemplia und bestätigt dies schriftlich innerhalb der im…
+
+    - [[concept/schulung]] schulung — Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen F…
+
+    - [[concept/standard]] standard — Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wen…
+
+    - [[concept/uberprufung]] überprüfung — Die Überprüfung tritt am 1.
+
+    - [[concept/uhrzeit]] uhrzeit — Um zu wissen, wen man nachts anruft, listet die Anlage mit den Bereitschaftskontakten die zu erreichenden Nummern je na…
+
+    - [[concept/version]] version — Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv au…
+
+    - [[concept/vertraulich]] vertraulich — Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Inte…
+
+    - [[concept/vorfall]] vorfall — Alle Mitarbeitenden, die einen Vorfall feststellen oder vermuten, melden ihn innerhalb von 30 Minuten dem Reaktionsteam…
+
+    - [[concept/wechsel]] wechsel — Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen Wechsel des E-Mail-Anbieters: Dies ist die a…
+
+    - [[concept/woche]] woche — Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche…
+
+    - [[concept/zentrale]] zentrale — Er tagt im Krisenraum der Zentrale oder per Videokonferenz, wenn der Zugang zur Zentrale beeinträchtigt ist.'
+- id: source/mots_de_passe
+  kind: source
+  title_text: Passwortrichtlinie
+  synthesis_text: 'Bei Exemplia hat ein Passwort für ein Benutzerkonto mindestens 14 Zeichen. Die Länge zählt mehr als die Komplexität: Empfohlen wird eine Passphrase aus vier oder fünf Wörtern ohne Bezug zueinander, zum Beispiel eine Folge zufällig gewählter Wörter, getrennt durch Bindestriche.'
+  sources:
+  - mots_de_passe
+  audience: all
+  sha256: 8be504097bb424770690745318d6af1ee6b1f5c46aeb62f2ff5e5dbb52f3022e
+  text: '# Passwortrichtlinie
+
+
+    Bei Exemplia hat ein Passwort für ein Benutzerkonto mindestens 14 Zeichen. Die Länge zählt mehr als die Komplexität: Empfohlen wird eine Passphrase aus vier oder fünf Wörtern ohne Bezug zueinander, zum Beispiel eine Folge zufällig gewählter Wörter, getrennt durch Bindestriche.
+
+
+    ## Kernpunkte
+
+    - Administratorkonten verlangen dagegen mindestens 20 Zeichen, und ihr Passwort wird vom Tresor des Betriebsteams erzeugt.
+
+    - In diesen Fällen muss die Änderung innerhalb von 12 Stunden nach der Warnung des Sicherheitsteams erfolgen.
+
+    - Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt.
+
+    - Bei der dritten Sperre am selben Tag bleibt das Konto gesperrt, bis der Support eingreift, erreichbar unter der Durchwahl 3100.
+
+
+    ## Begriffe
+
+    [[concept/durchwahl]] · [[concept/geschaftsleitung]] · [[concept/gesperrt]] · [[concept/konto]]
+
+
+    Quelle: corpus/mots_de_passe.md'
+- id: source/teletravail
+  kind: source
+  title_text: Vereinbarung zur Telearbeit
+  synthesis_text: Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche in Telearbeit arbeiten. Praktikanten und Auszubildende sind auf 1 Tag pro Woche begrenzt, damit sie den Kontakt zu ihrem Betreuer halten.
+  sources:
+  - teletravail
+  audience: all
+  sha256: 3c40a8e21f843ec2e85bd0b77f0fcb7177def2bd8b47c56db6976a58ac2f4c13
+  text: '# Vereinbarung zur Telearbeit
+
+
+    Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche in Telearbeit arbeiten. Praktikanten und Auszubildende sind auf 1 Tag pro Woche begrenzt, damit sie den Kontakt zu ihrem Betreuer halten.
+
+
+    ## Kernpunkte
+
+    - Eine Führungskraft kann mit einer Vorankündigung von 48 Stunden ausnahmsweise Anwesenheit verlangen.
+
+    - Exemplia zahlt eine Pauschale von 2,50 Euro pro Telearbeitstag, höchstens 55 Euro pro Monat.
+
+    - Auf Anfrage wird Ausstattung gestellt: ein 27-Zoll-Bildschirm, eine Tastatur, eine Maus und ein Headset.
+
+    - Telearbeit aus dem Ausland ist aus steuerlichen und sozialversicherungsrechtlichen Gründen auf 20 Tage pro Kalenderjahr begrenzt und braucht die schriftliche Zustimmung der Führungskraft und der Personalabteilung.
+
+
+    ## Begriffe
+
+    [[concept/außerhalb]] · [[concept/erlaubt]] · [[concept/gesendete]] · [[concept/hochstens]] · [[concept/woche]]
+
+
+    Quelle: corpus/teletravail.md'
+- id: source/classification
+  kind: source
+  title_text: Klassifizierung von Informationen
+  synthesis_text: 'Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim. Ein Dokument ohne Kennzeichnung wird standardmäßig als Intern behandelt.'
+  sources:
+  - classification
+  audience: all
+  sha256: 90721162812ee2e032f8e4fe446cf84c001d0adb946f87887ff10434ee45dc65
+  text: '# Klassifizierung von Informationen
+
+
+    Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim. Ein Dokument ohne Kennzeichnung wird standardmäßig als Intern behandelt.
+
+
+    ## Kernpunkte
+
+    - Ein vertrauliches Dokument verlässt das Netz von Exemplia nur verschlüsselt, mit dem sicheren Austauschwerkzeug Transvault; der Freigabelink läuft nach 7 Tagen ab.
+
+    - Vertrauliche und geheime Papierdokumente werden in einem verschlossenen Schrank aufbewahrt und im Aktenvernichter der Stufe P-5 vernichtet.
+
+    - Jedes Jahr im Januar überprüft die Leitung jeder Abteilung die Klassifizierung der 20 meistgelesenen Dokumente ihres Bereichs.
+
+
+    ## Begriffe
+
+    [[concept/abteilung]] · [[concept/geheim]] · [[concept/informationen]] · [[concept/rechner]] · [[concept/register]] · [[concept/vertraulich]]
+
+
+    Quelle: corpus/classification.md'
+- id: source/incidents
+  kind: source
+  title_text: Sicherheitsvorfälle
+  synthesis_text: 'Ein Sicherheitsvorfall ist jedes Ereignis, das die Vertraulichkeit, Integrität oder Verfügbarkeit der Informationen von Exemplia bedroht: eine geöffnete Phishing-E-Mail, ein verlorener Laptop, ein entdecktes Virus, ein vertrauliches Dokument an den falschen Empfänger, eine verdächtige Anmeldung. Al…'
+  sources:
+  - incidents
+  audience: all
+  sha256: 3adbbedc6c8f7c99a0013123d8800fb18ce8663348ee91179bdf8ea164cb6d04
+  text: '# Sicherheitsvorfälle
+
+
+    Ein Sicherheitsvorfall ist jedes Ereignis, das die Vertraulichkeit, Integrität oder Verfügbarkeit der Informationen von Exemplia bedroht: eine geöffnete Phishing-E-Mail, ein verlorener Laptop, ein entdecktes Virus, ein vertrauliches Dokument an den falschen Empfänger, eine verdächtige Anmeldung. Al…
+
+
+    ## Kernpunkte
+
+    - Es ist rund um die Uhr unter der internen Nummer 4242 erreichbar oder über die eigene E-Mail-Adresse, die im Intranet angegeben ist.
+
+    - Die CERT-Ex stuft jeden Vorfall in eine von 3 Schweregradstufen ein.
+
+    - Ein Vorfall der Stufe 1 wird noch am selben Tag vom Support-Team bearbeitet.
+
+    - Ein Vorfall der Stufe 2 mobilisiert die CERT-Ex, die innerhalb einer Stunde den Informationssicherheitsbeauftragten informiert.
+
+
+    ## Begriffe
+
+    [[concept/informationen]] · [[concept/krisenstab]] · [[concept/rechner]] · [[concept/vorfall]]
+
+
+    Quelle: corpus/incidents.md'
+- id: source/donnees_personnelles
+  kind: source
+  title_text: Aufbewahrung personenbezogener Daten
+  synthesis_text: Personenbezogene Daten werden nur so lange aufbewahrt, wie es der Zweck erfordert, für den sie erhoben wurden. Das Verarbeitungsverzeichnis von Exemplia legt für jede Verarbeitung eine aktive Frist fest, in der die Abteilungen die Daten nutzen, und danach eine Archivierungsfrist, in der nur die Rec…
+  sources:
+  - donnees_personnelles
+  audience: all
+  sha256: 539a19e0ce1972253e4f6688860c6c55f4245077643d4b7143cf3baf841f3853
+  text: '# Aufbewahrung personenbezogener Daten
+
+
+    Personenbezogene Daten werden nur so lange aufbewahrt, wie es der Zweck erfordert, für den sie erhoben wurden. Das Verarbeitungsverzeichnis von Exemplia legt für jede Verarbeitung eine aktive Frist fest, in der die Abteilungen die Daten nutzen, und danach eine Archivierungsfrist, in der nur die Rec…
+
+
+    ## Kernpunkte
+
+    - Nicht berücksichtigte Bewerbungen werden 2 Jahre nach dem letzten Kontakt mit dem Bewerber aufbewahrt; er wird darüber informiert und kann ihre frühere Löschung verlangen.
+
+    - Die Daten von Interessenten, die nie geantwortet haben, werden nach 3 Jahren ohne Kontakt gelöscht.
+
+    - Kundendaten werden während der gesamten Vertragsbeziehung aufbewahrt und danach 5 Jahre nach Vertragsende archiviert.
+
+    - Anmeldeprotokolle der Anwendungen werden 12 Monate aufbewahrt, Aufnahmen der Videoüberwachung der Räume 30 Tage, und deaktivierte Zutrittsausweise werden 3 Monate nach dem Ausscheiden des Mitarbeiters gelöscht.
+
+
+    ## Begriffe
+
+    [[concept/abteilung]] · [[concept/anwendungen]] · [[concept/datenschutzbeauftragten]] · [[concept/loschung]] · [[concept/person]]
+
+
+    Quelle: corpus/donnees_personnelles.md'
+- id: source/ia_generative
+  kind: source
+  title_text: Nutzung generativer KI
+  synthesis_text: Exemplia fördert die Nutzung generativer künstlicher Intelligenz, um beim Verfassen, Zusammenfassen und Übersetzen Zeit zu sparen, unter Einhaltung dieser Leitlinien. Sie gelten für Chat-Assistenten, Bildgeneratoren und Tools zur Code-Vervollständigung.
+  sources:
+  - ia_generative
+  audience: all
+  sha256: 6818dc86631fb5812f6a5a93c3894ebfe131da5733c826df599a4b3ed4d2d3e3
+  text: '# Nutzung generativer KI
+
+
+    Exemplia fördert die Nutzung generativer künstlicher Intelligenz, um beim Verfassen, Zusammenfassen und Übersetzen Zeit zu sparen, unter Einhaltung dieser Leitlinien. Sie gelten für Chat-Assistenten, Bildgeneratoren und Tools zur Code-Vervollständigung.
+
+
+    ## Kernpunkte
+
+    - Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen Fragebogen mit mindestens 8 von 10 richtigen Antworten.
+
+    - Eine 45-minütige Auffrischung ist jedes Jahr Pflicht.
+
+    - Der KI-Ausschuss aus 6 Mitgliedern aus Sicherheit, Recht, Personalwesen und Fachbereichen prüft jedes neue Tool vor seiner Einführung innerhalb von 6 Wochen.
+
+
+    ## Begriffe
+
+    [[concept/anvertraut]] · [[concept/fragebogen]] · [[concept/geheim]] · [[concept/informationen]] · [[concept/schulung]] · [[concept/vertraulich]]
+
+
+    Quelle: corpus/ia_generative.md'
+- id: source/deplacements
+  kind: source
+  title_text: Dienstreisen und Spesenabrechnungen
+  synthesis_text: Jede Dienstreise wird vorab von der Führungskraft im Buchungstool Voyagex genehmigt, das die folgenden Regeln automatisch anwendet. Eine Buchung außerhalb von Voyagex wird nur ausnahmsweise erstattet, mit schriftlicher Begründung.
+  sources:
+  - deplacements
+  audience: all
+  sha256: 38e247430f1d544dbd365b0e2605d66d8700dcfc4f180beee9fd955961749cbe
+  text: '# Dienstreisen und Spesenabrechnungen
+
+
+    Jede Dienstreise wird vorab von der Führungskraft im Buchungstool Voyagex genehmigt, das die folgenden Regeln automatisch anwendet. Eine Buchung außerhalb von Voyagex wird nur ausnahmsweise erstattet, mit schriftlicher Begründung.
+
+
+    ## Kernpunkte
+
+    - Die erste Klasse ist erlaubt für eine Fahrt von mehr als 3 Stunden, die am Vortag der Abreise oder am selben Tag gebucht wird, wenn sie höchstens 20 % mehr kostet als die zweite.
+
+    - Das Flugzeug ist erst ab viereinhalb Stunden Bahnfahrt erlaubt, in der Economy Class; die Business Class ist Flügen von mehr als 7 Stunden vorbehalten.
+
+    - Eine Hotelübernachtung wird bis zu 130 Euro in Paris und 95 Euro in anderen Städten erstattet, Frühstück inbegriffen.
+
+    - Eine Mahlzeit auf Reisen wird bis zu 22 Euro erstattet; ein Essen mit einem Kunden wird gegen Rechnung bis zu 60 Euro pro Person erstattet, mit dem Namen des eingeladenen Unternehmens.
+
+
+    ## Begriffe
+
+    [[concept/außerhalb]] · [[concept/erlaubt]] · [[concept/hochstens]] · [[concept/person]]
+
+
+    Quelle: corpus/deplacements.md'
+- id: source/sauvegardes
+  kind: source
+  title_text: Datensicherungen
+  synthesis_text: 'Die Daten von Exemplia folgen der 3-2-1-Regel: mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon 1 Kopie außerhalb des Hauptstandorts. Diese Regel gilt für die Dateiserver, die Datenbanken der Anwendungen und die E-Mail.'
+  sources:
+  - sauvegardes
+  audience: all
+  sha256: f184d83089114cacbb55a87e4b3702c999aa79530a4d28e4458b61c96d541cab
+  text: '# Datensicherungen
+
+
+    Die Daten von Exemplia folgen der 3-2-1-Regel: mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon 1 Kopie außerhalb des Hauptstandorts. Diese Regel gilt für die Dateiserver, die Datenbanken der Anwendungen und die E-Mail.
+
+
+    ## Kernpunkte
+
+    - Die Vollsicherung der Server läuft jeden Sonntag um 2 Uhr morgens.
+
+    - In jeder Nacht unter der Woche kopiert um 22 Uhr eine inkrementelle Sicherung nur, was sich seit dem Vortag geändert hat.
+
+    - Kritische Datenbanken, etwa Buchhaltung und Kundenverwaltung, werden tagsüber zusätzlich alle 4 Stunden gesichert.
+
+    - Tägliche Sicherungen werden 35 Tage aufbewahrt, wöchentliche Sicherungen 12 Wochen, und eine monatliche Sicherung wird wegen der Buchhaltungspflichten 7 Jahre lang behalten.
+
+
+    ## Begriffe
+
+    [[concept/anwendung]] · [[concept/anwendungen]] · [[concept/außerhalb]] · [[concept/register]] · [[concept/vorfall]] · [[concept/woche]]
+
+
+    Quelle: corpus/sauvegardes.md'
+- id: source/prestataires
+  kind: source
+  title_text: Sicherheitsrichtlinie für Dienstleister
+  synthesis_text: 'Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen. Die Stufe wird vor der Vertragsunterzeichnung von der Dienstleister-Einheit festgelegt und…'
+  sources:
+  - prestataires
+  audience: all
+  sha256: 2b74de57c17dd9df53f57b72df45dfcb18ffc2563fce9eb0240d1fae5eea64cb
+  text: '# Sicherheitsrichtlinie für Dienstleister
+
+
+    Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen. Die Stufe wird vor der Vertragsunterzeichnung von der Dienstleister-Einheit festgelegt und…
+
+
+    ## Kernpunkte
+
+    - Ein kritischer Dienstleister wird vor der Unterzeichnung und danach alle 3 Jahre auditiert und muss eine ISO-27001-Zertifizierung oder gleichwertig vorweisen.
+
+    - Die Dienstleister-Einheit, erreichbar unter der Durchwahl 3200, verfolgt die Liste der aktiven Dienstleister und ihrer Stufe und beendet die Beziehung, wenn ein Audit zweimal hintereinander scheitert.
+
+
+    ## Begriffe
+
+    [[concept/anvertraut]] · [[concept/dienstleister]] · [[concept/durchwahl]] · [[concept/einheit]] · [[concept/register]] · [[concept/schriftlich]] · [[concept/standard]]
+
+
+    Quelle: corpus/prestataires.md'
+- id: source/clauses_contrats
+  kind: source
+  title_text: Sicherheitsklauseln der Verträge
+  synthesis_text: 'Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt. Meldeklausel: Ein Dienstleister meldet Exemplia jeden Sicherheitsvorfall, der Daten oder Systeme von Exemplia betrifft,…'
+  sources:
+  - clauses_contrats
+  audience: all
+  sha256: 7d5ebec1cd3bbee179c2b788776e56234f14f14e75f90a01289eda9f03e0bcff
+  text: '# Sicherheitsklauseln der Verträge
+
+
+    Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt. Meldeklausel: Ein Dienstleister meldet Exemplia jeden Sicherheitsvorfall, der Daten oder Systeme von Exemplia betrifft,…
+
+
+    ## Kernpunkte
+
+    - Auditklausel: Exemplia oder ein von ihr benannter Prüfer kann die Einhaltung der Sicherheitsklauseln vor Ort oder aus der Ferne kontrollieren, mit einer Vorlaufzeit von 10 Arbeitstagen für einen Standard-Dienstleister und ohne Vorlaufzeit…
+
+    - Verschlüsselungsklausel: Jede von Exemplia stammende Daten, die der Dienstleister speichert, wird im Ruhezustand mit einem Algorithmus von mindestens 256 Bit und während der Übertragung mit einem aktuellen Protokoll verschlüsselt.
+
+    - Rückgabe- und Löschklausel: Am Ende des Vertrags oder auf Verlangen von Exemplia gibt der Dienstleister die Daten in einem nutzbaren Format zurück und löscht sie dann von allen seinen Systemen, einschließlich seiner Sicherungskopien, inner…
+
+
+    ## Begriffe
+
+    [[concept/dienstleister]] · [[concept/einheit]] · [[concept/erlaubt]] · [[concept/klauseln]] · [[concept/register]] · [[concept/standard]] · [[concept/vorfall]]
+
+
+    Quelle: corpus/clauses_contrats.md'
+- id: source/registre_sous_traitants
+  kind: source
+  title_text: Register der Unterauftragnehmer
+  synthesis_text: 'Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das Land, in dem er Daten hostet oder verarbeitet, und die Stufe des beauftragenden Dienstleisters. NuageS…'
+  sources:
+  - registre_sous_traitants
+  audience: all
+  sha256: 02df97df0cd8d1d1e0ef367379ae1527c18577089c82a3f25ca751311d285788
+  text: '# Register der Unterauftragnehmer
+
+
+    Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das Land, in dem er Daten hostet oder verarbeitet, und die Stufe des beauftragenden Dienstleisters. NuageS…
+
+
+    ## Kernpunkte
+
+    - SupportNuit, Telefonsupport der Stufe 1 außerhalb der Geschäftszeiten, Portugal, kritischer Dienstleister.
+
+
+    ## Begriffe
+
+    [[concept/außerhalb]] · [[concept/dienstleister]] · [[concept/einheit]] · [[concept/klauseln]] · [[concept/register]] · [[concept/standard]]
+
+
+    Quelle: corpus/registre_sous_traitants.md'
+- id: source/gestion_crise
+  kind: source
+  title_text: Krisenmanagementverfahren
+  synthesis_text: Dieses Verfahren übernimmt vom Meldeverfahren für Vorfälle, sobald ein Vorfall der Stufe 3 erklärt wird oder mehrere Standorte von Exemplia gleichzeitig betroffen sind. Der Krisenstab tritt Tag und Nacht innerhalb von weniger als 2 Stunden zusammen, unter dem Vorsitz des Geschäftsführers oder, in d…
+  sources:
+  - gestion_crise
+  audience: all
+  sha256: 4fe450eb7c63c8a0c0dbd1c9ee8e460a0e1aaca879b6d580062f69ac07409489
+  text: '# Krisenmanagementverfahren
+
+
+    Dieses Verfahren übernimmt vom Meldeverfahren für Vorfälle, sobald ein Vorfall der Stufe 3 erklärt wird oder mehrere Standorte von Exemplia gleichzeitig betroffen sind. Der Krisenstab tritt Tag und Nacht innerhalb von weniger als 2 Stunden zusammen, unter dem Vorsitz des Geschäftsführers oder, in d…
+
+
+    ## Kernpunkte
+
+    - Der Krisenstab teilt den betroffenen Direktionen alle 2 Stunden eine Lageeinschätzung mit, und eine einzige Mitteilung an die Mitarbeitenden wird vor jeder Veröffentlichung freigegeben.
+
+
+    ## Begriffe
+
+    [[concept/datenschutzbeauftragten]] · [[concept/krisenstab]] · [[concept/uhrzeit]] · [[concept/vorfall]] · [[concept/zentrale]]
+
+
+    Quelle: corpus/gestion_crise.md'
+- id: source/astreinte
+  kind: source
+  title_text: Anlage der Bereitschaftskontakte
+  synthesis_text: 'Diese Anlage zum Krisenmanagementverfahren listet die Kontakte, die außerhalb der Geschäftszeiten, Tag und Nacht, je nach betroffenem Bereich zu erreichen sind. Sicherheitsbereitschaft, zuerst zu kontaktieren bei jedem größeren Vorfall nachts oder am Wochenende: Die einheitliche Bereitschaftsnummer…'
+  sources:
+  - astreinte
+  audience: all
+  sha256: a41f3a44e7549e022a77ea371335714f42918fd5856a29d658931c03028aa761
+  text: '# Anlage der Bereitschaftskontakte
+
+
+    Diese Anlage zum Krisenmanagementverfahren listet die Kontakte, die außerhalb der Geschäftszeiten, Tag und Nacht, je nach betroffenem Bereich zu erreichen sind. Sicherheitsbereitschaft, zuerst zu kontaktieren bei jedem größeren Vorfall nachts oder am Wochenende: Die einheitliche Bereitschaftsnummer…
+
+
+    ## Kernpunkte
+
+    - Die Rotation wechselt jeden Montag um 9 Uhr; die Person der Wochenbereitschaft wird im Intranet bekanntgegeben.
+
+    - Infrastrukturbereitschaft, bei einem Server- oder Netzwerkausfall: Durchwahl 4100, dann 06 11 12 13 14, wenn innerhalb von 15 Minuten keine Antwort erfolgt.
+
+    - Kommunikationsbereitschaft, zur Vorbereitung einer dringenden externen Mitteilung: Durchwahl 4200.
+
+    - Rechtsbereitschaft, bei einer Frage zur regulatorischen Meldung: Durchwahl 4300.
+
+
+    ## Begriffe
+
+    [[concept/außerhalb]] · [[concept/durchwahl]] · [[concept/person]] · [[concept/register]] · [[concept/uhrzeit]] · [[concept/vorfall]]
+
+
+    Quelle: corpus/astreinte.md'
+- id: source/charte_messagerie_v1
+  kind: source
+  title_text: E-Mail-Richtlinie, Version 1 (2024)
+  synthesis_text: 'Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können. Das berufliche Postfach von Exemplia ist ausschließlich der beruflichen Nutzung vorbehalten; eine gelegentliche privat…'
+  sources:
+  - charte_messagerie_v1
+  audience: all
+  sha256: 36bf9eae0101da3bc8fe70c12e2d606972d6fc57680fbc297ec5f2aae19f5cdc
+  text: '# E-Mail-Richtlinie, Version 1 (2024)
+
+
+    Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können. Das berufliche Postfach von Exemplia ist ausschließlich der beruflichen Nutzung vorbehalten; eine gelegentliche privat…
+
+
+    ## Kernpunkte
+
+    - Jede Nachricht darf mit ihren Anhängen 10 MB nicht überschreiten; darüber hinaus ist ein temporärer Freigabelink zu verwenden.
+
+    - Gesendete und empfangene Nachrichten werden 1 Jahr im Postfach aufbewahrt, danach automatisch archiviert und aus dem Hauptpostfach entfernt.
+
+    - Eine versehentlich gelöschte Nachricht kann vom Support innerhalb von 30 Tagen nach der Löschung wiederhergestellt werden, danach ist sie verloren.
+
+
+    ## Begriffe
+
+    [[concept/gesendete]] · [[concept/informationen]] · [[concept/loschung]] · [[concept/nachricht]] · [[concept/richtlinie]] · [[concept/version]]
+
+
+    Quelle: corpus/charte_messagerie_v1.md'
+- id: source/charte_messagerie_v2
+  kind: source
+  title_text: E-Mail-Richtlinie, Version 2 (2026)
+  synthesis_text: 'Diese Version ersetzt Version 1 seit dem 1. Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen Wechsel des E-Mail-Anbieters: Dies ist die aktuell gültige Version.'
+  sources:
+  - charte_messagerie_v2
+  audience: all
+  sha256: 45657ebe8bd8a35f5b3b00888d22fea2f843dd9e3558baec466ee83285ce97f3
+  text: '# E-Mail-Richtlinie, Version 2 (2026)
+
+
+    Diese Version ersetzt Version 1 seit dem 1. Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen Wechsel des E-Mail-Anbieters: Dies ist die aktuell gültige Version.
+
+
+    ## Kernpunkte
+
+    - Jede Nachricht kann mit ihren Anhängen dank des neuen Anbieters nun bis zu 25 MB groß sein; darüber hinaus bleibt ein temporärer Freigabelink erforderlich.
+
+    - Nachrichten werden 3 Jahre im Postfach aufbewahrt, bevor sie archiviert werden, gegenüber 1 Jahr in der vorherigen Version: Diese Änderung entspricht einer Aufbewahrungspflicht der Branche.
+
+    - Eine versehentlich gelöschte Nachricht kann wie bisher vom Support innerhalb von 30 Tagen wiederhergestellt werden.
+
+
+    ## Begriffe
+
+    [[concept/gesendete]] · [[concept/informationen]] · [[concept/nachricht]] · [[concept/version]] · [[concept/wechsel]]
+
+
+    Quelle: corpus/charte_messagerie_v2.md'
+- id: source/note_changement_messagerie
+  kind: source
+  title_text: Änderungsmitteilung zur Messaging-Umstellung
+  synthesis_text: Diese Mitteilung erklärt den Übergang von Version 1 zu Version 2 der E-Mail-Richtlinie, gültig seit dem 1. Januar 2026.
+  sources:
+  - note_changement_messagerie
+  audience: all
+  sha256: 70bc13a8f71e95c0fb8ec9ade29c7040ec434d597a9b3642beac0a8e54b00fa1
+  text: '# Änderungsmitteilung zur Messaging-Umstellung
+
+
+    Diese Mitteilung erklärt den Übergang von Version 1 zu Version 2 der E-Mail-Richtlinie, gültig seit dem 1. Januar 2026.
+
+
+    ## Kernpunkte
+
+    - Exemplia hat am 1.
+
+    - Januar 2026 den E-Mail-Anbieter gewechselt, nach einer 2025 durchgeführten Ausschreibung.
+
+    - Dieser Wechsel führte zur Überarbeitung der E-Mail-Richtlinie, von ihrer Version 1 zu ihrer Version 2.
+
+    - Erstens steigt die maximale Größe einer Nachricht von 10 MB auf 25 MB.
+
+
+    ## Begriffe
+
+    [[concept/durchwahl]] · [[concept/nachricht]] · [[concept/richtlinie]] · [[concept/version]] · [[concept/wechsel]]
+
+
+    Quelle: corpus/note_changement_messagerie.md'
+- id: source/rundschreiben_usb
+  kind: source
+  title_text: Rundschreiben zu USB-Speichermedien
+  synthesis_text: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet. Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale angeschlossen werden.
+  sources:
+  - rundschreiben_usb
+  audience: all
+  sha256: fc03641184a236d808049e4aa3b99d9b01335e38ea39dbc1f295c6def8891bef
+  text: '# Rundschreiben zu USB-Speichermedien
+
+
+    Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet. Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale angeschlossen werden.
+
+
+    ## Kernpunkte
+
+    - Jede Mitarbeiterin und jeder Mitarbeiter, der einen USB-Speicher benötigt, erhält auf Anfrage einen von der IT-Abteilung ausgegebenen, verschlüsselten USB-Stick mit 256-Bit-Verschlüsselung.
+
+    - Ein von der IT-Abteilung ausgegebener USB-Stick wird nach spätestens 2 Jahren gegen ein neues Modell ausgetauscht, unabhängig von seinem Zustand.
+
+    - Ein verlorener oder gestohlener USB-Stick wird innerhalb von 24 Stunden der Sicherheitsabteilung gemeldet, genau wie ein verlorenes Notebook nach der allgemeinen Richtlinie zu Sicherheitsvorfällen.
+
+
+    ## Begriffe
+
+    [[concept/abteilung]] · [[concept/empfang]] · [[concept/richtlinie]] · [[concept/zentrale]]
+
+
+    Quelle: corpus/rundschreiben_usb.md'
+- id: source/uk_visitor_badges
+  kind: source
+  title_text: Besucherausweise der britischen Niederlassung (nur auf Englisch)
+  synthesis_text: This policy applies only to Exemplia's United Kingdom subsidiary, in Manchester; it exists in English only, as the local reception team works in that language. Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor regist…
+  sources:
+  - uk_visitor_badges
+  audience: all
+  sha256: 215c9b86c125ae410cce3c0fa38da6557a816b4f17a9b534f0b4f933eee4c3ef
+  text: '# Besucherausweise der britischen Niederlassung (nur auf Englisch)
+
+
+    This policy applies only to Exemplia''s United Kingdom subsidiary, in Manchester; it exists in English only, as the local reception team works in that language. Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor regist…
+
+
+    ## Kernpunkte
+
+    - The visitor register, with the visitor''s name, company, host and times of arrival and departure, is kept for 90 days, in line with the data retention rules of the physical access policy, then deleted.
+
+
+    ## Begriffe
+
+    [[concept/register]]
+
+
+    Quelle: corpus/uk_visitor_badges.md'
+- id: source/plan_continuite_lyon
+  kind: source
+  title_text: Kontinuitätsplan des Standorts Lyon (nur auf Französisch)
+  synthesis_text: Ce document concerne uniquement le site de Lyon d'Exemplia ; il n'existe qu'en français, car il relève d'une équipe locale qui travaille dans cette langue. Si le site principal de Lyon devient inaccessible, pour cause d'incendie, de panne électrique prolongée ou d'évacuation, le site de repli de Vi…
+  sources:
+  - plan_continuite_lyon
+  audience: all
+  sha256: c7cec5cb0d1033f9c67e7072770a0c5bdd795745ce1fa13505aff4b51e1a9002
+  text: '# Kontinuitätsplan des Standorts Lyon (nur auf Französisch)
+
+
+    Ce document concerne uniquement le site de Lyon d''Exemplia ; il n''existe qu''en français, car il relève d''une équipe locale qui travaille dans cette langue. Si le site principal de Lyon devient inaccessible, pour cause d''incendie, de panne électrique prolongée ou d''évacuation, le site de repli de Vi…
+
+
+    ## Kernpunkte
+
+    - Ce site de repli accueille jusqu''à 50 personnes, avec des postes de travail et une connexion réseau indépendante du site principal.
+
+
+    Quelle: corpus/plan_continuite_lyon.md'
+- id: source/grille_remunerations
+  kind: source
+  title_text: Vergütungstabelle
+  synthesis_text: Dieses Dokument beschreibt die Vergütungsstruktur von Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung und der Geschäftsleitung vorbehalten. Die Tabelle umfasst 5 Kategorien, von Kategorie A (Einstiegspositionen) bis Kategorie E (Geschäftsleitung), jede in 3 Stu…
+  sources:
+  - grille_remunerations
+  audience: hr
+  sha256: b05afb685ec7526511e8e2c55c969a89e17c54d47054841ad08803d68ab212ce
+  text: '# Vergütungstabelle
+
+
+    Dieses Dokument beschreibt die Vergütungsstruktur von Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung und der Geschäftsleitung vorbehalten. Die Tabelle umfasst 5 Kategorien, von Kategorie A (Einstiegspositionen) bis Kategorie E (Geschäftsleitung), jede in 3 Stu…
+
+
+    ## Kernpunkte
+
+    - Der Wechsel von einer Stufe zur nächsten erfolgt automatisch nach 2 Jahren, außer bei schriftlich begründetem Einfrieren.
+
+    - Die Überprüfung tritt am 1.
+
+
+    ## Begriffe
+
+    [[concept/außerhalb]] · [[concept/geschaftsleitung]] · [[concept/schriftlich]] · [[concept/uberprufung]] · [[concept/vertraulich]] · [[concept/wechsel]]
+
+
+    Quelle: corpus/grille_remunerations.md'
+- id: source/dossier_disciplinaire
+  kind: source
+  title_text: Disziplinarverfahren
+  synthesis_text: Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung, der Geschäftsleitung und, bei einer eigenen Akte, der betroffenen Person selbst vorbehalten. Ein Verhaltensproblem oder ein Verstoß führt je…
+  sources:
+  - dossier_disciplinaire
+  audience: hr
+  sha256: 204a507a771183077e5c81dcc5b0a6f7c86eca9fc1394f6cf84bc52a44859ffb
+  text: '# Disziplinarverfahren
+
+
+    Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung, der Geschäftsleitung und, bei einer eigenen Akte, der betroffenen Person selbst vorbehalten. Ein Verhaltensproblem oder ein Verstoß führt je…
+
+
+    ## Kernpunkte
+
+    - Das Gespräch wird mindestens 5 Arbeitstage vor dem Termin schriftlich mit Angabe des Grundes einberufen.
+
+    - Die Entscheidung wird innerhalb von 10 Arbeitstagen nach dem Gespräch schriftlich mit den internen Widerspruchsmöglichkeiten mitgeteilt.
+
+    - Eine schriftliche Abmahnung bleibt 3 Jahre in der Akte; nach dieser Frist wird sie bei einer späteren Maßnahme nicht mehr berücksichtigt, außer bei einem Rückfall mit demselben Verstoß vor ihrer Löschung.
+
+    - Die vollständige Disziplinarakte einer Person wird 5 Jahre nach deren Austritt aus Exemplia aufbewahrt und dann anonymisiert, gemäß der Richtlinie zur Aufbewahrung personenbezogener Daten.
+
+
+    ## Begriffe
+
+    [[concept/geschaftsleitung]] · [[concept/gesprach]] · [[concept/loschung]] · [[concept/person]] · [[concept/richtlinie]] · [[concept/schriftlich]] · [[concept/vertraulich]]
+
+
+    Quelle: corpus/dossier_disciplinaire.md'
+- id: source/entretiens_annuels
+  kind: source
+  title_text: Verfahren der Jahresgespräche
+  synthesis_text: Dieses Dokument beschreibt das Jahresgespräch von Exemplia, das von der direkten Führungskraft jeder Person geführt wird; es ist als Personaldokument eingestuft. Das Gespräch findet jedes Jahr im ersten Quartal statt, zwischen Januar und März.
+  sources:
+  - entretiens_annuels
+  audience: hr
+  sha256: 94c913da23a8614f3873d71c0df2331c196c05c2aa4ed3c656d0bf606a0da8e5
+  text: '# Verfahren der Jahresgespräche
+
+
+    Dieses Dokument beschreibt das Jahresgespräch von Exemplia, das von der direkten Führungskraft jeder Person geführt wird; es ist als Personaldokument eingestuft. Das Gespräch findet jedes Jahr im ersten Quartal statt, zwischen Januar und März.
+
+
+    ## Kernpunkte
+
+    - Die Person füllt zunächst innerhalb der 2 Wochen vor dem festgelegten Termin eine Selbsteinschätzung aus; danach findet das Gespräch für mindestens 45 Minuten nur mit der direkten Führungskraft statt.
+
+    - Das von der Führungskraft verfasste und von der Person gelesene Protokoll wird innerhalb von 10 Arbeitstagen nach dem Gespräch von beiden Seiten unterschrieben.
+
+    - Die Protokolle werden 3 Jahre von der Personalabteilung aufbewahrt, um die Entwicklung der Ziele und des Weiterbildungsbedarfs einer Person über mehrere Jahre zu verfolgen.
+
+
+    ## Begriffe
+
+    [[concept/gesprach]] · [[concept/person]]
+
+
+    Quelle: corpus/entretiens_annuels.md'
+- id: source/acces_physique
+  kind: source
+  title_text: Physischer Zugang zu den Räumlichkeiten
+  synthesis_text: 'Jeder Standort von Exemplia ist in 3 Zonen unterteilt: normal (Empfang, Großraumbüro), eingeschränkt (sensible Besprechungsräume, technische Räume) und gesichert (Serverraum, Krisenraum). Ein persönliches Zugangsabzeichen, das jeder Person ab ihrem ersten Tag ausgestellt wird, gewährt Zugang zu den…'
+  sources:
+  - acces_physique
+  audience: all
+  sha256: 7852962703395efb61c9457cfee63537b520e85785336b8268200fa11181d518
+  text: '# Physischer Zugang zu den Räumlichkeiten
+
+
+    Jeder Standort von Exemplia ist in 3 Zonen unterteilt: normal (Empfang, Großraumbüro), eingeschränkt (sensible Besprechungsräume, technische Räume) und gesichert (Serverraum, Krisenraum). Ein persönliches Zugangsabzeichen, das jeder Person ab ihrem ersten Tag ausgestellt wird, gewährt Zugang zu den…
+
+
+    ## Kernpunkte
+
+    - Das Besucherabzeichen wird beim Verlassen am Empfang zurückgegeben; das Besucherregister wird 90 Tage aufbewahrt.
+
+    - Das Abzeichen einer Person, die Exemplia verlässt, wird innerhalb von 24 Stunden nach ihrem Austritt deaktiviert.
+
+    - Jeder Zugang, ob gewährt oder verweigert, wird protokolliert und 6 Monate aufbewahrt, einsehbar bei einer Sicherheitsuntersuchung oder einer Überprüfung der Berechtigungen.
+
+
+    ## Begriffe
+
+    [[concept/berechtigungen]] · [[concept/deaktiviert]] · [[concept/empfang]] · [[concept/person]] · [[concept/uberprufung]]
+
+
+    Quelle: corpus/acces_physique.md'
+- id: source/revue_habilitations
+  kind: source
+  title_text: Überprüfung der Berechtigungen
+  synthesis_text: Eine Berechtigung ist ein Zugangsrecht zu einer Anwendung, einem gemeinsamen Ordner oder einer physischen Zone, wie in der Zugangsrichtlinie für Räumlichkeiten beschrieben. Dieses Dokument legt die Regeln für ihre regelmäßige Überprüfung fest.
+  sources:
+  - revue_habilitations
+  audience: all
+  sha256: 621e7e28c76d963f3b73cf2ecac5aad05672fe40d15e144232b5ef23a4dfca40
+  text: '# Überprüfung der Berechtigungen
+
+
+    Eine Berechtigung ist ein Zugangsrecht zu einer Anwendung, einem gemeinsamen Ordner oder einer physischen Zone, wie in der Zugangsrichtlinie für Räumlichkeiten beschrieben. Dieses Dokument legt die Regeln für ihre regelmäßige Überprüfung fest.
+
+
+    ## Kernpunkte
+
+    - Das Konto einer Person, die Exemplia verlässt, wird am Tag ihres Austritts deaktiviert, und ihre Berechtigungen werden innerhalb von 48 Stunden entzogen; ein Konto ohne erkennbaren Inhaber, ein sogenanntes verwaistes Konto, wird sofort bei…
+
+    - Festgestellte Abweichungen werden innerhalb von 15 Arbeitstagen korrigiert.
+
+
+    ## Begriffe
+
+    [[concept/anwendung]] · [[concept/berechtigungen]] · [[concept/deaktiviert]] · [[concept/gesperrt]] · [[concept/konto]] · [[concept/person]] · [[concept/register]] · [[concept/uberprufung]]
+
+
+    Quelle: corpus/revue_habilitations.md'
+- id: source/formation_securite
+  kind: source
+  title_text: Sicherheitsschulung
+  synthesis_text: Jede Person bei Exemplia nimmt an einer zweistündigen Online-Schulung zur Informationssicherheit teil und besteht anschließend einen Fragebogen mit mindestens 8 richtigen Antworten von 10, um sie zu erhalten. Neue Mitarbeitende absolvieren sie im ersten Monat; sie wird jedes Jahr für alle erneuert.
+  sources:
+  - formation_securite
+  audience: all
+  sha256: 9430b79e4e9252a27b05a45535dc8228fac55569771812adda282dbdc80df0a7
+  text: '# Sicherheitsschulung
+
+
+    Jede Person bei Exemplia nimmt an einer zweistündigen Online-Schulung zur Informationssicherheit teil und besteht anschließend einen Fragebogen mit mindestens 8 richtigen Antworten von 10, um sie zu erhalten. Neue Mitarbeitende absolvieren sie im ersten Monat; sie wird jedes Jahr für alle erneuert.
+
+
+    ## Kernpunkte
+
+    - Wer auf den simulierten Link klickt, erhält sofort eine kurze Erklärung und eine zusätzliche Schulung von 20 Minuten; eine erste erfolgreiche simulierte Attacke zieht keine Sanktion nach sich.
+
+
+    ## Begriffe
+
+    [[concept/berechtigungen]] · [[concept/fragebogen]] · [[concept/gesprach]] · [[concept/informationen]] · [[concept/person]] · [[concept/schulung]] · [[concept/uberprufung]]
+
+
+    Quelle: corpus/formation_securite.md'
+- id: concept/abteilung
+  kind: concept
+  title_text: abteilung
+  synthesis_text: Der Eigentümer der Information, in der Regel die Leitung der Abteilung, kann diese Stufe anheben oder absenken.
+  sources:
+  - classification
+  - donnees_personnelles
+  - rundschreiben_usb
+  audience: all
+  sha256: affc9edb4575f9bfe21fa549e0b04aab49e55d4360c66e91db1fb8103879cecc
+  text: '# abteilung
+
+
+    Der Eigentümer der Information, in der Regel die Leitung der Abteilung, kann diese Stufe anheben oder absenken.
+
+
+    ## Was die Quellen sagen
+
+    - Der Eigentümer der Information, in der Regel die Leitung der Abteilung, kann diese Stufe anheben oder absenken. ([[source/classification]])
+
+    - Eine Abteilung, die Daten länger behalten muss, etwa wegen eines laufenden Rechtsstreits, braucht vor der Bereinigung eine schriftliche Ausnahmegenehmigung der Rechtsabteilung. ([[source/donnees_personnelles]])
+
+    - Jede Mitarbeiterin und jeder Mitarbeiter, der einen USB-Speicher benötigt, erhält auf Anfrage einen von der IT-Abteilung ausgegebenen, verschlüsselten USB-Stick mit 256-Bit-Verschlüsselung. ([[source/rundschreiben_usb]])'
+- id: concept/anvertraut
+  kind: concept
+  title_text: anvertraut
+  synthesis_text: 'Das Standardwerkzeug ist ExempliaGPT, ein Assistent, der im Rechenzentrum von Exemplia betrieben wird: Die Texte, die man ihm anvertraut, verlassen das Unternehmen nicht und dienen nicht zum Training eines Modells.'
+  sources:
+  - ia_generative
+  - prestataires
+  audience: all
+  sha256: 0b8679fcc970931fd98ff523044d7586045412901400724d5010228177866e77
+  text: '# anvertraut
+
+
+    Das Standardwerkzeug ist ExempliaGPT, ein Assistent, der im Rechenzentrum von Exemplia betrieben wird: Die Texte, die man ihm anvertraut, verlassen das Unternehmen nicht und dienen nicht zum Training eines Modells.
+
+
+    ## Was die Quellen sagen
+
+    - Das Standardwerkzeug ist ExempliaGPT, ein Assistent, der im Rechenzentrum von Exemplia betrieben wird: Die Texte, die man ihm anvertraut, verlassen das Unternehmen nicht und dienen nicht zum Training eines Modells. ([[source/ia_generative]])
+
+    - Daten, die einem Dienstleister anvertraut werden, bleiben innerhalb der Europäischen Union gehostet, außer bei einer schriftlichen Ausnahme, die vom Sicherheitsausschuss genehmigt wurde. ([[source/prestataires]])'
+- id: concept/anwendung
+  kind: concept
+  title_text: anwendung
+  synthesis_text: Die Wiederherstellungsziele werden pro Anwendung festgelegt.
+  sources:
+  - sauvegardes
+  - revue_habilitations
+  audience: all
+  sha256: 30e192cac1301bbd67b36898d099077a9d144939b08b7924007e271701d429b1
+  text: '# anwendung
+
+
+    Die Wiederherstellungsziele werden pro Anwendung festgelegt.
+
+
+    ## Was die Quellen sagen
+
+    - Die Wiederherstellungsziele werden pro Anwendung festgelegt. ([[source/sauvegardes]])
+
+    - Eine Berechtigung ist ein Zugangsrecht zu einer Anwendung, einem gemeinsamen Ordner oder einer physischen Zone, wie in der Zugangsrichtlinie für Räumlichkeiten beschrieben. ([[source/revue_habilitations]])'
+- id: concept/anwendungen
+  kind: concept
+  title_text: anwendungen
+  synthesis_text: Anmeldeprotokolle der Anwendungen werden 12 Monate aufbewahrt, Aufnahmen der Videoüberwachung der Räume 30 Tage, und deaktivierte Zutrittsausweise werden 3 Monate nach dem Ausscheiden des Mitarbeiters gelöscht.
+  sources:
+  - donnees_personnelles
+  - sauvegardes
+  audience: all
+  sha256: e02569b067723c4fc3a7ac7145dbee5bff30e704144d9aca3e085ae5bbc4ae5b
+  text: '# anwendungen
+
+
+    Anmeldeprotokolle der Anwendungen werden 12 Monate aufbewahrt, Aufnahmen der Videoüberwachung der Räume 30 Tage, und deaktivierte Zutrittsausweise werden 3 Monate nach dem Ausscheiden des Mitarbeiters gelöscht.
+
+
+    ## Was die Quellen sagen
+
+    - Anmeldeprotokolle der Anwendungen werden 12 Monate aufbewahrt, Aufnahmen der Videoüberwachung der Räume 30 Tage, und deaktivierte Zutrittsausweise werden 3 Monate nach dem Ausscheiden des Mitarbeiters gelöscht. ([[source/donnees_personnelles]])
+
+    - Diese Regel gilt für die Dateiserver, die Datenbanken der Anwendungen und die E-Mail. ([[source/sauvegardes]])'
+- id: concept/außerhalb
+  kind: concept
+  title_text: außerhalb
+  synthesis_text: Außerhalb des Standorts verbindet sich der Arbeitsrechner über das VPN des Unternehmens mit dem Netz von Exemplia.
+  sources:
+  - teletravail
+  - deplacements
+  - sauvegardes
+  - registre_sous_traitants
+  - astreinte
+  - grille_remunerations
+  audience: hr
+  sha256: 146e8142b30f915ee68611dbc8f63ce2efa8990727b09146064071368ab6368f
+  text: '# außerhalb
+
+
+    Außerhalb des Standorts verbindet sich der Arbeitsrechner über das VPN des Unternehmens mit dem Netz von Exemplia.
+
+
+    ## Was die Quellen sagen
+
+    - Außerhalb des Standorts verbindet sich der Arbeitsrechner über das VPN des Unternehmens mit dem Netz von Exemplia. ([[source/teletravail]])
+
+    - Eine Buchung außerhalb von Voyagex wird nur ausnahmsweise erstattet, mit schriftlicher Begründung. ([[source/deplacements]])
+
+    - Die Daten von Exemplia folgen der 3-2-1-Regel: mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon 1 Kopie außerhalb des Hauptstandorts. ([[source/sauvegardes]])
+
+    - SupportNuit, Telefonsupport der Stufe 1 außerhalb der Geschäftszeiten, Portugal, kritischer Dienstleister. ([[source/registre_sous_traitants]])
+
+    - Diese Anlage zum Krisenmanagementverfahren listet die Kontakte, die außerhalb der Geschäftszeiten, Tag und Nacht, je nach betroffenem Bereich zu erreichen sind. ([[source/astreinte]])
+
+    - Fragen zur eigenen Einstufung in der Tabelle werden an die zuständige Personalbetreuung gerichtet; die vollständige Tabelle mit Beträgen wird niemals außerhalb der Personalabteilung und der Geschäftsleitung verbreitet, um die Vertraulichke… ([[source/grille_remunerations]])'
+- id: concept/berechtigungen
+  kind: concept
+  title_text: berechtigungen
+  synthesis_text: Jeder Zugang, ob gewährt oder verweigert, wird protokolliert und 6 Monate aufbewahrt, einsehbar bei einer Sicherheitsuntersuchung oder einer Überprüfung der Berechtigungen.
+  sources:
+  - acces_physique
+  - revue_habilitations
+  - formation_securite
+  audience: all
+  sha256: fc8495044581cdbefc173bc4c297cbd1214028fe2a3b89f274938662ea37453d
+  text: '# berechtigungen
+
+
+    Jeder Zugang, ob gewährt oder verweigert, wird protokolliert und 6 Monate aufbewahrt, einsehbar bei einer Sicherheitsuntersuchung oder einer Überprüfung der Berechtigungen.
+
+
+    ## Was die Quellen sagen
+
+    - Jeder Zugang, ob gewährt oder verweigert, wird protokolliert und 6 Monate aufbewahrt, einsehbar bei einer Sicherheitsuntersuchung oder einer Überprüfung der Berechtigungen. ([[source/acces_physique]])
+
+    - Jede Führungskraft überprüft vierteljährlich die Liste der Berechtigungen ihres Teams: Sie bestätigt die weiterhin nötigen und meldet die zu entziehenden, etwa nach einem Stellenwechsel. ([[source/revue_habilitations]])
+
+    - Die Personalabteilung führt die Liste der absolvierten Schulungen, nützlich für die Überprüfung der Berechtigungen und für den künftigen Weiterbildungsbedarf im Jahresgespräch. ([[source/formation_securite]])'
+- id: concept/datenschutzbeauftragten
+  kind: concept
+  title_text: datenschutzbeauftragten
+  synthesis_text: Sie löscht oder anonymisiert Daten, deren Frist abgelaufen ist, und erstellt einen Bericht an den Datenschutzbeauftragten.
+  sources:
+  - donnees_personnelles
+  - gestion_crise
+  audience: all
+  sha256: 371ad757767ac2bd4ebbe0aef4ebdc98db885cc454d1e88d1e4a97a900b4e006
+  text: '# datenschutzbeauftragten
+
+
+    Sie löscht oder anonymisiert Daten, deren Frist abgelaufen ist, und erstellt einen Bericht an den Datenschutzbeauftragten.
+
+
+    ## Was die Quellen sagen
+
+    - Sie löscht oder anonymisiert Daten, deren Frist abgelaufen ist, und erstellt einen Bericht an den Datenschutzbeauftragten. ([[source/donnees_personnelles]])
+
+    - Der Krisenstab umfasst mindestens den Informationssicherheitsbeauftragten, den Kommunikationsdirektor, den Datenschutzbeauftragten, wenn personenbezogene Daten betroffen sind, und einen Vertreter der Rechtsabteilung. ([[source/gestion_crise]])'
+- id: concept/deaktiviert
+  kind: concept
+  title_text: deaktiviert
+  synthesis_text: Ein verlorenes Abzeichen wird sofort dem Empfang gemeldet, der es innerhalb einer Stunde deaktiviert; ein neues Abzeichen wird nach einer Identitätsprüfung ausgestellt.
+  sources:
+  - acces_physique
+  - revue_habilitations
+  audience: all
+  sha256: d34d05888765dba7574c595044753bfb4ec81a29383fa937535d393d203f0200
+  text: '# deaktiviert
+
+
+    Ein verlorenes Abzeichen wird sofort dem Empfang gemeldet, der es innerhalb einer Stunde deaktiviert; ein neues Abzeichen wird nach einer Identitätsprüfung ausgestellt.
+
+
+    ## Was die Quellen sagen
+
+    - Ein verlorenes Abzeichen wird sofort dem Empfang gemeldet, der es innerhalb einer Stunde deaktiviert; ein neues Abzeichen wird nach einer Identitätsprüfung ausgestellt. ([[source/acces_physique]])
+
+    - Das Konto einer Person, die Exemplia verlässt, wird am Tag ihres Austritts deaktiviert, und ihre Berechtigungen werden innerhalb von 48 Stunden entzogen; ein Konto ohne erkennbaren Inhaber, ein sogenanntes verwaistes Konto, wird sofort bei… ([[source/revue_habilitations]])'
+- id: concept/dienstleister
+  kind: concept
+  title_text: dienstleister
+  synthesis_text: 'Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen.'
+  sources:
+  - prestataires
+  - clauses_contrats
+  - registre_sous_traitants
+  audience: all
+  sha256: 49fb04c7c855f7e69c4b169aa95c0d76ff96355b21c9278664f564decf0424d2
+  text: '# dienstleister
+
+
+    Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen.
+
+
+    ## Was die Quellen sagen
+
+    - Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen. ([[source/prestataires]])
+
+    - Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt. ([[source/clauses_contrats]])
+
+    - Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das Land, in dem er Daten hostet oder verarbei… ([[source/registre_sous_traitants]])'
+- id: concept/durchwahl
+  kind: concept
+  title_text: durchwahl
+  synthesis_text: Bei der dritten Sperre am selben Tag bleibt das Konto gesperrt, bis der Support eingreift, erreichbar unter der Durchwahl 3100.
+  sources:
+  - mots_de_passe
+  - prestataires
+  - astreinte
+  - note_changement_messagerie
+  audience: all
+  sha256: 21ea01f1f5d04b70b3716ec47f91f730dab5660d02849130c35f7c65eea65293
+  text: '# durchwahl
+
+
+    Bei der dritten Sperre am selben Tag bleibt das Konto gesperrt, bis der Support eingreift, erreichbar unter der Durchwahl 3100.
+
+
+    ## Was die Quellen sagen
+
+    - Bei der dritten Sperre am selben Tag bleibt das Konto gesperrt, bis der Support eingreift, erreichbar unter der Durchwahl 3100. ([[source/mots_de_passe]])
+
+    - Die Dienstleister-Einheit, erreichbar unter der Durchwahl 3200, verfolgt die Liste der aktiven Dienstleister und ihrer Stufe und beendet die Beziehung, wenn ein Audit zweimal hintereinander scheitert. ([[source/prestataires]])
+
+    - Infrastrukturbereitschaft, bei einem Server- oder Netzwerkausfall: Durchwahl 4100, dann 06 11 12 13 14, wenn innerhalb von 15 Minuten keine Antwort erfolgt. ([[source/astreinte]])
+
+    - Fragen zur Migration gehen an den Support, Durchwahl 3100; Fragen zu den neuen Regeln der Richtlinie gehen an die Sicherheitseinheit. ([[source/note_changement_messagerie]])'
+- id: concept/einheit
+  kind: concept
+  title_text: einheit
+  synthesis_text: Die Stufe wird vor der Vertragsunterzeichnung von der Dienstleister-Einheit festgelegt und jedes Jahr überprüft.
+  sources:
+  - prestataires
+  - clauses_contrats
+  - registre_sous_traitants
+  audience: all
+  sha256: 70d72a8396e753c131f538a8a95a2445570a80eae91659dc1f512920dfbc7f96
+  text: '# einheit
+
+
+    Die Stufe wird vor der Vertragsunterzeichnung von der Dienstleister-Einheit festgelegt und jedes Jahr überprüft.
+
+
+    ## Was die Quellen sagen
+
+    - Die Stufe wird vor der Vertragsunterzeichnung von der Dienstleister-Einheit festgelegt und jedes Jahr überprüft. ([[source/prestataires]])
+
+    - Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt. ([[source/clauses_contrats]])
+
+    - Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das Land, in dem er Daten hostet oder verarbei… ([[source/registre_sous_traitants]])'
+- id: concept/empfang
+  kind: concept
+  title_text: empfang
+  synthesis_text: Externe Besucher und Lieferanten dürfen an der Zentrale keinen eigenen USB-Speicher anschließen; für einen Datenaustausch steht ein gesicherter Übertragungsdienst zur Verfügung, der vom Empfang vermittelt wird.
+  sources:
+  - rundschreiben_usb
+  - acces_physique
+  audience: all
+  sha256: 1e388c7e734debc15e8a86ce2bc9c9b55b6b88ebe6cc6d7e425eb99620fe05fc
+  text: '# empfang
+
+
+    Externe Besucher und Lieferanten dürfen an der Zentrale keinen eigenen USB-Speicher anschließen; für einen Datenaustausch steht ein gesicherter Übertragungsdienst zur Verfügung, der vom Empfang vermittelt wird.
+
+
+    ## Was die Quellen sagen
+
+    - Externe Besucher und Lieferanten dürfen an der Zentrale keinen eigenen USB-Speicher anschließen; für einen Datenaustausch steht ein gesicherter Übertragungsdienst zur Verfügung, der vom Empfang vermittelt wird. ([[source/rundschreiben_usb]])
+
+    - Jeder Standort von Exemplia ist in 3 Zonen unterteilt: normal (Empfang, Großraumbüro), eingeschränkt (sensible Besprechungsräume, technische Räume) und gesichert (Serverraum, Krisenraum). ([[source/acces_physique]])'
+- id: concept/erlaubt
+  kind: concept
+  title_text: erlaubt
+  synthesis_text: Arbeiten in einem öffentlichen WLAN, im Zug, im Café oder im Hotel, ist nur mit aktiviertem VPN und einem Blickschutzfilter auf dem Bildschirm erlaubt.
+  sources:
+  - teletravail
+  - deplacements
+  - clauses_contrats
+  audience: all
+  sha256: 3e0a8f018a3cbfc2ecb70f2fd0a95b4982f895c63298d73349b12dead853c1f8
+  text: '# erlaubt
+
+
+    Arbeiten in einem öffentlichen WLAN, im Zug, im Café oder im Hotel, ist nur mit aktiviertem VPN und einem Blickschutzfilter auf dem Bildschirm erlaubt.
+
+
+    ## Was die Quellen sagen
+
+    - Arbeiten in einem öffentlichen WLAN, im Zug, im Café oder im Hotel, ist nur mit aktiviertem VPN und einem Blickschutzfilter auf dem Bildschirm erlaubt. ([[source/teletravail]])
+
+    - Die erste Klasse ist erlaubt für eine Fahrt von mehr als 3 Stunden, die am Vortag der Abreise oder am selben Tag gebucht wird, wenn sie höchstens 20 % mehr kostet als die zweite. ([[source/deplacements]])
+
+    - Eine Klausel, die zweimal durch ein Audit beanstandet wird, erlaubt Exemplia, den Vertrag ohne Entschädigung für den Dienstleister zu kündigen. ([[source/clauses_contrats]])'
+- id: concept/fragebogen
+  kind: concept
+  title_text: fragebogen
+  synthesis_text: Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen Fragebogen mit mindestens 8 von 10 richtigen Antworten.
+  sources:
+  - ia_generative
+  - formation_securite
+  audience: all
+  sha256: 6417fa14b61b19c4d921aa044565d4f09edad675c8716f67720c201d0e979538
+  text: '# fragebogen
+
+
+    Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen Fragebogen mit mindestens 8 von 10 richtigen Antworten.
+
+
+    ## Was die Quellen sagen
+
+    - Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen Fragebogen mit mindestens 8 von 10 richtigen Antworten. ([[source/ia_generative]])
+
+    - Jede Person bei Exemplia nimmt an einer zweistündigen Online-Schulung zur Informationssicherheit teil und besteht anschließend einen Fragebogen mit mindestens 8 richtigen Antworten von 10, um sie zu erhalten. ([[source/formation_securite]])'
+- id: concept/geheim
+  kind: concept
+  title_text: geheim
+  synthesis_text: 'Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.'
+  sources:
+  - classification
+  - ia_generative
+  audience: all
+  sha256: 8f6bd440bd2060096842b08739e4d0658b4359870854c1bf58014a52d24b9daa
+  text: '# geheim
+
+
+    Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.
+
+
+    ## Was die Quellen sagen
+
+    - Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim. ([[source/classification]])
+
+    - Informationen der Stufe Geheim werden keinem KI-Tool anvertraut, auch keinem internen. ([[source/ia_generative]])'
+- id: concept/geschaftsleitung
+  kind: concept
+  title_text: geschäftsleitung
+  synthesis_text: Der zweite Faktor ist die App ExempliaPass auf dem Diensthandy; Administratoren und Mitglieder der Geschäftsleitung erhalten einen physischen Sicherheitsschlüssel.
+  sources:
+  - mots_de_passe
+  - grille_remunerations
+  - dossier_disciplinaire
+  audience: hr
+  sha256: f3f87024b227747ab480322a8a7ea8e58b62b6a89c0df2e9a5ddede0a7bcdf98
+  text: '# geschäftsleitung
+
+
+    Der zweite Faktor ist die App ExempliaPass auf dem Diensthandy; Administratoren und Mitglieder der Geschäftsleitung erhalten einen physischen Sicherheitsschlüssel.
+
+
+    ## Was die Quellen sagen
+
+    - Der zweite Faktor ist die App ExempliaPass auf dem Diensthandy; Administratoren und Mitglieder der Geschäftsleitung erhalten einen physischen Sicherheitsschlüssel. ([[source/mots_de_passe]])
+
+    - Dieses Dokument beschreibt die Vergütungsstruktur von Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung und der Geschäftsleitung vorbehalten. ([[source/grille_remunerations]])
+
+    - Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung, der Geschäftsleitung und, bei einer eigenen Akte, der betroffenen Person selbst… ([[source/dossier_disciplinaire]])'
+- id: concept/gesendete
+  kind: concept
+  title_text: gesendete
+  synthesis_text: 'Außerhalb dieser Zeiten gilt das Recht auf Nichterreichbarkeit: Keine nach 20 Uhr gesendete E-Mail verlangt vor dem nächsten Tag eine Antwort.'
+  sources:
+  - teletravail
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  audience: all
+  sha256: a5279997daaf5f7bdfd5248745fa0dfc2707d83ce5bbf2918abf0553789f4884
+  text: '# gesendete
+
+
+    Außerhalb dieser Zeiten gilt das Recht auf Nichterreichbarkeit: Keine nach 20 Uhr gesendete E-Mail verlangt vor dem nächsten Tag eine Antwort.
+
+
+    ## Was die Quellen sagen
+
+    - Außerhalb dieser Zeiten gilt das Recht auf Nichterreichbarkeit: Keine nach 20 Uhr gesendete E-Mail verlangt vor dem nächsten Tag eine Antwort. ([[source/teletravail]])
+
+    - Gesendete und empfangene Nachrichten werden 1 Jahr im Postfach aufbewahrt, danach automatisch archiviert und aus dem Hauptpostfach entfernt. ([[source/charte_messagerie_v1]])
+
+    - Eine versehentlich an einen falschen externen Empfänger gesendete Nachricht wird weiterhin innerhalb einer Stunde dem Reaktionsteam für Vorfälle gemeldet, besonders wenn sie vertrauliche Informationen oder personenbezogene Daten enthält. ([[source/charte_messagerie_v2]])'
+- id: concept/gesperrt
+  kind: concept
+  title_text: gesperrt
+  synthesis_text: Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt.
+  sources:
+  - mots_de_passe
+  - revue_habilitations
+  audience: all
+  sha256: bcf1e9d4bddbdb6b4ad23820dfd575a561b7d975e52a33bab204aecd8a1511e9
+  text: '# gesperrt
+
+
+    Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt.
+
+
+    ## Was die Quellen sagen
+
+    - Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt. ([[source/mots_de_passe]])
+
+    - Das Konto einer Person, die Exemplia verlässt, wird am Tag ihres Austritts deaktiviert, und ihre Berechtigungen werden innerhalb von 48 Stunden entzogen; ein Konto ohne erkennbaren Inhaber, ein sogenanntes verwaistes Konto, wird sofort bei… ([[source/revue_habilitations]])'
+- id: concept/gesprach
+  kind: concept
+  title_text: gespräch
+  synthesis_text: Jeder Maßnahme außer der mündlichen Ermahnung geht ein Gespräch voraus, bei dem sich die betroffene Person von einer Person ihrer Wahl begleiten lassen kann.
+  sources:
+  - dossier_disciplinaire
+  - entretiens_annuels
+  - formation_securite
+  audience: hr
+  sha256: f001381ab7c5fd73811853b4dfd00efc29a74d9c5f12a6cb5083797ed42b4cec
+  text: '# gespräch
+
+
+    Jeder Maßnahme außer der mündlichen Ermahnung geht ein Gespräch voraus, bei dem sich die betroffene Person von einer Person ihrer Wahl begleiten lassen kann.
+
+
+    ## Was die Quellen sagen
+
+    - Jeder Maßnahme außer der mündlichen Ermahnung geht ein Gespräch voraus, bei dem sich die betroffene Person von einer Person ihrer Wahl begleiten lassen kann. ([[source/dossier_disciplinaire]])
+
+    - Das Gespräch findet jedes Jahr im ersten Quartal statt, zwischen Januar und März. ([[source/entretiens_annuels]])
+
+    - Ein Nichtbestehen des Fragebogens nach zwei Versuchen führt zu einem Gespräch mit der direkten Führungskraft und einer neuen Sitzung innerhalb eines Monats. ([[source/formation_securite]])'
+- id: concept/hochstens
+  kind: concept
+  title_text: höchstens
+  synthesis_text: Exemplia zahlt eine Pauschale von 2,50 Euro pro Telearbeitstag, höchstens 55 Euro pro Monat.
+  sources:
+  - teletravail
+  - deplacements
+  audience: all
+  sha256: 1239dc7cd80ae980bfdd557ff319c1a79b596ca3c4eb7af358379a9ed9ca5149
+  text: '# höchstens
+
+
+    Exemplia zahlt eine Pauschale von 2,50 Euro pro Telearbeitstag, höchstens 55 Euro pro Monat.
+
+
+    ## Was die Quellen sagen
+
+    - Exemplia zahlt eine Pauschale von 2,50 Euro pro Telearbeitstag, höchstens 55 Euro pro Monat. ([[source/teletravail]])
+
+    - Die erste Klasse ist erlaubt für eine Fahrt von mehr als 3 Stunden, die am Vortag der Abreise oder am selben Tag gebucht wird, wenn sie höchstens 20 % mehr kostet als die zweite. ([[source/deplacements]])'
+- id: concept/informationen
+  kind: concept
+  title_text: informationen
+  synthesis_text: Die Stufe Geheim ist einer kurzen Liste strategischer Informationen vorbehalten, etwa Übernahmeprojekten oder detaillierten Notfallplänen.
+  sources:
+  - classification
+  - incidents
+  - ia_generative
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - formation_securite
+  audience: all
+  sha256: b5cd8b0202ff4685935b6a753db807fbe8faa1477769847bd6fa42a8dd5a172c
+  text: '# informationen
+
+
+    Die Stufe Geheim ist einer kurzen Liste strategischer Informationen vorbehalten, etwa Übernahmeprojekten oder detaillierten Notfallplänen.
+
+
+    ## Was die Quellen sagen
+
+    - Die Stufe Geheim ist einer kurzen Liste strategischer Informationen vorbehalten, etwa Übernahmeprojekten oder detaillierten Notfallplänen. ([[source/classification]])
+
+    - Ein Sicherheitsvorfall ist jedes Ereignis, das die Vertraulichkeit, Integrität oder Verfügbarkeit der Informationen von Exemplia bedroht: eine geöffnete Phishing-E-Mail, ein verlorener Laptop, ein entdecktes Virus, ein vertrauliches Dokume… ([[source/incidents]])
+
+    - Er nimmt Informationen bis zur Stufe Vertraulich an. ([[source/ia_generative]])
+
+    - Eine versehentlich an einen falschen externen Empfänger gesendete Nachricht wird innerhalb einer Stunde dem Reaktionsteam für Vorfälle gemeldet, besonders wenn sie vertrauliche Informationen oder personenbezogene Daten enthält. ([[source/charte_messagerie_v1]])
+
+    - Eine versehentlich an einen falschen externen Empfänger gesendete Nachricht wird weiterhin innerhalb einer Stunde dem Reaktionsteam für Vorfälle gemeldet, besonders wenn sie vertrauliche Informationen oder personenbezogene Daten enthält. ([[source/charte_messagerie_v2]])
+
+    - Die Schulung behandelt die Meldung von Vorfällen, die Passwortrichtlinie, die Klassifizierung von Informationen und den guten Umgang mit E-Mail und generativer KI. ([[source/formation_securite]])'
+- id: concept/klauseln
+  kind: concept
+  title_text: klauseln
+  synthesis_text: 'Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt.'
+  sources:
+  - clauses_contrats
+  - registre_sous_traitants
+  audience: all
+  sha256: 3031f784e5d1d26bf0627b95c3f80f8212566fe2bffe5c399a637e518665235a
+  text: '# klauseln
+
+
+    Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt.
+
+
+    ## Was die Quellen sagen
+
+    - Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt. ([[source/clauses_contrats]])
+
+    - Jeder Eintrag des Registers wird vierteljährlich von der Dienstleister-Einheit überprüft: Ein nicht mehr genutzter Unterauftragnehmer wird entfernt, und ein neuer Unterauftragnehmer wird erst nach Prüfung seiner eigenen Sicherheitsgarantie… ([[source/registre_sous_traitants]])'
+- id: concept/konto
+  kind: concept
+  title_text: konto
+  synthesis_text: Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt.
+  sources:
+  - mots_de_passe
+  - revue_habilitations
+  audience: all
+  sha256: 926092f772de218e167c6e2ccbd56171dffbc2a8d9e6fd290a6ed7bc77fa4936
+  text: '# konto
+
+
+    Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt.
+
+
+    ## Was die Quellen sagen
+
+    - Nach 5 fehlgeschlagenen Anmeldeversuchen wird ein Konto für 15 Minuten gesperrt. ([[source/mots_de_passe]])
+
+    - Das Konto einer Person, die Exemplia verlässt, wird am Tag ihres Austritts deaktiviert, und ihre Berechtigungen werden innerhalb von 48 Stunden entzogen; ein Konto ohne erkennbaren Inhaber, ein sogenanntes verwaistes Konto, wird sofort bei… ([[source/revue_habilitations]])'
+- id: concept/krisenstab
+  kind: concept
+  title_text: krisenstab
+  synthesis_text: Ein Vorfall der Stufe 3 ruft den Krisenstab zusammen, der sich in weniger als 2 Stunden unter dem Vorsitz des Geschäftsführers trifft, gemäß dem Krisenmanagementverfahren und seiner Anlage mit den Bereitschaftskontakten.
+  sources:
+  - incidents
+  - gestion_crise
+  audience: all
+  sha256: c0c4b223f3a1863017e6e3d9e9610fe0ce3d2d98e43c573a5cb6b238b282dd3f
+  text: '# krisenstab
+
+
+    Ein Vorfall der Stufe 3 ruft den Krisenstab zusammen, der sich in weniger als 2 Stunden unter dem Vorsitz des Geschäftsführers trifft, gemäß dem Krisenmanagementverfahren und seiner Anlage mit den Bereitschaftskontakten.
+
+
+    ## Was die Quellen sagen
+
+    - Ein Vorfall der Stufe 3 ruft den Krisenstab zusammen, der sich in weniger als 2 Stunden unter dem Vorsitz des Geschäftsführers trifft, gemäß dem Krisenmanagementverfahren und seiner Anlage mit den Bereitschaftskontakten. ([[source/incidents]])
+
+    - Der Krisenstab tritt Tag und Nacht innerhalb von weniger als 2 Stunden zusammen, unter dem Vorsitz des Geschäftsführers oder, in dessen Abwesenheit, des diensthabenden Krisendirektors. ([[source/gestion_crise]])'
+- id: concept/loschung
+  kind: concept
+  title_text: löschung
+  synthesis_text: Nicht berücksichtigte Bewerbungen werden 2 Jahre nach dem letzten Kontakt mit dem Bewerber aufbewahrt; er wird darüber informiert und kann ihre frühere Löschung verlangen.
+  sources:
+  - donnees_personnelles
+  - charte_messagerie_v1
+  - dossier_disciplinaire
+  audience: hr
+  sha256: e6240c76f99b8065b21c0d86560787a6229b600ec8659cfdb1d6e430f4810134
+  text: '# löschung
+
+
+    Nicht berücksichtigte Bewerbungen werden 2 Jahre nach dem letzten Kontakt mit dem Bewerber aufbewahrt; er wird darüber informiert und kann ihre frühere Löschung verlangen.
+
+
+    ## Was die Quellen sagen
+
+    - Nicht berücksichtigte Bewerbungen werden 2 Jahre nach dem letzten Kontakt mit dem Bewerber aufbewahrt; er wird darüber informiert und kann ihre frühere Löschung verlangen. ([[source/donnees_personnelles]])
+
+    - Eine versehentlich gelöschte Nachricht kann vom Support innerhalb von 30 Tagen nach der Löschung wiederhergestellt werden, danach ist sie verloren. ([[source/charte_messagerie_v1]])
+
+    - Eine schriftliche Abmahnung bleibt 3 Jahre in der Akte; nach dieser Frist wird sie bei einer späteren Maßnahme nicht mehr berücksichtigt, außer bei einem Rückfall mit demselben Verstoß vor ihrer Löschung. ([[source/dossier_disciplinaire]])'
+- id: concept/nachricht
+  kind: concept
+  title_text: nachricht
+  synthesis_text: Jede Nachricht darf mit ihren Anhängen 10 MB nicht überschreiten; darüber hinaus ist ein temporärer Freigabelink zu verwenden.
+  sources:
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - note_changement_messagerie
+  audience: all
+  sha256: 19289c6a2c880803ad0ac528f312b1b297390182eaa37a635614b962366807d9
+  text: '# nachricht
+
+
+    Jede Nachricht darf mit ihren Anhängen 10 MB nicht überschreiten; darüber hinaus ist ein temporärer Freigabelink zu verwenden.
+
+
+    ## Was die Quellen sagen
+
+    - Jede Nachricht darf mit ihren Anhängen 10 MB nicht überschreiten; darüber hinaus ist ein temporärer Freigabelink zu verwenden. ([[source/charte_messagerie_v1]])
+
+    - Das berufliche Postfach bleibt der beruflichen Nutzung vorbehalten, doch eine gelegentliche und angemessene private Nutzung wird nun geduldet, zum Beispiel eine kurze private Nachricht. ([[source/charte_messagerie_v2]])
+
+    - Erstens steigt die maximale Größe einer Nachricht von 10 MB auf 25 MB. ([[source/note_changement_messagerie]])'
+- id: concept/person
+  kind: concept
+  title_text: person
+  synthesis_text: Jede Person kann ihre Rechte auf Auskunft, Berichtigung und Löschung geltend machen, indem sie dem Datenschutzbeauftragten schreibt.
+  sources:
+  - donnees_personnelles
+  - deplacements
+  - astreinte
+  - dossier_disciplinaire
+  - entretiens_annuels
+  - acces_physique
+  - revue_habilitations
+  - formation_securite
+  audience: hr
+  sha256: 655dfbd205fe2f3084e8a304d44671829218326aacda0562b7a4c69a738b0fa7
+  text: '# person
+
+
+    Jede Person kann ihre Rechte auf Auskunft, Berichtigung und Löschung geltend machen, indem sie dem Datenschutzbeauftragten schreibt.
+
+
+    ## Was die Quellen sagen
+
+    - Jede Person kann ihre Rechte auf Auskunft, Berichtigung und Löschung geltend machen, indem sie dem Datenschutzbeauftragten schreibt. ([[source/donnees_personnelles]])
+
+    - Eine Mahlzeit auf Reisen wird bis zu 22 Euro erstattet; ein Essen mit einem Kunden wird gegen Rechnung bis zu 60 Euro pro Person erstattet, mit dem Namen des eingeladenen Unternehmens. ([[source/deplacements]])
+
+    - Sicherheitsbereitschaft, zuerst zu kontaktieren bei jedem größeren Vorfall nachts oder am Wochenende: Die einheitliche Bereitschaftsnummer ist 06 07 08 09 10, gefolgt von einem Anrufbeantworter, der zur Person der Wochenbereitschaft weiter… ([[source/astreinte]])
+
+    - Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung, der Geschäftsleitung und, bei einer eigenen Akte, der betroffenen Person selbst… ([[source/dossier_disciplinaire]])
+
+    - Dieses Dokument beschreibt das Jahresgespräch von Exemplia, das von der direkten Führungskraft jeder Person geführt wird; es ist als Personaldokument eingestuft. ([[source/entretiens_annuels]])
+
+    - Ein persönliches Zugangsabzeichen, das jeder Person ab ihrem ersten Tag ausgestellt wird, gewährt Zugang zu den für ihre Stelle notwendigen Zonen. ([[source/acces_physique]])
+
+    - Das Konto einer Person, die Exemplia verlässt, wird am Tag ihres Austritts deaktiviert, und ihre Berechtigungen werden innerhalb von 48 Stunden entzogen; ein Konto ohne erkennbaren Inhaber, ein sogenanntes verwaistes Konto, wird sofort bei… ([[source/revue_habilitations]])
+
+    - Jede Person bei Exemplia nimmt an einer zweistündigen Online-Schulung zur Informationssicherheit teil und besteht anschließend einen Fragebogen mit mindestens 8 richtigen Antworten von 10, um sie zu erhalten. ([[source/formation_securite]])'
+- id: concept/rechner
+  kind: concept
+  title_text: rechner
+  synthesis_text: 'Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner ohne Internetverbindung, und jede Einsichtnahme wird in ein unterschriebenes Register eingetragen.'
+  sources:
+  - classification
+  - incidents
+  audience: all
+  sha256: 2ac2313388888a09074e4746ef661c732a883401eef5c5288ab1b438e1fd323f
+  text: '# rechner
+
+
+    Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner ohne Internetverbindung, und jede Einsichtnahme wird in ein unterschriebenes Register eingetragen.
+
+
+    ## Was die Quellen sagen
+
+    - Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner ohne Internetverbindung, und jede Einsichtnahme wird in ein unterschriebenes Register eingetragen. ([[source/classification]])
+
+    - Bis zur Antwort der CERT-Ex wird der verdächtige Rechner vom Netz getrennt, Kabel gezogen und WLAN ausgeschaltet, aber nicht heruntergefahren: Der Arbeitsspeicher enthält Spuren, die für die Untersuchung nützlich sind. ([[source/incidents]])'
+- id: concept/register
+  kind: concept
+  title_text: register
+  synthesis_text: 'Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner ohne Internetverbindung, und jede Einsichtnahme wird in ein unterschriebenes Register eingetragen.'
+  sources:
+  - classification
+  - sauvegardes
+  - prestataires
+  - clauses_contrats
+  - registre_sous_traitants
+  - astreinte
+  - uk_visitor_badges
+  - revue_habilitations
+  audience: all
+  sha256: d19f496b2bc9b328eb80d11d07595bd2b4db995f523ba220ad3aa825cfb7c13f
+  text: '# register
+
+
+    Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner ohne Internetverbindung, und jede Einsichtnahme wird in ein unterschriebenes Register eingetragen.
+
+
+    ## Was die Quellen sagen
+
+    - Ein geheimes Dokument wird nie per E-Mail versendet: Es wird ausschließlich im Datenraum eingesehen, an einem Rechner ohne Internetverbindung, und jede Einsichtnahme wird in ein unterschriebenes Register eingetragen. ([[source/classification]])
+
+    - Das Ergebnis jedes Tests wird im Register des Betriebsteams festgehalten; ein Fehlschlag wird als Vorfall der Stufe 2 behandelt. ([[source/sauvegardes]])
+
+    - Ein Dienstleister vergibt nicht ohne Zustimmung von Exemplia selbst Unteraufträge; jeder eingesetzte Unterauftragnehmer wird im Register der Unterauftragnehmer erfasst, das die Dienstleister-Einheit führt. ([[source/prestataires]])
+
+    - Unterauftragsklausel: Der Dienstleister informiert Exemplia, bevor er einen Unterauftragnehmer einsetzt, der dann in das Register der Unterauftragnehmer aufgenommen wird und dieselben Klauseln trägt. ([[source/clauses_contrats]])
+
+    - Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das Land, in dem er Daten hostet oder verarbei… ([[source/registre_sous_traitants]])
+
+    - Jeder Bereitschaftsanruf wird mit Uhrzeit, Grund und erreichter Person im Register des Betriebsteams festgehalten, das beim Erfahrungsbericht nach jedem Vorfall der Stufe 2 oder 3 herangezogen wird. ([[source/astreinte]])
+
+    - Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor register. ([[source/uk_visitor_badges]])
+
+    - Ein externes Audit kann die Überprüfung der Berechtigungen umfassen; dabei wird das Register der Überprüfungen der letzten zwei Jahre als Nachweis der wirksamen Zugangskontrolle vorgelegt. ([[source/revue_habilitations]])'
+- id: concept/richtlinie
+  kind: concept
+  title_text: richtlinie
+  synthesis_text: 'Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können.'
+  sources:
+  - charte_messagerie_v1
+  - note_changement_messagerie
+  - rundschreiben_usb
+  - dossier_disciplinaire
+  audience: hr
+  sha256: 04450d63b8d0c7a114073eef5ad32bcc4449e0ada23a41524b856c1b87cef4fe
+  text: '# richtlinie
+
+
+    Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können.
+
+
+    ## Was die Quellen sagen
+
+    - Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können. ([[source/charte_messagerie_v1]])
+
+    - Diese Mitteilung erklärt den Übergang von Version 1 zu Version 2 der E-Mail-Richtlinie, gültig seit dem 1. ([[source/note_changement_messagerie]])
+
+    - Ein verlorener oder gestohlener USB-Stick wird innerhalb von 24 Stunden der Sicherheitsabteilung gemeldet, genau wie ein verlorenes Notebook nach der allgemeinen Richtlinie zu Sicherheitsvorfällen. ([[source/rundschreiben_usb]])
+
+    - Die vollständige Disziplinarakte einer Person wird 5 Jahre nach deren Austritt aus Exemplia aufbewahrt und dann anonymisiert, gemäß der Richtlinie zur Aufbewahrung personenbezogener Daten. ([[source/dossier_disciplinaire]])'
+- id: concept/schriftlich
+  kind: concept
+  title_text: schriftlich
+  synthesis_text: Am Ende eines Vertrags löscht der Dienstleister die Daten von Exemplia und bestätigt dies schriftlich innerhalb der im Vertrag festgelegten Frist.
+  sources:
+  - prestataires
+  - grille_remunerations
+  - dossier_disciplinaire
+  audience: hr
+  sha256: ddc48ef39e27262b52ab9c767dad8d0c0955d8228d2674521368905a0caca004
+  text: '# schriftlich
+
+
+    Am Ende eines Vertrags löscht der Dienstleister die Daten von Exemplia und bestätigt dies schriftlich innerhalb der im Vertrag festgelegten Frist.
+
+
+    ## Was die Quellen sagen
+
+    - Am Ende eines Vertrags löscht der Dienstleister die Daten von Exemplia und bestätigt dies schriftlich innerhalb der im Vertrag festgelegten Frist. ([[source/prestataires]])
+
+    - Der Wechsel von einer Stufe zur nächsten erfolgt automatisch nach 2 Jahren, außer bei schriftlich begründetem Einfrieren. ([[source/grille_remunerations]])
+
+    - Das Gespräch wird mindestens 5 Arbeitstage vor dem Termin schriftlich mit Angabe des Grundes einberufen. ([[source/dossier_disciplinaire]])'
+- id: concept/schulung
+  kind: concept
+  title_text: schulung
+  synthesis_text: Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen Fragebogen mit mindestens 8 von 10 richtigen Antworten.
+  sources:
+  - ia_generative
+  - formation_securite
+  audience: all
+  sha256: 879bea2a699ff3d66b115d825ad84f4c131be8fd99f2dfba465b12c2a55fc326
+  text: '# schulung
+
+
+    Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen Fragebogen mit mindestens 8 von 10 richtigen Antworten.
+
+
+    ## Was die Quellen sagen
+
+    - Vor dem Zugang zu ExempliaGPT absolvieren alle Mitarbeitenden eine 3-stündige Online-Schulung und bestehen dann einen Fragebogen mit mindestens 8 von 10 richtigen Antworten. ([[source/ia_generative]])
+
+    - Jede Person bei Exemplia nimmt an einer zweistündigen Online-Schulung zur Informationssicherheit teil und besteht anschließend einen Fragebogen mit mindestens 8 richtigen Antworten von 10, um sie zu erhalten. ([[source/formation_securite]])'
+- id: concept/standard
+  kind: concept
+  title_text: standard
+  synthesis_text: 'Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen.'
+  sources:
+  - prestataires
+  - clauses_contrats
+  - registre_sous_traitants
+  audience: all
+  sha256: d2d791e6d68d0fa860e1ff238a3ec00188f440f3989ee88a4e0fa59d28a36f06
+  text: '# standard
+
+
+    Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen.
+
+
+    ## Was die Quellen sagen
+
+    - Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die übrigen. ([[source/prestataires]])
+
+    - Auditklausel: Exemplia oder ein von ihr benannter Prüfer kann die Einhaltung der Sicherheitsklauseln vor Ort oder aus der Ferne kontrollieren, mit einer Vorlaufzeit von 10 Arbeitstagen für einen Standard-Dienstleister und ohne Vorlaufzeit… ([[source/clauses_contrats]])
+
+    - ArchivePlus, Papierarchivierung von Personalakten, Belgien, Standard-Dienstleister. ([[source/registre_sous_traitants]])'
+- id: concept/uberprufung
+  kind: concept
+  title_text: überprüfung
+  synthesis_text: Die Überprüfung tritt am 1.
+  sources:
+  - grille_remunerations
+  - acces_physique
+  - revue_habilitations
+  - formation_securite
+  audience: hr
+  sha256: f65c1d43c74e150674a43c0933ae9207a5fab7219a40ead03930d41966d5c594
+  text: '# überprüfung
+
+
+    Die Überprüfung tritt am 1.
+
+
+    ## Was die Quellen sagen
+
+    - Die Überprüfung tritt am 1. ([[source/grille_remunerations]])
+
+    - Jeder Zugang, ob gewährt oder verweigert, wird protokolliert und 6 Monate aufbewahrt, einsehbar bei einer Sicherheitsuntersuchung oder einer Überprüfung der Berechtigungen. ([[source/acces_physique]])
+
+    - Dieses Dokument legt die Regeln für ihre regelmäßige Überprüfung fest. ([[source/revue_habilitations]])
+
+    - Die Personalabteilung führt die Liste der absolvierten Schulungen, nützlich für die Überprüfung der Berechtigungen und für den künftigen Weiterbildungsbedarf im Jahresgespräch. ([[source/formation_securite]])'
+- id: concept/uhrzeit
+  kind: concept
+  title_text: uhrzeit
+  synthesis_text: Um zu wissen, wen man nachts anruft, listet die Anlage mit den Bereitschaftskontakten die zu erreichenden Nummern je nach Uhrzeit und betroffenem Bereich auf.
+  sources:
+  - gestion_crise
+  - astreinte
+  audience: all
+  sha256: 6ae86f6170dacbeb1fdeb2ccdd2220c62f514624eec77229d87ec3f1da86a3de
+  text: '# uhrzeit
+
+
+    Um zu wissen, wen man nachts anruft, listet die Anlage mit den Bereitschaftskontakten die zu erreichenden Nummern je nach Uhrzeit und betroffenem Bereich auf.
+
+
+    ## Was die Quellen sagen
+
+    - Um zu wissen, wen man nachts anruft, listet die Anlage mit den Bereitschaftskontakten die zu erreichenden Nummern je nach Uhrzeit und betroffenem Bereich auf. ([[source/gestion_crise]])
+
+    - Jeder Bereitschaftsanruf wird mit Uhrzeit, Grund und erreichter Person im Register des Betriebsteams festgehalten, das beim Erfahrungsbericht nach jedem Vorfall der Stufe 2 oder 3 herangezogen wird. ([[source/astreinte]])'
+- id: concept/version
+  kind: concept
+  title_text: version
+  synthesis_text: 'Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können.'
+  sources:
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - note_changement_messagerie
+  audience: all
+  sha256: 6540c18a018a576f1d482263b601d7a75bd9488c8d02e63f62d416799494afe8
+  text: '# version
+
+
+    Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können.
+
+
+    ## Was die Quellen sagen
+
+    - Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können. ([[source/charte_messagerie_v1]])
+
+    - Diese Version ersetzt Version 1 seit dem 1. ([[source/charte_messagerie_v2]])
+
+    - Diese Mitteilung erklärt den Übergang von Version 1 zu Version 2 der E-Mail-Richtlinie, gültig seit dem 1. ([[source/note_changement_messagerie]])'
+- id: concept/vertraulich
+  kind: concept
+  title_text: vertraulich
+  synthesis_text: 'Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.'
+  sources:
+  - classification
+  - ia_generative
+  - grille_remunerations
+  - dossier_disciplinaire
+  audience: hr
+  sha256: 62c1774e76a2cc7016e935e2f7c24355d6e26aa5c7d7872f5786f0c7eccfb4a0
+  text: '# vertraulich
+
+
+    Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.
+
+
+    ## Was die Quellen sagen
+
+    - Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim. ([[source/classification]])
+
+    - Er nimmt Informationen bis zur Stufe Vertraulich an. ([[source/ia_generative]])
+
+    - Dieses Dokument beschreibt die Vergütungsstruktur von Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung und der Geschäftsleitung vorbehalten. ([[source/grille_remunerations]])
+
+    - Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung, der Geschäftsleitung und, bei einer eigenen Akte, der betroffenen Person selbst… ([[source/dossier_disciplinaire]])'
+- id: concept/vorfall
+  kind: concept
+  title_text: vorfall
+  synthesis_text: Alle Mitarbeitenden, die einen Vorfall feststellen oder vermuten, melden ihn innerhalb von 30 Minuten dem Reaktionsteam CERT-Ex.
+  sources:
+  - incidents
+  - sauvegardes
+  - clauses_contrats
+  - gestion_crise
+  - astreinte
+  audience: all
+  sha256: 10ca97de0d34c98672c5c41cc467ba40141e9b7514ae1cbcc372f0a838a085d5
+  text: '# vorfall
+
+
+    Alle Mitarbeitenden, die einen Vorfall feststellen oder vermuten, melden ihn innerhalb von 30 Minuten dem Reaktionsteam CERT-Ex.
+
+
+    ## Was die Quellen sagen
+
+    - Alle Mitarbeitenden, die einen Vorfall feststellen oder vermuten, melden ihn innerhalb von 30 Minuten dem Reaktionsteam CERT-Ex. ([[source/incidents]])
+
+    - Das Ergebnis jedes Tests wird im Register des Betriebsteams festgehalten; ein Fehlschlag wird als Vorfall der Stufe 2 behandelt. ([[source/sauvegardes]])
+
+    - Auditklausel: Exemplia oder ein von ihr benannter Prüfer kann die Einhaltung der Sicherheitsklauseln vor Ort oder aus der Ferne kontrollieren, mit einer Vorlaufzeit von 10 Arbeitstagen für einen Standard-Dienstleister und ohne Vorlaufzeit… ([[source/clauses_contrats]])
+
+    - Dieses Verfahren übernimmt vom Meldeverfahren für Vorfälle, sobald ein Vorfall der Stufe 3 erklärt wird oder mehrere Standorte von Exemplia gleichzeitig betroffen sind. ([[source/gestion_crise]])
+
+    - Sicherheitsbereitschaft, zuerst zu kontaktieren bei jedem größeren Vorfall nachts oder am Wochenende: Die einheitliche Bereitschaftsnummer ist 06 07 08 09 10, gefolgt von einem Anrufbeantworter, der zur Person der Wochenbereitschaft weiter… ([[source/astreinte]])'
+- id: concept/wechsel
+  kind: concept
+  title_text: wechsel
+  synthesis_text: 'Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen Wechsel des E-Mail-Anbieters: Dies ist die aktuell gültige Version.'
+  sources:
+  - charte_messagerie_v2
+  - note_changement_messagerie
+  - grille_remunerations
+  audience: hr
+  sha256: fce1ccca36a9d8211d9e833787ee146fe598edd806fb4a9da0826a39f89d842b
+  text: '# wechsel
+
+
+    Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen Wechsel des E-Mail-Anbieters: Dies ist die aktuell gültige Version.
+
+
+    ## Was die Quellen sagen
+
+    - Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen Wechsel des E-Mail-Anbieters: Dies ist die aktuell gültige Version. ([[source/charte_messagerie_v2]])
+
+    - Dieser Wechsel führte zur Überarbeitung der E-Mail-Richtlinie, von ihrer Version 1 zu ihrer Version 2. ([[source/note_changement_messagerie]])
+
+    - Der Wechsel von einer Stufe zur nächsten erfolgt automatisch nach 2 Jahren, außer bei schriftlich begründetem Einfrieren. ([[source/grille_remunerations]])'
+- id: concept/woche
+  kind: concept
+  title_text: woche
+  synthesis_text: Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche in Telearbeit arbeiten.
+  sources:
+  - teletravail
+  - sauvegardes
+  audience: all
+  sha256: d850c22822e8f50141321f7711ff9642e57a81eb028274f0a9312a16abc8f4fb
+  text: '# woche
+
+
+    Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche in Telearbeit arbeiten.
+
+
+    ## Was die Quellen sagen
+
+    - Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche in Telearbeit arbeiten. ([[source/teletravail]])
+
+    - In jeder Nacht unter der Woche kopiert um 22 Uhr eine inkrementelle Sicherung nur, was sich seit dem Vortag geändert hat. ([[source/sauvegardes]])'
+- id: concept/zentrale
+  kind: concept
+  title_text: zentrale
+  synthesis_text: Er tagt im Krisenraum der Zentrale oder per Videokonferenz, wenn der Zugang zur Zentrale beeinträchtigt ist.
+  sources:
+  - gestion_crise
+  - rundschreiben_usb
+  audience: all
+  sha256: 00f85424749fd717222f405f5e7fd20dbf77d3aeb365a12685ea7d106061553c
+  text: '# zentrale
+
+
+    Er tagt im Krisenraum der Zentrale oder per Videokonferenz, wenn der Zugang zur Zentrale beeinträchtigt ist.
+
+
+    ## Was die Quellen sagen
+
+    - Er tagt im Krisenraum der Zentrale oder per Videokonferenz, wenn der Zugang zur Zentrale beeinträchtigt ist. ([[source/gestion_crise]])
+
+    - Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet. ([[source/rundschreiben_usb]])'

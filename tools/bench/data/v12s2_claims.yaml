@@ -1,0 +1,194 @@
+# Affirmations NON ÉTAYÉES du banc préalable System One (V1.2 story 2), écrites à la main,
+# fictives, en fr, en et de. Jamais générées par un modèle. Chaque question avec réponse
+# attendue de `content/rag_questions.yaml` porte deux affirmations :
+#   - `number` : la réponse attendue avec un chiffre modifié (réponse qui contient un nombre) ;
+#   - `invented` : un fait inventé que ni la question ni les passages n'établissent ;
+#   - `inversion` : le contraire de la réponse attendue (réponse sans nombre).
+# Les trois questions `no_answer` portent une réponse inventée (`invented`).
+# Les affirmations étayées sont les `expected_answer_text` des questions, lus par le banc.
+# Contrôles (tests/test_v12s2_system_one_bench.py) : aucune affirmation n'est une
+# sous-chaîne de sa prémisse ; `number` change l'ensemble des nombres de la réponse.
+claims:
+  fr:
+    q_fact_pwd:
+      - {kind: number, text: "21 caractères au minimum."}
+      - {kind: invented, text: "Un mot de passe doit être renouvelé chaque mois et contenir au moins un caractère spécial."}
+    q_fact_sauvegarde:
+      - {kind: number, text: "La règle 5-3-1 - 5 copies, sur 3 supports différents, dont 1 copie hors site."}
+      - {kind: invented, text: "Les sauvegardes sont chiffrées puis copiées chaque soir dans un coffre-fort physique à Marseille."}
+    q_fact_badge:
+      - {kind: number, text: "Dans les 72 heures qui suivent son départ."}
+      - {kind: invented, text: "Il est désactivé à la fin du mois civil, par le responsable de son service."}
+    q_multi_crise:
+      - {kind: invented, text: "Le responsable des ressources humaines, à la ligne directe de la direction générale."}
+      - {kind: inversion, text: "Personne la nuit : il faut attendre l'ouverture des bureaux le lendemain matin pour signaler un incident majeur."}
+    q_multi_prestataire:
+      - {kind: number, text: "Dans les 90 jours fixés par la clause de restitution et d'effacement."}
+      - {kind: invented, text: "Le prestataire n'a rien à effacer : il conserve les données pendant dix ans pour ses propres audits."}
+    q_multi_messagerie:
+      - {kind: number, text: "Exemplia a changé de fournisseur de messagerie le 1er janvier 2026 ; la taille maximale d'un message est passée de 10 Mo à 50 Mo."}
+      - {kind: invented, text: "Exemplia a changé de fournisseur de messagerie après un incident de sécurité majeur ; la taille maximale d'un message a été réduite pour limiter les pertes de données."}
+    q_global_securite:
+      - {kind: invented, text: "La protection physique des locaux, le chiffrement obligatoire des ordinateurs portables et un audit externe chaque trimestre."}
+      - {kind: inversion, text: "Aucune classification de l'information, et les incidents ne sont signalés qu'une fois par an, lors de l'entretien annuel."}
+    q_global_fournisseurs:
+      - {kind: invented, text: "Par un audit sur site annuel de chaque prestataire et une assurance cyber obligatoire pour tous les sous-traitants."}
+      - {kind: inversion, text: "Exemplia ne classe pas ses prestataires, n'insère aucune clause de sécurité et ne tient aucun registre des sous-traitants."}
+    q_global_rh:
+      - {kind: invented, text: "Le règlement du temps de travail, la politique de télétravail et le plan de formation."}
+      - {kind: inversion, text: "Aucun processus formel : rémunérations et sanctions sont décidées au cas par cas, sans grille ni entretien."}
+    q_noanswer_parking:
+      - {kind: invented, text: "Exemplia rembourse 50 % des frais de stationnement, sur justificatif, dans la limite de 80 euros par mois."}
+    q_noanswer_mutuelle:
+      - {kind: invented, text: "Exemplia propose la mutuelle Santéplus, prise en charge à 60 % par l'entreprise."}
+    q_noanswer_restauration:
+      - {kind: invented, text: "Exemplia verse une subvention de 4 euros par repas, sous forme de titres-restaurant."}
+    q_temporal_taille:
+      - {kind: number, text: "50 Mo, depuis la version 2 de la charte, en vigueur depuis janvier 2026."}
+      - {kind: invented, text: "25 Mo pour les pièces jointes entrantes seulement ; les pièces jointes sortantes sont limitées à 5 Mo par le fournisseur."}
+    q_temporal_retention:
+      - {kind: number, text: "5 ans, depuis la version 2 de la charte de messagerie."}
+      - {kind: invented, text: "Les messages sont supprimés définitivement au bout de trois ans, sans aucun archivage."}
+    q_temporal_usage_perso:
+      - {kind: number, text: "Oui, un usage personnel occasionnel et raisonnable est toléré depuis la version 3 de la charte."}
+      - {kind: invented, text: "Oui, mais seulement en dehors des heures de bureau, depuis un compte secondaire."}
+    q_cross_usb:
+      - {kind: number, text: "Une clé USB chiffrée (128 bits), fournie par la direction informatique, sur demande."}
+      - {kind: invented, text: "Une clé USB non chiffrée, achetée par le collaborateur et remboursée sur note de frais."}
+    q_cross_badges:
+      - {kind: number, text: "30 jours."}
+      - {kind: invented, text: "Le registre n'est pas conservé : il est détruit à la fin de chaque journée."}
+    q_cross_lyon:
+      - {kind: number, text: "Dans les 12 heures qui suivent la décision du directeur de site."}
+      - {kind: invented, text: "Immédiatement et automatiquement, sans décision préalable, par le responsable informatique."}
+    q_followup_sous_traitants:
+      - {kind: invented, text: "Les sous-traitants sont contrôlés chaque année par la direction juridique, qui en publie la liste sur le site public d'Exemplia."}
+      - {kind: inversion, text: "Les sous-traitants d'un prestataire n'ont pas à être consignés : seul le prestataire direct figure dans un registre."}
+    q_followup_astreinte:
+      - {kind: number, text: "L'astreinte infrastructure, au poste 4200, puis un numéro de secours si personne ne répond en 45 minutes."}
+      - {kind: invented, text: "L'astreinte infrastructure, au poste 4100, qui rappelle toujours dans la minute ; il n'existe aucun numéro de secours."}
+    q_followup_messagerie:
+      - {kind: number, text: "Parce qu'Exemplia a changé de fournisseur de messagerie le 1er mars 2026, après un appel d'offres mené en 2023."}
+      - {kind: invented, text: "Parce que l'ancien fournisseur a fait faillite et que la direction a choisi une solution hébergée en interne."}
+  en:
+    q_fact_pwd:
+      - {kind: number, text: "At least 21 characters."}
+      - {kind: invented, text: "A password must be renewed every month and contain at least one special character."}
+    q_fact_sauvegarde:
+      - {kind: number, text: "The 5-3-1 rule - 5 copies, on 3 different media, with 1 copy kept off-site."}
+      - {kind: invented, text: "Backups are encrypted and copied every evening to a physical vault in Marseille."}
+    q_fact_badge:
+      - {kind: number, text: "Within 72 hours of them leaving."}
+      - {kind: invented, text: "It is deactivated at the end of the calendar month, by the head of their department."}
+    q_multi_crise:
+      - {kind: invented, text: "The human resources manager, on the direct line of the executive management."}
+      - {kind: inversion, text: "Nobody at night: you must wait for the offices to open the next morning to report a major incident."}
+    q_multi_prestataire:
+      - {kind: number, text: "Within the 90 days set by the return and erasure clause."}
+      - {kind: invented, text: "The supplier has nothing to erase: it keeps the data for ten years for its own audits."}
+    q_multi_messagerie:
+      - {kind: number, text: "Exemplia changed its email provider on 1 January 2026; the maximum message size rose from 10 Mo to 50 Mo."}
+      - {kind: invented, text: "Exemplia changed its email provider after a major security incident; the maximum message size was reduced to limit data loss."}
+    q_global_securite:
+      - {kind: invented, text: "Physical protection of the premises, mandatory encryption of laptops, and an external audit every quarter."}
+      - {kind: inversion, text: "No classification of information, and incidents are only reported once a year, at the annual review."}
+    q_global_fournisseurs:
+      - {kind: invented, text: "Through a yearly on-site audit of every supplier and mandatory cyber insurance for all subcontractors."}
+      - {kind: inversion, text: "Exemplia does not classify its suppliers, adds no security clause and keeps no subcontractor register."}
+    q_global_rh:
+      - {kind: invented, text: "The working-time rules, the remote-work policy and the training plan."}
+      - {kind: inversion, text: "No formal process: pay and sanctions are decided case by case, with no grid and no review."}
+    q_noanswer_parking:
+      - {kind: invented, text: "Exemplia reimburses 50% of parking costs, on receipt, up to 80 euros per month."}
+    q_noanswer_mutuelle:
+      - {kind: invented, text: "Exemplia offers the Santéplus health plan, 60% of which is paid by the company."}
+    q_noanswer_restauration:
+      - {kind: invented, text: "Exemplia pays a subsidy of 4 euros per meal, in the form of meal vouchers."}
+    q_temporal_taille:
+      - {kind: number, text: "50 Mo, since version 2 of the charter, in force since January 2026."}
+      - {kind: invented, text: "25 Mo for incoming attachments only; outgoing attachments are limited to 5 Mo by the provider."}
+    q_temporal_retention:
+      - {kind: number, text: "5 years, since version 2 of the email charter."}
+      - {kind: invented, text: "Messages are permanently deleted after three years, with no archiving at all."}
+    q_temporal_usage_perso:
+      - {kind: number, text: "Yes, an occasional and reasonable personal use is tolerated since version 3 of the charter."}
+      - {kind: invented, text: "Yes, but only outside office hours, from a secondary account."}
+    q_cross_usb:
+      - {kind: number, text: "An encrypted USB drive (128-bit), issued by the IT department, on request."}
+      - {kind: invented, text: "An unencrypted USB drive, bought by the employee and refunded on an expense claim."}
+    q_cross_badges:
+      - {kind: number, text: "30 days."}
+      - {kind: invented, text: "The register is not kept: it is destroyed at the end of each day."}
+    q_cross_lyon:
+      - {kind: number, text: "Within 12 hours of the site director's decision."}
+      - {kind: invented, text: "Immediately and automatically, with no prior decision, by the IT manager."}
+    q_followup_sous_traitants:
+      - {kind: invented, text: "Subcontractors are audited every year by the legal department, which publishes the list on Exemplia's public website."}
+      - {kind: inversion, text: "A supplier's subcontractors need not be recorded: only the direct supplier appears in a register."}
+    q_followup_astreinte:
+      - {kind: number, text: "The infrastructure on-call, on extension 4200, then a backup number if no one answers within 45 minutes."}
+      - {kind: invented, text: "The infrastructure on-call, on extension 4100, who always calls back within a minute; there is no backup number."}
+    q_followup_messagerie:
+      - {kind: number, text: "Because Exemplia changed its email provider on 1 March 2026, after a tender run in 2023."}
+      - {kind: invented, text: "Because the former provider went bankrupt and management chose a solution hosted in-house."}
+  de:
+    q_fact_pwd:
+      - {kind: number, text: "Mindestens 21 Zeichen."}
+      - {kind: invented, text: "Ein Passwort muss jeden Monat erneuert werden und mindestens ein Sonderzeichen enthalten."}
+    q_fact_sauvegarde:
+      - {kind: number, text: "Die 5-3-1-Regel - 5 Kopien, auf 3 verschiedenen Medien, davon 1 Kopie außerhalb des Standorts."}
+      - {kind: invented, text: "Die Sicherungen werden verschlüsselt und jeden Abend in einen physischen Tresor in Marseille kopiert."}
+    q_fact_badge:
+      - {kind: number, text: "Innerhalb von 72 Stunden nach ihrem Austritt."}
+      - {kind: invented, text: "Er wird am Ende des Kalendermonats vom Leiter der Abteilung deaktiviert."}
+    q_multi_crise:
+      - {kind: invented, text: "Die Personalleitung, unter der Direktdurchwahl der Geschäftsführung."}
+      - {kind: inversion, text: "Niemand in der Nacht: man muss bis zur Öffnung der Büros am nächsten Morgen warten, um einen schweren Vorfall zu melden."}
+    q_multi_prestataire:
+      - {kind: number, text: "Innerhalb der 90 Tage, die die Rückgabe- und Löschklausel vorgibt."}
+      - {kind: invented, text: "Der Dienstleister muss nichts löschen: Er bewahrt die Daten zehn Jahre für seine eigenen Audits auf."}
+    q_multi_messagerie:
+      - {kind: number, text: "Exemplia hat am 1. Januar 2026 den E-Mail-Anbieter gewechselt; die maximale Nachrichtengröße stieg von 10 MB auf 50 MB."}
+      - {kind: invented, text: "Exemplia hat nach einem schweren Sicherheitsvorfall den E-Mail-Anbieter gewechselt; die maximale Nachrichtengröße wurde gesenkt, um Datenverluste zu begrenzen."}
+    q_global_securite:
+      - {kind: invented, text: "Der physische Schutz der Räume, die Pflichtverschlüsselung der Laptops und ein externes Audit pro Quartal."}
+      - {kind: inversion, text: "Keine Klassifizierung von Informationen, und Vorfälle werden nur einmal im Jahr beim Jahresgespräch gemeldet."}
+    q_global_fournisseurs:
+      - {kind: invented, text: "Durch ein jährliches Vor-Ort-Audit jedes Dienstleisters und eine Pflicht-Cyberversicherung für alle Unterauftragnehmer."}
+      - {kind: inversion, text: "Exemplia stuft seine Dienstleister nicht ein, nimmt keine Sicherheitsklauseln auf und führt kein Register der Unterauftragnehmer."}
+    q_global_rh:
+      - {kind: invented, text: "Die Arbeitszeitregelung, die Homeoffice-Richtlinie und der Weiterbildungsplan."}
+      - {kind: inversion, text: "Kein formaler Prozess: Vergütung und Sanktionen werden von Fall zu Fall entschieden, ohne Tabelle und ohne Gespräch."}
+    q_noanswer_parking:
+      - {kind: invented, text: "Exemplia erstattet 50 % der Parkkosten gegen Beleg, bis zu 80 Euro pro Monat."}
+    q_noanswer_mutuelle:
+      - {kind: invented, text: "Exemplia bietet die Krankenzusatzversicherung Santéplus an, zu 60 % vom Unternehmen getragen."}
+    q_noanswer_restauration:
+      - {kind: invented, text: "Exemplia zahlt einen Zuschuss von 4 Euro pro Mahlzeit in Form von Essensgutscheinen."}
+    q_temporal_taille:
+      - {kind: number, text: "50 MB, seit Version 2 der Richtlinie, gültig seit Januar 2026."}
+      - {kind: invented, text: "25 MB nur für eingehende Anhänge; ausgehende Anhänge sind vom Anbieter auf 5 MB begrenzt."}
+    q_temporal_retention:
+      - {kind: number, text: "5 Jahre, seit Version 2 der E-Mail-Richtlinie."}
+      - {kind: invented, text: "Nachrichten werden nach drei Jahren endgültig gelöscht, ganz ohne Archivierung."}
+    q_temporal_usage_perso:
+      - {kind: number, text: "Ja, eine gelegentliche und angemessene private Nutzung wird seit Version 3 der Richtlinie geduldet."}
+      - {kind: invented, text: "Ja, aber nur außerhalb der Bürozeiten und über ein Zweitkonto."}
+    q_cross_usb:
+      - {kind: number, text: "Einen verschlüsselten USB-Stick (128 Bit), ausgegeben von der IT-Abteilung, auf Anfrage."}
+      - {kind: invented, text: "Einen unverschlüsselten USB-Stick, vom Mitarbeiter gekauft und per Spesenabrechnung erstattet."}
+    q_cross_badges:
+      - {kind: number, text: "30 Tage."}
+      - {kind: invented, text: "Das Register wird nicht aufbewahrt: Es wird am Ende jedes Tages vernichtet."}
+    q_cross_lyon:
+      - {kind: number, text: "Innerhalb von 12 Stunden nach der Entscheidung des Standortleiters."}
+      - {kind: invented, text: "Sofort und automatisch, ohne vorherige Entscheidung, durch den IT-Leiter."}
+    q_followup_sous_traitants:
+      - {kind: invented, text: "Die Unterauftragnehmer werden jährlich von der Rechtsabteilung geprüft, die die Liste auf der öffentlichen Website von Exemplia veröffentlicht."}
+      - {kind: inversion, text: "Die Unterauftragnehmer eines Dienstleisters müssen nicht erfasst werden: Nur der direkte Dienstleister steht in einem Register."}
+    q_followup_astreinte:
+      - {kind: number, text: "Die Infrastrukturbereitschaft, unter der Durchwahl 4200, dann eine Ersatznummer, wenn innerhalb von 45 Minuten niemand antwortet."}
+      - {kind: invented, text: "Die Infrastrukturbereitschaft, unter der Durchwahl 4100, die immer innerhalb einer Minute zurückruft; eine Ersatznummer gibt es nicht."}
+    q_followup_messagerie:
+      - {kind: number, text: "Weil Exemplia am 1. März 2026 nach einer 2023 durchgeführten Ausschreibung den E-Mail-Anbieter gewechselt hat."}
+      - {kind: invented, text: "Weil der frühere Anbieter insolvent wurde und die Geschäftsführung eine intern gehostete Lösung gewählt hat."}

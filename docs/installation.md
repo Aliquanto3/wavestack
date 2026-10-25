@@ -54,6 +54,8 @@ commandes près.
 - Pour l'Atelier MCP, serveur GitHub (connexion par code, device flow) : `github.com` (déjà
   listé ci-dessus) et `api.githubcopilot.com` (serveur MCP distant de GitHub). Voir
   [Sécurité, garde-fous et FinOps visible](securite.md#connexion-à-github).
+- Pour les options cloud de la couche de décision System One de l'atelier (facultatif, avec
+  une clé `OPENROUTER_API_KEY`) : `openrouter.ai`.
 - Pendant les séances, selon les briques utilisées : les modèles cloud (voir
   [Hôtes à autoriser](modeles.md#hôtes-à-autoriser)) et les serveurs MCP publics,
   `learn.microsoft.com` et `mcp.data.gouv.fr` (voir le
@@ -213,7 +215,7 @@ uv run wavestack
 Le modèle recommandé est **Qwen3.5-2B en Q4_K_M** (GGUF amont publié par unsloth, licence
 Apache-2.0), validé sur le PC cible. WaveStack ne le télécharge pas : copiez le fichier `.gguf`
 dans le dossier `models/` du dossier de données (`%LOCALAPPDATA%\WaveStack\models` sous
-Windows, `~/.local/share/wavestack/models` ailleurs), ou indiquez son chemin au diagnostic.
+Windows, `~/.local/share/wavestack/models` ailleurs), ou indiquez son chemin sur la page Modèles.
 Un blob GGUF d'Ollama choisi comme un fichier peut être refusé par llama-cpp-python 0.3.35
 (fichier incompatible, raison expliquée, modèle précédent gardé) : préférez le fichier amont.
 Servi par Ollama lui-même, le même modèle fonctionne avec un Ollama récent (`qwen3.5:2b` au test
@@ -316,14 +318,14 @@ uv run python scripts/build_rag_index.py --lang de
 
 Au lancement, WaveStack vérifie la mémoire disponible, la présence d'un modèle GGUF, l'accès
 réseau et la disponibilité du port — chaque résultat s'affiche en français dans le terminal et
-sur la page de diagnostic. Pour ce test de présence, seuls le dossier des modèles, les chemins
+sur la page Modèles. Pour ce test de présence, seuls le dossier des modèles, les chemins
 explicites (dont le modèle enregistré dans `settings.json`) et Ollama (un appel à son serveur
 local et son dossier `~/.ollama/models`) sont lus. Le cache Hugging Face et LM Studio ne sont
 pas parcourus au démarrage : cela évite qu'une installation chargée de modèles fige le premier
 lancement. Pour les ajouter, choisissez « Ajouter d'autres modèles… », en fin de liste du menu
 des modèles de l'Atelier Harnais (page `/`) : la recherche liste les fichiers trouvés sans les
 tester, et le fichier que vous choisissez est testé à ce moment-là. Si aucun modèle n'est
-trouvé, la page de diagnostic propose de saisir le chemin d'un fichier `.gguf` à la main
+trouvé, la page Modèles propose de saisir le chemin d'un fichier `.gguf` à la main
 (partage, clé USB, cache Hugging Face, LM Studio). Avec plusieurs modèles utilisables,
 cliquez sur « Choisir ce modèle » en face de celui que vous voulez, puis ouvrez l'Atelier
 Harnais par le lien « Harnais » de la barre de navigation. Pour la suite (l'interface, les
@@ -339,7 +341,7 @@ scénarios, les ateliers), voir le [guide d'utilisation](guide.md).
 - Si WaveStack tourne déjà, la commande ouvre l'interface principale quand l'instance est prête,
   sinon le diagnostic.
 - Le diagnostic reste accessible par l'indicateur de modèle de la barre du bas et par le lien
-  « 🛠️ Diagnostic » de la barre de navigation, en haut de chaque page.
+  « 🛠️ Modèles » de la barre de navigation, en haut de chaque page.
 
 ### Premier lancement long sur un poste qui a beaucoup de modèles
 

@@ -1,0 +1,33 @@
+{
+ "source": "onnx-community/strands-decider-2B-hobson-v19-ONNX, commit 31a83e0244b26d939ae33f87189d6c8204003e53, conversion/fixtures/reference.json (Apache-2.0), cas noul seulement : invites rendues par strands_decider.prompting",
+ "cases": [
+  {
+   "state": "Help! My payouts have been failing for 3 days! ",
+   "instructions": "Does this convey urgency?",
+   "prompt": "<state>\nHelp! My payouts have been failing for 3 days!\n</state>\n<question type=\"noul\">\nDecide whether the statement is true of the state.\nDoes this convey urgency?\n<options>\n1. false — the statement does not hold for this state\n2. true — the statement holds for this state\n</options>\n</question>\n<answer>"
+  },
+  {
+   "state": "strawberry",
+   "instructions": "Are there three r's in this word?",
+   "prompt": "<state>\nstrawberry\n</state>\n<question type=\"noul\">\nDecide whether the statement is true of the state.\nAre there three r's in this word?\n<options>\n1. false — the statement does not hold for this state\n2. true — the statement holds for this state\n</options>\n</question>\n<answer>"
+  },
+  {
+   "state": {
+    "user": "What's the weather like?",
+    "proposed_call": {
+     "tool": "get_weather",
+     "args": {
+      "city": null
+     }
+    }
+   },
+   "instructions": "Does the proposed tool call have every argument it needs?",
+   "prompt": "<state>\n{\n  \"user\": \"What's the weather like?\",\n  \"proposed_call\": {\n    \"tool\": \"get_weather\",\n    \"args\": {\n      \"city\": null\n    }\n  }\n}\n</state>\n<question type=\"noul\">\nDecide whether the statement is true of the state.\nDoes the proposed tool call have every argument it needs?\n<options>\n1. false — the statement does not hold for this state\n2. true — the statement holds for this state\n</options>\n</question>\n<answer>"
+  },
+  {
+   "state": "The blender caught fire the second time I used it. Smoke everywhere, my kitchen still smells. I want a full refund TODAY or I am calling my lawyer and posting videos everywhere. Nobody from support has replied in 5 days.",
+   "instructions": "The review reports a safety hazard.",
+   "prompt": "<state>\nThe blender caught fire the second time I used it. Smoke everywhere, my kitchen still smells. I want a full refund TODAY or I am calling my lawyer and posting videos everywhere. Nobody from support has replied in 5 days.\n</state>\n<question type=\"noul\">\nDecide whether the statement is true of the state.\nThe review reports a safety hazard.\n<options>\n1. false — the statement does not hold for this state\n2. true — the statement holds for this state\n</options>\n</question>\n<answer>"
+  }
+ ]
+}

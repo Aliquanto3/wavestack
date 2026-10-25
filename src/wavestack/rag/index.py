@@ -100,9 +100,11 @@ def corpus_digest(chunks: Sequence[Chunk]) -> str:
     return digest.hexdigest()
 
 
-def passage_text(chunk: Chunk) -> str:
-    """What is embedded for a chunk: its document's title, then its text."""
-    return f"{chunk.title_text}\n{chunk.text}"
+def passage_text(chunk: Chunk, context: str = "") -> str:
+    """What is embedded for a chunk: its document's title, then its text. V1.2 story 6: with
+    a `context` (contextual retrieval), it comes first, on its own line."""
+    text = f"{chunk.title_text}\n{chunk.text}"
+    return f"{context}\n{text}" if context else text
 
 
 def file_sha256(path: Path) -> str:

@@ -1,0 +1,8 @@
+{
+ "ceiling_mb": 16384,
+ "error": "arrêté au plafond de sécurité de 16384 Mo (RSS à l'arrêt 18750 Mo)",
+ "peak_mb": null,
+ "rss_at_stop_mb": 18750,
+ "status": "failed",
+ "stopped_at_ceiling": true
+}

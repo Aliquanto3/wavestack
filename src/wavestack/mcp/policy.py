@@ -33,6 +33,10 @@ _DEFAULTS: dict[str, tuple[str, str]] = {
     "github__list_issues": ("mid", "allow"),
     "github__merge_pull_request": ("high", "deny"),
     "github__create_pull_request": ("high", "deny"),
+    # V1.2 story 20 (CAP-18): the tools the workshop's exposed server offers a client (read only,
+    # the shipped fictitious corpus); a rule other than `allow` hides and refuses the tool.
+    "workshop__search_documents": ("low", "allow"),
+    "workshop__describe_architecture": ("low", "allow"),
 }
 # CAP-9 (the page Sécurité's « Matrice des risques »): one row per `mcp-tools.md` category,
 # with the tools it names; `write` flags a row whose tools the page's « Quels outils peuvent

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import bisect
+import hashlib
 import importlib.util
 import inspect
 import json
@@ -21,12 +22,15 @@ import math
 import os
 import random
 import re
+import secrets
 import subprocess
 import sys
 import threading
 import time
-from collections.abc import Callable, Sequence
+from collections import OrderedDict
+from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, replace
 from itertools import accumulate
 from pathlib import Path, PurePosixPath
@@ -37,7 +41,7 @@ import yaml
 from mcp.shared.exceptions import MCPError
 from pydantic import SecretStr
 
-from wavestack import config, greenops
+from wavestack import __version__, config, greenops
 from wavestack import memory as memory_file
 from wavestack.bricks.contract import (
     BrickContent,
@@ -107,7 +111,10 @@ from wavestack.hooks import (
     host,
     load_hooks_content,
 )
-from wavestack.mcp import github_auth
+from wavestack.mcp import (
+    architecture_server,  # V1.2 story 20
+    github_auth,
+)
 from wavestack.mcp import lab as mcp_lab
 from wavestack.mcp import snapshot as mcp_snapshot
 from wavestack.mcp.connection import (
@@ -132,6 +139,7 @@ from wavestack.messages import (
     said,
 )
 from wavestack.models import catalog as model_catalog
+from wavestack.models import discovery as discovery_module
 from wavestack.models import download as download_module
 from wavestack.models import embedding as embedding_module
 from wavestack.models import gguf_meta
@@ -149,7 +157,7 @@ from wavestack.models.capabilities import (
     tool_call_tags,
 )
 from wavestack.models.cloud_api import create_cloud_engine
-from wavestack.models.cloud_base import emit_spend, reset_conversation_spend
+from wavestack.models.cloud_base import emit_spend, reset_conversation_spend, session_cap_error
 from wavestack.models.embedding import Embedder
 from wavestack.models.engine import (
     DEFAULT_SAMPLING,
@@ -167,9 +175,11 @@ from wavestack.models.load_registry import (
     COMPRESSOR,
     EMBEDDING,
     GREENOPS_CODECARBON,
+    RAG_LAB_CAG,
     RAG_LAB_EMBEDDING,
     RAG_LAB_FAISS,
     RAG_LAB_FASTEMBED,
+    RAG_LAB_JUDGE,
     RAG_LAB_LANCEDB,
     RAG_LAB_RERANKER,
     RERANKER,
@@ -194,9 +204,23 @@ from wavestack.models.servers import (
     ollama_load_bytes,
     open_engine,
 )
+from wavestack.rag import access as rag_access
+from wavestack.rag import attack as rag_attack
+from wavestack.rag import contexts as rag_contexts
+from wavestack.rag import decision as rag_decision
+from wavestack.rag import erasure as rag_erasure
+from wavestack.rag import evaluation as rag_evaluation
+from wavestack.rag import (
+    exposed,  # V1.2 story 20
+    workcopy,
+)
+from wavestack.rag import graph as rag_graph
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
-from wavestack.rag import workcopy
+from wavestack.rag import pageindex as rag_pageindex
+from wavestack.rag import raptor as rag_raptor
+from wavestack.rag import sheets as rag_sheets
+from wavestack.rag import wiki as rag_wiki  # V1.2 story 14
 from wavestack.rag.corpus import (
     Chunk,
     RagContent,
@@ -238,6 +262,8 @@ from wavestack.tools.registry import (
     ToolSpec,
     load_tools_content,
 )
+from wavestack.trace import otel as trace_otel
+from wavestack.trace import tree as trace_tree
 from wavestack.trace.catalog import (
     PAYLOAD_MODELS,
     LlmGenerationEndedPayload,
@@ -245,6 +271,7 @@ from wavestack.trace.catalog import (
     LlmTokenizedPayload,
     LlmTokenPayload,
 )
+from wavestack.trace.envelope import now_iso
 from wavestack.trace.journal import get_journal
 from wavestack.trace.scope import TraceScope, current, scoped
 from wavestack.ui_texts import UiTexts, load_ui_texts
@@ -315,6 +342,22 @@ class RuntimeRefused(KeyedError, RuntimeError):
     shown_name = "RuntimeError"
 
 
+@dataclass
+class _CagEntry:
+    """V1.2 story 10: the RAG workshop's one CAG entry (`AppSession._cag_cache`): its key (the
+    prefix's ids, the active model, the effective window), the engine's state after the prefix
+    (`None` for an engine that keeps no state: a server holds the prefix itself), its tokens
+    and what its build measured. Only this entry references the state: deleting it frees it."""
+
+    key: str
+    snapshot: EngineSnapshot | None
+    prefix_tokens: int
+    build_tokens: int | None
+    build_ms: int | None
+    impact: Impact | None
+    state_bytes: int | None
+
+
 class _RenderingJournal:
     """The journal, seen from the session: `emit` writes the payload's `Message`s in the
     session's language (languages 5/5); anything else is the journal's own."""
@@ -360,6 +403,10 @@ _LAB_FR = Message("session.state.llm_lab")
 # Lot 4 of 2026-10-04 (AD-27): the slots of `ask_resource_text`, filled in one pass.
 _RESOURCE_SLOT = re.compile(r"\{(uri|content|question)\}")
 RAG_LAB_CATALOG_TTL_S = 5.0  # story 30: the validation's catalog, read again after this
+# V1.2 story 13: the graphs of GraphRAG kept (by corpus and files), the entities the card lists.
+RAG_LAB_GRAPHS_KEPT = 4
+GRAPH_CARD_ENTITIES = 30
+RAG_LAB_RAPTORS_KEPT = 4  # V1.2 story 12: RAPTOR's trees kept (by corpus and files)
 _RAG_LAB_FR = Message("session.state.rag_lab")
 _MCP_LAB_FR = Message("session.state.mcp_lab")  # story 6 of 2026-09-30
 # Story 10 (CAP-9, the page Sécurité's « Ce que le harnais ne protège pas »): one id per
@@ -959,6 +1006,15 @@ class AppSession:
         # Story 16 (AD-8): the reranking sub-option, its model (`[rag.reranker]`, or why it is
         # invalid), the files missing, and the reranker loaded.
         self._reranker_factory = reranker_factory or reranker_module.open_reranker
+        # V1.2 story 8 (CAP-6): System One's local classifier (its adapter, a fake in tests),
+        # whether its extra is installed, the decision API's transport (a fake in tests) and
+        # its key (read afresh, never kept, shown nor written).
+        self._decision_classifier_factory: Callable[[config.DecisionModel], Any] = (
+            _open_decision_classifier
+        )
+        self._decision_installed: Callable[[], bool] = rag_decision.installed
+        self._decision_transport: Any = None
+        self._decision_key: Callable[[], str | None] = rag_decision.read_key
         self._rerank_model: RerankerModel | None = None
         self._rerank_config_error: str | None = None
         self._rerank_missing: list[ModelFile] = []
@@ -1007,6 +1063,23 @@ class AppSession:
         # Story 30 (the RAG workshop): its runs, numbered over the session's life (`lab{n}`),
         # and its content error already traced (once per message).
         self._rag_labs = 0
+        # V1.2 story 13: GraphRAG's graphs built, by what they are built from (a few kept).
+        self._rag_lab_graphs: dict[str, tuple[rag_graph.Graph, int]] = {}
+        self._rag_lab_graphs_lock = threading.Lock()  # read by the HTTP thread and the worker
+        # V1.2 story 12: RAPTOR's trees read, by what they are read from (a few kept).
+        self._rag_lab_raptors: dict[str, tuple[rag_raptor.Tree, int]] = {}
+        self._rag_lab_raptors_lock = threading.Lock()
+        # V1.2 story 15 (CAP-11), the Evaluate tab: the generating model of each finished run
+        # (`run_id` -> label and family), the judges' verdicts kept by run, both bounded (the
+        # oldest leaves), the last judgment's failure, and the local-model discovery (replaced
+        # in the tests: it reads the disk and probes loopback servers).
+        self._rag_generators: OrderedDict[str, tuple[str, str]] = OrderedDict()
+        self._rag_verdicts: OrderedDict[
+            str, dict[str, dict[str, rag_evaluation.SessionVerdict]]
+        ] = OrderedDict()
+        self._rag_judge_error: str | None = None
+        self._rag_judgments = 0
+        self._rag_judge_discover: Callable[[], list[Any]] = lambda: discovery_module.discover(None)
         self._rag_lab_error_traced: str | None = None
         # Increment 3: FAISS and LanceDB imported (what each import added to the RSS), and
         # the ones whose import failed (a DLL blocked), then unavailable with the reason.
@@ -1014,6 +1087,20 @@ class AppSession:
         self._rag_lab_import_errors: dict[str, str] = {}
         # The catalog the validation of an edited chain reads (`_rag_lab_recent_catalog`).
         self._rag_lab_catalog_kept: tuple[float, Any, rag_lab.Catalog] | None = None
+        # V1.2 story 10: what that catalog was read for (the active model, the effective
+        # window): another one reads it again, whatever its age.
+        self._rag_lab_catalog_for: tuple[Any, ...] | None = None
+        # V1.2 story 5: the questions the workshop ran, which `follow_up` reads as history.
+        self._rag_lab_asked: list[str] = []
+        # V1.2 story 10 (CAG): the workshop's one prefix state, and the one an update rebuilt,
+        # which becomes the entry once the update ends `ok`; both read and written under
+        # `_lock`, deleted at each change of model, window or language, « vider le cache » and
+        # the session's close.
+        self._cag_cache: _CagEntry | None = None
+        self._cag_pending: _CagEntry | None = None
+        # V1.2 story 11: the main context's engine state saved once around a stage's model
+        # calls (the agent's rounds, the descent's levels): each call leaves it alone.
+        self._rag_lab_held = False
         # Lot 5c-1: the `[[rag_lab.embeddings]]` entries left out, traced once each.
         self._rag_lab_rejected_traced: set[str] = set()
         # Story 6 of 2026-09-30 (the MCP workshop): its exchanges, numbered (`mcp{n}`), the
@@ -1814,6 +1901,8 @@ class AppSession:
         self._executor.submit(lambda: None).result()
 
     def close(self) -> None:
+        self._cag_drop()  # V1.2 story 10: the CAG state freed with the session
+        self._rag_mcp_halt(None)  # V1.2 story 20: the exposed server stops with the session
         self.stop()
         with self._lock:
             conns = list(self._mcp_conns.values())
@@ -2472,6 +2561,8 @@ class AppSession:
             self._model_name, self._meta = None, None
             # Lot A: the next engine starts with an empty cache, nothing to check against.
             self._main_cache = self._cache_evicted = None
+            # V1.2 story 10: the CAG's state was this engine's.
+            self._cag_forget()
         try:
             if engine is not None:
                 engine.close()
@@ -2654,6 +2745,8 @@ class AppSession:
                 raise SendRefused(self._refusal_reason())
             if window == self._configured_window:
                 return Message("session.window.already", window=self._num_lazy(window)), None
+            # V1.2 story 10: a CAG state is kept for one window.
+            self._cag_forget()
             active, cloud = self._active, self._cloud
             if cloud is not None:
                 locked = self._locked_fr(cloud)
@@ -6371,6 +6464,7 @@ class AppSession:
             lab, self._mcp_lab_conn = self._mcp_lab_conn, None  # the MCP workshop's (story 6)
         conns += [lab] if lab is not None else []
         await asyncio.gather(*(conn.aclose() for conn in conns), return_exceptions=True)
+        await self._rag_mcp_aclose()  # V1.2 story 20: the exposed server's task awaited
 
     def save_system_prompt(self, text: str | None) -> dict[str, Any]:
         """Class (a): `None` (or a blank text) restores the default. Returns the saved state."""
@@ -6834,6 +6928,7 @@ class AppSession:
             # Refused: the engine's memory is unknown (its ids forgotten), never compared.
             self._main_cache = [] if cleared else None
             self._cache_cleared = cleared
+            self._cag_forget()  # V1.2 story 10: its state too
         if not cleared:
             raise SendRefused(Message("session.refused.cache_unsupported"))
 
@@ -6917,6 +7012,7 @@ class AppSession:
             with self._lock:
                 self._language = language
                 self._ui_texts = None  # never the former language's under the new code
+                self._cag_forget()  # V1.2 story 10: another corpus
                 if hasattr(self._engine, "language"):  # a served engine's own traces
                     self._engine.language = language
             config.clear_content_caches()
@@ -6930,6 +7026,8 @@ class AppSession:
                 restart = [s for s in self._mcp_conns if self._mcp_servers[s].url is None]
             self._demo_memory_in(old_demo)
         self._journal().emit("language_changed", {"language": language})
+        # V1.2 story 20: the exposed tools were described in the former language.
+        self._rag_mcp_halt(Message("session.rag_mcp.stopped_language"))
         self._emit_state()  # `language` in the session's state
         # Story 6 of 2026-09-30: reconnected in the language (`mcp_lab_closed{language}`).
         self._mcp_lab_drop(wait=False, cause="language")
@@ -7119,7 +7217,8 @@ class AppSession:
     def reset(self) -> None:
         """Class (b): back to the launch state: bare LLM, no turn, no scenario. Lot 4 of
         2026-10-04 (AD-27): the MCP workshop's connection closed too, its series forgotten."""
-        self._reconfigure(None, lambda: None)
+        # V1.2 story 5: the workshop's questions, read by `follow_up`, are forgotten too.
+        self._reconfigure(None, self._rag_lab_asked.clear)
         self._mcp_lab_reset()
 
     def _reconfigure(
@@ -7254,6 +7353,12 @@ class AppSession:
         `rag_lab_reranker:<id>`) are traced outside it, so the RAG card does not show them.
         `KeyError` for an unknown target, `SendRefused` for a brick's model not declared."""
         kind, _, model_id = target.partition(":")
+        if kind == "rag_lab_decision" and model_id:  # V1.2 story 8: System One's classifier
+            decision_model, _ = self.cfg.rag_lab_decision_classifier
+            if decision_model is None or decision_model.id != model_id:
+                raise KeyError(target)
+            scope = self._rag_lab_scope("rag_lab", "rag_lab.decision", brick=None)
+            return decision_model, Message("session.rag.model_noun.decision"), scope
         if kind in ("rag_lab_embedding", "rag_lab_reranker") and model_id:
             rerank = kind == "rag_lab_reranker"
             lab_model = (
@@ -10642,7 +10747,8 @@ class AppSession:
             "context_id": "rag_lab",
             "call_id": None,
             "step_id": step_id,
-            "parent_step": None,
+            # V1.2 story 16 (CAP-12): the step that holds it, read from the chain's ids.
+            "parent_step": rag_lab.parent_step(step_id),
             "brick": brick,
             "component": component,
             "edge": None,
@@ -10706,6 +10812,28 @@ class AppSession:
             )
         else:
             generation.note_text = Message("session.rag_lab.generation_no_model")
+            # V1.2 story 5: the query understanding asks the same model; without it, the
+            # stage is skipped and the question goes on as typed.
+            for option in rag_lab.OPTIONS["query"]:
+                options[("query", option)].note_text = Message("session.rag_lab.query_no_model")
+            # V1.2 story 11: the agent and the descent ask it too; they stay applicable.
+            for option in ("agent_loop", "section_tree"):
+                options[("context", option)].note_text = Message(
+                    "session.rag_lab.searchless_no_model"
+                )
+            # V1.2 story 12: Corrective RAG's fallback cannot rewrite the question: it
+            # answers that it does not know at once.
+            options[("fallback", "retry")].note_text = Message("session.rag_lab.fallback_no_model")
+            # V1.2 story 14: the LLM Wiki's index is read by the model too; it stays applicable.
+            options[("context", "wiki_pages")].note_text = Message(
+                "session.rag_lab.searchless_no_model"
+            )
+        # V1.2 story 7: `compress` borrows the Compression card's compressor; without one it can
+        # still be chosen, the step builds the context as `order` does (the note says why).
+        compressor, why = self._rag_lab_compressor()
+        if compressor is None:
+            options[("context", "compress")].note_text = why
+        self._rag_lab_corpus_availability(options)
         fastembed = options[("embedding", "fastembed")]
         declared, reason = self._rag_lab_fastembed()
         if declared is not None:
@@ -10742,9 +10870,45 @@ class AppSession:
                 reason_text=refused,
                 download=self._rag_lab_download(texts, lab_reranker),
             )
+        self._rag_lab_decision_states(texts, options)  # V1.2 story 8 (CAP-6)
         return rag_lab.Catalog(
             texts, rag_lab.default_pipeline(self.cfg), options, lang=self._language
         )
+
+    def _rag_lab_corpus_availability(
+        self, options: dict[tuple[str, str], rag_lab.OptionState]
+    ) -> None:
+        """V1.2 story 10: the long context and the CAG need an effective window of at least
+        `NO_INDEX_WINDOW` tokens (the model's, the server's `-c` or the cloud declaration may
+        bound the window configured), the CAG a local engine; read afresh at each catalog."""
+        with self._lock:
+            engine, cloud = self._engine, self._cloud
+            window, source, configured = self._window, self._window_source, self._configured_window
+            active = self._active
+        needed = rag_lab.NO_INDEX_WINDOW
+        if window < needed:
+            if configured < needed:
+                where = Message("session.rag_lab.window_set", needed=self._num_lazy(needed))
+            else:
+                provider = active.provider if active is not None else None
+                where = Message(
+                    "session.rag_lab.window_bound",
+                    configured=self._num_lazy(configured),
+                    bound=self._bound_lazy(source, window, provider),
+                )
+            reason = Message(
+                "session.rag_lab.window_needed",
+                needed=self._num_lazy(needed),
+                effective=self._num_lazy(window),
+                where=where,
+            )
+            for option in rag_lab.CORPUS_OPTIONS:
+                state = options[("context", option)]
+                state.available, state.reason_text = False, reason
+        if engine is None or cloud is not None:
+            state = options[("context", "cached_corpus")]
+            state.available = False
+            state.reason_text = Message("session.rag_lab.cag_local_only")
 
     def _rag_lab_absent(self, model: config.EmbeddingModel | RerankerModel) -> Message | None:
         """Lot 5c-1: why a declared embedding model (lot 5c-2: or reranking model) of the
@@ -10839,7 +11003,9 @@ class AppSession:
             "last_run": rag_lab.last_run(events),
             "last_update": rag_lab.last_update(events),
             "work_copy": self._rag_lab_work_copy(),
+            "contexts": self._rag_lab_contexts(),
             "questions": self._rag_lab_questions(),
+            "otel": self.rag_lab_otel(),  # V1.2 story 16 (CAP-12)
             "session_state": {"state": state, "reason_text": reason_text},
             "seq": tip,
         }
@@ -10903,6 +11069,10 @@ class AppSession:
         reason = rag_lab.validate_pipeline(pipeline, catalog)
         if reason is not None:
             raise SendRefused(reason)
+        chunking = pipeline.find("chunking")
+        if chunking is not None and chunking.option != "paragraphs":
+            # V1.2 story 6: a chunking by meaning, parent-child or contextual is not updated.
+            raise SendRefused(Message("session.rag_lab.update_chunking"))
         content = self._rag_content
         assert content is not None
         label = rag_lab._t(f"update.op.{operation}", self._language, doc=doc_id)
@@ -10934,13 +11104,481 @@ class AppSession:
         )
         return run_id
 
+    def rebuild_rag_lab_contexts(
+        self, pipeline: rag_lab.Pipeline | None = None, target: str = "contexts"
+    ) -> str:
+        """Intention `rag_lab_rebuild` (V1.2 story 6, CAP-4), class (b): accepted in `idle`
+        only, as a run of its own (`ctx{n}`): the contexts of the contextual chunking are
+        rewritten by the workshop's active model, one call per chunk, into the data folder.
+        V1.2 story 11: `target` « pageindex », the summaries of PageIndex's tree, one call per
+        node. Without a model: refused, with the reason. Returns the run's id."""
+        if target not in rag_lab.RebuildRun.TARGETS:
+            raise SendRefused(Message("session.rag_lab.rebuild_target", target=target))
+        texts, error_text = self._rag_lab_content()
+        if texts is None:
+            raise SendRefused(error_text or Message("session.rag_lab.texts_unreadable"))
+        unavailable = self._rag_lab_unavailable()
+        if unavailable is not None:
+            raise SendRefused(unavailable)
+        catalog = self._rag_lab_catalog(texts)
+        pipeline = pipeline or catalog.default
+        reason = rag_lab.validate_pipeline(pipeline, catalog)
+        if reason is not None:
+            raise SendRefused(reason)
+        rebuild_blocked = self._rag_lab_rebuild_blocked()
+        if rebuild_blocked is not None:
+            raise SendRefused(rebuild_blocked)
+        labels = {  # V1.2 stories 13 (graph) and 14 (the LLM Wiki's syntheses)
+            "pageindex": "tree.run_label",
+            "graph": "graph.run_label",
+            "wiki": "wiki.run_label",
+        }
+        labels["raptor"] = "raptor.run_label"  # V1.2 story 12
+        label = rag_lab._t(labels.get(target, "contexts.run_label"), self._language)
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            previous = self.reason_text
+            self._rag_labs += 1
+            run_id = f"{rag_lab.REBUILD_RUN_PREFIX}{self._rag_labs}"
+            cancel = self._cancel = CancelToken()
+            self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
+        self._emit_state()
+        self._executor.submit(
+            self._run_rag_lab,
+            run_id,
+            label,
+            pipeline,
+            texts,
+            catalog,
+            cancel,
+            previous,
+            rebuild=target,
+        )
+        return run_id
+
+    def reset_rag_lab_pageindex(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/pageindex/reset` (V1.2 story 11): PageIndex's summaries rebuilt in
+        the data folder are deleted, the shipped tree is read again (never `content/`). Refused
+        while a run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_pageindex.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def reset_rag_lab_graph(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/graph/reset` (V1.2 story 13): the graph rebuilt in the data
+        folder is deleted, the shipped graph is read again (never `content/`). Refused while a
+        run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_graph.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def _rag_lab_graph(self, documents: Sequence[rag_lab.DocText]) -> tuple[rag_graph.Graph, int]:
+        """V1.2 story 13: GraphRAG's graph of `documents` and the milliseconds its construction
+        took, kept by what it is built from (the language, the documents of the work copy, the
+        shipped and rebuilt files): a few hundred Ko, built once per corpus."""
+        content = self._rag_content
+        assert content is not None  # checked when the intention was accepted
+        lang, size, folder = self._language, self.cfg.rag_chunk_max_chars, config.rag_lab_dir()
+        key = rag_lab.graph_key(lang, size, documents, folder)
+        with self._rag_lab_graphs_lock:
+            kept = self._rag_lab_graphs.get(key)
+        if kept is None:
+            kept = rag_lab.graph_for(content, lang, size, documents, folder)
+            with self._rag_lab_graphs_lock:
+                while len(self._rag_lab_graphs) >= RAG_LAB_GRAPHS_KEPT:
+                    self._rag_lab_graphs.pop(next(iter(self._rag_lab_graphs)))
+                self._rag_lab_graphs[key] = kept
+        return kept
+
+    def reset_rag_lab_raptor(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/raptor/reset` (V1.2 story 12): RAPTOR's tree rebuilt in the data
+        folder is deleted, the shipped tree is read again (never `content/`). Refused while a
+        run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_raptor.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def _rag_lab_raptor(self, documents: Sequence[rag_lab.DocText]) -> tuple[rag_raptor.Tree, int]:
+        """V1.2 story 12: RAPTOR's tree of `documents` and the milliseconds its reading took,
+        kept by what it is read from (the language, the documents of the work copy, the shipped
+        and rebuilt files)."""
+        content = self._rag_content
+        assert content is not None  # checked when the intention was accepted
+        lang, size, folder = self._language, self.cfg.rag_chunk_max_chars, config.rag_lab_dir()
+        key = rag_lab.raptor_key(lang, size, documents, folder)
+        with self._rag_lab_raptors_lock:
+            kept = self._rag_lab_raptors.get(key)
+        if kept is None:
+            kept = rag_lab.raptor_for(content, lang, size, documents, folder)
+            with self._rag_lab_raptors_lock:
+                while len(self._rag_lab_raptors) >= RAG_LAB_RAPTORS_KEPT:
+                    self._rag_lab_raptors.pop(next(iter(self._rag_lab_raptors)))
+                self._rag_lab_raptors[key] = kept
+        return kept
+
+    def _rag_lab_raptor_card(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 12: what the page's « Arbre RAPTOR » card shows: who wrote the tree read
+        (the shipped rule, or the model of a rebuild), its numbers, the summaries stale against
+        the work copy, the rebuild's measure or the labelled estimate, an accessible table of
+        its summaries (level, children, documents, audience), and why « Reconstruire » is not
+        available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        tree, _ = self._rag_lab_raptor(documents)
+        rebuilt = tree.rebuilt
+        mark = rag_lab.raptor_mark(tree, lang)
+        estimate = rag_lab.raptor_estimate(
+            tree, lambda t: config.estimate_tokens(t, self.cfg.chars_per_token), lang
+        )
+        say = lambda key, **kw: rag_lab._t(key, lang, **kw)  # noqa: E731
+        count = lambda n, noun: rag_lab.count_text(n, noun, lang)  # noqa: E731
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_raptor.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_raptor.HEURISTIC,
+            "mark_text": mark,
+            "passages": len(tree.leaves),
+            "summaries": len(tree.nodes),
+            "levels": tree.levels,
+            "unparented": tree.unparented(),
+            "stale": tree.stale,
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "calls": rebuilt.calls if rebuilt is not None else 0,
+            "summary_text": say(
+                "raptor.summary",
+                mark=mark,
+                passages=count(len(tree.leaves), "passage"),
+                summaries=count(len(tree.nodes), "summary"),
+                levels=rag_lab.lang_int(tree.levels, lang),
+                stale=rag_lab.lang_int(tree.stale, lang),
+            ),
+            "measure_text": say(
+                "raptor.measure",
+                tokens=rag_lab.lang_int(rebuilt.tokens, lang),
+                calls=rag_lab.lang_int(rebuilt.calls or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "rule_note_text": None if rebuilt is not None else say("raptor.rule_note"),
+            "estimate": estimate,
+            "node_rows": [
+                {
+                    "id": n.id,
+                    "level": n.level,
+                    "children": len(n.children),
+                    "sources": n.sources,
+                    "audience": n.audience,
+                    "summary_text": n.summary_text,
+                    "summary_source": n.source,
+                }
+                for n in sorted(tree.nodes.values(), key=lambda n: -n.level)
+            ],
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": tree.error,
+        }
+
+    def _rag_lab_graph_card(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 13: what the page's « Graphe » card shows: who built the graph read (the
+        shipped rule, or the model of a rebuild), its numbers, the stale evidence against the
+        work copy, the rebuild's measure or the labelled estimate, an accessible table of its
+        entities and communities (with their audience), and why « Reconstruire » is not
+        available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        kg, _ = self._rag_lab_graph(documents)
+        rebuilt = kg.rebuilt
+        mark = rag_lab.graph_mark(kg, lang)
+        estimate = rag_lab.graph_estimate(
+            kg, lambda t: config.estimate_tokens(t, self.cfg.chars_per_token), lang
+        )
+        community_of = kg.community_of()
+        degree = {e: 0 for e in kg.entities}
+        for rel in kg.relations.values():
+            degree[rel.source] += rel.weight
+            degree[rel.target] += rel.weight
+        top = sorted(kg.entities.values(), key=lambda e: (-degree[e.id], e.id))
+        say = lambda key, **kw: rag_lab._t(key, lang, **kw)  # noqa: E731
+        count = lambda n, noun: rag_lab.count_text(n, noun, lang)  # noqa: E731
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_graph.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_graph.HEURISTIC,
+            "mark_text": mark,
+            "entities": len(kg.entities),
+            "relations": len(kg.relations),
+            "communities": len(kg.communities),
+            "isolated": kg.isolated,
+            "stale": kg.stale,
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "calls": rebuilt.calls if rebuilt is not None else 0,
+            "summary_text": say(
+                "graph.summary",
+                mark=mark,
+                entities=count(len(kg.entities), "entity"),
+                relations=count(len(kg.relations), "relation"),
+                communities=count(len(kg.communities), "community"),
+                stale=rag_lab.lang_int(kg.stale, lang),
+            ),
+            "measure_text": say(
+                "graph.measure",
+                tokens=rag_lab.lang_int(rebuilt.tokens, lang),
+                calls=rag_lab.lang_int(rebuilt.calls or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "rule_note_text": None if rebuilt is not None else say("graph.rule_note"),
+            "estimate": estimate,
+            "entity_rows": [
+                {
+                    "id": e.id,
+                    "name": e.name,
+                    "type": e.type,
+                    "mentions": len(e.mentions),
+                    "degree": degree[e.id],
+                    "audience": e.audience,
+                    "community": community_of.get(e.id),
+                }
+                for e in top[:GRAPH_CARD_ENTITIES]
+            ],
+            "community_rows": [
+                {
+                    "id": c.id,
+                    "size": len(c.entities),
+                    "entities": [kg.entities[e].name for e in c.entities][:8],
+                    "sources": c.sources,
+                    "audience": c.audience,
+                    "summary_text": c.summary_text,
+                    "summary_source": c.summary_source,
+                }
+                for c in kg.communities.values()
+            ],
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": kg.error,
+        }
+
+    def reset_rag_lab_wiki(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/wiki/reset` (V1.2 story 14): the LLM Wiki recompiled in the data
+        folder is deleted, the shipped wiki is read again (never `content/`). Refused while a
+        run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_wiki.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def reset_rag_lab_contexts(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/contexts/reset`: the contexts rebuilt in the data folder are
+        deleted, the shipped ones are read again (never `content/`). Refused while a run goes
+        on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_contexts.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def _rag_lab_rebuild_blocked(self) -> Message | None:
+        """Why the contexts cannot be rebuilt now (no model loaded in the workshop), or `None`."""
+        with self._lock:
+            engine = self._engine
+        if engine is None:
+            return Message("session.rag_lab.rebuild_no_model")
+        return None
+
+    def _rag_lab_contexts(self) -> dict[str, Any]:
+        """V1.2 story 6: what the page shows of the contexts of the contextual chunking: the
+        header of the file read (shipped or rebuilt), whether a rebuilt file exists, and why
+        « reconstruire » is not available now."""
+        book = rag_contexts.load_book(self._language, config.rag_lab_dir())
+        header = book.header
+        blocked = self._rag_lab_rebuild_blocked()
+        return {
+            "pageindex": self._rag_lab_pageindex(blocked),
+            "graph": self._rag_lab_graph_card(blocked),  # V1.2 story 13
+            "raptor": self._rag_lab_raptor_card(blocked),  # V1.2 story 12
+            "wiki": self._rag_lab_wiki(blocked),  # V1.2 story 14
+            "author": header.author if header else None,
+            "method": header.method if header else None,
+            "model": header.model if header else None,
+            "chunk_max_chars": header.chunk_max_chars if header else None,
+            "chunks": header.chunks if header else 0,
+            "tokens": header.tokens if header else 0,
+            "duration_ms": header.duration_ms if header else 0,
+            "summary_text": rag_lab._t(
+                "contexts.summary",
+                self._language,
+                mark=rag_lab.mark_text(header.author, header.method, header.model, self._language),
+                chunks=rag_lab.lang_int(header.chunks, self._language),
+                model=header.model,
+                tokens=rag_lab.lang_int(header.tokens, self._language),
+                duration=rag_lab.ms_text(header.duration_ms, self._language),
+            )
+            if header
+            else None,
+            "rebuilt": book.rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, self._language) if blocked else None,
+            "expected_text": self._t(
+                "session.rag_lab.rebuild_expected",
+                chunks=book.shipped.chunks if book.shipped else (header.chunks if header else 0),
+            ),
+        }
+
+    def _rag_lab_wiki(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 14: what the page's « Wiki » card shows: who wrote the wiki read (the
+        shipped rule, or the model of a recompilation), its pages, concepts and links, the pages
+        stale against the work copy, the lint's findings, the estimate of a compilation by a
+        model (shipped wiki only, never a measure), the recompilation's measure, and why
+        « Reconstruire » is not available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        audiences = {d.id: d.audience for d in content.documents}
+        book = rag_wiki.load_wiki(documents, lang, config.rag_lab_dir(), audiences)
+        findings = rag_wiki.lint(book, documents, lang)
+        rebuilt = book.rebuilt
+        mark = (
+            rag_lab._t("wiki.mark_rebuilt", lang, model=rebuilt.model)
+            if rebuilt is not None
+            else rag_lab._t("wiki.mark_shipped", lang)
+        )
+        estimate_text = None
+        if rebuilt is None:
+            calls = len(book.listed())
+            instruction = rag_lab._t(
+                "wiki.rewrite_instruction", lang, max=rag_wiki.SYNTHESIS_MAX_CHARS
+            )
+            tokens = rag_lab.wiki_estimate_tokens(
+                book,
+                instruction,
+                lambda t: config.estimate_tokens(t, self.cfg.chars_per_token),
+            )
+            estimate_text = rag_lab._t(
+                "wiki.estimate",
+                lang,
+                calls=rag_lab.lang_int(calls, lang),
+                tokens=rag_lab.lang_int(tokens, lang),
+            )
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_wiki.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_wiki.HEURISTIC,
+            "mark_text": mark,
+            "pages": len(book.pages),
+            "concepts": book.count("concept"),
+            "links": book.links(),
+            "stale": book.stale,
+            "findings": len(findings),
+            "lint": [
+                {
+                    "code": f.code,
+                    "page_id": f.page_id,
+                    "text": rag_lab._t(
+                        f"wiki.lint.{f.code}", lang, page=f.page_id, detail=f.detail
+                    ),
+                }
+                for f in findings[: rag_lab.WIKI_FINDINGS_SHOWN]
+            ],
+            "hr_pages": sum(1 for p in book.pages.values() if p.audience == "hr"),
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "summary_text": rag_lab._t(
+                "wiki.summary",
+                lang,
+                mark=mark,
+                pages=rag_lab.lang_int(len(book.pages), lang),
+                concepts=rag_lab.lang_int(book.count("concept"), lang),
+                links=rag_lab.lang_int(book.links(), lang),
+                stale=rag_lab.lang_int(book.stale, lang),
+                findings=rag_lab.lang_int(len(findings), lang),
+            ),
+            "measure_text": rag_lab._t(
+                "wiki.measure",
+                lang,
+                tokens=rag_lab.lang_int(rebuilt.tokens or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "estimate_text": estimate_text,
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": book.error,
+        }
+
+    def _rag_lab_pageindex(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 11: what the page's « Arbre » card shows: who wrote the tree read (the
+        shipped rule, or the model of a rebuild), its nodes, the nodes stale against the work
+        copy, the rebuild's measure, and why « Reconstruire » is not available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        tree = rag_pageindex.load_tree(documents, lang, config.rag_lab_dir())
+        rebuilt = tree.rebuilt
+        mark = (
+            rag_lab._t("tree.mark_rebuilt", lang, model=rebuilt.model)
+            if rebuilt is not None
+            else rag_lab._t("tree.mark_shipped", lang)
+        )
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_pageindex.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_pageindex.HEURISTIC,
+            "mark_text": mark,
+            "nodes": len(tree.nodes),
+            "stale": tree.stale,
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "summary_text": rag_lab._t(
+                "tree.summary",
+                lang,
+                mark=mark,
+                nodes=rag_lab.lang_int(len(tree.nodes), lang),
+                stale=rag_lab.lang_int(tree.stale, lang),
+            ),
+            "measure_text": rag_lab._t(
+                "tree.measure",
+                lang,
+                tokens=rag_lab.lang_int(rebuilt.tokens or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": tree.error,
+        }
+
     def _rag_lab_unavailable(self) -> str | None:
         """Why no chain can run at all: the RAG brick's corpus and texts are unreadable."""
         if self._rag_content is None:
             return self._content_errors.get("rag") or Message("session.rag_lab.corpus_unreadable")
         return None
 
-    def run_rag_lab(self, question: str, pipeline: rag_lab.Pipeline | None = None) -> str:
+    def run_rag_lab(
+        self, question: str, pipeline: rag_lab.Pipeline | None = None, graph_mode: str = "local"
+    ) -> str:
         """Intention `rag_lab_run` (story 30, class b): accepted in `idle` only (a reason
         there, such as no model loaded, does not matter: the generation is then skipped, lot
         5c-3), switched to `rag_lab` under the lock in this call, then run on the worker;
@@ -10965,11 +11603,24 @@ class AppSession:
             previous = self.reason_text
             self._rag_labs += 1
             run_id = f"lab{self._rag_labs}"
+            self._remember_generator(run_id)  # V1.2 story 15
             cancel = self._cancel = CancelToken()
             self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
+            history = tuple(self._rag_lab_asked[-rag_lab.HISTORY_MAX :])
+            self._rag_lab_asked.append(question)
+            del self._rag_lab_asked[: -rag_lab.HISTORY_MAX]
         self._emit_state()
         self._executor.submit(
-            self._run_rag_lab, run_id, question, chain, texts, catalog, cancel, previous
+            self._run_rag_lab,
+            run_id,
+            question,
+            chain,
+            texts,
+            catalog,
+            cancel,
+            previous,
+            history=history,
+            graph_mode=graph_mode,  # V1.2 story 13: GraphRAG's mode, a choice of the page
         )
         return run_id
 
@@ -10979,10 +11630,18 @@ class AppSession:
         the disk again each time. A run reads it afresh."""
         now = time.monotonic()
         kept = self._rag_lab_catalog_kept
-        if kept is not None and kept[1] is texts and now - kept[0] < RAG_LAB_CATALOG_TTL_S:
+        with self._lock:
+            read_for = (self._active, self._window)
+        if (
+            kept is not None
+            and kept[1] is texts
+            and now - kept[0] < RAG_LAB_CATALOG_TTL_S
+            and self._rag_lab_catalog_for == read_for
+        ):
             return kept[2]
         catalog = self._rag_lab_catalog(texts)
         self._rag_lab_catalog_kept = (now, texts, catalog)
+        self._rag_lab_catalog_for = read_for
         return catalog
 
     def validate_rag_lab(self, pipeline: rag_lab.Pipeline) -> dict[str, Any]:
@@ -11008,6 +11667,9 @@ class AppSession:
         cancel: CancelToken,
         previous: str | None,
         update: tuple[workcopy.WorkCopy, workcopy.WorkCopy] | None = None,
+        history: tuple[str, ...] = (),
+        rebuild: str | None = None,
+        graph_mode: str = "local",
     ) -> None:
         """On the worker, in series with the turns and `_sync_rag`: a model the brick holds
         cannot be closed meanwhile. What the run loads is closed and freed at its end (AD-8),
@@ -11015,14 +11677,15 @@ class AppSession:
         loans = rag_lab.Loans(self._load_registry)
         lab_run: rag_lab.LabRun | None = None
         try:
-            deps = self._rag_lab_deps(texts, catalog, cancel, loans)
-            if update is None:
+            deps = self._rag_lab_deps(texts, catalog, cancel, loans, history, graph_mode)
+            if rebuild:  # V1.2 story 11: the contexts, or PageIndex's summaries
+                lab_run = rag_lab.RebuildRun(run_id, question, chain, deps, target=rebuild)
+            elif update is None:
                 lab_run = rag_lab.LabRun(run_id, question, chain, deps)
             else:
                 lab_run = rag_lab.UpdateRun(run_id, question, chain, deps, *update)
-            outcome = lab_run.run()
-            if update is not None and outcome == "ok":
-                workcopy.save(update[1], self._language)  # kept only when it was measured
+                lab_run.keep = self._rag_lab_keep_copy
+            lab_run.run()
         except Exception as exc:  # noqa: BLE001 - AD-16: the state still comes back
             with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
                 self._error(
@@ -11036,6 +11699,10 @@ class AppSession:
                 except Exception:  # noqa: BLE001, S110 - the error above says it already
                     pass
         finally:
+            with self._lock:  # V1.2 story 10: an update's prefix not kept is freed
+                self._cag_pending = None
+                if self._cag_cache is None or self._cag_cache.snapshot is None:
+                    self._load_registry.release(RAG_LAB_CAG)  # no state held any more
             errors = loans.close()
             if errors:
                 with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
@@ -11048,12 +11715,266 @@ class AppSession:
                 self._cancel = None
             self._set_state("idle", previous)
 
+    # ---------- V1.2 story 15 (CAP-11): the Evaluate tab's judges ----------
+
+    MAX_RAG_JUDGED = 50  # the runs whose generator and verdicts the session keeps
+
+    def _generator_family(self) -> tuple[str, str] | None:
+        """The model that generates now, its label and its family (the publisher, as
+        `catalog.publisher_for` says it); `None` without a model. Called under the lock."""
+        if self._cloud is not None:
+            label = self._cloud.model
+            return label, rag_evaluation.family_of([], [label], self._language)
+        if self._model_name is None or self._engine is None:
+            return None
+        arch = [self._caps.family] if self._caps is not None else []
+        meta = [self._meta.architecture] if self._meta is not None else []
+        label = self._model_name
+        return label, rag_evaluation.family_of([*meta, *arch], [label], self._language)
+
+    def _remember_generator(self, run_id: str) -> None:
+        """The generator of a run just started (the one `Generation` will call), bounded."""
+        found = self._generator_family()
+        if found is None:
+            return
+        self._rag_generators[run_id] = found
+        while len(self._rag_generators) > self.MAX_RAG_JUDGED:
+            self._rag_generators.popitem(last=False)
+
+    def _keep_verdict(
+        self, run_id: str, criterion: str, found: rag_evaluation.SessionVerdict
+    ) -> None:
+        with self._lock:
+            by_criterion = self._rag_verdicts.setdefault(run_id, {})
+            self._rag_verdicts.move_to_end(run_id)
+            by_criterion.setdefault(criterion, {})[found.role] = found
+            while len(self._rag_verdicts) > self.MAX_RAG_JUDGED:
+                self._rag_verdicts.popitem(last=False)
+
+    def _rag_finops(self) -> dict[str, Any]:
+        cap = self.cfg.max_session_usd
+        spent = float((session_spend(self.cfg.eur_per_usd) or {}).get("total_usd") or 0.0)
+        return {"max_session_usd": cap, "spent_usd": spent, "capped": spent >= cap}
+
+    def _rag_judge_panel(self, generator: tuple[str, str] | None) -> dict[str, Any]:
+        """The panel for a generator: at most one local judge (a GGUF file or a llama-server
+        model of another publisher) and the cloud models, each admitted or set aside with its
+        reason. Reads the disk and probes the loopback servers: asked when the page opens."""
+        texts = rag_evaluation.load_evaluation(self._language).texts
+        if generator is None:
+            return {"generator": None, "local": [], "cloud": []}
+        label, family = generator
+        local = rag_evaluation.local_options(
+            self._rag_judge_discover(), family, texts, self._language
+        )
+        cloud = rag_evaluation.cloud_options(
+            self.cfg.cloud_models[0],
+            family,
+            lambda entry: config.cloud_key(entry) is not None,
+            texts,
+            self._language,
+        )
+        publisher = model_catalog.publisher_for([], [label], self._language)
+        return {
+            "generator": {"label": label, "family": family, "family_label": publisher.label_text},
+            "local": [asdict(o) for o in local],
+            "cloud": [asdict(o) for o in cloud],
+        }
+
+    def rag_lab_evaluation(
+        self,
+        live: Sequence[rag_evaluation.LiveRun] = (),
+        *,
+        with_panel: bool = False,
+    ) -> dict[str, Any]:
+        """`GET`/`POST /api/rag_lab/evaluation`: the tab's figures, the session's verdicts
+        joined to the runs the page sends. No model is loaded and nothing leaves."""
+        with self._lock:
+            kept = {r: {c: dict(v) for c, v in by.items()} for r, by in self._rag_verdicts.items()}
+            generator = self._generator_family()
+            judging = self.state == "rag_lab"
+            error = self._rag_judge_error
+        body = rag_evaluation.listing(
+            self._language,
+            live=live,
+            finops=self._rag_finops(),
+            session_criteria=kept,
+            panel=self._rag_judge_panel(generator) if with_panel else None,
+        )
+        return body | {"judging": judging, "judge_error": error}
+
+    def judge_rag_lab_run(
+        self,
+        run: rag_evaluation.LiveRun,
+        *,
+        role: str,
+        judge_id: str,
+        criterion: str,
+    ) -> str:
+        """Intention `rag_lab_judge` (class b): one criterion of one finished run, by one
+        judge of the panel, accepted in `idle` only, then run on the worker. A judge set
+        aside, a cloud judge without a key or at the session's cap, a free question: a
+        `SendRefused` with the reason, nothing sent. Returns the judgment's id."""
+        content = rag_evaluation.load_evaluation(self._language)
+        texts = content.texts
+        panel_texts, live_texts = texts["panel"], texts["live"]
+        question = next(
+            (q for q in load_rag_questions(self._language) if q.id == run.question_id), None
+        )
+        if question is None:
+            raise SendRefused(str(texts["live"]["none_text"]))
+        if criterion not in rag_evaluation.CRITERIA or (criterion == "correct_refusal") != (
+            question.type == "no_answer"
+        ):
+            raise SendRefused(str(texts["not_applicable_text"]))
+        if not run.answer_text.strip():
+            raise SendRefused(str(live_texts["no_answer_text"]))
+        with self._lock:
+            generator = self._rag_generators.get(run.run_id)
+        if generator is None:
+            raise SendRefused(str(panel_texts["no_generator_known_text"]))
+        family = generator[1]
+        entry = candidate = None
+        if role == "cloud":
+            entry = self.cfg.cloud_model(judge_id)
+            if entry is None:
+                raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
+            (option,) = rag_evaluation.cloud_options(
+                [entry], family, lambda e: config.cloud_key(e) is not None, texts, self._language
+            )
+            if option.reason:
+                raise SendRefused(str(panel_texts["rejected_text"]).format(reason=option.reason))
+            if not option.has_key:
+                raise SendRefused(str(panel_texts["no_key_text"]))
+            if session_cap_error(entry, self.cfg.max_session_usd) is not None:
+                finops = self._rag_finops()
+                raise SendRefused(
+                    str(panel_texts["cap_text"]).format(
+                        spent=f"{finops['spent_usd']:.2f} $",
+                        cap=f"{finops['max_session_usd']:.2f} $",
+                    )
+                )
+        elif role == "local":
+            discovered = self._rag_judge_discover()
+            options = rag_evaluation.local_options(discovered, family, texts, self._language)
+            found = next((o for o in options if o.id == judge_id), None)
+            if found is None:
+                raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
+            if found.reason:
+                raise SendRefused(str(panel_texts["rejected_text"]).format(reason=found.reason))
+            candidate = next((c for c in discovered if (c.ref or c.path) == judge_id), None)
+            if candidate is None:  # an option is built from a discovered model: defensive only
+                raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
+        else:
+            raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            previous = self.reason_text
+            self._rag_judgments += 1
+            judgment_id = f"judge{self._rag_judgments}"
+            self._rag_judge_error = None
+            cancel = self._cancel = CancelToken()
+            self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
+        self._emit_state()
+        self._executor.submit(
+            self._run_rag_judge,
+            judgment_id,
+            run,
+            question,
+            role,
+            entry,
+            candidate,
+            criterion,
+            content,
+            cancel,
+            previous,
+        )
+        return judgment_id
+
+    def _run_rag_judge(
+        self,
+        judgment_id: str,
+        run: rag_evaluation.LiveRun,
+        question: Any,
+        role: str,
+        entry: CloudModel | None,
+        candidate: Any,
+        criterion: str,
+        content: rag_evaluation.EvaluationContent,
+        cancel: CancelToken,
+        previous: str | None,
+    ) -> None:
+        """On the worker. The judge's own call, apart from the run's: its events are not the
+        run's, and nothing of it enters the workshop's runs. The local engine is closed and
+        leaves the registry at the end (AD-8); a failure is said in the tab, not retried."""
+        texts = content.texts
+        context = [i.text for s in run.stages if s.kind == "context" for i in s.items]
+        case = rag_evaluation.Case(
+            question.question_text, run.answer_text, context, question.expected_answer_text
+        )
+        slot = False
+        try:
+            if entry is not None:
+                judge: rag_evaluation.Judge = _CloudJudge(self, entry, judgment_id, cancel)
+                label = entry.model
+            else:
+                label = candidate.name or Path(candidate.path or candidate.ref).stem
+                judge = _LocalJudge(self, candidate, judgment_id, cancel, label)
+                slot = True
+            verdict = rag_evaluation.judge_case(judge, criterion, case, texts)
+            self._keep_verdict(
+                run.run_id,
+                criterion,
+                rag_evaluation.SessionVerdict(role, label, verdict.verdict, verdict.why_text),
+            )
+        except (ProviderError, ValueRefused, SendRefused, OSError, ValueError, RuntimeError) as exc:
+            with self._lock:
+                self._rag_judge_error = str(texts["live"]["failed_text"]).format(
+                    reason=self._judge_failure_text(exc)
+                )
+        except Exception as exc:  # noqa: BLE001 - AD-16: the state still comes back
+            with scoped(**self._rag_lab_scope(judgment_id, "rag_lab.judge", brick=None)):
+                self._error(
+                    Message("session.rag_lab.interrupted"),
+                    exc,
+                    Message("session.llm_lab.back_to_idle"),
+                )
+            with self._lock:
+                self._rag_judge_error = str(texts["live"]["failed_text"]).format(
+                    reason=type(exc).__name__
+                )
+        finally:
+            if slot:
+                self._load_registry.release(RAG_LAB_JUDGE)
+            with self._lock:
+                self._cancel = None
+            self._set_state("idle", previous)
+
+    def _judge_failure_text(self, exc: BaseException) -> str:
+        """Why a judgment failed, in the session's language (a provider's refusal, a memory
+        refusal, the engine's error)."""
+        for attr in ("message_text", "reason_text"):
+            found = getattr(exc, attr, None)
+            if found:
+                return render(found, self._language)
+        return (
+            render(exc, self._language)
+            if isinstance(exc, KeyedError)
+            else str(exc) or type(exc).__name__
+        )
+
+    def _judge_messages(self, prompt: str) -> list[dict[str, Any]]:
+        return [{"role": "user", "content": [Part(SegmentKind.USER_MESSAGE, prompt)]}]
+
     def _rag_lab_deps(
         self,
         texts: rag_lab.RagLabContent,
         catalog: rag_lab.Catalog,
         cancel: CancelToken,
         loans: rag_lab.Loans,
+        history: tuple[str, ...] = (),
+        graph_mode: str = "local",
     ) -> rag_lab.LabDeps:
         """What a run of the workshop (a chain, or the measure of an update) is given."""
         content = self._rag_content
@@ -11084,7 +12005,246 @@ class AppSession:
             estimate_tokens=lambda t: config.estimate_tokens(t, self.cfg.chars_per_token),
             # The chain reads the work copy while it differs from the shipped corpus.
             work_copy=workcopy.load(self._language),
+            history=history,
+            # V1.2 story 7 (CAP-5): the compressor the Compression card holds (borrowed), its
+            # threshold, and the prompt's parts (the generation's own function).
+            compressor=self._rag_lab_compressor,
+            compression_min_chars=self.cfg.compression_min_chars,
+            prompt_parts=self._rag_lab_prompt_parts,
+            # V1.2 story 10: the window a whole corpus fits in, and the update's prefix.
+            window=self._window,
+            cag=lambda context_text, question: self._rag_lab_cag_update(
+                context_text, question, cancel
+            ),
+            # V1.2 story 11: the final prompt's reserve, and the engine's state saved once
+            # around the agent's rounds and the descent's levels.
+            reserve=self._reserve_of(self.build_turn_state()),
+            model_scope=self._rag_lab_hold,
+            # V1.2 story 8 (CAP-6): System One's classifier, the decision API and its models.
+            classifier=lambda: self._rag_lab_classifier(loans),
+            decision_api=self._rag_lab_decision_api,
+            decision_models=self.cfg.rag_lab_decision_models,
+            # V1.2 story 13: GraphRAG's mode, and its graph from the session's cache.
+            graph_mode=graph_mode,
+            graph=self._rag_lab_graph,
+            raptor=self._rag_lab_raptor,  # V1.2 story 12: RAPTOR's tree, from the cache
         )
+
+    @contextmanager
+    def _rag_lab_hold(self) -> Iterator[None]:
+        """V1.2 story 11: a stage's several calls of the local model (the agent's rounds, the
+        descent's levels, the summaries rewritten) under one copy of the main context's engine
+        state, as `_rag_lab_generate` makes around one call: saved before the first, put back
+        after the last (a cloud model has none). Nested: the outer frame holds it."""
+        with self._lock:
+            local, held = self._cloud is None and self._engine is not None, self._rag_lab_held
+        if held or not local:
+            yield
+            return
+        saved = self._save_main_state()
+        self._rag_lab_held = True
+        try:
+            yield
+        finally:
+            self._rag_lab_held = False
+            self._lab_restore(saved, "rag_lab")
+
+    def _rag_lab_keep_copy(self, copy: workcopy.WorkCopy) -> None:
+        """An update measured `ok`: the copy saved; V1.2 story 10, the prefix it rebuilt
+        becomes the CAG entry (the chain reads this copy next: its next run is warm)."""
+        workcopy.save(copy, self._language)
+        # V1.2 story 13: a deleted document's evidence leaves the rebuilt graph (story 18).
+        rag_graph.forget(self._language, list(copy.deleted), config.rag_lab_dir())
+        # V1.2 story 12: and its passages leave RAPTOR's rebuilt tree, the summaries emptied.
+        rag_raptor.forget(self._language, list(copy.deleted), config.rag_lab_dir())
+        # V1.2 story 14: and its pages leave the rebuilt wiki, whatever the chain's Context.
+        rag_wiki.forget(self._language, list(copy.deleted), config.rag_lab_dir())
+        with self._lock:
+            if self._cag_pending is not None:
+                self._cag_cache, self._cag_pending = self._cag_pending, None
+
+    # ---------- V1.2 story 8 (CAP-6): System One's decision layer ----------
+
+    def _rag_lab_decision_states(
+        self, texts: rag_lab.RagLabContent, options: dict[tuple[str, str], rag_lab.OptionState]
+    ) -> None:
+        """The local classifier's options (the extra, its files, « Télécharger »), the local
+        filter named after the brick's reranker, and the cloud options greyed without a key."""
+        model, why = self.cfg.rag_lab_decision_classifier
+        for kind in ("router", "grounding_check"):
+            state = options[(kind, "local")]
+            if model is None:
+                state.available, state.reason_text = False, why
+                continue
+            state.label_text = model.label_text
+            if not self._decision_installed():
+                state.available = False
+                state.reason_text = Message("session.rag_lab.decision_extra")
+            absent = self._rag_lab_decision_absent(model)
+            if absent is not None and state.available:
+                state.available, state.reason_text = False, absent
+            state.download = self._rag_lab_decision_download(texts, model)
+        sieve = options[("passage_filter", "local")]
+        if self._rerank_model is not None:
+            sieve.label_text = self._t(
+                "session.rag_lab.filter_label", model=self._rerank_model.label_text
+            )
+        sieve.note_text = self._rerank_static_reason()
+        sieve.download = (self._rerank_card() or {}).get("download")
+        has_key = self._decision_key() is not None
+        models = self.cfg.rag_lab_decision_models
+        for kind, role in (
+            ("router", "router"),
+            ("passage_filter", "filter"),
+            ("grounding_check", "grounding"),
+        ):
+            state = options[(kind, "cloud")]
+            state.label_text = self._t("session.rag_lab.decision_cloud_label", model=models[role])
+            if not has_key:
+                state.available = False
+                state.reason_text = Message(
+                    "session.rag_lab.decision_no_key", env=rag_decision.KEY_ENV
+                )
+
+    @staticmethod
+    def _rag_lab_decision_absent(model: config.DecisionModel) -> Message | None:
+        missing = download_module.missing_files(model.files, config.models_dir())
+        if not missing:
+            return None
+        files = ", ".join(PurePosixPath(f.path).as_posix() for f in missing)
+        return Message(
+            "session.rag_lab.lab_decision_absent", files=files, folder=config.models_dir()
+        )
+
+    @staticmethod
+    def _rag_lab_decision_download(
+        texts: rag_lab.RagLabContent, model: config.DecisionModel
+    ) -> dict[str, str] | None:
+        missing = download_module.missing_files(model.files, config.models_dir())
+        if not missing:
+            return None
+        size_mb = max(1, round(sum(f.size for f in missing) / 1_000_000))
+        return {
+            "target": f"rag_lab_decision:{model.id}",
+            "label_text": texts.download_label_text.format(size_mb=size_mb),
+        }
+
+    def _rag_lab_classifier(self, loans: rag_lab.Loans) -> rag_lab.Lent:
+        """System One's classifier, loaded for the run in its own slot, within the budget,
+        its files' sha256 checked; closed at the run's end. Missing (extra, files): skipped."""
+        model, why = self.cfg.rag_lab_decision_classifier
+        if model is None:
+            raise rag_lab.StageSkipped(why)
+        if not self._decision_installed():
+            raise rag_lab.StageSkipped(Message("session.rag_lab.decision_extra"))
+        dest = config.models_dir()
+
+        def open_model() -> Any:
+            for f in model.files:
+                if f.sha256 and rag_lab.file_digest(dest / f.path) != f.sha256.lower():
+                    raise ValueRefused(
+                        "session.rag.sha256",
+                        path=dest / f.path,
+                        section="[rag_lab.decision.classifier]",
+                    )
+            return self._decision_classifier_factory(model)
+
+        return loans.lend(
+            borrowed=None,
+            label_text=model.label_text,
+            noun_text=Message("session.rag_lab.noun.decision"),
+            unavailable_text=self._rag_lab_decision_absent(model),
+            cost=self._load_registry.component_cost(
+                model.measured_rss_mb, [f.size for f in model.files]
+            ),
+            slot=f"rag_lab.decision.{model.id}",
+            open_model=open_model,
+            soft=True,
+        )
+
+    def _rag_lab_decision_api(self) -> tuple[Any, Any]:
+        """The decision API for a run, or why there is none (no key). Each call is refused
+        once `[finops] max_session_usd` is reached, and its cost joins the session's spend."""
+        key = self._decision_key()
+        if key is None:
+            return None, Message("session.rag_lab.decision_no_key", env=rag_decision.KEY_ENV)
+        from wavestack.net.factory import create_client  # the traced client (AD-15)
+
+        http = create_client(
+            timeout=rag_decision.REQUEST_TIMEOUT_S, transport=self._decision_transport
+        )
+        api = rag_decision.DecisionApi(key, http=http)
+        return rag_decision.CappedApi(api, self._decision_cap_refusal, self._decision_spent), None
+
+    def _decision_cap_refusal(self) -> Message | None:
+        cap = self.cfg.max_session_usd
+        if cap is None:
+            return None
+        spent = float((session_spend(self.cfg.eur_per_usd) or {}).get("total_usd") or 0.0)
+        if spent < cap:
+            return None
+        return Message(
+            "session.rag_lab.decision_capped", spent=f"{spent:.2f} $", cap=f"{cap:.2f} $"
+        )
+
+    def _decision_spent(self, answer: rag_decision.ApiAnswer) -> None:
+        if answer.cost_usd is None:
+            return
+        journal = self._journal()
+        record_spend(
+            CallCost(answer.cost_usd, 0.0, "api"),
+            self.cfg.eur_per_usd,
+            lambda spend: journal.emit("consumption_updated", spend),
+        )
+
+    def _rag_lab_compressor(self) -> tuple[Compressor | None, Message | str | None]:
+        """V1.2 story 7: the compressor the Compression card loaded, to borrow for a run (the
+        workshop neither loads nor closes it), else why there is none: `_compression_unavailable`
+        (Headroom missing, loading, a failed load), or the card is not active."""
+        with self._lock:
+            compressor = self._compressor
+        if compressor is not None:
+            return compressor, None
+        return None, self._compression_unavailable() or Message(
+            "session.rag_lab.compress_not_wanted"
+        )
+
+    def _rag_lab_messages(
+        self, state: TurnState, context_text: str, question: str, instruction: str | None = None
+    ) -> tuple[list[dict[str, Any]], bool]:
+        """The messages the workshop's generation sends, and whether there is a system part:
+        the system prompt brick's text as a turn would send it (custom or default; nothing when
+        the brick is off), or the instruction of a short task, then one user message, the
+        context the chain built (its introduction and its excerpts, when there is one) and the
+        question. One function for the generation and for the Context step's preview."""
+        system = instruction is not None or (
+            "system_prompt" in state.effective and bool(state.system_prompt)
+        )
+        messages: list[dict[str, Any]] = []
+        if system:
+            prompt = Part(
+                SegmentKind.SYSTEM_PROMPT,
+                instruction if instruction is not None else state.system_prompt,
+                "system_prompt",
+                "system_prompt.prompt",
+            )
+            messages.append({"role": "system", "content": [prompt]})
+        user = [Part(SegmentKind.USER_MESSAGE, question)]
+        if context_text:  # its introduction and its excerpts, before the question
+            user.insert(0, Part(SegmentKind.RAG_EXCERPT, context_text, "rag", "rag.retriever"))
+        messages.append({"role": "user", "content": user})
+        return messages, system
+
+    def _rag_lab_prompt_parts(self, context_text: str, question: str) -> list[tuple[str, str]]:
+        """V1.2 story 7: the parts of the prompt the generation would send for this context and
+        this question, `(kind, text)` in the order sent (`system`, `context`, `question`)."""
+        messages, _ = self._rag_lab_messages(self.build_turn_state(), context_text, question)
+        kinds = {
+            SegmentKind.SYSTEM_PROMPT: "system",
+            SegmentKind.RAG_EXCERPT: "context",
+            SegmentKind.USER_MESSAGE: "question",
+        }
+        return [(kinds[part.kind], part.text) for m in messages for part in m["content"]]
 
     def _rag_lab_emit(
         self, kind: str, payload: dict[str, Any], step_id: str, component: str
@@ -11092,9 +12252,69 @@ class AppSession:
         model = PAYLOAD_MODELS[kind]
         # Lot 5c-3: the generation's progress is emitted during the model's call, never
         # under its `origin`.
+        if kind == "rag_lab_run_ended":  # V1.2 story 16 (CAP-12): the run's tree of steps
+            payload = payload | {"steps": self._rag_lab_steps(payload)}
         with scoped(**self._rag_lab_scope(step_id, component), origin=None):
             payload = in_language(payload, self._language)
             self._journal().emit(kind, model.model_validate(payload).model_dump(mode="json"))
+
+    def _rag_lab_model_info(self) -> dict[str, Any]:
+        """V1.2 story 16: the run's model as its calls name it in the tree and the export:
+        its id, label and provider (`llama_cpp` for a local one, the entry's for a cloud)."""
+        model = self.active_model() or {}
+        cloud = self._cloud
+        return {
+            "id": cloud.model if cloud is not None else model.get("id"),
+            "label": model.get("label"),
+            "provider": cloud.provider if cloud is not None else "llama_cpp",
+        }
+
+    def _rag_lab_steps(self, ended: dict[str, Any]) -> dict[str, Any] | None:
+        """V1.2 story 16 (CAP-12): the tree of the run that ends, from its events in the
+        journal (`trace/tree.py`), before its `rag_lab_run_ended` is emitted."""
+        try:
+            events = trace_tree.run_events(self._journal().all_events(), ended["run_id"])
+            tree = trace_tree.build(
+                events, ended["run_id"], model=self._rag_lab_model_info(), ended=(ended, now_iso())
+            )
+        except Exception:  # noqa: BLE001 - AD-16: a tree that cannot be read is left out
+            _log.warning("rag_lab: tree of run %s left out", ended.get("run_id"), exc_info=True)
+            return None
+        return tree.model_dump(mode="json") if tree is not None else None
+
+    def rag_lab_otel(self) -> dict[str, Any]:
+        """V1.2 story 16 (CAP-12): what the export button needs: the extra installed or why
+        not, the collector's URL (`None`: unset, nothing leaves), and whether the texts go."""
+        missing = trace_otel.missing()
+        endpoint = self.cfg.otel_endpoint
+        reason = missing or (None if endpoint else Message("rag_lab.otel.unset"))
+        return {
+            "available": missing is None,
+            "endpoint": endpoint,
+            "capture_content": self.cfg.otel_capture_content,
+            "ready": reason is None,
+            "reason_text": reason,
+        }
+
+    def export_rag_lab_otel(self, run_id: str) -> dict[str, Any]:
+        """`POST /api/rag_lab/otel/export` (V1.2 story 16, CAP-12): the tree of a finished run
+        sent as OTLP spans to `[otel] endpoint`, through the factory (AD-15). Refused
+        (`SendRefused`) without the extra, without a URL or without that run; a collector that
+        cannot be reached or refuses raises `trace_otel.ExportFailed`."""
+        status = self.rag_lab_otel()
+        if not status["ready"]:
+            raise SendRefused(status["reason_text"])
+        events = trace_tree.run_events(self._journal().all_events(), run_id)
+        if not events or events[-1].kind != "rag_lab_run_ended":
+            raise SendRefused(Message("rag_lab.otel.no_run"))
+        texts = trace_tree.Texts() if self.cfg.otel_capture_content else None
+        tree = trace_tree.build(events, run_id, model=self._rag_lab_model_info(), texts=texts)
+        if tree is None:
+            raise SendRefused(Message("rag_lab.otel.no_run"))
+        body, count = trace_otel.encode(tree, texts, service_version=__version__)
+        with scoped(**self._rag_lab_scope(run_id, "rag_lab.otel", brick=None), origin="otel"):
+            trace_otel.send(body, status["endpoint"], self.cfg.otel_auth_env)
+        return {"run_id": run_id, "spans": count, "endpoint": status["endpoint"]}
 
     def _rag_lab_generate(
         self, ask: rag_lab.GenerationAsk, cancel: CancelToken
@@ -11115,20 +12335,12 @@ class AppSession:
             raise rag_lab.StageSkipped(Message("rag_lab.generation.no_model"))
         state = self.build_turn_state()
         reasons, reserve = self._reasoning_on(state), self._reserve_of(state)
-        system = "system_prompt" in state.effective and bool(state.system_prompt)
-        messages: list[dict[str, Any]] = []
-        if system:
-            prompt = Part(
-                SegmentKind.SYSTEM_PROMPT,
-                state.system_prompt,
-                "system_prompt",
-                "system_prompt.prompt",
-            )
-            messages.append({"role": "system", "content": [prompt]})
-        user = [Part(SegmentKind.USER_MESSAGE, ask.question)]
-        if ask.context_text:  # its introduction and its excerpts, before the question
-            user.insert(0, Part(SegmentKind.RAG_EXCERPT, ask.context_text, "rag", "rag.retriever"))
-        messages.append({"role": "user", "content": user})
+        instructed = ask.instruction is not None
+        if instructed:  # V1.2 story 5: a short task, its own instruction, no reasoning
+            reasons, reserve = False, min(reserve, ask.reserve or reserve)
+        messages, system = self._rag_lab_messages(
+            state, ask.context_text, ask.question, ask.instruction
+        )
         model = self.active_model()
         produced = 0
 
@@ -11139,25 +12351,12 @@ class AppSession:
 
         step_id = ask.step_id
         scope = self._rag_lab_scope(step_id, "rag_lab.generation", brick=None)
-        with scoped(**scope | {"call_id": step_id}, origin="model"):
+        # V1.2 story 16 (CAP-12): a model call is traced on its stage's step, which holds it.
+        scope |= {"call_id": step_id, "parent_step": step_id}
+        with scoped(**scope, origin="model"):
             rendered: RenderedContext | RenderedChat
             if cloud is None:
-                meta = engine.metadata()
-                template_vars: dict[str, Any] = {}
-                if caps.reasoning_variable:
-                    template_vars[caps.reasoning_variable] = reasons
-                rendered = render_context(
-                    engine,
-                    caps.chat_template or "",
-                    messages,
-                    call_id=step_id,
-                    special_tokens=meta.special_tokens,
-                    bos_token=meta.bos_token,
-                    eos_token=meta.eos_token,
-                    add_generation_prompt=True,
-                    **template_vars,
-                    lang=self._language,
-                )
+                rendered = self._rag_lab_render(engine, caps, messages, step_id, reasons)
                 text, tokens, exact = rendered.prompt, len(rendered.ids), True
             else:
                 content = self._cloud_content or self._localized(load_cloud_content)
@@ -11188,13 +12387,27 @@ class AppSession:
             journal = self._journal()
             mark = journal.last_seq()
             ask.progress(0, reserve)  # the prompt being read: « 0 / 1 024 tokens »
+            cag: tuple[rag_lab.CagPrefix, bool, bool] | None = None
             if cloud is None:
-                saved = self._save_main_state()
+                # V1.2 story 11: a stage that holds the state (`_rag_lab_hold`) saved it once.
+                held = self._rag_lab_held
+                saved = None if held else self._save_main_state()
                 try:
-                    out = self._call_model(rendered, cancel, (), reserve, reasons, on_token=token)
-                    got.status = out.status
-                    if out.status == "error":
-                        got.error_text = out.message_text or None
+                    if ask.cached_prefix:  # V1.2 story 10: within the main context's copy
+                        assert isinstance(rendered, RenderedContext)
+                        cag = self._cag_prepare(engine, rendered, ask, cancel)
+                    if cag is not None and cag[0].status == "error":
+                        # The prefix stopped or failed: no generation behind it (it would
+                        # meet the same engine, or a cancel already asked).
+                        got.status = "cancelled" if cancel.cancelled else "error"
+                        got.error_text = cag[0].reason_text
+                    else:
+                        out = self._call_model(
+                            rendered, cancel, (), reserve, reasons, on_token=token
+                        )
+                        got.status = out.status
+                        if out.status == "error":
+                            got.error_text = out.message_text or None
                 except Exception as exc:  # noqa: BLE001 - AD-16: the stage says it, prompt kept
                     got.status = "error"
                     got.error_text = Message(
@@ -11204,7 +12417,8 @@ class AppSession:
                     )
                     self._error(got.error_text, exc, Message("session.rag_lab.generation_stops"))
                 finally:
-                    self._lab_restore(saved, "rag_lab")
+                    if not held:
+                        self._lab_restore(saved, "rag_lab")
             else:
                 failed: dict[str, Any] = {}
                 trace = self._sampling_trace(None, reasons)
@@ -11251,7 +12465,331 @@ class AppSession:
                     )
             else:
                 got.output_tokens = produced
+            if ask.cached_prefix and cloud is None and cag is None:
+                # Local, but the CAG's preparation raised: the stage's error says it.
+                failed = got.error_text or Message("rag_lab.stage.stopped")
+                got.prefix = rag_lab.CagPrefix("error", reason_text=failed)
+            elif ask.cached_prefix:
+                self._cag_reading(got, cag, call)
             return got
+
+    def _rag_lab_render(
+        self, engine: Engine, caps: Capabilities, messages: list, step_id: str, reasons: bool
+    ) -> RenderedContext:
+        """The workshop's messages rendered for the local engine, as the generation sends them."""
+        meta = engine.metadata()
+        template_vars: dict[str, Any] = {}
+        if caps.reasoning_variable:
+            template_vars[caps.reasoning_variable] = reasons
+        return render_context(
+            engine,
+            caps.chat_template or "",
+            messages,
+            call_id=step_id,
+            special_tokens=meta.special_tokens,
+            bos_token=meta.bos_token,
+            eos_token=meta.eos_token,
+            add_generation_prompt=True,
+            **template_vars,
+            lang=self._language,
+        )
+
+    # ---------- V1.2 story 10: the CAG's prefix, kept in the model's memory ----------
+
+    def _cag_drop(self) -> None:
+        """The CAG entry deleted, its state freed (nothing else references it)."""
+        with self._lock:
+            self._cag_forget()
+
+    def _cag_forget(self) -> None:
+        """Under `self._lock`: the entry and the update's pending one deleted, their state's
+        grant released from the budget (`LoadRegistry`, slot `rag_lab.cag`)."""
+        self._cag_cache = self._cag_pending = None
+        self._load_registry.release(RAG_LAB_CAG)
+
+    def _cag_grant(self, size: int) -> None:
+        """A CAG state kept (`size` bytes, in WaveStack's memory): held by the budget's slot
+        `rag_lab.cag` until `_cag_forget`, so that what loads next is checked with it."""
+        self._load_registry.grant(
+            self._t("session.rag_lab.cag_label"), size, RAG_LAB_CAG, share=size
+        )
+
+    @staticmethod
+    def _cag_prefix_ids(engine: Engine, rendered: RenderedContext, question: str) -> list[int]:
+        """The prefix of the prompt sent, in tokens: the text rendered up to the question, back
+        to its last end of line, tokenized, and the ids sent as long as they agree with it. An
+        exact prefix of `rendered.ids` by construction, whatever the tokenizer merges."""
+        prompt, wanted = rendered.prompt, question.strip()
+        at = prompt.rfind(wanted) if wanted else -1
+        cut = prompt.rfind("\n", 0, at if at >= 0 else len(prompt)) + 1
+        if cut <= 0:
+            return []
+        return list(rendered.ids[: common_prefix_len(engine.tokenize(prompt[:cut]), rendered.ids)])
+
+    def _cag_key(self, prefix_ids: Sequence[int]) -> str:
+        """The entry's key: the prefix's ids, the active model, the effective window."""
+        with self._lock:
+            active, window = self._active, self._window
+        model = f"{active.kind}:{active.ref}" if active is not None else ""
+        digest = hashlib.sha256(",".join(map(str, prefix_ids)).encode("ascii")).hexdigest()
+        return f"{digest}|{model}|{window}"
+
+    def _cag_memory_refusal(self, prefix_tokens: int) -> Message | None:
+        """Before a prefix is built on an engine with a state: what the session will hold
+        during the call (the CAG state and the main context's copy, `_kv_per_token` × their
+        tokens) checked against the budget (`LoadRegistry`, slot `rag_lab.cag`); `None` when
+        it fits, or when the KV's bytes per token cannot be read (the check after the
+        `snapshot` then applies alone)."""
+        with self._lock:
+            active, main = self._active, self._main_cache
+        try:
+            per_token = self._kv_per_token(active) if active is not None else None
+        except Exception:  # noqa: BLE001 - unreadable: no estimate
+            per_token = None
+        if not per_token:
+            return None
+        estimate = per_token * (prefix_tokens + len(main or []))
+        label = Message("session.rag_lab.cag_label")
+        refusal = self._load_registry.check_component(label, estimate, RAG_LAB_CAG)
+        if refusal is None:
+            return None
+        return Message("session.rag_lab.cag_memory", reason=refusal)
+
+    def _cag_build(
+        self,
+        engine: Engine,
+        prefix_ids: list[int],
+        key: str,
+        cancel: CancelToken,
+        phase: str,
+        on_start: Callable[[], None] | None = None,
+    ) -> tuple[rag_lab.CagPrefix, _CagEntry | None]:
+        """The prefix evaluated from an emptied memory (`engine.clear_cache`, never the
+        session's, which would touch the main context): by `prefill` then `snapshot` on an
+        engine with a state, by a one-token warm-up call on a server; measured in `phase`.
+        Memory: estimated first (refused: nothing built), the RSS checked after the `snapshot`
+        (over the budget: the state dropped at once), a failed `snapshot` (`MemoryError`
+        included) caught. Returns what to say of it, and the entry to keep (`None`: none)."""
+        n = len(prefix_ids)
+        stateful = _engine_cached_ids(engine) is not None
+        refusal = self._cag_memory_refusal(n) if stateful else None
+        if refusal is not None:
+            cache = {"state": "none", "prefix_tokens": n}
+            prefix = rag_lab.CagPrefix(
+                "skipped", n, reason_text=refusal, warning_text=refusal, cache=cache
+            )
+            return prefix, None
+        if on_start is not None:
+            on_start()
+        with self._lock:
+            active = self._active
+        served = active is not None and active.kind == "server"
+        probe = greenops.Probe(lambda: self._local_meter.start(machine=served))
+        clear = getattr(engine, "clear_cache", None)
+        failure: BaseException | None = None
+        evaluated: int | None = None
+        try:
+            if clear is not None:
+                try:
+                    clear()
+                except Exception:  # noqa: BLE001 - a server without the slots API: kept as is
+                    pass
+            if stateful:
+                evaluated = engine.prefill(prefix_ids, cancel)
+            else:
+                for _ in engine.complete(prefix_ids, (), 1, cancel):
+                    pass  # the warm-up's output is thrown away
+                evaluated = _evaluated(engine)
+        except Exception as exc:  # noqa: BLE001 - AD-16: said in the step
+            failure = exc
+        finally:
+            duration, impact = probe.stop()  # the tracker never left running
+        if failure is not None or cancel.cancelled:
+            reason = (
+                Message("rag_lab.stage.stopped")
+                if failure is None
+                else Message(
+                    "rag_lab.stage.failed",
+                    error=type(failure).__name__,
+                    cause=rag_index.exception_text(failure, self._language),
+                )
+            )
+            return rag_lab.CagPrefix("error", n, reason_text=reason), None
+        tokens = evaluated if evaluated is not None else n
+        note = None if evaluated is not None else Message("rag_lab.costs.estimated")
+        cost = greenops.StageCost(phase, "cache_prefix", tokens, duration, 0.0, impact, False, note)
+        snapshot, warning, size = None, None, None
+        if stateful:
+            try:
+                snapshot = engine.snapshot()
+            except Exception as exc:  # noqa: BLE001 - `MemoryError` included: no state kept
+                snapshot = None
+                warning = Message(
+                    "session.rag_lab.cag_memory",
+                    reason=Message("session.rag_lab.cag_snapshot_failed", error=type(exc).__name__),
+                )
+            if snapshot is not None:
+                size = snapshot.size_bytes
+                rss, budget = self._rss_now(), self._load_registry.budget_bytes
+                if rss is not None and rss > budget:
+                    snapshot = None  # dropped at once: never referenced again
+                    warning = Message(
+                        "session.rag_lab.cag_memory",
+                        reason=Message(
+                            "session.rag_lab.cag_rss",
+                            size=self._size_lazy(size),
+                            rss=self._size_lazy(rss),
+                            budget=self._size_lazy(budget),
+                        ),
+                    )
+            elif warning is None:
+                warning = Message(
+                    "session.rag_lab.cag_memory",
+                    reason=Message("session.rag_lab.cag_snapshot_failed", error="None"),
+                )
+        keep = snapshot is not None or not stateful
+        if snapshot is not None:
+            self._cag_grant(size or 0)
+        entry = (
+            _CagEntry(key, snapshot, n, tokens, duration, impact, size if snapshot else None)
+            if keep
+            else None
+        )
+        cache = {
+            "state": "cold" if keep else "none",
+            "prefix_tokens": n,
+            "state_bytes": size,
+            "build_ms": duration,
+        }
+        prefix = rag_lab.CagPrefix(
+            "ok", n, built=True, cost=cost, cache=cache, warning_text=warning
+        )
+        return prefix, entry
+
+    def _cag_prepare(
+        self,
+        engine: Engine,
+        rendered: RenderedContext,
+        ask: rag_lab.GenerationAsk,
+        cancel: CancelToken,
+    ) -> tuple[rag_lab.CagPrefix, bool, bool]:
+        """Before the generation's call (the main context already copied): the entry of this
+        prefix put back (`restore` on an engine with a state; nothing on a server, which holds
+        it), else the entry replaced by a new prefix. Returns the prefix, whether it was read
+        back from the entry, and whether the engine keeps a state."""
+        prefix_ids = self._cag_prefix_ids(engine, rendered, ask.question)
+        key = self._cag_key(prefix_ids)
+        stateful = _engine_cached_ids(engine) is not None
+        with self._lock:
+            entry = self._cag_cache
+        reused = False
+        if entry is not None and entry.key == key:
+            if not stateful:
+                reused = True
+            elif entry.snapshot is not None:
+                try:
+                    reused = bool(engine.restore(entry.snapshot))
+                except Exception:  # noqa: BLE001 - treated as a key absent
+                    reused = False
+        if reused and entry is not None:
+            cost = greenops.StageCost(
+                "build",
+                "cache_prefix",
+                entry.build_tokens,
+                entry.build_ms,
+                0.0,
+                entry.impact,
+                measured_at_build=True,
+            )
+            cache = {
+                "state": "warm",
+                "prefix_tokens": entry.prefix_tokens,
+                "state_bytes": entry.state_bytes,
+            }
+            prefix = rag_lab.CagPrefix("ok", entry.prefix_tokens, cost=cost, cache=cache)
+            return prefix, True, stateful
+        self._cag_drop()  # never two states at once
+        prefix, built = self._cag_build(engine, prefix_ids, key, cancel, "build", ask.on_prefix)
+        if built is not None:
+            with self._lock:
+                self._cag_cache = built
+        return prefix, False, stateful
+
+    def _cag_reading(
+        self,
+        got: rag_lab.Generated,
+        cag: tuple[rag_lab.CagPrefix, bool, bool] | None,
+        call: dict[str, Any] | None,
+    ) -> None:
+        """After the call: what it read from the cache (`model_call_ended`'s cells: the
+        server's `cache_n`, else the prompt less what the engine evaluated) and the state of
+        the cache: `warm`, `cold`, `none`, `lost` (a server evicted the prefix meanwhile: the
+        entry kept, the server holds it again) or `unknown` (no reading, no figure)."""
+        if cag is None:  # a cloud model, or the call never reached the engine
+            reason = Message("session.rag_lab.cag_local_only")
+            got.prefix = rag_lab.CagPrefix("skipped", reason_text=reason)
+            return
+        prefix, reused, stateful = cag
+        cache = dict(prefix.cache or {})
+        n = prefix.tokens or 0
+        read = call.get("cache_read_tokens") if call is not None else None
+        state = cache.get("state", "none")
+        if not stateful:
+            if read is None:
+                state = "unknown"
+            elif read < n:
+                state = "lost"
+                prefix.warning_text = Message(
+                    "session.rag_lab.cag_lost", read=self._num_lazy(read), prefix=self._num_lazy(n)
+                )
+            else:
+                state = "warm" if reused else "cold"
+        cache["state"] = state
+        cache["read_tokens"] = read
+        cache["evaluated_tokens"] = got.prompt_tokens - read if read is not None else None
+        prefix.cache = cache
+        got.cache, got.prefix = cache, prefix
+        got.evaluated_tokens = cache["evaluated_tokens"]
+
+    def _rag_lab_cag_update(
+        self, context_text: str, question: str, cancel: CancelToken
+    ) -> rag_lab.CagPrefix:
+        """The update's « Préfixe » (V1.2 story 10): the prefix of the copy after the operation,
+        rebuilt whole from an emptied memory as a first run builds it, within the main
+        context's copy, the same memory checks; kept as `_cag_pending`, the entry once the
+        update ends `ok`. Without a local engine: skipped (the lab estimates its tokens)."""
+        with self._lock:
+            engine, caps, cloud, window = self._engine, self._caps, self._cloud, self._window
+        if engine is None or caps is None or cloud is not None:
+            return rag_lab.CagPrefix(
+                "skipped", reason_text=Message("session.rag_lab.cag_local_only")
+            )
+        state = self.build_turn_state()
+        reserve = self._reserve_of(state)
+        messages, _ = self._rag_lab_messages(state, context_text, question)
+        step_id = "rag_lab.cag"
+        with scoped(**self._rag_lab_scope(step_id, "rag_lab.cache_prefix", brick=None)):
+            rendered = self._rag_lab_render(
+                engine, caps, messages, step_id, self._reasoning_on(state)
+            )
+        if len(rendered.ids) > window - reserve:  # AD-9: the CAG could not hold it
+            reason = Message(
+                "rag_lab.cache.update_too_long",
+                tokens=self._num_lazy(len(rendered.ids)),
+                usable=self._num_lazy(window - reserve),
+            )
+            return rag_lab.CagPrefix("error", len(rendered.ids), reason_text=reason)
+        prefix_ids = self._cag_prefix_ids(engine, rendered, question)
+        key = self._cag_key(prefix_ids)
+        self._cag_drop()  # the state of the copy before goes: never two at once
+        saved = self._save_main_state()
+        try:
+            prefix, built = self._cag_build(engine, prefix_ids, key, cancel, "update")
+        finally:
+            self._lab_restore(saved, "rag_lab")
+        with self._lock:
+            self._cag_pending = built
+        return prefix
 
     def _rag_lab_embedder(self, option: str, loans: rag_lab.Loans) -> rag_lab.Lent:
         """The brick's embedding model, borrowed when it holds it, else loaded as
@@ -11518,6 +13056,389 @@ class AppSession:
             open_model=open_model,
             soft=True,
         )
+
+    # ---------- V1.2 story 17 (CAP-13): the Attack tab's « Document piégé » card ----------
+
+    def _attack_guard(self) -> dict[str, Any]:
+        """Whether the session's own Prompt Guard is loaded now, and why not: read only."""
+        loaded = self._guardrails.loaded_classifier("injection") is not None
+        return {
+            "loaded": loaded,
+            "reason_text": None if loaded else self._t("guardrails.attack.not_loaded"),
+        }
+
+    def rag_lab_attack_texts(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/attack`: the card's texts, scenarios and default state."""
+        return rag_attack.listing(self._language, self._attack_guard())
+
+    def rag_lab_attack(self, request: rag_attack.AttackRequest) -> dict[str, Any]:
+        """`POST /api/rag_lab/attack`: the two columns of the target question, recomputed.
+        Accepted in any state (no intention: no generation, no load, no download, no network).
+        The classifier is the instance the session has already loaded, else one that says
+        `not_installed`: the card never loads the model nor sends the token. The session's
+        own guardrail modes and instances are not touched. One entry of the security journal
+        per passage checked in the « with guardrail » column."""
+        loaded = self._guardrails.loaded_classifier("injection")
+        reason = self._t("guardrails.attack.not_loaded")
+        factory = (
+            (lambda: rag_attack.LoadedOnly(loaded, reason))
+            if loaded is not None
+            else (lambda: rag_attack.NotLoaded(reason))
+        )
+        body = rag_attack.run(request, self._language, factory)
+        label = self._t("guardrails.labels.injection")
+        for passage in (body["with"] or {}).get("passages", []):
+            check = passage["check"]
+            decision = check["decision"]
+            key = (
+                "guardrails.attack.blocked"
+                if decision == "blocked"
+                else (f"guardrails.decisions.{decision}")
+            )
+            where = f"{passage['title_text']} {passage['position']}"
+            self._emit_security(
+                self._security_journal.record(
+                    "guardrail",
+                    "guardrails.injection",
+                    decision,
+                    self._t(
+                        "guardrails.attack.reason",
+                        passage=where,
+                        decision=self._t(key, guardrail=label, detail=check["detail_text"]),
+                    ),
+                    counted=False,  # a demonstration: shown, never in the session's counts
+                )
+            )
+        body["guard"] = self._attack_guard()
+        return body
+
+    # ---------- V1.2 story 18 (CAP-14, CAP-15): the Effacement and Droits cards ----------
+
+    def rag_lab_erasure_texts(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/erasure`: the card's texts and default state, no computation."""
+        return rag_erasure.listing(self._language)
+
+    def rag_lab_erasure(self, request: rag_erasure.ErasureRequest) -> dict[str, Any]:
+        """`POST /api/rag_lab/erasure`: the places where the sentinel survives, recomputed from
+        the request. Pure, accepted in any state: no model, no network, nothing written, no
+        entry in the security journal."""
+        return rag_erasure.run(request, self._language)
+
+    def rag_lab_access_texts(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/access`: the card's texts and default state, no computation."""
+        return rag_access.listing(self._language)
+
+    def rag_lab_access(self, request: rag_access.AccessRequest) -> dict[str, Any]:
+        """`POST /api/rag_lab/access`: what the pipeline read before the filter, recomputed.
+        Pure, accepted in any state."""
+        return rag_access.run(request, self._language)
+
+    def rag_lab_sheets(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/sheets` (V1.2 story 19): the sheets on offer, declared."""
+        return rag_sheets.listing(self._language)
+
+    def rag_lab_sheet_component(self, key: str) -> dict[str, Any]:
+        """The sheet of a component (`kind.option`); `rag_sheets.UnknownSheet` if there is none."""
+        return rag_sheets.component(self._language, key)
+
+    def rag_lab_sheet_architecture(self, arch_id: str) -> dict[str, Any]:
+        """The sheet of an architecture; `rag_sheets.UnknownSheet` if there is none."""
+        return rag_sheets.architecture(self._language, arch_id)
+
+    # ---------- V1.2 story 20 (CAP-18): the workshop's chain exposed as an MCP server ----------
+    # A server, read only, on the application's port (`mcp/architecture_server.py`): never one of
+    # `mcp_servers()`, `_mcp_enabled`, the MCP brick or the MCP workshop. The token lives here
+    # only, rendered by `GET /api/rag_lab/mcp` alone.
+
+    RAG_MCP_TIMEOUT_S = 30.0  # a call waits this long for its run, then cancels it
+    _rag_mcp_endpoint: architecture_server.ExposedEndpoint | None = None
+    _rag_mcp_live: _RagMcpLive | None = None
+    _rag_mcp_note: Any = None  # why the server stopped by itself (the language), for the card
+    _rag_mcp_call: CancelToken | None = None  # the call under way, cancelled by the stop
+
+    def attach_rag_mcp(self, endpoint: architecture_server.ExposedEndpoint) -> None:
+        """The endpoint mounted by `create_app` (once, the application's port)."""
+        self._rag_mcp_endpoint = endpoint
+
+    def rag_mcp_state(self, *, with_token: bool = False) -> dict[str, Any]:
+        """The card's state: running or not, the address, the frozen chain, the tools with
+        their risk and rule; the token (and the command that holds it) only `with_token`."""
+        endpoint = self._rag_mcp_endpoint
+        with self._lock:
+            live, note = self._rag_mcp_live, self._rag_mcp_note
+        try:
+            texts = exposed.load_texts(self._language)
+        except Exception:  # noqa: BLE001 - said on the card, the page stays served
+            reason = self._t("session.rag_mcp.texts_invalid")
+            return {"available": False, "running": False, "reason_text": reason}
+        tools = []
+        for tool in architecture_server.TOOLS:
+            name = architecture_server.policy_name(tool)
+            rule = self._mcp_policy.rule_of(name)
+            tools.append(
+                {
+                    "name": tool,
+                    "policy_name": name,
+                    "risk": ToolPolicy.risk_of(name),
+                    "rule": rule,
+                    "announced": rule == "allow",
+                }
+            )
+        url = endpoint.url if endpoint is not None else None
+        token = live.token if live is not None and with_token else None
+        command = None
+        if token is not None:
+            command = (
+                f"claude mcp add --transport http {architecture_server.SERVER_NAME} {url}"
+                f' --header "Authorization: Bearer {token}"'
+            )
+        chain = None
+        if live is not None:
+            chain = {
+                "architecture": live.chain.architecture,
+                "label_text": live.chain.label_text,
+                "stages": [s.model_dump() for s in live.chain.stages],
+            }
+        return {
+            "available": endpoint is not None and self._loop is not None,
+            "running": live is not None,
+            "url": url,
+            "token": token,
+            "command": command,
+            "chain": chain,
+            "tools": tools,
+            "note_text": note,
+            "texts": texts.card.model_dump(),
+        }
+
+    def _rag_mcp_index_error(self) -> Any:
+        """Why the brick's index cannot serve now (read afresh), or `None`."""
+        model, content = self._rag_model, self._rag_content
+        if model is None or content is None:
+            return self._content_errors.get("rag") or Message("session.rag.not_configured")
+        return self._rag_index_state(model, content)[1]
+
+    def rag_mcp_start(self, pipeline: rag_lab.Pipeline | None = None) -> dict[str, Any]:
+        """Intention `rag_mcp_start`: the chain (the shipped one when `None`) checked, frozen
+        and exposed by a new server. Refused, with the reason: no loop attached, the chain not
+        exposable, the brick's index absent, the workshop's corpus changed. Already running:
+        no effect, the same state."""
+        endpoint, loop = self._rag_mcp_endpoint, self._loop
+        if endpoint is None or loop is None:
+            raise SendRefused(Message("session.rag_mcp.no_loop"))
+        with self._lock:
+            running = self._rag_mcp_live is not None
+        if running:
+            return self.rag_mcp_state()
+        texts, error_text = self._rag_lab_content()
+        if texts is None:
+            raise SendRefused(error_text or Message("session.rag_lab.texts_unreadable"))
+        unavailable = self._rag_lab_unavailable()
+        if unavailable is not None:
+            raise SendRefused(unavailable)
+        try:
+            exposed_texts = exposed.load_texts(self._language)
+        except Exception:  # noqa: BLE001 - a refusal with its reason
+            raise SendRefused(Message("session.rag_mcp.texts_invalid")) from None
+        catalog = self._rag_lab_catalog(texts)
+        chain = pipeline or catalog.default
+        refused = exposed.refusal(chain, catalog, self.cfg.rag_chunk_max_chars, exposed_texts)
+        if refused is not None:
+            raise SendRefused(refused.text)
+        index_error = self._rag_mcp_index_error()
+        if index_error is not None:
+            reason = render(index_error, self._language)
+            raise SendRefused(self._t("session.rag_mcp.index_missing", reason=reason))
+        if not workcopy.load(self._language).empty:
+            raise SendRefused(Message("session.rag_mcp.work_copy"))
+        frozen = exposed.freeze(chain, catalog, exposed_texts)
+        token = secrets.token_urlsafe(32)
+        server = architecture_server.build_server(_RagMcpBackend(self), exposed_texts)
+        with self._lock:
+            running = self._rag_mcp_live is not None  # two starts at once: the first one wins
+            if not running:
+                self._rag_mcp_live = _RagMcpLive(frozen, exposed_texts, token, self._language)
+                self._rag_mcp_note = None
+        if not running:
+            try:
+                endpoint.start(server, token, loop)
+            except Exception:  # never a card « exposed » without a server behind it
+                with self._lock:
+                    self._rag_mcp_live = None
+                endpoint.stop()
+                raise
+        return self.rag_mcp_state()
+
+    def rag_mcp_stop(self) -> dict[str, Any]:
+        """Intention `rag_mcp_stop`: 404 from now on; the server's task ends on the loop."""
+        self._rag_mcp_halt(None)
+        return self.rag_mcp_state()
+
+    def _rag_mcp_halt(self, note: Any) -> None:
+        """Stopped from any thread, never waiting for the task (`close`, the language)."""
+        with self._lock:
+            live, self._rag_mcp_live = self._rag_mcp_live, None
+            if live is not None:
+                self._rag_mcp_note = note
+            call = self._rag_mcp_call
+        if call is not None:  # the run stops at its next checkpoint, the session back to idle
+            call.cancel()
+        endpoint = self._rag_mcp_endpoint
+        if live is not None and endpoint is not None:
+            endpoint.stop()
+
+    async def _rag_mcp_aclose(self) -> None:
+        """On the loop, at shutdown: stopped, the server's task awaited."""
+        with self._lock:
+            self._rag_mcp_live = None
+            call = self._rag_mcp_call
+        if call is not None:
+            call.cancel()
+        endpoint = self._rag_mcp_endpoint
+        if endpoint is not None:
+            await endpoint.aclose()
+
+    def _rag_mcp_journal(self, called: str, decision: str, key: str, **kw: Any) -> None:
+        """One entry of the security journal per call: the client, the duration, the count;
+        never the question, a passage or the token."""
+        name = architecture_server.policy_name(called)
+        reason = self._t(f"session.rag_mcp.{key}", **kw)
+        self._emit_security(self._security_journal.record("mcp_tool", name, decision, reason))
+
+    def _rag_mcp_client(self, client: str | None) -> str:
+        return client or self._t("session.rag_mcp.unknown_client")
+
+    def _rag_mcp_denied(self, tool: str, client: str | None) -> str:
+        """A tool whose rule is not `allow`, called: `deny` in the journal, `isError`."""
+        name = architecture_server.policy_name(tool)
+        who = self._rag_mcp_client(client)
+        self._rag_mcp_journal(tool, "deny", "journal_denied", client=who, tool=name)
+        return self._t("session.rag_mcp.denied")
+
+    def _rag_mcp_describe(self, client: str | None) -> Any:
+        """`describe_architecture`, on the loop: the frozen chain, no model, nothing read."""
+        started = time.monotonic()
+        with self._lock:
+            live = self._rag_mcp_live
+        if live is None:
+            stopped = self._t("session.rag_mcp.failed_no_detail", status="stopped")
+            raise architecture_server.refused(stopped)
+        described = exposed.describe(live.chain, live.texts, architecture_server.SERVER_NAME)
+        ms = int((time.monotonic() - started) * 1000)
+        who = self._rag_mcp_client(client)
+        self._rag_mcp_journal(
+            "describe_architecture", "allow", "journal_described", client=who, ms=ms
+        )
+        return architecture_server.result(exposed.describe_text(described, live.texts), described)
+
+    async def _rag_mcp_search(self, question: str, top_k: int, client: str | None) -> Any:
+        """`search_documents`, on the loop: refused at once when the session is not `idle` (no
+        queue); else the session goes `rag_lab` (« a client's call ») and the run goes to the
+        worker, awaited `RAG_MCP_TIMEOUT_S` at most, then cancelled (it stops at its next
+        checkpoint, the session back to `idle` then)."""
+        tool = "search_documents"
+        who = self._rag_mcp_client(client)
+        started = time.monotonic()
+        previous: Any = None
+        cancel = CancelToken()
+        with self._lock:
+            live = self._rag_mcp_live
+            busy = self.state != "idle"
+            if live is not None and not busy:
+                previous = self.reason_text
+                self._cancel = cancel
+                self._rag_mcp_call = cancel
+                self.state = "rag_lab"
+                self.reason_text = Message("session.rag_mcp.busy_reason")
+        if live is None:
+            stopped = self._t("session.rag_mcp.failed_no_detail", status="stopped")
+            raise architecture_server.refused(stopped)
+        if busy:
+            self._rag_mcp_journal(tool, "cancelled", "journal_busy", client=who)
+            raise architecture_server.refused(self._t("session.rag_mcp.busy"))
+        self._emit_state()
+        try:
+            future = self._executor.submit(
+                self._rag_mcp_run, live, question, top_k, cancel, previous
+            )
+        except RuntimeError:  # the session is closing
+            self._set_state("idle", previous)
+            raise architecture_server.refused(self._t("session.rag_mcp.busy")) from None
+        wrapped = asyncio.wrap_future(future)
+        wrapped.add_done_callback(lambda f: f.cancelled() or f.exception())
+        seconds = self.RAG_MCP_TIMEOUT_S
+        try:
+            found = await asyncio.wait_for(asyncio.shield(wrapped), seconds)
+        except asyncio.CancelledError:  # the server stopped, or the client went away
+            cancel.cancel()
+            ms = int((time.monotonic() - started) * 1000)
+            self._rag_mcp_journal(tool, "cancelled", "journal_stopped", client=who, ms=ms)
+            raise
+        except TimeoutError:
+            cancel.cancel()
+            said = f"{seconds:g}" if self._language == "en" else f"{seconds:g}".replace(".", ",")
+            self._rag_mcp_journal(tool, "cancelled", "journal_timeout", client=who, seconds=said)
+            raise architecture_server.refused(
+                self._t("session.rag_mcp.timeout", seconds=said)
+            ) from None
+        except _RagMcpIndexGone as gone:
+            self._rag_mcp_journal(tool, "cancelled", "journal_index", client=who)
+            reason = render(gone.reason, live.lang)
+            raise architecture_server.refused(
+                self._t("session.rag_mcp.index_missing", reason=reason)
+            ) from None
+        except Exception as exc:  # noqa: BLE001 - `isError`, never a crash of the server
+            ms = int((time.monotonic() - started) * 1000)
+            self._rag_mcp_journal(tool, "cancelled", "journal_error", client=who, ms=ms)
+            failed = exc if isinstance(exc, exposed.SearchFailed) else None
+            if failed is not None and failed.error_text:
+                text = self._t(
+                    "session.rag_mcp.failed", status=failed.status, error=failed.error_text
+                )
+            else:
+                status = failed.status if failed is not None else "error"
+                text = self._t("session.rag_mcp.failed_no_detail", status=status)
+            raise architecture_server.refused(text) from None
+        ms = int((time.monotonic() - started) * 1000)
+        self._rag_mcp_journal(
+            tool, "allow", "journal_served", client=who, passages=len(found.passages), ms=ms
+        )
+        return architecture_server.result(exposed.search_text(found, live.texts, live.lang), found)
+
+    def _rag_mcp_run(
+        self,
+        live: _RagMcpLive,
+        question: str,
+        top_k: int,
+        cancel: CancelToken,
+        previous: Any,
+    ) -> exposed.SearchResult:
+        """On the worker, in series with the turns and the workshop's runs: the shipped corpus,
+        the brick's index read only, the models lent for the call and closed after it."""
+        loans = rag_lab.Loans(self._load_registry)
+        try:
+            index_error = self._rag_mcp_index_error()
+            if index_error is not None:  # removed after the start: never built here
+                raise _RagMcpIndexGone(index_error)
+            texts, _ = self._rag_lab_content()
+            if texts is None:
+                raise exposed.SearchFailed("error", None)
+            catalog = self._rag_lab_catalog(texts)
+            deps = replace(
+                self._rag_lab_deps(texts, catalog, cancel, loans),
+                content=load_rag_content(live.lang),  # the shipped file, never a work copy
+                brick_index_error=None,
+                work_copy=None,
+            )
+            return exposed.search(live.chain, question, top_k, deps, live.texts)
+        finally:
+            loans.close()
+            with self._lock:
+                if self._cancel is cancel:
+                    self._cancel = None
+                if self._rag_mcp_call is cancel:
+                    self._rag_mcp_call = None
+            self._set_state("idle", previous)
 
     # ---------- the MCP workshop (context `mcp_lab`): story 6 of 2026-09-30, lot 4 of 2026-10-04 --
 
@@ -13350,3 +15271,180 @@ class AppSession:
         if conn is not None and conn.requesting:
             conn.close(wait=False)
         return True
+
+
+# ---------- V1.2 story 15 (CAP-11): the judges of the Evaluate tab ----------
+
+
+class _LocalJudge:
+    """A local model as a judge: loaded for the call (file: in this process, under the load
+    registry's budget; llama-server: its own adapter), its output bound to the verdict grammar
+    (GBNF), closed at the end. The chat template renders the prompt as one user message."""
+
+    def __init__(
+        self, session: AppSession, candidate: Any, judgment_id: str, cancel: CancelToken, label: str
+    ) -> None:
+        self.session, self.candidate = session, candidate
+        self.judgment_id, self.cancel, self.label = judgment_id, cancel, label
+
+    def complete(self, prompt: str) -> str:
+        s, candidate = self.session, self.candidate
+        window = s.configured_window
+        registry = s._load_registry
+        if candidate.engine is None:  # a GGUF file, in this process
+            cost = registry.file_cost(candidate.path, window)
+            refusal = registry.check_component(self.label, cost, RAG_LAB_JUDGE)
+            if refusal is not None:
+                raise SendRefused(refusal)
+            base = registry.baseline()
+            engine = s._engine_factory(candidate.path, n_ctx=window)
+        else:  # a llama-server model: nothing loads in this process
+            engine = s._server_factory(candidate, n_ctx=window)
+        try:
+            if candidate.engine is None:
+                registry.grant(
+                    self.label,
+                    cost,
+                    RAG_LAB_JUDGE,
+                    in_process=True,
+                    share=registry.file_share(candidate.path),
+                    base=base,
+                )
+            else:
+                registry.grant(self.label, 0, RAG_LAB_JUDGE, in_process=False)
+            meta = engine.metadata()
+            caps = capabilities_for(meta)
+            if caps.incompatible_reason:
+                raise RuntimeError(str(caps.incompatible_reason))
+            rendered = render_context(
+                engine,
+                caps.chat_template or "",
+                s._judge_messages(prompt),
+                call_id=self.judgment_id,
+                special_tokens=meta.special_tokens,
+                bos_token=meta.bos_token,
+                eos_token=meta.eos_token,
+                add_generation_prompt=True,
+                lang=s._language,
+            )
+            if "grammar" not in inspect.signature(engine.complete).parameters:
+                raise RuntimeError(
+                    str(
+                        rag_evaluation.load_evaluation(s._language).texts["panel"][
+                            "no_grammar_text"
+                        ]
+                    )
+                )
+            pieces = engine.complete(
+                rendered.ids,
+                (),
+                rag_evaluation.JUDGE_MAX_TOKENS,
+                self.cancel,
+                grammar=rag_evaluation.GRAMMAR,
+            )
+            return "".join(fragment.text for fragment in pieces)
+        finally:
+            engine.close()
+
+
+class _CloudJudge:
+    """A declared cloud model as a judge: one `run_call`, the session's FinOps spend and cap
+    (`max_session_usd`: refused before anything is sent), no second counter."""
+
+    def __init__(
+        self, session: AppSession, entry: CloudModel, judgment_id: str, cancel: CancelToken
+    ) -> None:
+        self.session, self.entry = session, entry
+        self.judgment_id, self.cancel = judgment_id, cancel
+        self.label = entry.model
+
+    def complete(self, prompt: str) -> str:
+        s, entry = self.session, self.entry
+        key = config.cloud_key(entry)
+        if key is None:  # the key left since the intention: nothing is sent
+            raise ValueRefused("session.load.no_key")
+        content = s._cloud_content or s._localized(load_cloud_content)
+        reserve = rag_evaluation.JUDGE_MAX_TOKENS
+        rendered = render_chat_body(
+            s._judge_messages(prompt),
+            None,
+            call_id=self.judgment_id,
+            fields=chat_fields(entry, reserve),
+            markers=s.cfg.cloud_markers,
+            estimate=lambda t: config.estimate_tokens(t, s.cfg.chars_per_token),
+            provider_label_text=content.provider_segment_text,
+            lang=s._language,
+            api=entry.api,
+        )
+        engine = s._cloud_factory(entry, key)
+        scope = s._rag_lab_scope(self.judgment_id, "rag_lab.judge", brick=None)
+        try:
+            with scoped(**scope | {"call_id": self.judgment_id}, origin="model"):
+                call = run_call(
+                    engine,
+                    ChatBody(rendered.body.encode("utf-8")),
+                    self.cancel,
+                    phase_label=s._t(
+                        "session.llm_lab.sending",
+                        provider=entry.provider,
+                        tokens=s._n(rendered.raw_total),
+                    ),
+                    estimated_prompt=rendered.raw_total,
+                    chars_per_token=s.cfg.chars_per_token,
+                    call_id=lambda index: f"{self.judgment_id}.{index}",
+                    lang=s._language,
+                    eur_per_usd=s.cfg.eur_per_usd,
+                    max_session_usd=s.cfg.max_session_usd,
+                )
+        finally:
+            engine.close()
+        return call.text
+
+
+# ---------- V1.2 story 20 (CAP-18): the exposed chain, what the server asks the session ----------
+
+
+@dataclass(frozen=True)
+class _RagMcpLive:
+    """The exposure under way: the frozen chain, the texts and the language of its start, and
+    its token (memory only)."""
+
+    chain: exposed.ExposedChain
+    texts: exposed.ExposedTexts
+    token: str
+    lang: str
+
+
+class _RagMcpIndexGone(Exception):
+    """The brick's index went away after the start: the call refused, nothing built."""
+
+    def __init__(self, reason: Any) -> None:
+        super().__init__(str(reason))
+        self.reason = reason
+
+
+class _RagMcpBackend:
+    """`architecture_server.Backend`, the session's side of the exposed server."""
+
+    def __init__(self, session: AppSession) -> None:
+        self._session = session
+
+    def rule_of(self, name: str) -> str:
+        return self._session._mcp_policy.rule_of(name)
+
+    def denied(self, tool: str, client: str | None) -> str:
+        return self._session._rag_mcp_denied(tool, client)
+
+    async def search(self, question: str, top_k: int, client: str | None) -> Any:
+        return await self._session._rag_mcp_search(question, top_k, client)
+
+    def describe(self, client: str | None) -> Any:
+        return self._session._rag_mcp_describe(client)
+
+
+def _open_decision_classifier(model: config.DecisionModel) -> rag_decision.NliClassifier:
+    """V1.2 story 8: System One's classifier opened from its declared files (extra `decision`)."""
+    dest = config.models_dir()
+    return rag_decision.NliClassifier(
+        dest / model.config_path, dest / model.tokenizer_path, dest / model.load_path
+    )

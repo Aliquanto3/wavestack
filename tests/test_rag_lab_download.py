@@ -416,16 +416,21 @@ def test_the_files_are_read_again_before_idle(index):
     brick's « Télécharger » is gone, without waiting for `_rag_caught_up`."""
     session = lab_session(values(index), Server(), bricks=("rag",))
     seen: list[tuple[str, object]] = []
+    called = threading.Event()
     caught_up = session._rag_caught_up
 
     def record() -> None:
         seen.append((session.state, options(session, "embedding")["declared"]["download"]))
         caught_up()
+        called.set()
 
     session._rag_caught_up = record  # type: ignore[method-assign]
 
     session.download_model("rag_embedding")
     wait_download(session)
+    # The download thread calls it after `idle`, outside the worker `join` waits for: on a
+    # loaded Windows runner, later than `wait_download`'s 50 ms.
+    assert called.wait(10)
 
     assert seen == [("idle", None)]
     session.close()

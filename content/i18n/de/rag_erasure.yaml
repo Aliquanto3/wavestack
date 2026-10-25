@@ -1,0 +1,215 @@
+# V1.2 story 18 (CAP-14), Reiter Angreifen, Karte "Löschung": Texte, Architekturen, Orte, an denen
+# die Sentinel überlebt, und konstruierte Inhalte der Ableitungen, die noch nicht existieren. IDs,
+# Löschmodi, Herkunft und Stories sind in den drei Sprachen gleich; nur die Texte unterscheiden sich.
+#
+# Der Code ORN-7731-QZ ist fiktiv (ausgelieferter Text des Sentinel-Dokuments). Ein "gemessener" Ort
+# wird hier ohne Modell nachgebaut; ein "konstruierter" Ort ist für die Demonstration geschrieben,
+# als illustrativ markiert, mit der Story, die ihn ersetzt (10 bis 14). Keine Kosten- oder
+# Dauerangabe: die Wiederherstellung der Konformität wird in Worten gesagt.
+
+chunk_max_chars: 700
+top_k: 3
+doc_id: projet_orion
+code: ORN-7731-QZ
+
+architectures:
+  - id: dense
+    available: true
+    label_text: "Dichtes RAG"
+    update_text: "die Passagen des Dokuments per Kennung aus dem Speicher entfernen; der Vektor geht mit seiner Passage."
+  - id: hybrid
+    available: true
+    label_text: "Hybrides RAG"
+    update_text: "die Passagen aus dem Speicher und dem BM25-Index entfernen, per Dokumentkennung."
+  - id: rerank
+    available: true
+    label_text: "RAG mit Reranking"
+    update_text: "die Passagen per Kennung aus dem Speicher entfernen; das Reranking behält nichts."
+  - id: long_context
+    available: true
+    label_text: "Langer Kontext, ohne Suche"
+    update_text: "keine Kopie des Korpus neu aufzubauen, außer dem zwischengespeicherten Präfix, das neu geladen wird."
+  - id: cag
+    available: true
+    label_text: "CAG"
+    update_text: "den ganzen Cache des Modells neu laden, weil das Präfix das Dokument enthält."
+  - id: agentic
+    available: true
+    label_text: "Agentische Suche"
+    update_text: "keine: die Quelle wird bei jeder Anfrage neu gelesen."
+  - id: pageindex
+    available: true
+    label_text: "PageIndex"
+    update_text: "den Baum des geänderten Dokuments und seiner Abschnitte neu berechnen."
+  - id: raptor
+    available: true
+    label_text: "RAPTOR"
+    update_text: "die Zusammenfassungen der betroffenen Zweige neu erstellen, dann die, die sie zusammenfassen."
+  - id: graphrag
+    available: true
+    label_text: "Vereinfachtes GraphRAG"
+    update_text: "Entitäten neu extrahieren, zusammenführen, dann Gemeinschaften und ihre Zusammenfassungen neu berechnen."
+  - id: llm_wiki
+    available: true
+    label_text: "LLM-Wiki"
+    update_text: "die betroffenen Seiten neu kompilieren, dann die Prüfung des Wikis durchlaufen."
+  - id: crag
+    available: true
+    label_text: "Corrective RAG"
+    update_text: "die des hybriden RAG: die Passagen aus dem Speicher und dem BM25-Index entfernen."
+
+places:
+  - id: chunks
+    erase_mode: delete
+    measured: chunks
+    architectures: [dense, hybrid, rerank, crag, raptor]
+    label_text: "Chunks und Vektoren"
+    unit_text: "Passagen"
+    measured_on_text: "den Text der Passagen des Korpus im Speicher"
+  - id: bm25
+    erase_mode: delete
+    measured: bm25
+    architectures: [hybrid, crag]
+    label_text: "BM25-Index"
+    unit_text: "Dokumente des Index"
+    measured_on_text: "den BM25-Index des Hybrids"
+  - id: contexts
+    erase_mode: rebuild
+    measured: contexts
+    shared: true
+    architectures: [dense, hybrid, rerank, crag]
+    label_text: "Kontexte der kontextuellen Aufteilung (neu berechnet)"
+    unit_text: "Kontexteinträge"
+    measured_on_text: "die im Speicher neu berechneten heuristischen Kontexte"
+  - id: shipped_contexts
+    erase_mode: rebuild
+    measured: shipped_contexts
+    shared: true
+    architectures: [dense, hybrid, rerank, crag]
+    label_text: "Ausgelieferte Kontextdatei (vorberechnet)"
+    unit_text: "Einträge der Datei"
+    measured_on_text: "die ausgelieferte Kontextdatei, so gelesen, wie sie ist"
+  - id: raptor_summaries
+    erase_mode: rebuild
+    measured: raptor_summaries
+    architectures: [raptor]
+    label_text: "RAPTOR-Zusammenfassungen"
+    unit_text: "Zusammenfassungen"
+    measured_on_text: "die Zusammenfassungen des heuristischen RAPTOR-Baums, im Speicher neu berechnet"
+  - id: pageindex_tree
+    erase_mode: rebuild
+    measured: pageindex_tree
+    architectures: [pageindex]
+    label_text: "PageIndex-Baum"
+    unit_text: "Knoten"
+    measured_on_text: "der heuristische Baum, im Speicher neu berechnet"
+  - id: graph_communities
+    erase_mode: rebuild
+    measured: graph_communities
+    architectures: [graphrag]
+    label_text: "Gemeinschaftszusammenfassungen (GraphRAG)"
+    unit_text: "Zusammenfassungen"
+    measured_on_text: "die Communities des heuristischen Graphen, im Speicher neu berechnet"
+  - id: graph_entities
+    erase_mode: rebuild
+    measured: graph_entities
+    architectures: [graphrag]
+    label_text: "Entitäten und Relationen (GraphRAG)"
+    unit_text: "Entitäten"
+    measured_on_text: "die Entitäten des heuristischen Graphen, im Speicher neu berechnet"
+  - id: wiki_pages
+    erase_mode: rebuild
+    measured: wiki_pages
+    architectures: [llm_wiki]
+    label_text: "Wiki-Seiten"
+    unit_text: "Seiten"
+    measured_on_text: "das im Speicher neu kompilierte heuristische Wiki"
+  - id: cag_cache
+    erase_mode: reload
+    provenance:
+      kind: constructed
+      to_record_with: "dem echten CAG-Cache, Story 10"
+    story: 10
+    architectures: [cag]
+    label_text: "Prompt-Cache (CAG)"
+    unit_text: "Zwischengespeicherte Präfixe"
+    text: "Zwischengespeichertes Präfix: der ganze vorgeladene Korpus, einschließlich des Sentinel-Dokuments und seines Codes ORN-7731-QZ."
+    rebuilt_text: "Zwischengespeichertes Präfix: der ganze vorgeladene Korpus, ohne das Sentinel-Dokument."
+  - id: long_context_prefix
+    erase_mode: reload
+    provenance:
+      kind: constructed
+      to_record_with: "dem echten Präfix des langen Kontexts, Story 10"
+    story: 10
+    architectures: [long_context]
+    label_text: "Zwischengespeichertes Präfix des langen Kontexts"
+    unit_text: "Zwischengespeicherte Präfixe"
+    text: "Zwischengespeichertes Präfix: der ganze in den Prompt gelegte Korpus, einschließlich des Codes ORN-7731-QZ des Sentinel-Dokuments."
+    rebuilt_text: "Zwischengespeichertes Präfix: der ganze in den Prompt gelegte Korpus, ohne das Sentinel-Dokument."
+  - id: source
+    erase_mode: none
+    measured: source
+    architectures: [agentic, long_context]
+    label_text: "Bei jeder Anfrage neu gelesene Quelle"
+    unit_text: "Dokumente der Quelle"
+    measured_on_text: "die Quelle, bei jeder Anfrage neu gelesen"
+
+texts:
+  banner_text: "Demonstration: Der Code ist fiktiv, keine echten Daten"
+  title_text: "Löschung"
+  hint_text: "Ein Dokument aus der Quelle zu löschen, löscht es nicht aus seinen Kopien. Aktivieren Sie die Sentinel, bauen Sie die Kopien, löschen Sie sie und lesen Sie dann, wo der Code überlebt, nach Ort und Architektur."
+  sentinel_label_text: "Sentinel \"{title}\" aktivieren"
+  sentinel_active_text: "aktiv, nur in dieser Seite"
+  sentinel_inactive_text: "inaktiv"
+  scope_text: "Die Aktivierung lebt in dieser Seite und geht mit jeder Anfrage mit: der ausgelieferte Korpus, der Index, die Arbeitskopie und die Kontexte ändern sich nicht."
+  code_text: "Gesuchter Code: {code}"
+  build_text: "Kopien bauen"
+  erase_text: "Sentinel löschen"
+  rebuild_title_text: "Eine Architektur aus der Quelle ohne die Sentinel neu aufbauen"
+  rebuild_text: "Neu aufbauen: {architecture}"
+  rebuilt_done_text: "neu aufgebaut"
+  guard_text: "Nichts zu löschen: bauen Sie zuerst die Kopien."
+  step_text:
+    idle: "Die Kopien sind nicht gebaut."
+    start: "Kopien mit der Sentinel gebaut: Der Code ist überall dort vorhanden, wo er kopiert wurde."
+    erase: "Die Sentinel hat die Quelle verlassen. Nicht alle Kopien folgen ihr."
+    rebuild: "Die gewählten Architekturen werden aus der Quelle ohne die Sentinel neu aufgebaut."
+  corpus_text: "Korpus im Speicher: {docs} Dokumente, {chunks} Passagen mit höchstens {size} Zeichen, davon {sentinel} der Sentinel."
+  table_title_text: "Wo der Code überlebt"
+  place_header_text: "Ort"
+  architecture_header_text: "Architektur"
+  status_header_text: "Status"
+  hits_text: "{unit} mit dem Code: {hits}"
+  status:
+    present: "vorhanden"
+    erased: "gelöscht"
+    erased_illustrative: "gelöscht (illustrativ, nicht gemessen)"
+    to_rebuild: "vorhanden · neu aufzubauen"
+    to_reload: "vorhanden · neu zu laden"
+    absent: "nicht vorhanden"
+    no_copy: "keine Kopie"
+  shared_text: "gemeinsame Kopie"
+  erased_illustrative_text: "Geschriebener Status, nicht gemessen: Der neu aufgebaute Inhalt ist ein Demonstrationstext, hier fand kein Neuaufbau statt."
+  source_found_text: "der Code wird bei jeder Anfrage aus der Quelle gelesen"
+  source_gone_text: "der Code ist nicht mehr in der Quelle"
+  measured_text: "gemessen"
+  illustrative_text: "illustrativ · {provenance}"
+  upcoming_text: "Architektur kommt, Story {story}; Ort gemessen an {on}"
+  vectors_text: "Die Vektoren werden nicht berechnet (kein Embedding-Modell): Die Zeile \"Chunks und Vektoren\" misst den Text der Passagen, und der Vektor geht mit seiner Passage."
+  cost_text: "Konformität von {architecture} wiederherstellen: {update}"
+  costs_title_text: "Was die Wiederherstellung der Konformität kostet (in Worten)"
+  question_title_text: "Frage zum Code"
+  question_text: "Suche nach dem Code \"{code}\" in dem, was bleibt, ohne Generierung."
+  ranking_title_text: "Passagen, die auftauchen"
+  ranking_none_text: "Keine Passage taucht auf: Die Suche findet den Code nicht mehr."
+  passage_text: "{rank}. {title} (Auszug {position}), Score {score}"
+  holding_title_text: "Was den Code noch enthält"
+  holding_none_text: "Keine Kopie enthält den Code mehr."
+  provenance:
+    constructed_text: "für die Demonstration konstruierter Fall (aufzuzeichnen mit {model})"
+    recorded_text: "aufgezeichnet am {date} mit {model}"
+  limits_title_text: "Was die Karte nicht sagt"
+  limits:
+    - "Die illustrativen Orte sind für die Demonstration geschrieben: Sie werden an die echten Ableitungen angeschlossen, wenn die Stories 10 bis 14 sie liefern."
+    - "Der echte SQLite-Index und seine Vektortabelle werden nicht gelesen: Das Löschen per Dokumentkennung wird dort in einer späteren Story geprüft."
+    - "Die ausgelieferte Kontextdatei wird so gelesen, wie sie ist, und nie verändert: ohne die Sentinel gebaut, enthält sie sie nicht."

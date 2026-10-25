@@ -1,0 +1,66 @@
+# V1.2 story 20 (CAP-18) : la chaîne composée de l'atelier RAG exposée en serveur MCP, en
+# lecture seule. Lu par `rag/exposed.py` (`load_texts`) à chaque démarrage, dans la langue de la
+# session ; surcouches `content/i18n/{en,de}/rag_mcp.yaml` : mêmes clés, mêmes variables.
+server:
+  instructions_text: "Serveur de démonstration de WaveStack : il cherche dans le corpus fictif Exemplia avec l'architecture RAG composée dans l'atelier, et renvoie des passages cités. Il ne rédige rien : c'est à vous d'écrire la réponse à partir des passages, en les citant."
+tools:
+  search_documents:
+    description_text: "Cherche les passages du corpus fictif Exemplia (entreprise imaginaire) les plus proches d'une question, avec l'architecture RAG exposée. Renvoie au plus top_k passages classés, chacun avec son document, son titre, sa position, son score et une citation. Lecture seule ; les documents réservés aux RH ne sont jamais renvoyés."
+    question_text: "La question, en langage naturel (500 caractères au plus)."
+    top_k_text: "Le nombre de passages voulus, de 1 à 10."
+  describe_architecture:
+    description_text: "Dit quelle architecture RAG ce serveur expose, ses étapes, et ses limites (corpus fictif, lecture seule, aucune génération)."
+reasons:
+  invalid: "Chaîne refusée par l'atelier : {reason}"
+  whole_corpus: "« {option} » lit tout le corpus sans index ni recherche : il n'y a pas d'outil de recherche à exposer."
+  searches_itself: "« {option} » mène sa propre recherche avec le modèle génératif : seule une chaîne dont la recherche est faite par ses étapes est exposable."
+  model_stage: "L'étape « {stage} » appelle le modèle génératif ou n'est pas encore exposable : retirez-la pour exposer la chaîne."
+  head: "Seule la tête de la brique RAG est exposable (découpage par paragraphes à la taille livrée, modèle d'embedding de la brique, sqlite-vec) : son index est lu sans jamais être écrit."
+describe:
+  composed_label_text: "Chaîne composée"
+  stage_text: "{stage} : {option}"
+  header_text: "Architecture exposée : {architecture}."
+  corpus_text: "Corpus : les documents fictifs d'Exemplia livrés avec WaveStack, jamais la copie de travail de l'atelier."
+  hr_text: "Profil d'accès « tous » : les passages des documents réservés aux RH sont retirés avant la réponse, et leur nombre est dit."
+  frozen_text: "La chaîne est figée au démarrage du serveur : une modification dans l'atelier ne compte qu'après un arrêt puis un démarrage."
+  not_run_text: "Le serveur exécute le découpage, l'embedding, l'index et la recherche ; ni le Contexte ni la Génération ne sont exécutés pour vous."
+  limits:
+    - "Lecture seule : aucun fichier, aucun index ni aucun cache n'est écrit."
+    - "Aucun modèle génératif ni aucun modèle cloud n'est appelé ; seuls les modèles locaux d'embedding et, s'il y a lieu, de reranking servent."
+    - "Un appel à la fois : si l'atelier est occupé, l'appel est refusé ; réessayez."
+    - "Démonstration pédagogique : les documents sont fictifs."
+search:
+  citation_text: "{title} ({doc_id}, extrait {position})"
+  passage_text: "{rank}. {citation} — score {score}\n{text}"
+  header_text: "{n} passage(s) trouvé(s) avec l'architecture « {architecture} »."
+  removed_text: "{n} passage(s) d'un document réservé aux RH retiré(s) de la liste."
+  none_text: "Aucun passage."
+  no_score_text: "sans score"
+card:
+  title_text: "Exposer en MCP"
+  hint_text: "Expose la chaîne de l'atelier comme serveur MCP en lecture seule, sur cette machine (127.0.0.1) : un client comme Claude Code peut alors chercher dans le corpus Exemplia et recevoir des passages cités. C'est le modèle du client qui rédige."
+  state_label_text: "État"
+  state_on_text: "exposée"
+  state_off_text: "arrêtée"
+  start_text: "Démarrer"
+  stop_text: "Arrêter"
+  address_label_text: "Adresse"
+  token_label_text: "Jeton"
+  token_hidden_text: "•••••••• (masqué)"
+  reveal_text: "Révéler"
+  hide_text: "Masquer"
+  copy_token_text: "Copier le jeton"
+  copy_command_text: "Copier la commande"
+  copied_text: "Copié."
+  copy_failed_text: "Copie impossible : sélectionnez le texte à la main."
+  chain_label_text: "Chaîne exposée"
+  frozen_text: "Figée au démarrage : pour exposer la chaîne modifiée, arrêtez puis démarrez."
+  tools_label_text: "Outils"
+  risk_label_text: "Risque"
+  rule_label_text: "Règle"
+  hidden_tool_text: "non annoncé (règle autre que « autoriser »)"
+  command_label_text: "Brancher dans Claude Code"
+  command_note_text: "Claude Code enregistre ce jeton dans sa propre configuration ; il ne vaut plus au prochain démarrage."
+  copilot_text: "Copilot Studio exige une adresse HTTPS publique : l'application n'en fournit pas (ni tunnel ni hébergement)."
+  language_text: "Les descriptions des outils sont dans la langue du démarrage : changer de langue arrête le serveur."
+  refused_label_text: "Démarrage refusé"

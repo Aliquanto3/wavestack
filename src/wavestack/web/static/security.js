@@ -254,6 +254,7 @@ const LEVEL_OF = {
   masked: "mid",
   cancelled: "mid",
   flagged: "mid",
+  not_installed: "mid",
   error: "mid",
 };
 

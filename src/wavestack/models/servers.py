@@ -515,6 +515,7 @@ class LlamaServerEngine:
         cancel: CancelToken,
         *,
         sampling: Sampling | None = None,
+        grammar: str | None = None,  # V1.2 story 15 (GBNF)
     ) -> Iterator[Fragment]:
         body = {
             "prompt": list(prompt_ids),
@@ -524,6 +525,8 @@ class LlamaServerEngine:
             "cache_prompt": True,
             **_sampling(sampling),
         }
+        if grammar is not None:  # V1.2 story 15
+            body["grammar"] = grammar
         pending = ""
         count = 0
         reason: StopReason | None = None

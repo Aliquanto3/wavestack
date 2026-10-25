@@ -51,6 +51,9 @@ const store = {
   costs: { build: null, query: null }, // V1.2 story 3: the last run's sums by time
   update: null, // the last update run: { runId, label, ended, summary }
   workCopy: null, // the corpus's work copy (where it lives, what it changes, its documents)
+  contexts: null, // V1.2 story 6: the contexts read (header, rebuilt or not, why no rebuild)
+  rebuild: null, // the last rebuild of the contexts: { runId, done, total, ended, error, output }
+  contextError: null, // a rebuild or a reset refused, said in the focus
   copyOp: null, // the operation whose form is open: add, modify or delete
   tab: "build", // V1.2 story 4: the view tab shown
   questions: [], // V1.2 story 4: the prepared questions (CAP-2), from `GET /api/rag_lab`
@@ -270,7 +273,8 @@ function stageControls(stage, index) {
   if (info && info.options.length > 1) box.append(optionSelect(stage, info));
   else box.append(el("span", "rag-chain-option", option?.label_text ?? stage.option));
   for (const param of option?.params ?? []) box.append(paramInput(stage, param));
-  if (info?.movable) box.append(moveButtons(index));
+  // V1.2 story 8: a check (after the generation) is removed the same way, never moved.
+  if (info?.movable || info?.check) box.append(moveButtons(index));
   if (option?.note_text) box.append(el("p", "rag-chain-note", option.note_text));
   for (const other of info?.options ?? []) {
     if (!other.available && other.reason_text) {
@@ -471,7 +475,7 @@ function renderPalette() {
   const pipeline = chain();
   if (!pipeline || !store.catalog || store.mode !== "compose") return;
   const present = new Set(pipeline.stages.map((s) => s.kind));
-  const absent = store.catalog.stages.filter((s) => s.movable && !present.has(s.kind));
+  const absent = store.catalog.stages.filter((s) => (s.movable || s.check) && !present.has(s.kind));
   if (!absent.length) return;
   const label = el("label", "rag-palette-label");
   label.append(el("span", null, text("add_text") || t("rag.add")));
@@ -486,7 +490,9 @@ function renderPalette() {
   add.type = "button";
   add.addEventListener("click", () => {
     const info = store.catalog.stages.find((s) => s.kind === select.value);
-    const choice = info?.options.find((o) => o.available) ?? info?.options[0];
+    // V1.2 story 8 (CAP-6): a cloud option is only ever chosen by hand, never by default: when
+    // the local one is unavailable, it is added anyway and says why (and what to download).
+    const choice = info?.options.find((o) => o.available && o.id !== "cloud") ?? info?.options[0];
     if (!info || !choice) return;
     const used = new Set(pipeline.stages.map((s) => s.id));
     let n = pipeline.stages.length + 1;
@@ -498,7 +504,9 @@ function renderPalette() {
       params: Object.fromEntries(choice.params.map((p) => [p.name, p.default])),
     };
     const before = pipeline.stages.findIndex((s) => s.kind === store.catalog.insert_before);
-    pipeline.stages.splice(before < 0 ? pipeline.stages.length : before, 0, stage);
+    // A stage that opens the retrieval segment (the query understanding) goes after its anchor.
+    const anchor = info.insert_after ? pipeline.stages.findIndex((s) => s.kind === info.insert_after) : -1;
+    pipeline.stages.splice(anchor >= 0 ? anchor + 1 : before < 0 ? pipeline.stages.length : before, 0, stage);
     changed();
     document.querySelector("#rag-palette-a select")?.focus();
   });
@@ -571,14 +579,23 @@ function renderRefusals() {
 
 // ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
 
-// The preset whose segment (kind, option, in order) is the chain's retrieval segment, if any.
+// V1.2 story 10: the chain's Context reads the whole corpus (long context, CAG): no search.
+// V1.2 story 11: and every Context option that searches by itself (agent, tree): no segment.
+const corpusOption = (option) =>
+  (store.catalog?.searchless_options ?? store.catalog?.corpus_options ?? []).includes(option);
+const contextOf = (pipeline) => (pipeline?.stages ?? []).find((s) => s.kind === "context") ?? null;
+
+// The preset whose segment (kind, option, in order) is the chain's retrieval segment, if any;
+// V1.2 story 10: a preset that sets the Context also matches on its option.
 function currentPreset() {
   const segment = (chain()?.stages ?? []).filter(isMovable);
+  const context = contextOf(chain());
   return (
     (store.catalog?.presets ?? []).find(
       (preset) =>
         preset.segment.length === segment.length &&
-        preset.segment.every((s, i) => s.kind === segment[i].kind && s.option === segment[i].option),
+        preset.segment.every((s, i) => s.kind === segment[i].kind && s.option === segment[i].option) &&
+        (preset.replaces_context ? context?.option === preset.context?.option : !corpusOption(context?.option)),
     ) ?? null
   );
 }
@@ -606,6 +623,13 @@ function applyPreset(preset) {
   });
   const before = kept.findIndex((s) => s.kind === store.catalog.insert_before);
   kept.splice(before < 0 ? kept.length : before, 0, ...segment);
+  // V1.2 story 10: a preset without an index sets the Context; a search preset gives a chain
+  // that read the whole corpus its Context back (the others keep theirs).
+  const context = kept.find((s) => s.kind === "context");
+  if (context && preset.context && (preset.replaces_context || corpusOption(context.option))) {
+    context.option = preset.context.option;
+    context.params = clone(preset.context.params ?? {});
+  }
   pipeline.stages = kept;
   changed();
   document.querySelector(`#rag-presets .rag-preset[data-preset="${preset.id}"]`)?.focus();
@@ -621,7 +645,23 @@ function renderPresets() {
   box.setAttribute("aria-label", title);
   box.append(el("span", "rag-presets-label", title));
   const current = currentPreset();
-  for (const preset of presets) {
+  // V1.2 story 10 (vues.md): one section per family, in the session's order.
+  const families = store.catalog.preset_families ?? [];
+  const sections = new Map();
+  for (const family of families) {
+    const section = el("div", "doc-family rag-preset-family");
+    section.dataset.family = family.id;
+    section.setAttribute("role", "group");
+    section.setAttribute("aria-label", family.label_text);
+    section.append(el("span", "rag-preset-family-label", family.label_text));
+    sections.set(family.id, section);
+    box.append(section);
+  }
+  // V1.2 story 12: within a family, the family's own order (RAPTOR between PageIndex and GraphRAG).
+  const rank = new Map(families.flatMap((f) => (f.presets ?? []).map((id, i) => [id, i])));
+  const ordered = [...presets].sort((a, b) => (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+  for (const preset of ordered) {
+    const target = sections.get(preset.family) ?? box;
     const label = preset.available ? preset.label_text : `${preset.label_text} (${text("unavailable_text")})`;
     const button = el("button", "rag-preset", label);
     button.type = "button";
@@ -636,7 +676,7 @@ function renderPresets() {
     button.setAttribute("aria-describedby", described.id);
     button.setAttribute("aria-pressed", String(preset.id === current?.id));
     button.addEventListener("click", () => applyPreset(preset));
-    box.append(button, described);
+    target.append(button, described);
   }
 }
 
@@ -659,12 +699,19 @@ function sequence() {
   const of = (kind) => stages.find((s) => s.kind === kind) ?? null;
   const entries = [];
   const push = (step, stage) => entries.push({ step, stage, index: stage ? stages.indexOf(stage) : -1 });
+  // V1.2 story 10: a line drawn for some options of its stage only (the CAG's prefix), or
+  // never with some Context options (the question's embedding, without any search).
+  const context = of("context");
+  const drawn = (step) =>
+    (!step.stage || of(step.stage)) &&
+    (!step.options?.length || step.options.includes(of(step.stage)?.option)) &&
+    !(step.hidden_with ?? []).includes(context?.option);
   for (const step of catalog.steps) {
-    if (step.phase !== "build" || (step.stage && !of(step.stage))) continue;
+    if (step.phase !== "build" || !drawn(step)) continue;
     push(step, step.stage ? of(step.stage) : null);
   }
   for (const step of catalog.steps) {
-    if (step.phase !== "run" || step.own || (step.stage && !of(step.stage))) continue;
+    if (step.phase !== "run" || step.own || !drawn(step)) continue;
     push(step, step.stage ? of(step.stage) : null);
   }
   for (const stage of stages) {
@@ -983,6 +1030,16 @@ function focusIo(rows) {
   return dl;
 }
 
+// V1.2 story 5 (CAP-3): the queries the query understanding produced, one line each.
+function queriesList(queries) {
+  const box = el("div", "rag-focus-queries");
+  box.append(el("p", "rag-focus-queries-title", text("queries_text")));
+  const list = el("ol", "rag-focus-queries-list");
+  for (const query of queries) list.append(el("li", null, query));
+  box.append(list);
+  return box;
+}
+
 // What the step received, produced and cost in the last run (« Dérouler » only, §5, §7).
 function focusRun(box, step) {
   const run = shownRun();
@@ -1039,7 +1096,18 @@ function focusRun(box, step) {
     for (const fact of ended.facts) facts.append(el("li", null, labelled(fact.label_text, fact.value_text)));
     box.append(facts);
   }
+  if (ended.queries?.length) box.append(queriesList(ended.queries));
+  if (step.key === "chunking" && ended.chunks?.length) box.append(chunksList(ended));
+  if (step.key === "chunking" && stage.option === "contextual") box.append(contextControls());
+  if (step.stage === "context" && ended.budget) box.append(budgetGauge(ended.budget));
+  // V1.2 story 10: the whole corpus against the window, and the CAG's cache (the run's).
+  if (step.stage === "context" && typeof ended.window === "number") box.append(windowGauge(ended));
+  if (step.key === "cache_prefix" || (step.stage === "context" && stage.option === "cached_corpus")) {
+    box.append(cacheBlock(runCache(ended)));
+  }
   if (step.key !== "embed_query" && ended.items?.length) box.append(itemsTable(ended.items));
+  if (step.stage === "context" && ended.dropped?.length) box.append(droppedList(ended.dropped));
+  if (step.stage === "context" && ended.prompt_parts?.length) box.append(promptParts(ended));
   if (ownFigures(step) && ["ok", "error", "cancelled"].includes(stage.status)) {
     const foot = el("p", "rag-stage-figures");
     foot.append(el("span", "rag-stage-duration", labelled(text("duration_text"), `${fmtInt(ended.duration_ms)} ms`)));
@@ -1074,6 +1142,16 @@ function renderFocus(entries) {
   if (step.explain_text) box.append(el("p", "rag-focus-explain", step.explain_text));
   if (step.uses.length) box.append(uses(step));
   focusRun(box, step);
+  // V1.2 story 11: what a module adds to a step's focus (rag-agentic.js: the tree card).
+  for (const extra of focusExtras) extra(box, step, runStage(step));
+}
+
+// V1.2 story 11: the hooks a module adds to the focus, called with the box, the step and the
+// run's stage of it (`null` without a run).
+const focusExtras = [];
+export function registerFocus(hook) {
+  focusExtras.push(hook);
+  if (store.mounted) renderCurrent();
 }
 
 // ---------- the wires: from the step shown to the components it calls on ----------
@@ -1315,6 +1393,10 @@ function applyEnvelope(envelope) {
     applyUpdateEnvelope(envelope);
     return;
   }
+  if (isRebuildEvent(envelope)) {
+    applyRebuildEnvelope(envelope);
+    return;
+  }
   switch (envelope.kind) {
     case "session_state": {
       const was = store.session.state;
@@ -1322,8 +1404,11 @@ function applyEnvelope(envelope) {
       if (p.state === "idle" && closeStaleRun()) renderRun();
       renderBusy();
       // Lot 5c-4: a download ended (this page's or another's): the catalog read again.
+      // V1.2 story 10: a model (re)loaded, its window changed: the options' reasons too.
       if (was === "download" && p.state !== "download") {
         store.download = null;
+        reloadCatalog();
+      } else if (was === "model_load" && p.state !== "model_load") {
         reloadCatalog();
       } else {
         renderDownloads();
@@ -1334,6 +1419,13 @@ function applyEnvelope(envelope) {
     case "harness_error":
       downloadOutcome(envelope);
       return;
+    case "context_window_state": {
+      // V1.2 story 10: the long context and the CAG need a window: read again on a change.
+      const key = `${p.configured}/${p.window}/${p.model_label ?? ""}`;
+      if (store.windowSeen !== undefined && store.windowSeen !== key) reloadCatalog();
+      store.windowSeen = key;
+      return;
+    }
     case "rag_lab_run_started":
       store.run = {
         runId: p.run_id,
@@ -1436,6 +1528,10 @@ function itemsTable(items) {
   for (const key of ["rank_text", "before_text", "document_text", "score_text"]) {
     head.append(el("th", null, text(`columns.${key}`)));
   }
+  // V1.2 story 7 (CAP-5): the context's passages also say whether they are whole or cut, where
+  // they stand in the context and what they weigh.
+  const withState = items.some((item) => item.state);
+  if (withState) head.append(el("th", null, t("rag.col_state")));
   const thead = el("thead");
   thead.append(head);
   const body = el("tbody");
@@ -1460,6 +1556,7 @@ function itemsTable(items) {
     doc.append(el("span", "rag-doc-text", item.text));
     row.append(doc);
     row.append(el("td", "rag-num", fmtScore(item.score)));
+    if (withState) row.append(passageState(item));
     body.append(row);
   }
   table.append(thead, body);
@@ -1711,6 +1808,265 @@ function wireCopy() {
   $("rag-copy-reset").addEventListener("click", resetCopy);
 }
 
+// ---------- V1.2 story 7 (CAP-5): the context's budget, passages and final prompt ----------
+
+// A badge: `data-state` is the indicator the tests read (`whole`, `cut`, `dropped`).
+const badge = (state) => {
+  const mark = el("span", "rag-badge", t(`rag.item_${state}`));
+  mark.dataset.state = state;
+  return mark;
+};
+
+// The cell of a passage of the context: whole or cut, its position, its estimated tokens
+// (before and after a compression) and what the compressor did.
+function passageState(item) {
+  const cell = el("td", "rag-passage-state");
+  cell.dataset.placed = String(item.placed ?? "");
+  cell.append(badge(item.state ?? "whole"));
+  if (typeof item.placed === "number") cell.append(" ", el("span", "rag-placed", t("rag.item_placed", { n: fmtInt(item.placed) })));
+  if (typeof item.tokens === "number") {
+    const compressed = typeof item.tokens_after === "number" && item.tokens_after < item.tokens;
+    const said = compressed
+      ? t("rag.item_tokens_after", { before: fmtInt(item.tokens), after: fmtInt(item.tokens_after) })
+      : t("rag.item_tokens", { tokens: fmtInt(item.tokens) });
+    cell.append(el("span", "rag-tokens", said));
+    if (typeof item.tokens_after === "number" && !compressed && !item.error_text) {
+      const unchanged = el("span", "rag-unchanged", t("rag.item_unchanged"));
+      cell.append(unchanged);
+    }
+    if (item.transforms?.length) cell.append(el("span", "rag-transforms", t("rag.item_transforms", { names: item.transforms.join(", ") })));
+  }
+  if (item.error_text) cell.append(el("span", "rag-stage-error", item.error_text));
+  return cell;
+}
+
+// The budget's gauge: the tokens the context takes of the tokens it may take (the session's).
+function budgetGauge(budget) {
+  const box = el("div", "rag-budget");
+  box.dataset.used = String(budget.used);
+  box.dataset.budget = String(budget.budget);
+  const used = budget.before !== null && budget.before !== undefined ? budget.before : budget.used;
+  box.append(el("p", "rag-budget-title", t("rag.budget_used", { used: fmtInt(used), budget: fmtInt(budget.budget) })));
+  const gauge = el("meter", "rag-budget-gauge");
+  gauge.min = 0;
+  gauge.max = Math.max(budget.budget, used);
+  gauge.value = used;
+  box.append(gauge);
+  if (budget.before !== null && budget.before !== undefined) {
+    box.append(el("p", "rag-budget-after", t("rag.budget_compressed", { before: fmtInt(budget.before), after: fmtInt(budget.used) })));
+  }
+  return box;
+}
+
+// ---------- V1.2 story 10: the whole corpus against the window, the CAG's cache ----------
+
+// The prompt's estimated tokens against the session's effective window.
+function windowGauge(ended) {
+  const box = el("div", "rag-window");
+  const used = ended.prompt_tokens ?? 0;
+  box.dataset.used = String(used);
+  box.dataset.window = String(ended.window);
+  box.append(el("p", "rag-window-title", t("rag.window_used", { used: fmtInt(used), window: fmtInt(ended.window) })));
+  const gauge = el("meter", "rag-window-gauge");
+  gauge.min = 0;
+  gauge.max = Math.max(ended.window, used);
+  gauge.value = used;
+  box.append(gauge);
+  return box;
+}
+
+// The cache of the run shown: the prefix line's, else the generation's (the session's figures).
+function runCache(ended) {
+  if (ended.cache) return ended.cache;
+  const generation = store.run?.stages.find((s) => s.kind === "generation");
+  const context = store.run?.stages.find((s) => s.kind === "context");
+  return generation?.ended?.cache ?? context?.parts?.prefix?.ended?.cache ?? null;
+}
+
+// The CAG's cache: its state, the prefix's tokens, those read and evaluated, its build, its size.
+function cacheBlock(cache) {
+  const box = el("div", "rag-cache");
+  box.append(el("p", "rag-cache-title", t("rag.cache_title")));
+  if (!cache) {
+    box.append(el("p", "rag-note", t("rag.cache_pending")));
+    return box;
+  }
+  box.dataset.state = cache.state;
+  const list = el("ul", "rag-cache-figures");
+  const line = (key, values) => list.append(el("li", null, t(key, values)));
+  line("rag.cache_state", { state: t(`rag.cache_state_${cache.state}`) });
+  if (typeof cache.prefix_tokens === "number") line("rag.cache_prefix", { tokens: fmtInt(cache.prefix_tokens) });
+  if (typeof cache.read_tokens === "number") line("rag.cache_read", { tokens: fmtInt(cache.read_tokens) });
+  if (typeof cache.evaluated_tokens === "number") line("rag.cache_evaluated", { tokens: fmtInt(cache.evaluated_tokens) });
+  if (typeof cache.build_ms === "number" && cache.state === "cold") line("rag.cache_build", { ms: fmtInt(cache.build_ms) });
+  if (typeof cache.state_bytes === "number") line("rag.cache_size", { mb: fmtInt(Math.max(1, Math.round(cache.state_bytes / 1e6))) });
+  box.append(list);
+  return box;
+}
+
+// The passages the budget left out, with their indicator.
+function droppedList(items) {
+  const box = el("div", "rag-dropped");
+  box.append(el("p", "rag-dropped-title", t("rag.dropped_title", { count: fmtInt(items.length) })));
+  const list = el("ul", "rag-dropped-list");
+  for (const item of items) {
+    const row = el("li", "rag-dropped-item");
+    row.dataset.chunkId = String(item.chunk_id);
+    row.append(badge("dropped"), " ", el("span", "rag-doc-title", item.title_text), " ");
+    row.append(el("span", "rag-tokens", t("rag.item_tokens", { tokens: fmtInt(item.tokens) })));
+    row.append(el("span", "rag-doc-text", item.text));
+    list.append(row);
+  }
+  box.append(list);
+  return box;
+}
+
+// The final prompt as it leaves for the model: system instruction, context, question.
+function promptParts(ended) {
+  const box = el("div", "rag-prompt-parts");
+  box.append(el("p", "rag-prompt-parts-title", t("rag.prompt_title")));
+  for (const part of ended.prompt_parts) {
+    const block = el("div", "rag-prompt-part");
+    block.dataset.kind = part.kind;
+    block.append(el("p", "rag-prompt-part-head", labelled(part.label_text, t("rag.item_tokens", { tokens: fmtInt(part.tokens) }))));
+    block.append(el("pre", "rag-focus-pre", part.text));
+    box.append(block);
+  }
+  box.append(el("p", "rag-prompt-parts-total", t("rag.prompt_total", { tokens: fmtInt(ended.prompt_tokens) })));
+  return box;
+}
+
+// ---------- V1.2 story 6 (CAP-4): the chunks the chunking made, and the contexts' rebuild ----------
+
+// The chunking stage's first chunks (the session cut them, AD-1): document and rank, text,
+// parent (parent_child), context with its mark (contextual).
+function chunksList(ended) {
+  const box = el("div", "rag-chunks");
+  box.append(el("p", "rag-chunks-title", t("rag.chunks_shown", { shown: fmtInt(ended.chunks.length), total: fmtInt(ended.chunks_total) })));
+  const list = el("ol", "rag-chunks-list");
+  for (const chunk of ended.chunks) {
+    const item = el("li", "rag-chunk");
+    item.dataset.doc = chunk.doc_id;
+    item.dataset.position = String(chunk.position);
+    item.append(el("p", "rag-chunk-title", t("rag.chunk_title", { title: chunk.title_text, position: chunk.position })));
+    if (chunk.context_text) {
+      const context = el("p", "rag-chunk-context");
+      context.append(el("span", "rag-chunk-label", `${t("rag.chunk_context")} · `), el("span", "rag-chunk-mark", chunk.context_label), ` : ${chunk.context_text}`);
+      item.append(context);
+    }
+    item.append(el("p", "rag-chunk-text", chunk.text));
+    if (chunk.parent_text) {
+      const parent = el("p", "rag-chunk-parent");
+      parent.append(el("span", "rag-chunk-label", `${t("rag.chunk_parent", { position: chunk.parent_position })} `), chunk.parent_text);
+      item.append(parent);
+    }
+    list.append(item);
+  }
+  box.append(list);
+  return box;
+}
+
+// « Reconstruire » and « Rétablir les contextes livrés », in the focus of a contextual chunking.
+function contextControls() {
+  const box = el("div", "rag-contexts");
+  const info = store.contexts;
+  if (info?.summary_text) box.append(el("p", "rag-contexts-summary", info.summary_text));
+  if (info?.expected_text) box.append(el("p", "rag-note", info.expected_text));
+  const buttons = el("p", "rag-contexts-buttons");
+  const rebuild = el("button", "rag-button-secondary", t("rag.contexts_rebuild"));
+  rebuild.type = "button";
+  rebuild.id = "rag-contexts-rebuild";
+  rebuild.dataset.action = "rebuild";
+  rebuild.addEventListener("click", rebuildContexts);
+  const reset = el("button", "rag-button-secondary", t("rag.contexts_reset"));
+  reset.type = "button";
+  reset.id = "rag-contexts-reset";
+  reset.dataset.action = "reset";
+  reset.addEventListener("click", resetContexts);
+  buttons.append(rebuild, reset);
+  box.append(buttons);
+  if (info?.rebuild_blocked_text) box.append(el("p", "rag-note rag-contexts-blocked", info.rebuild_blocked_text));
+  const job = store.rebuild;
+  if (job && !job.ended) {
+    box.append(el("p", "rag-contexts-progress", t("rag.contexts_progress", { done: fmtInt(job.done), total: fmtInt(job.total) })));
+  } else if (job?.error) {
+    box.append(el("p", "rag-stage-error", t("rag.contexts_failed", { reason: job.error })));
+  } else if (job?.output) {
+    box.append(el("p", "rag-contexts-done", job.output));
+  }
+  if (store.contextError) box.append(el("p", "rag-stage-error", store.contextError));
+  setContextButtons(box);
+  return box;
+}
+
+// Why a button waits: the session busy, a POST under way, no model (rebuild), nothing rebuilt (reset).
+function setContextButtons(root = document) {
+  const blocked = Boolean(busyReason()) || store.pending;
+  for (const button of root.querySelectorAll(".rag-contexts button")) {
+    const rebuild = button.dataset.action === "rebuild";
+    button.disabled = blocked || (rebuild ? Boolean(store.contexts?.rebuild_blocked_text) : !store.contexts?.rebuilt);
+    button.title = (rebuild && store.contexts?.rebuild_blocked_text) || "";
+  }
+}
+
+async function rebuildContexts() {
+  store.contextError = null;
+  store.pending = true;
+  renderBusy();
+  const answer = await post("/api/intentions/rag_lab_rebuild", { pipelines: store.pipelines });
+  store.pending = false;
+  if (!answer.ok) store.contextError = refusalText(answer);
+  renderBusy();
+  renderCurrent();
+}
+
+async function resetContexts() {
+  store.contextError = null;
+  const answer = await post("/api/rag_lab/contexts/reset", {});
+  if (answer.ok) {
+    store.contexts = answer.body.contexts;
+    store.rebuild = null;
+  } else {
+    store.contextError = refusalText(answer);
+  }
+  renderCurrent();
+}
+
+async function reloadContexts() {
+  try {
+    const response = await fetch("/api/rag_lab");
+    if (!response.ok) return;
+    store.contexts = (await response.json()).contexts;
+  } catch {
+    return;
+  }
+  renderCurrent();
+}
+
+const isRebuildEvent = (envelope) => String(envelope.payload?.run_id ?? "").startsWith("ctx");
+
+// A rebuild's events (`ctx{n}`): its progress in chunks, its outcome; never the last run's.
+function applyRebuildEnvelope(envelope) {
+  const p = envelope.payload;
+  if (envelope.kind === "rag_lab_run_started") {
+    store.rebuild = { runId: p.run_id, done: 0, total: 0, ended: null, error: null, output: null };
+  } else if (store.rebuild?.runId !== p.run_id) {
+    return;
+  } else if (envelope.kind === "rag_lab_stage_progress") {
+    store.rebuild.done = p.done;
+    store.rebuild.total = p.total;
+  } else if (envelope.kind === "rag_lab_stage_ended") {
+    store.rebuild.error = p.error_text;
+    store.rebuild.output = p.output_text;
+  } else if (envelope.kind === "rag_lab_run_ended") {
+    store.rebuild.ended = p;
+    if (!store.replaying) reloadContexts();
+  } else {
+    return;
+  }
+  if (!store.replaying) renderCurrent();
+}
+
 // ---------- state of the session: what may be asked now ----------
 
 function busyReason() {
@@ -1738,6 +2094,7 @@ function renderBusy() {
   // Lot 5c-4: « Arrêter » stops a download too (even one launched before a reload).
   $("rag-stop").disabled = !["rag_lab", "download"].includes(store.session.state);
   renderCopyControls();
+  setContextButtons();
 }
 
 // ---------- V1.2 story 4: the view tabs (vues.md) ----------
@@ -1843,7 +2200,9 @@ async function runChain() {
   store.pending = true;
   renderBusy();
   status.textContent = text("running_text");
-  const answer = await post("/api/intentions/rag_lab_run", { question, pipelines: store.pipelines });
+  // V1.2 story 13: GraphRAG's mode, chosen on its card (rag-graph.js); « local » by default.
+  const body = { question, pipelines: store.pipelines, graph_mode: store.graphMode || "local" };
+  const answer = await post("/api/intentions/rag_lab_run", body);
   store.pending = false;
   if (!answer.ok) {
     setMode(before); // refused: nothing runs, back where the trainer was
@@ -1947,6 +2306,7 @@ async function refresh() {
     for (const envelope of body.last_run) applyEnvelope(envelope);
     for (const envelope of body.last_update ?? []) applyEnvelope(envelope);
     store.workCopy = body.work_copy;
+    store.contexts = body.contexts ?? null;
   } finally {
     store.replaying = false;
   }
@@ -2034,3 +2394,5 @@ async function main() {
 main();
 
 export { $, el, text, quote, fmtInt, keep, stored, store, costFigures, QUESTION_KEY };
+// V1.2 story 11: what rag-agentic.js draws the agent's rounds and PageIndex's tree with.
+export { busyReason, chain, labelled, post, refusalText, renderBusy, renderCurrent };

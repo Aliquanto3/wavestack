@@ -51,6 +51,20 @@ rag-alt = [
 greenops = [
     "codecarbon==3.3.1",
 ]
+# V1.2 story 8 (CAP-6): System One's local classifier (deberta_xsmall, a zero-shot NLI in
+# ONNX), without the guardrails' Presidio and spaCy. No torch; WaveStack starts without it.
+decision = [
+    "onnxruntime==1.23.2",
+    "tokenizers==0.22.1",
+]
+# V1.2 story 16 (CAP-12): the OTLP export of the workshop's tree, GenAI conventions. The SDK
+# builds the spans and the OTLP encoder makes their protobuf; WaveStack's factory sends them
+# (AD-15), so the HTTP exporter (and its `requests`) is not needed. Pure Python, no service;
+# same release as the `opentelemetry-api` the base already locks.
+otel = [
+    "opentelemetry-sdk==1.44.0",
+    "opentelemetry-exporter-otlp-proto-common==1.44.0",
+]
 
 [dependency-groups]
 dev = [

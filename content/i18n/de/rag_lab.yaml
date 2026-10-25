@@ -79,6 +79,7 @@ memory_text: "Speicher von WaveStack"
 last_run_text: "Letzte Ausführung"
 reset_chain_text: "Zurück zur ausgelieferten Kette"
 unavailable_text: "nicht verfügbar"
+queries_text: "Erzeugte Anfragen"
 add_text: "Komponente hinzufügen"
 add_button_text: "Hinzufügen"
 move_before_text: "Nach vorn"
@@ -165,12 +166,39 @@ stages:
       Antwort hängt davon ab, was die vorigen Schritte ihm geliefert haben. Hier antwortet das
       aktive Modell der Werkstatt, mit dem System-Prompt der Werkstatt und den Grenzen einer
       Runde (Ausgabereserve, Reasoning-Budget); die Antwort geht nicht in die Unterhaltung ein.
+  query:
+    label_text: "Query understanding"
+    explain_text: >-
+      Vor der Suche formuliert das aktive Modell der Werkstatt die Frage um, zerlegt sie in
+      Teilfragen, macht sie eigenständig verständlich oder erfindet eine plausible Antwort
+      (HyDE); die Suchen suchen dann diese Anfragen statt der Frage im Originalwortlaut. Jede
+      Anfrage kostet einen Modellaufruf, und ein Modell, das sich irrt, schließt die richtige
+      Antwort schon vor der Suche aus.
+  # V1.2 story 8 (CAP-6): System One's three decisions.
+  router:
+    label_text: "Strategy router"
+    explain_text: "Vor den Suchen wählt ein Klassifikator für die Frage eine Strategie, die die Kette kann: dichtes RAG, hybrid oder + Reranking. Die Schritte, die diese Strategie nicht nutzt, werden übersprungen. Jede Entscheidung zeigt ihren Urheber (Klassifikator oder Richter), ihre Wahrscheinlichkeit und die Schwelle; unter der Schwelle fragt die Kaskade, standardmäßig aus, den SLM-Richter."
+  passage_filter:
+    label_text: "Passage filter"
+    explain_text: "Nach einer Suche wird jede eingestufte Passage vor dem Kontext behalten oder verworfen. Der Score kommt vom Reranker des Bausteins (lokal) oder von einem Entscheidungsmodell (Cloud): Über der Schwelle behält der Klassifikator die Passage allein; darunter verwirft er sie, oder die Kaskade fragt den SLM-Richter."
+  grounding_check:
+    label_text: "Grounding check"
+    explain_text: "Nach der Generierung wird jeder Satz der Antwort den Passagen des Kontexts gegenübergestellt: verankert oder nicht. Die Prüfung meldet eine nicht gestützte Aussage, sie schreibt die Antwort nicht um. Unter der Schwelle gilt der Satz als nicht verankert, oder die Kaskade fragt den SLM-Richter."
+  fallback:  # V1.2 story 12 (CAP-7)
+    label_text: "Corrective fallback"
+    explain_text: "Nach dem Passagenfilter: Hat er mindestens eine Passage behalten, gibt es nichts zu korrigieren. Hat er keine behalten, formuliert das aktive Modell die Frage um, Suche und Filter laufen ein zweites Mal; bleibt weiterhin nichts, antwortet die Werkstatt „Ich weiß es nicht“, ohne das Modell aufzurufen. Das Corrective RAG des Artikels erweitert die Suche auf das Web: Die Werkstatt ist offline, ihr Rückfall sucht erneut im selben Korpus."
 
 # The name of each option; those naming a declared model take its label.
 options:
   chunking:
     paragraphs:
       label_text: "Nach Absätzen"
+    semantic:
+      label_text: "Nach Bedeutung (Sätze)"
+    parent_child:
+      label_text: "Eltern-Kind"
+    contextual:
+      label_text: "Mit Kontext (Contextual Retrieval)"
   embedding:
     declared:
       label_text: "Embedding-Modell des RAG-Bausteins"
@@ -200,11 +228,61 @@ options:
   context:
     excerpts:
       label_text: "Nummerierte Auszüge (Format des RAG-Bausteins)"
+    budget:
+      label_text: "Kontextbudget"
+    order:
+      label_text: "Reihenfolge der Passagen"
+    compress:
+      label_text: "Kompression"
+    full_corpus:
+      label_text: "Ganzer Korpus im Prompt (langer Kontext)"
+    cached_corpus:
+      label_text: "Ganzer Korpus im Cache des Modells (CAG)"
+    agent_loop:
+      label_text: "Agentische Suche (Werkzeuge auf den Dateien)"
+    section_tree:
+      label_text: "Abschnittsbaum (PageIndex)"
+    graph_search:
+      label_text: "Wissensgraph (GraphRAG)"
+    raptor_search:  # V1.2 story 12
+      label_text: "Baum von Zusammenfassungen (RAPTOR)"
+    wiki_pages:
+      label_text: "Seiten des LLM Wiki (Index vom Modell gelesen)"
   generation:
     active:
       label_text: "Aktives Modell der Werkstatt"
     not_run:
       label_text: "Nicht generieren"
+  query:
+    rewrite:
+      label_text: "Umformulierung der Frage"
+    decompose:
+      label_text: "Zerlegung in Teilfragen"
+    follow_up:
+      label_text: "Nachfrage eigenständig formuliert"
+    hyde:
+      label_text: "Hypothetisches Dokument (HyDE)"
+  # V1.2 story 8 (CAP-6)
+  router:
+    local:
+      label_text: "Lokaler Klassifikator (deberta_xsmall)"
+    cloud:
+      label_text: "Entscheidungs-API (Cloud)"
+  passage_filter:
+    local:
+      label_text: "Schwelle auf dem Score des Rerankers"
+    cloud:
+      label_text: "Entscheidungs-API (Cloud)"
+  grounding_check:
+    local:
+      label_text: "Lokaler Klassifikator (deberta_xsmall)"
+    cloud:
+      label_text: "Entscheidungs-API (Cloud)"
+  fallback:  # V1.2 story 12
+    retry:
+      label_text: "Umformulieren und erneut suchen, dann „Ich weiß es nicht“"
+    abstain:
+      label_text: "„Ich weiß es nicht“ antworten"
 
 # The settings: their name and unit.
 params:
@@ -217,6 +295,16 @@ params:
   top_k:
     label_text: "Chunks im Prompt"
     unit_text: "Chunks"
+  budget_tokens:
+    label_text: "Kontextbudget"
+    unit_text: "Tokens (geschätzt)"
+  # V1.2 story 8 (CAP-6)
+  decision_threshold:
+    label_text: "Entscheidungsschwelle"
+    unit_text: "% (Wahrscheinlichkeit)"
+  judge_cascade:
+    label_text: "Kaskade zum SLM-Richter (vom Prüfstand nicht validiert)"
+    unit_text: "0 = nein, 1 = ja"
 
 # Lot 5a: the lines of the sequence. The technical name is the same in the three languages;
 # the action and the explanation are in the page's language. Without `explain_text`, the
@@ -289,6 +377,78 @@ steps:
   generation:
     label_text: "Generation"
     action_text: "Die Antwort generieren"
+  query:
+    label_text: "Query understanding"
+    action_text: "Die zu suchenden Anfragen erzeugen"
+    note_text: "Die Werkstatt hat kein Gespräch: Die Nachfrage liest die früher in dieser Sitzung gestellten Fragen (höchstens drei)."
+  cache_prefix:
+    label_text: "Prefix caching"
+    action_text: "Die Anweisung und den ganzen Korpus im Speicher des Modells halten"
+    explain_text: >-
+      CAG wertet den Anfang des Prompts einmal aus (die Anweisung und den ganzen Korpus) und
+      behält den daraus entstehenden Zustand des Modells. Bei jeder Frage wird dieser Zustand
+      wieder in den Speicher gelegt: Das Modell liest nur noch die Frage. Dieses Präfix ist ein
+      Schnitt in Tokens des gesendeten Prompts, bis zum letzten Zeilenende vor der Frage. Jede
+      Aktualisierung des Korpus lädt es vollständig neu, und der Zustand belegt Speicher,
+      solange er behalten wird.
+  # V1.2 story 11: PageIndex's tree built once, gone down at each question; the agent's calls.
+  tree_build:
+    label_text: "Tree building"
+    action_text: "Den Abschnittsbaum der Dokumente aufbauen"
+    explain_text: "PageIndex baut einmal einen Baum des Korpus: die Wurzel, ein Knoten je Dokument, einer je Abschnitt, jeder mit Titel und kurzer Zusammenfassung. Der mitgelieferte Baum ist nach einer Regel berechnet, ohne Modell; „Neu aufbauen“ lässt das aktive Modell die Zusammenfassungen schreiben. Die Aktualisierung eines Dokuments berechnet nur seinen Teilbaum neu."
+  agent_calls:
+    label_text: "Tool calls"
+    action_text: "Das Modell wählt eine Aktion, das Werkzeug liest sie im Korpus"
+    explain_text: "In jeder Runde antwortet das Modell mit einer Zeile ACTION: list_files, grep <Wörter>, read_file <Name> oder ANSWER. Die Werkzeuge lesen die Arbeitskopie im Speicher, nie die Festplatte: Ein Name außerhalb des Korpus wird abgelehnt und dem Modell gesagt. Jedes Werkzeugergebnis wird ein Element des Kontexts. Die Schleife endet bei ANSWER, in der 6. Runde oder nach zwei unlesbaren Antworten."
+  tree_levels:
+    label_text: "Tree descent"
+    action_text: "Das Modell wählt Ebene für Ebene die zu öffnenden Knoten"
+    explain_text: "Auf jeder Ebene liest das Modell die nummerierte Liste der Kinder der behaltenen Knoten (Titel und Zusammenfassung) und antwortet CHOICE: 3, 7 (höchstens zwei) oder CHOICE: NONE. Ein Aufruf je Ebene: zwei beim mitgelieferten Korpus (die Dokumente, dann die Abschnitte). Der ganze Text der erreichten Abschnitte wird der Kontext."
+  # V1.2 story 8 (CAP-6): System One's lines, in the chain's order.
+  router:
+    label_text: "Strategy router"
+    action_text: "Die Suchstrategie der Frage wählen"
+  passage_filter:
+    label_text: "Passage filter"
+    action_text: "Jede Passage behalten oder verwerfen"
+  grounding_check:
+    label_text: "Grounding check"
+    action_text: "Die Verankerung jedes Satzes der Antwort prüfen"
+  # V1.2 story 13: GraphRAG's graph built once, then queried at each question.
+  graph_build:
+    label_text: "Graph building"
+    action_text: "Den Graphen der Entitäten, ihrer Beziehungen und ihrer Communities aufbauen"
+    explain_text: "GraphRAG baut einmal einen Wissensgraphen: die Entitäten des Korpus, ihre Beziehungen, ihre zusammengefassten Communities; jede Entität und Beziehung behält ihre Belege (die Passage und ihren Fingerabdruck). Der mitgelieferte Graph ist per Regel berechnet, ohne Modell (Schlüsselbegriffe, Abkürzungen, Codes, gemeinsames Vorkommen in einem Satz); « Neu aufbauen » lässt ihn vom aktiven Modell extrahieren, ein Aufruf pro Passage, dann einer pro Community. Eine Dokumentaktualisierung wiederholt seine Extraktion, die Zusammenführung, die Communities und nur die betroffenen Zusammenfassungen."
+  graph_query:
+    label_text: "Graph query"
+    action_text: "Das Modell nennt die Entitäten der Frage oder liest die nächsten Communities"
+    explain_text: "Im lokalen Modus liefert ein Aufruf die Entitäten der Frage (ENTITIES: a, b); der Graph verbindet sie mit ihren Nachbarn einen Schritt entfernt, und die Belegpassagen dieser Beziehungen werden zum Kontext. Im globalen Modus durchlaufen die drei der Frage nächsten Communities je einen « map »-Aufruf (POINTS: … oder POINTS: NONE); die Generierung übernimmt das « reduce ». Keine Zielgruppe wird gefiltert: Jedes Element nennt seine eigene."
+  # V1.2 story 12: RAPTOR's tree built once, then searched on every level;
+  # Corrective RAG's fallback.
+  raptor_build:
+    label_text: "Summary tree building"
+    action_text: "Die Passagen gruppieren und jede Gruppe zusammenfassen, Ebene für Ebene"
+    explain_text: "RAPTOR baut einmal einen Baum: Die Passagen des Korpus werden nach der Nähe ihrer Wörter gruppiert, jede Gruppe wird zusammengefasst, dann werden die Zusammenfassungen ihrerseits gruppiert und zusammengefasst, bis zu drei Ebenen. Der mitgelieferte Baum wird von einer Regel berechnet, ohne Modell (extraktive Zusammenfassungen: der Satz jedes Kindes, der der Gruppe am nächsten ist); „Neu aufbauen“ lässt das aktive Modell jede Zusammenfassung schreiben, ein Aufruf je Knoten. Die Aktualisierung eines Dokuments ordnet seine Passagen in den Baum ein und erneuert nur die betroffenen Zusammenfassungen."
+  raptor_query:
+    label_text: "Summary tree search"
+    action_text: "Auf allen Ebenen des Baums zugleich suchen"
+    explain_text: "Der Baum wird abgeflacht: Passagen und Zusammenfassungen aller Ebenen werden gemeinsam mit BM25 bewertet, und die fünf besten Knoten werden zum Kontext, ohne Modellaufruf. Eine Überblicksfrage findet eine Zusammenfassung, eine Faktenfrage eine Passage. Keine Zielgruppe wird gefiltert: Jedes Element nennt seine eigene."
+  fallback:
+    label_text: "Corrective fallback"
+    action_text: "Die Frage umformulieren und erneut suchen, wenn der Filter nichts behalten hat"
+  # V1.2 story 14: the LLM Wiki compiled once, linted, its index read at each question.
+  wiki_build:
+    label_text: "Wiki compilation"
+    action_text: "Die Quellen zu verknüpften Wiki-Seiten kompilieren"
+    explain_text: "Das LLM Wiki kompiliert die Dokumente einmal zu Markdown-Seiten: eine Seite je Dokument (Synthese, Kernpunkte, Begriffe), eine Seite je Begriff, den mehrere Dokumente nennen, und den Index aller Seiten, verknüpft durch [[Seite]]-Verweise. Das ausgelieferte Wiki wird nach einer Regel kompiliert, ohne Modell; „Neu aufbauen“ lässt das aktive Modell die Synthesen schreiben. Ein Dokument zu aktualisieren kompiliert nur die Seiten neu, die es speist."
+  wiki_lint:
+    label_text: "Wiki lint"
+    action_text: "Das Wiki prüfen: Verweise, verwaiste Seiten, Begriffe"
+    explain_text: "Nach jeder Kompilierung liest eine Prüfung das Wiki erneut: Verweise auf eine fehlende Seite, Seiten, auf die keine andere verweist, Begriffe, die nur eine oder keine Quelle mehr nennt, Begriffe, die der Korpus ohne Seite verlangt, veraltete Synthesen. Sie sagt, was eine vollständige Neukompilierung beheben würde; selbst korrigiert sie nichts."
+  wiki_lookup:
+    label_text: "Wiki lookup"
+    action_text: "Das Modell liest den Index und wählt die zu lesenden Seiten"
+    explain_text: "Das Modell liest den nummerierten Index der Seiten (Titel und Synthese) und antwortet PAGES: 2, 5 (höchstens drei) oder PAGES: NONE. Ein einziger Aufruf; der ganze Text der gewählten Seiten wird der Kontext, mit ihren Quellen."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -322,6 +482,28 @@ components:
   answer:
     label_text: "Antwort"
     note_text: "Die Antwort des LLM, sobald generiert"
+  model_cache:
+    label_text: "Model cache"
+    note_text: "Der Zustand des Modells nach dem Präfix (CAG)"
+  file_tools:
+    label_text: "Werkzeuge auf den Dateien"
+    note_text: "list_files, grep, read_file, auf den Korpus beschränkt"
+  section_tree:
+    label_text: "Abschnittsbaum"
+    note_text: "Dokumente und Abschnitte, Titel und Zusammenfassungen"
+  # V1.2 story 8 (CAP-6)
+  decision_model:
+    label_text: "Decision model"
+    note_text: "Lokaler Klassifikator, Reranker oder Entscheidungs-API"
+  knowledge_graph:
+    label_text: "Wissensgraph"
+    note_text: "Entitäten, Beziehungen, zusammengefasste Communities"
+  summary_tree:  # V1.2 story 12
+    label_text: "Baum von Zusammenfassungen"
+    note_text: "Passagen, Zusammenfassungen von Gruppen, Zusammenfassungen von Zusammenfassungen"
+  wiki:
+    label_text: "Wiki"
+    note_text: "Aus den Quellen kompilierte Markdown-Seiten und ihr Index"
 
 groups:
   data:
@@ -363,6 +545,58 @@ presets:
       und ordnet sie neu: genauer, langsamer. Nur das Retrieval-Segment kehrt zu dem der
       ausgelieferten Kette zurück: Ihre Einstellungen für Chunking, Embedding, Vector store und
       Prompt bleiben erhalten.
+  long_context:
+    label_text: "Langer Kontext"
+    explain_text: >-
+      Kein Index, keine Suche: Der ganze Korpus kommt bei jeder Frage in den Prompt. Nichts
+      aufzubauen oder zu aktualisieren, aber jede Anfrage liest den ganzen Korpus erneut. Es
+      braucht ein Fenster von 16.384 Tokens.
+  cag:
+    label_text: "CAG (Cache des Modells)"
+    explain_text: >-
+      Kein Index, keine Suche: Der Korpus wird einmal ausgewertet und im Speicher des lokalen
+      Modells behalten; jede Anfrage wertet nur die Frage aus. Jede Aktualisierung lädt das
+      ganze Präfix neu. Es braucht ein lokales Modell und ein Fenster von 16.384 Tokens.
+  agentic:
+    label_text: "Agentische Suche"
+    explain_text: >-
+      Kein Index: Das Modell durchsucht den Korpus selbst mit drei Werkzeugen (auflisten, Wörter
+      suchen, ein Dokument lesen), eine Aktion je Runde, bis zu sechs. Nichts aufzubauen oder
+      zu aktualisieren, aber mehrere Modellaufrufe bei jeder Anfrage.
+  pageindex:
+    label_text: "PageIndex"
+    explain_text: >-
+      Keine Vektoren: ein Baum der Dokumente und ihrer Abschnitte, einmal aufgebaut, den das
+      Modell Ebene für Ebene hinabsteigt und dabei Titel und Zusammenfassungen liest. Ein Baum
+      zum Aufbauen und bei jeder Aktualisierung neu, wenige Aufrufe je Anfrage.
+  graphrag:
+    label_text: "GraphRAG"
+    explain_text: >-
+      Keine Vektoren: ein Graph der Entitäten des Korpus, ihrer Beziehungen und ihrer
+      zusammengefassten Communities, einmal aufgebaut. Lokal nennt das Modell die Entitäten der
+      Frage und liest die Belege ihrer Nachbarn; global liest es die nächsten Communities. Teuer
+      im Aufbau und in der Aktualisierung mit einem Modell, mehrere Aufrufe je Anfrage.
+  llm_wiki:
+    label_text: "LLM Wiki"
+    explain_text: >-
+      Keine Vektoren: die Quellen werden einmal zu einem Wiki aus Markdown-Seiten kompiliert
+      (eine je Dokument, eine je gemeinsamem Begriff, ein Index), durch eine Prüfung
+      kontrolliert; bei jeder Frage wählt das Modell im Index die zu lesenden Seiten. Seiten
+      zum Kompilieren und bei jeder Aktualisierung neu, ein Aufruf je Anfrage.
+  raptor:  # V1.2 story 12
+    label_text: "RAPTOR"
+    explain_text: "Keine Vektoren: ein Baum von Zusammenfassungen, einmal aufgebaut, die Passagen gruppiert und zusammengefasst, dann die Zusammenfassungen gruppiert und zusammengefasst. Die Anfrage sucht auf allen Ebenen zugleich, ohne Modellaufruf. Teuer im Aufbau mit einem Modell, Zusammenfassungen bei jeder Aktualisierung zu erneuern."
+  crag:  # V1.2 story 12
+    label_text: "Corrective RAG"
+    explain_text: "Das hybride RAG, dann der Passagenfilter von System One; behält der Filter nichts, formuliert das Modell die Frage um und die Suche läuft ein zweites Mal, dann antwortet die Werkstatt „Ich weiß es nicht“. Ohne Websuche: Die Werkstatt ist offline."
+# V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
+preset_families:
+  search:
+    label_text: "Suche"
+  structure:
+    label_text: "Struktur"
+  no_index:
+    label_text: "Ohne Index"
 
 # V1.2 story 3 (CAP-8): the costs in three times and the work copy's buttons.
 costs:
@@ -451,3 +685,454 @@ compare:
   differs_text: "Die Passagen unterscheiden sich."
   lost_text: "verloren"
   added_text: "hinzugefügt"
+
+# V1.2 story 5 (CAP-17) : la fiche de chaque option de la compréhension de la requête, en cinq
+# blocs ; « bench_text » reste vide tant que le projet de banc ne publie rien.
+# V1.2 story 16 (CAP-12): the tree of the run's steps and its OTLP export.
+tree:
+  title_text: "Baum der Schritte des Laufs"
+  hint_text: "Schritt, Unterschritt und Modellaufruf, mit Dauer und Tokens, aus dem Trace des Laufs gelesen."
+  empty_text: "Starten Sie die Kette: Hier erscheint der Baum des letzten Laufs."
+  tokens_text: "{input} → {output} Tokens"
+  tokens_count_text: "{count} Tokens"
+  length_text: "Ausgabereserve erreicht"
+  otel_missing_text: "OTLP-Export: Installieren Sie das Extra otel (uv sync --extra otel) und stellen Sie die URL Ihres Langfuse oder Phoenix ein. Sonst verlässt nichts den Rechner."
+  otel_unset_text: "OTLP-Export: Stellen Sie [otel] endpoint ein, die URL Ihres Langfuse oder Phoenix, und starten Sie WaveStack neu. Sonst verlässt nichts den Rechner."
+  otel_ready_text: "OTLP-Export an {endpoint}, nach den GenAI-Konventionen von OpenTelemetry. Ohne die Texte: keine Frage, keine Passage, keine Antwort."
+  otel_content_text: "OTLP-Export an {endpoint}, nach den GenAI-Konventionen von OpenTelemetry. Die Texte gehen mit: Frage, Prompts mit den Passagen des Korpus, und Antworten (capture_content)."
+  export_text: "Diesen Lauf exportieren"
+  export_running_text: "Export läuft…"
+  export_done_text: "{count} Spans an {endpoint} gesendet."
+  export_failed_text: "Export nicht möglich: {reason}"
+
+sheets:
+  query.rewrite:
+    purpose_text: "Die oft geschwätzige oder ungenaue Frage vor der Suche durch eine Anfrage ersetzen, die dem Vokabular der Dokumente ähnelt."
+    when_text: "Einsetzen, wenn die Fragen der Nutzer andere Wörter verwenden als der Korpus. Vermeiden, wenn die Frage schon präzise ist: Das Modell kann ihren Sinn ändern oder Begriffe hinzufügen, die nicht vorkommen."
+    cost_text: "Ein Modellaufruf (höchstens 256 geschriebene Tokens) vor der Suche; danach wird nur eine Anfrage gesucht, also keine zusätzliche Suche."
+    literature_text: "Ma et al. schlagen vor, zwischen Frage und Suchmaschine einen Umformulierungsschritt einzufügen (umschreiben, suchen, lesen), und berichten von Gewinnen bei Frage-Antwort-Aufgaben. Die Hypothesen der Rahmung decken diese Option nicht ab: Die Karte stützt sich allein auf diese Primärquelle."
+    bench_text: ""
+    sources:
+      - label_text: "Ma et al., Query Rewriting for Retrieval-Augmented Large Language Models (2023)"
+        url: "https://arxiv.org/abs/2305.14283"
+  query.decompose:
+    purpose_text: "Eine Mehrsprung-Frage in einfache Teilfragen zerlegen, jede für sich gesucht, ihre Listen per reziprokem Rang fusioniert."
+    when_text: "Einsetzen bei Fragen, die zwei oder mehr Dokumente brauchen. Vermeiden bei einer einfachen Sachfrage: Die Teilfragen entfernen sich von den richtigen Passagen und vervielfachen die Suchen."
+    cost_text: "Ein Modellaufruf, dann eine Suche pro Teilfrage (höchstens vier): Such- und Embedding-Zeit vervielfachen sich entsprechend, der endgültige Prompt behält seine Größe."
+    literature_text: "Press et al. messen eine „Kompositionalitätslücke“: Ein Modell beantwortet die Teilfragen, aber nicht die zusammengesetzte Frage, und das ausdrückliche Stellen der Teilfragen verkleinert sie. MultiHop-RAG zeigt, dass Mehrsprung für RAG-Systeme schwierig bleibt (Hypothese H10 der Rahmung: Die Lücke liegt zum Teil im Schlussfolgern und in der Synthese, nicht nur in der Suche)."
+    bench_text: ""
+    sources:
+      - label_text: "Press et al., Measuring and Narrowing the Compositionality Gap in Language Models (2022)"
+        url: "https://arxiv.org/abs/2210.03350"
+      - label_text: "Tang et Yang, MultiHop-RAG (2024)"
+        url: "https://arxiv.org/html/2401.15391"
+  query.follow_up:
+    purpose_text: "Eine Nachfrage („und für Praktikanten?“) ohne das Gespräch verständlich machen, indem sie mit den früheren Fragen umformuliert wird."
+    when_text: "Einsetzen im Gespräch, wo eine Suche mit der rohen Frage unpassende Passagen fände. Vermeiden ohne Verlauf: Die Option wird dann übersprungen. Hier hat die Werkstatt kein Gespräch; sie liest die letzten drei in der Sitzung gestellten Fragen."
+    cost_text: "Ein Modellaufruf, dessen Prompt die früheren Fragen enthält (nicht die Antworten); danach wird nur eine Anfrage gesucht."
+    literature_text: "Anantha et al. veröffentlichen QReCC, eine Sammlung von Gesprächsfragen und -antworten, und zeigen, dass das Umformulieren der Nachfrage vor der Suche die Suche in diesen Gesprächen verbessert. Die Hypothesen der Rahmung decken diese Option nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Anantha et al., Open-Domain Question Answering Goes Conversational via Question Rewriting (2020)"
+        url: "https://arxiv.org/abs/2010.04898"
+  query.hyde:
+    purpose_text: "Das Modell eine plausible Antwort schreiben lassen, auch wenn sie im Detail falsch ist, und dann die Passagen suchen, deren Vektor ihr nahe ist statt der Frage."
+    when_text: "Einsetzen, wenn eine kurze Frage den antwortenden Passagen kaum ähnelt. Vermeiden bei einem kleinen Modell, das themenfremde Fakten erfindet, oder wenn die Stichwortsuche genügt: Das erfundene Dokument führt die Suche in den eigenen Fehler."
+    cost_text: "Ein Modellaufruf, der einen Absatz schreibt (höchstens 256 Tokens), der teuerste der vier bei der Generierung; es wird eine Anfrage gesucht, vektorisiert wie eine Passage."
+    literature_text: "Gao et al. schlagen HyDE vor: Das Modell schreibt ein hypothetisches Dokument, der Encoder führt es zu echten Dokumenten zurück, und der Artikel berichtet von Gewinnen gegenüber einem unüberwachten dichten Retriever, ohne Relevanzlabels. Die Hypothesen der Rahmung decken diese Option nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Gao et al., Precise Zero-Shot Dense Retrieval without Relevance Labels (2022)"
+        url: "https://arxiv.org/abs/2212.10496"
+
+# V1.2 story 6 (CAP-17): the sheet of each chunking option, in five blocks.
+  chunking.paragraphs:
+    purpose_text: "Jedes Dokument in Ausschnitte zerlegen, indem seine Absätze zusammengefasst werden, solange sie in die Höchstgröße passen; ein zu langer Absatz wird am Satzende getrennt. So zerlegt der RAG-Baustein."
+    when_text: "Als Ausgangspunkt geeignet: deterministisch, ohne Modell, schnell. Zu vermeiden, wenn ein Absatz mehrere Themen mischt oder sich ein Gedanke über mehrere Absätze erstreckt: Der Ausschnitt folgt dann nicht der Bedeutung."
+    cost_text: "Kein Modellaufruf: ein Durchlauf durch den Text. Die Kosten der Kette entstehen danach durch die Zahl der einzubettenden Ausschnitte, die mit sinkender Höchstgröße wächst."
+    literature_text: "Die Zerlegung nach der Textstruktur (Absätze, Sätze) ist die erste Stufe, die Kamradt in „5 Levels of Text Splitting“ beschreibt, vor feineren Zerlegungen. Die Hypothesen der Rahmung decken diese Option nicht ab: Das Datenblatt stützt sich allein auf diese Quelle."
+    bench_text: ""
+    sources:
+      - label_text: "Kamradt, 5 Levels of Text Splitting"
+        url: "https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb"
+  chunking.semantic:
+    purpose_text: "Dort trennen, wo sich die Bedeutung ändert: Die Sätze werden eingebettet, und ein Ausschnitt endet, wenn der Abstand zweier benachbarter Sätze eine Schwelle überschreitet (hier das 80. Perzentil der Abstände des Korpus), ohne je die Höchstgröße zu überschreiten."
+    when_text: "Geeignet, wenn Absätze den Themen nicht folgen (Fließtext, Notizen). Zu vermeiden bei einem bereits gut strukturierten Korpus oder ohne nutzbares Einbettungsmodell: Der Schritt fällt dann auf Absätze zurück und sagt es."
+    cost_text: "Eine Einbettung pro Satz zusätzlich zu der der Ausschnitte, bei jedem Lauf neu berechnet (nicht zwischengespeichert): einige Sekunden auf der CPU für diesen Korpus. Die Ausschnitte sind unterschiedlich groß."
+    literature_text: "Kamradt schlägt diese Zerlegung vor (Vektoren benachbarter Sätze vergleichen, an den größten Abständen trennen), als fortgeschrittenere Stufe als die Zerlegung nach Struktur; LangChain macht daraus seinen SemanticChunker. Diese Quellen beschreiben die Methode ohne Messung auf einem Suchbenchmark: Der Gewinn muss noch an diesem Korpus gemessen werden."
+    bench_text: ""
+    sources:
+      - label_text: "Kamradt, 5 Levels of Text Splitting"
+        url: "https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb"
+      - label_text: "LangChain, How to split text based on semantic similarity (SemanticChunker)"
+        url: "https://python.langchain.com/docs/how_to/semantic-chunker/"
+  chunking.parent_child:
+    purpose_text: "Kleine, präzise Ausschnitte durchsuchen (die Kinder, höchstens 300 Zeichen), dem Modell aber den größeren Ausschnitt geben, aus dem sie stammen (den Elternteil): fein suchen, weit lesen."
+    when_text: "Geeignet, wenn die richtige Information in einen Satz passt, aber nur mit ihrer Umgebung verständlich ist. Zu vermeiden, wenn die Eltern schon zu groß für das Fenster des Modells sind: Der Kontext erhält verschiedene Eltern, also weniger verschiedene Auszüge als gefundene Kinder."
+    cost_text: "Mehr Vektoren zu berechnen und zu speichern (hier mehr als doppelt so viele Kinder wie Eltern), kein Modellaufruf; der endgültige Prompt ist länger, da er ganze Eltern enthält."
+    literature_text: "Das ist das Prinzip des ParentDocumentRetriever von LangChain: Die kleinen Stücke werden indexiert, das Elterndokument wird zurückgegeben. Die Dokumentation stellt es als Kompromiss zwischen präzisen Einbettungen und ausreichendem Kontext dar, ohne veröffentlichte Messung."
+    bench_text: ""
+    sources:
+      - label_text: "LangChain, How to use the Parent Document Retriever"
+        url: "https://python.langchain.com/docs/how_to/parent_document_retriever/"
+  chunking.contextual:
+    purpose_text: "Jedem Ausschnitt einen kurzen Kontext hinzufügen, der ihn in seinem Dokument verortet, vor der Einbettung und der Stichwortsuche: Ein Ausschnitt, der „die Frist beträgt 14 Tage“ sagt, trägt dann auch, wovon er handelt."
+    when_text: "Geeignet, wenn Ausschnitte ihr Thema verlieren, sobald sie von ihrem Dokument getrennt sind. Zu vermeiden, wenn sich Korpus oder Zerlegung oft ändern: Der Kontext ist an den genauen Text des Ausschnitts gebunden und veraltet mit ihm. Die hier gelieferten Kontexte sind heuristisch (Rang des Ausschnitts, Titel, Anfang des Dokuments), ohne LLM; echtes Contextual Retrieval braucht ein LLM, das das ganze Dokument liest, was die Schaltfläche „Neu aufbauen“ tut."
+    cost_text: "Beim Aufbau ein Modellaufruf pro Ausschnitt mit dem ganzen Dokument im Prompt (nicht bei den gelieferten heuristischen Kontexten), dann längere Texte zum Einbetten und Indexieren; bei der Frage keine zusätzlichen Kosten."
+    literature_text: "Anthropic (2024) beschreibt Contextual Retrieval: Ein Modell schreibt für jeden Ausschnitt aus dem ganzen Dokument einen Kontext, der vor der Einbettung und dem BM25-Index hinzugefügt wird. Der Artikel berichtet weniger Suchfehler auf eigenen Testdaten, noch weniger mit BM25 und dann einem Reranking: Zahlen an der Quelle zu prüfen, hier nicht wiedergegeben."
+    bench_text: ""
+    sources:
+      - label_text: "Anthropic, Introducing Contextual Retrieval (2024)"
+        url: "https://www.anthropic.com/news/contextual-retrieval"
+
+# V1.2 story 19b (CAP-17): the sheet of each option of the families left (embedding, vector store,
+# searches, fusion, rerank, generation), in five blocks.
+  embedding.declared:
+    purpose_text: "Jeden Chunk, dann die Frage, mit dem Embedding-Modell, das der RAG-Baustein deklariert, in einen Vektor umwandeln, damit die Suche Bedeutungen statt Wörter vergleicht."
+    when_text: "Als Ausgangspunkt einsetzen: Es ist das Modell des RAG-Bausteins, dasselbe wie auf den anderen Seiten. Vermeiden, um zwei Embedding-Modelle zu vergleichen: Dieses wird von der Konfiguration festgelegt, nicht von der Kette; dafür gibt es die andere Option."
+    cost_text: "Ein Modelldurchlauf pro Chunk bei der Indexierung, dann einer pro Frage: Auf dem Prozessor wächst die Indexierungszeit mit der Zahl der Chunks. Das Modell belegt Speicher, solange es geladen ist, und muss auf dem Rechner vorhanden sein (die RAG-Karte bietet den Download an)."
+    literature_text: "Reimers und Gurevych (Sentence-BERT) zeigen, dass ein Encoder, der einen Vektor pro Satz liefert, den Vergleich zweier Sätze per Kosinus erlaubt und so die Suche nach dem nächsten Nachbarn praktikabel macht (von 65 Stunden auf etwa 5 Sekunden bei 10 000 Sätzen, im Vergleich zu BERT auf Satzpaaren). Karpukhin et al. (DPR) berichten, dass ein dichter Retriever BM25 bei Fragen-Antwort-Datensätzen mit offener Domäne um 9 bis 19 Punkte Genauigkeit im Top 20 schlägt. Die Hypothesen der Rahmung decken Embeddings nicht ab: Die Fiche stützt sich auf diese beiden Primärquellen."
+    bench_text: ""
+    sources:
+      - label_text: "Reimers und Gurevych, Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (2019)"
+        url: "https://arxiv.org/abs/1908.10084"
+      - label_text: "Karpukhin et al., Dense Passage Retrieval for Open-Domain Question Answering (2020)"
+        url: "https://arxiv.org/abs/2004.04906"
+  embedding.fastembed:
+    purpose_text: "Mit einem zweiten Embedding-Modell vektorisieren, das fastembed ausführt (ONNX-Format, ohne PyTorch und GPU, die Modelldateien von Hand auf den Rechner kopiert), um seine Wirkung mit der des Modells des RAG-Bausteins zu vergleichen."
+    when_text: "Einsetzen, um zwei Embedding-Modelle am selben Korpus zu vergleichen. Vermeiden ohne fastembed und das Modell: WaveStack liefert beides nicht mit und lädt nichts herunter (der Leitfaden, docs/guide.md, nennt den Installationsbefehl), die Option bleibt dann nicht verfügbar und sagt warum. Die Vektoren zweier Modelle haben nicht dieselbe Dimension und lassen sich nicht mischen: Ein Modellwechsel baut den Index neu auf."
+    cost_text: "Das Laden von fastembed und onnxruntime belegt zusätzlichen Speicher für die ganze Lebensdauer von WaveStack (standardmäßig 150 MB erwartet, einstellbar), zusätzlich zum Modell; danach ein Durchlauf pro Chunk bei der Indexierung und einer pro Frage, auf dem Prozessor."
+    literature_text: "Dieselben Primärquellen wie für das Modell des Bausteins: Reimers und Gurevych (Sätze per Kosinus vergleichen) und Karpukhin et al. (ein dichter Retriever gegen BM25). Sie sagen nichts über das gewählte Modell oder ONNX: Die Bibliothek wird durch ihr Repository vorgestellt, ohne Qualitätsmessung an diesem Korpus. Die Hypothesen der Rahmung decken Embeddings nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Reimers und Gurevych, Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (2019)"
+        url: "https://arxiv.org/abs/1908.10084"
+      - label_text: "Karpukhin et al., Dense Passage Retrieval for Open-Domain Question Answering (2020)"
+        url: "https://arxiv.org/abs/2004.04906"
+      - label_text: "Qdrant, fastembed (Repository)"
+        url: "https://github.com/qdrant/fastembed"
+  vector_store.sqlite_vec:
+    purpose_text: "Die Vektoren der Chunks in einer SQLite-Datenbank mit der Erweiterung sqlite-vec ablegen, eine einzige Datei auf der Festplatte, und die nächsten zu einem anderen finden. Das ist der Vector Store des RAG-Bausteins."
+    when_text: "Als Ausgangspunkt einsetzen: nichts zusätzlich zu installieren, der Index bleibt in einer Datei erhalten. Vermeiden, wenn sich die Erweiterung in diesem Python nicht laden lässt: Das RAG sagt es. Eine erschöpfende Suche wird langsam, wenn der Korpus stark wächst, was hier nicht der Fall ist."
+    cost_text: "Alle Vektoren werden bei der Indexierung geschrieben, bei jeder Frage werden die Vektoren gelesen; die Datei wächst mit der Zahl der Chunks und der Dimension des Modells. Kein Dienst zu starten."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Messungen betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen in HNSW); die vier Vector Stores der Werkstatt suchen erschöpfend und ordnen die Chunks gleich, bis auf Punktgleichstände und Rundungen, diese Recall-Unterschiede treten hier also nicht auf."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.memory:
+    purpose_text: "Die Vektoren im Speicher halten und die Frage mit jedem einzeln vergleichen, in reinem Python, ohne Index und ohne Datei: die einfachste Referenz, deren Rangfolge die anderen wiederfinden müssen."
+    when_text: "Einsetzen, um zu verstehen, was ein Vector Store tut, oder als Vergleichsmaßstab für die anderen. Vermeiden bei einem großen Korpus: Jede Frage liest alle Vektoren, und zwischen zwei Starts bleibt nichts erhalten."
+    cost_text: "Keine Abhängigkeit und kein Schreiben auf die Festplatte; der Speicher wächst mit der Zahl der Chunks und der Dimension, die Zeit einer Frage wächst mit der Zahl der Chunks."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Diese Option ist die exakte Suche, mit der die näherungsweisen Indizes dieser Studien verglichen werden; hier ordnen die vier Optionen gleich (bis auf Punktgleichstände und Rundungen), messbar sind Zeit und Speicher."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.faiss:
+    purpose_text: "Die Vektoren in einem FAISS-Index ablegen, der Vektorsuch-Bibliothek von Meta, mit exaktem Skalarprodukt auf normalisierten Vektoren (also dem Kosinus), auf die Festplatte geschrieben und wieder gelesen."
+    when_text: "Einsetzen, um zu sehen, was eine spezialisierte Bibliothek bringt, oder um Speicher und Latenz zu vergleichen. Vermeiden ohne das Extra « rag-alt »: FAISS ist nicht standardmäßig installiert, der Schritt nennt den auszuführenden Befehl."
+    cost_text: "Eine Abhängigkeit mehr, einmal importiert und im Speicher gehalten (WaveStack kündigt die Kosten an); eine Indexdatei, die bei der Indexierung geschrieben wird. Der Index ist hier exakt: FAISS kann auch näherungsweise suchen, schneller und weniger genau, was die Werkstatt nicht tut."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Studien messen näherungsweise Indizes, nicht den exakten Index der Werkstatt: Ihre Recall-Verluste finden sich hier nicht."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.lancedb:
+    purpose_text: "Die Vektoren in einer LanceDB-Tabelle ablegen, einer eingebetteten Vektordatenbank, auf der Festplatte angelegt und mit der Kosinus-Distanz abgefragt."
+    when_text: "Einsetzen, um eine vollständige Vektordatenbank (Tabelle, Spalten) statt einer bloßen Bibliothek zu sehen. Vermeiden ohne das Extra « rag-alt »: LanceDB ist nicht standardmäßig installiert, der Schritt nennt den auszuführenden Befehl."
+    cost_text: "Eine Abhängigkeit mehr, einmal importiert und im Speicher gehalten (WaveStack kündigt die Kosten an); ein Tabellenordner, der bei der Indexierung geschrieben wird. Die Suche bleibt hier exakt: Es wird kein näherungsweiser Index gebaut."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Studien betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen); hier ist die Suche exakt und die Reihenfolge dieselbe wie bei den anderen Optionen, bis auf Punktgleichstände und Rundungen."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_search.cosine:
+    purpose_text: "Den Vector Store nach den Chunks fragen, deren Vektor dem der Frage am nächsten liegt, per Kosinus-Ähnlichkeit, ohne Schwelle: die k nächsten, relevant oder nicht."
+    when_text: "Einsetzen, wenn Frage und Passage dasselbe mit anderen Worten sagen. Allein vermeiden bei einem Kürzel, einem Code oder einer genauen Zahl, die BM25 besser findet: Die Rahmung vergleicht beide. Es gibt keine Schwelle: Ein Korpus ohne Antwort liefert trotzdem k Chunks."
+    cost_text: "Ein Embedding der Frage, dann eine Suche im Vector Store; die Zahl der Kandidaten (1 bis 20) ändert die Zeit kaum, bestimmt aber, was die weiteren Schritte neu ordnen können."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche (BM25, dicht, Reranker) die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. Der Hybrid mit Reranker gewinnt (Recall@5 von 0,59 auf 0,82), aber eine nicht abgestimmte RRF-Fusion kann schlechter abschneiden als die dichte Suche. Die dichte Suche allein ist daher der Vergleichspunkt dieser Studien."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  lexical_search.bm25:
+    purpose_text: "Nach Stichwörtern suchen, ohne Embedding: Die Chunks, die Wörter mit der Frage teilen, kommen zuerst, ein seltenes Wort wiegt mehr als ein häufiges (BM25, k1 = 1,5 und b = 0,75)."
+    when_text: "Einsetzen bei einem Kürzel, einem Code, einer Zahl oder einem genauen Namen, den ein Embedding verfehlen kann. Allein vermeiden, wenn die Frage nicht die Wörter des Korpus verwendet: kein gemeinsames Wort, kein brauchbares Ergebnis."
+    cost_text: "Kein Modell: ein lexikalischer Index, bei der Indexierung gebaut (Terme und Häufigkeiten) und bei jeder Frage gelesen. Zeit und Speicher sind gering gegenüber denen eines Embeddings."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche (BM25, dicht, Reranker) die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. BM25 liefert den exakten Wortabgleich, den die dichte Suche verfehlt; die Studie misst das Ganze, nicht BM25 allein."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  fusion.rrf:
+    purpose_text: "Die dichte Rangliste und die BM25-Rangliste zu einer verbinden: Jeder Chunk erhält in jeder Liste 1 / (60 + sein Rang), und die Summen entscheiden. Ein von beiden gut platzierter Chunk kommt zuerst. Das ist die Hybridsuche."
+    when_text: "Einsetzen, wenn BM25 und die dichte Suche verschiedene Chunks finden. Vermeiden ohne beide Suchen: Die Fusion hat nichts zu verbinden. Die Konstante 60 ist für diesen Korpus nicht abgestimmt, was die Rahmung als Risiko nennt."
+    cost_text: "Kein Modell: eine Berechnung auf zwei kleinen Listen. Die Kosten entstehen durch die beiden Suchen statt einer."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. Die zitierte Studie findet, dass eine nicht abgestimmte RRF-Fusion schlechter abschneiden kann als die dichte Suche allein: Der Gewinn des Hybrids hängt von seinen Einstellungen ab, er ist nicht gesichert."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  rerank.declared:
+    purpose_text: "Die Frage und jeden Kandidaten zusammen mit dem Reranking-Modell lesen, das der RAG-Baustein deklariert, ihre Relevanz bewerten und dann neu ordnen: Der Reranker urteilt besser als der Vergleich zweier getrennt berechneter Vektoren."
+    when_text: "Einsetzen, wenn die richtige Passage unter den Kandidaten ist, aber nicht an erster Stelle. Vermeiden, wenn sie nicht darunter ist: Der Reranker sucht nicht, er ordnet neu. Sein Score ist nicht der der dichten Suche und lässt sich mit keinem anderen vergleichen: Nur die Reihenfolge zählt."
+    cost_text: "Ein Modelldurchlauf pro Kandidat und Frage, viel langsamer als der Vergleich von Vektoren: Deshalb sieht er nur die behaltenen Kandidaten. Das Modell belegt Speicher, solange es geladen ist."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche mit Reranker die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. Der Hybrid mit Reranker gewinnt (Recall@5 von 0,59 auf 0,82) in der zitierten Studie, die die ganze Kette misst und nicht den Reranker allein."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  generation.active:
+    purpose_text: "Das aktive Modell der Werkstatt die Antwort aus dem angereicherten Prompt (Anweisung, Auszüge und Frage) schreiben lassen, innerhalb der Grenzen eines Durchgangs: Ausgabereserve und Denkbudget."
+    when_text: "Einsetzen, um die Antwort zu sehen, die die Kette liefert. Vermeiden, um die Suche allein zu beurteilen: Eine schlechte Antwort kann von der Synthese ebenso kommen wie von der Suche. Die Antwort wird nicht Teil der Unterhaltung."
+    cost_text: "Ein Modellaufruf: die Zeit, den Prompt zu lesen, der mit dem Kontext wächst, dann die Antwort zu schreiben, bei einem lokalen Modell auf dem Prozessor; bei einem Cloud-Modell abgerechnete Tokens."
+    literature_text: "Die Rahmung (H10) stellt fest, dass ein kleines lokales Modell genügt, wenn die Suche gut ist, und dass der Abstand von der Synthese kommt: teilweise gestützt. Der Abstand konzentriert sich auf das Schlussfolgern und das Zusammenführen der Passagen und bleibt auch bei perfektem Kontext real."
+    bench_text: ""
+    sources:
+      - label_text: "LIT-RAGBench"
+        url: "https://arxiv.org/html/2603.06198v1"
+      - label_text: "MultiHop-RAG"
+        url: "https://arxiv.org/html/2401.15391"
+  generation.not_run:
+    purpose_text: "Vor dem Modell anhalten: Der Prompt wird gebaut und gezeigt, nichts wird gesendet, keine Antwort geschrieben."
+    when_text: "Einsetzen, um Suche und Kontext ohne Generierung zu beurteilen oder um zu sehen, was das Modell erhalten würde. Vermeiden, um die Qualität einer Antwort zu beurteilen: Es gibt keine."
+    cost_text: "Kein Modellaufruf, also weder Generierungszeit noch abgerechnetes Token: Es bleiben nur die Kosten der vorherigen Schritte."
+    literature_text: "Die Rahmung (H10) stellt fest, dass der Abstand eines kleinen Modells eher von der Synthese als von der Suche kommt: teilweise gestützt. Das rechtfertigt, die Suche getrennt und ohne Generierung zu messen. Die Hypothesen der Rahmung decken die Option selbst nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "LIT-RAGBench"
+        url: "https://arxiv.org/html/2603.06198v1"
+      - label_text: "MultiHop-RAG"
+        url: "https://arxiv.org/html/2401.15391"
+
+# V1.2 story 7 (CAP-17): the sheet of each context option, in five blocks.
+  context.excerpts:
+    purpose_text: "Die ersten Passagen der Rangliste in Relevanzreihenfolge behalten und ihren ganzen Text hinter die Einleitung setzen. Das ist der Kontext des RAG-Bausteins."
+    when_text: "Als Ausgangspunkt verwenden: einfach, ohne Modell, ohne Überraschung. Vermeiden, wenn die Passagen lang oder zahlreich sind: Nichts begrenzt die Größe des Kontexts, der das Fenster des Modells überschreiten kann."
+    cost_text: "Kein Modellaufruf. Der Prompt wächst mit der Zahl der behaltenen Passagen und ihrer Länge, und jeder vom Modell gelesene Token kostet Lesezeit und, in der Cloud, Dollar."
+    literature_text: "Lewis et al. führen die abrufgestützte Generierung ein: Die gefundenen Passagen werden dem Modell mit der Frage gegeben. Die Hypothesen der Rahmung decken diese Option nicht ab: Das Blatt stützt sich allein auf diese Quelle."
+    bench_text: ""
+    sources:
+      - label_text: "Lewis et al., Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (2020)"
+        url: "https://arxiv.org/abs/2005.11401"
+  context.budget:
+    purpose_text: "Den Kontext in eine feste Zahl von Tokens passen: Die Passagen kommen in Relevanzreihenfolge ganz hinein, die erste, die überläuft, wird am Satzende gekürzt und mit „[…]“ markiert, die folgenden werden verworfen."
+    when_text: "Verwenden, wenn das Fenster des Modells eng ist (standardmäßig 4.096 Tokens für das Modell der Werkstatt, Antwort inbegriffen) oder um die Kosten zu begrenzen. Vermeiden, wenn die entscheidende Passage verworfen oder gekürzt wird: Die Diagnose benennt sie dann als im Schritt Kontext verloren."
+    cost_text: "Kein Modellaufruf: Die Tokens werden gezählt (geschätzt, nicht die des Modells) und der Text wird gekürzt. Die Kosten der Generierung sind durch das Budget begrenzt, zum Preis verlorener Passagen."
+    literature_text: "Liu et al. zeigen, dass die Leistung von Sprachmodellen sinkt, wenn die nützliche Information in einem längeren Kontext vergraben ist: ein Grund, den Kontext zu begrenzen. Die Hypothesen der Rahmung decken das Kürzen selbst nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023, TACL 2024)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.order:
+    purpose_text: "Nach dem Budget die Passagen „Ränder zuerst“ platzieren: die beste vorn, die zweite ganz hinten, die dritte an zweiter Stelle und so weiter, damit die schwächsten in der Mitte stehen."
+    when_text: "Verwenden bei einem Kontext aus mehreren Passagen, wenn das Modell die mittleren zu ignorieren scheint. Vermeiden bei zwei Passagen oder weniger (die Reihenfolge bleibt die der Relevanz, der Schritt sagt es): Der Effekt wurde nur an langen Kontexten gemessen und kann bei einem kleinen Modell schwach sein."
+    cost_text: "Kein Modellaufruf und kein zusätzlicher Token: Nur die Reihenfolge ändert sich, damit die Nummerierung der Auszüge (sie folgt der Position im Kontext)."
+    literature_text: "Liu et al. („Lost in the Middle“) messen eine U-förmige Kurve: Modelle antworten am besten, wenn die nützliche Information am Anfang oder Ende des Kontexts steht, und schlechter in der Mitte. Sie messen es an Modellen und Kontexten, die weit größer sind als die der Werkstatt: Der Effekt ist hier noch zu prüfen."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023, TACL 2024)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.compress:
+    purpose_text: "Nach Budget und Reihenfolge jeden Auszug (nie die Einleitung) durch den Headroom-Kompressor der Karte Kompression schicken und die Tokens davor und danach zeigen."
+    when_text: "Verwenden, wenn die Auszüge strukturierte Ausgaben sind (JSON, Protokolle, Tabellen). Vermeiden bei Fließtext: Headroom ist für strukturierte Ausgaben gedacht und verkürzt geschriebenen Text kaum, „unverändert“ ist dann das ehrliche Ergebnis. Die Option braucht die aktive Karte Kompression; sonst wird der Kontext wie bei der Reihenfolge aufgebaut, und der Schritt sagt, warum."
+    cost_text: "Ein Durchlauf pro Auszug über der Schwelle der Sitzung, auf dem Prozessor; die im Prompt gesparten Tokens sind gegen diese Zeit aufzurechnen. Kein Modellaufruf, kein Download: Der Kompressor ist der, den die Karte schon geladen hat."
+    literature_text: "Headroom (Apache-2.0) ist die Bibliothek zur Kontextkompression des Bausteins Kompression; ihre Dokumentation richtet sie an strukturierte Werkzeugausgaben. Keine Messung am Korpus Exemplia wird hier berichtet: Die Messung am Ziel-PC steht noch aus."
+    bench_text: ""
+    sources:
+      - label_text: "Headroom (headroom-ai), Kontextkompression für Agenten"
+        url: "https://pypi.org/project/headroom-ai/"
+  context.full_corpus:
+    purpose_text: "Nichts suchen: den ganzen Korpus, Dokument für Dokument und vollständig, in den Prompt jeder Frage legen. Der Schritt Kontext liest den Korpus der Kette (die Arbeitskopie, wenn sie abweicht)."
+    when_text: "Für einen kleinen Korpus, der in das Fenster des Modells passt (mindestens 16.384 Tokens), bei einer Frage, die alles lesen muss. Zu vermeiden, sobald der Korpus wächst: Er passt irgendwann nicht mehr, und das Modell liest die Mitte eines langen Kontexts schlecht."
+    cost_text: "Nichts aufzubauen oder zu aktualisieren: kein Index, kein Embedding. Aber die Kosten jeder Anfrage wachsen mit dem Korpus: Der ganze Korpus wird bei jeder Frage neu gelesen, als Lesezeit auf der CPU und, in der Cloud, in Dollar."
+    literature_text: "Liu et al. zeigen, dass Modelle eine Information in der Mitte eines langen Kontexts schlecht nutzen („Lost in the Middle“): Die Antwort ist besser, wenn sie am Anfang oder am Ende steht. Die Diagnose der Werkstatt vermerkt es für die erwartete Passage."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.cached_corpus:
+    purpose_text: "Derselbe Kontext wie beim langen Kontext, aber einmal als Präfix des Prompts ausgewertet und im Cache des lokalen Modells behalten (CAG): Jede Frage wertet dann nur noch die Frage aus."
+    when_text: "Für einen Korpus, der in das Fenster passt und sich wenig ändert, aber oft befragt wird: Der Gewinn beruht auf einem stabilen Korpus. Zu vermeiden, wenn sich der Korpus oft ändert: Jede Aktualisierung lädt das Präfix vollständig neu. Braucht ein lokales Modell; die Werkstatt steuert den Cache eines Cloud-Anbieters nicht."
+    cost_text: "Der Aufbau wertet das ganze Präfix aus (die Anweisung und den Korpus); jede Anfrage wertet nur die Frage aus und liest den Rest aus dem Cache. Jede Aktualisierung lädt das ganze Präfix neu. Der Zustand des Caches belegt Speicher, solange er behalten wird: Seine Größe steht im Fokus des Schritts."
+    literature_text: "Chan et al. schlagen vor, das Wissen in den Cache des Modells vorzuladen, statt es bei jeder Frage zu suchen (Cache-Augmented Generation): Bei Korpora begrenzter Größe, die stabil bleiben, berichten sie Antworten so gut wie die eines RAG, ohne Suchzeit. Die Messungen auf dem Ziel-PC stehen noch aus."
+    bench_text: ""
+    sources:
+      - label_text: "Chan et al., Don't Do RAG: When Cache-Augmented Generation is All You Need for Knowledge Tasks (2024)"
+        url: "https://arxiv.org/abs/2412.15605"
+  context.agent_loop:
+    purpose_text: "Nichts indexieren: Das Modell durchsucht die Korpusdateien selbst, mit drei Werkzeugen (list_files, grep, read_file), auf die Arbeitskopie beschränkt, eine Aktion je Runde, bis ANSWER oder zur Obergrenze von sechs Runden. Was die Werkzeuge zurückgeben, wird der Kontext."
+    when_text: "Zu verwenden bei einem volatilen Korpus, der sich oft ändert: nichts neu aufzubauen, ein hinzugefügtes Dokument wird ab der nächsten Anfrage gefunden. Zu vermeiden, wenn die Anfrage schnell oder günstig sein muss, und bei einem großen Korpus: Der Vorteil verschwindet bei 100 bis 1 000 Dokumenten. Ein kleines Modell befolgt das Protokoll vielleicht nicht: Die Schleife endet dann mit einer Warnung."
+    cost_text: "Kein Aufbau, keine Aktualisierung: kein Index. Jede Anfrage kostet mehrere Modellaufrufe (einer je Runde, der Prompt jedes Mal neu gelesen) und dann die Generierung: Die Zeit Anfrage zeigt es, zum Vergleich mit dem dichten RAG in Vergleichen."
+    literature_text: "Hypothese H5, teilweise gestützt: Die agentische Suche erreicht ein RAG, kostet aber mehr, 3,3-mal mehr Tokens (arXiv 2601.07711) und bis zu 107 s je Anfrage (arXiv 2610.05750); sie gewinnt bei einem volatilen Korpus, was nie getestet wurde. Die Messungen auf dem Ziel-PC stehen noch aus."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2601.07711: agentische Suche auf Dateien, 3,3-mal mehr Tokens als ein RAG"
+        url: "https://arxiv.org/html/2601.07711v2"
+      - label_text: "arXiv 2610.05750: Agenten für Dokumentensuche, bis zu 107 s je Anfrage"
+        url: "https://arxiv.org/pdf/2610.05750"
+  context.section_tree:
+    purpose_text: "Ohne Vektoren in einem einmal aufgebauten Abschnittsbaum suchen (der Korpus, seine Dokumente, ihre Abschnitte, mit Titel und Zusammenfassung): Das Modell steigt Ebene für Ebene ab und wählt höchstens zwei Knoten, und der ganze Text der erreichten Abschnitte wird der Kontext."
+    when_text: "Zu verwenden bei langen, strukturierten Dokumenten, wenn die Frage auf einen bestimmten Abschnitt zielt. Zu vermeiden bei einem Korpus, der sich oft ändert (der Baum ist neu aufzubauen), oder wenn Titel und Zusammenfassungen den Inhalt schlecht wiedergeben: Eine falsche Wahl auf der ersten Ebene verliert die Antwort."
+    cost_text: "Der Aufbau des Baums ist der Aufbau-Kosten: nach der Regel einige Millisekunden und kein Token; durch das Modell („Neu aufbauen“) ein Aufruf je Knoten. Jede Anfrage kostet einen Aufruf je Ebene (zwei beim mitgelieferten Korpus) und dann die Generierung. Eine Aktualisierung berechnet den Teilbaum des betroffenen Dokuments neu."
+    literature_text: "Hypothese H4, teilweise gestützt, vor allem vom Herausgeber: PageIndex gewönne bei langen, strukturierten Dokumenten, zu höheren LLM-Kosten. Eine unabhängige Studie mit 50 Fragen misst eine Latenz von etwa dem 1,7-Fachen eines RAG (arXiv 2604.14222). Der hier mitgelieferte Baum ist nach einer Regel berechnet, ohne Modell."
+    bench_text: ""
+    sources:
+      - label_text: "PageIndex (Vectify AI), vektorlose Suche über einen Abschnittsbaum"
+        url: "https://github.com/VectifyAI/PageIndex"
+      - label_text: "arXiv 2604.14222: PageIndex an 50 Fragen bewertet, Latenz ~1,7-fach"
+        url: "https://arxiv.org/html/2604.14222v1"
+  # V1.2 story 8 (CAP-6): System One's options (litterature.md, H6 and H7).
+  router.local:
+    purpose_text: "Für jede Frage die Suchstrategie unter denen wählen, die die Kette kann (dichtes RAG, hybrid, + Reranking), mit einem lokalen NLI-Klassifikator (deberta-v3-xsmall Zero-Shot, ONNX): Jede Strategie ist eine Hypothese, die wahrscheinlichste gewinnt, und die Schritte, die sie nicht nutzt, werden übersprungen."
+    when_text: "Verwenden, um zu sehen, was eine Wahl pro Frage gegenüber einer festen Kette kostet und bringt. Vermeiden, wenn eine Strategie zum Korpus passt: Der Router fügt einen Aufruf hinzu und kann sich irren. Er lässt nur Schritte der Kette weg, er fügt nie einen hinzu."
+    cost_text: "Nichts beim Aufbau oder bei der Aktualisierung. Bei jeder Anfrage ein Durchlauf des Klassifikators pro Kandidatenstrategie (einige zehn Millisekunden auf der CPU); der Prüfstand hat 351 MB zusätzlichen RAM gemessen. Er spart die Zeit der Schritte, die er weglässt."
+    literature_text: "Hypothese H6, teilweise gestützt: Routing pro Anfrage schlägt die beste feste Wahl, aber der Gewinn ist bescheiden und weit vom Orakel entfernt (43,7 gegen 39,3 fest und 60,8 Orakel, RAGRouter-Bench); er betrifft vor allem die Kosten (Adaptive-RAG)."
+    bench_text: "Das Routing wurde vom Vorab-Prüfstand nicht gemessen (Story 2: nur Filter und Verankerung). Die Routing-Hypothesen und die Schwelle von 50 % sind Vorschläge. deberta-v3-xsmall ist das Modell, das der Prüfstand CAP-6 der V2 für das Routing nach Fachgebiet gewählt hatte."
+    sources:
+      - label_text: "RAGRouter-Bench: Routing pro Anfrage, 43,7 gegen 39,3 fest und 60,8 Orakel"
+        url: "https://arxiv.org/html/2602.00296v2"
+      - label_text: "Adaptive-RAG: die Strategie nach der Komplexität der Frage wählen"
+        url: "https://arxiv.org/pdf/2403.14403"
+  router.cloud:
+    purpose_text: "Dieselbe Strategiewahl durch die Entscheidungs-API von OpenRouter: eine Frage „choice“, die ein Label, seine Wahrscheinlichkeiten und eine Konfidenz liefert. Standardmodell: Jev 1.14 (TypeSafe). Ohne den Schlüssel OPENROUTER_API_KEY ist die Option ausgegraut."
+    when_text: "Verwenden, um ein Entscheidungsmodell und einen lokalen Klassifikator bei derselben Wahl zu vergleichen. Vermeiden offline oder bei echten Dokumenten: Ein Cloud-Modell erhält nur den fiktiven Korpus Exemplia, und auf einer geänderten Arbeitskopie wird die Option abgelehnt."
+    cost_text: "Nichts beim Aufbau oder bei der Aktualisierung. Ein API-Aufruf pro Frage, angekündigt 70 bis 500 ms, auf die Eingabe berechnet; die Ausgabe zählt zur Obergrenze der Sitzung ([finops] max_session_usd)."
+    literature_text: "Hypothese H6, teilweise gestützt: bescheidener Gewinn des Routings pro Anfrage, vor allem bei den Kosten (RAGRouter-Bench, Adaptive-RAG). Die Form „choice“ des Alpha-Endpunkts wurde vom Prüfstand nicht aufgerufen: Sie folgt der Dokumentation und ist noch zu prüfen."
+    bench_text: "Beim Routing nicht gemessen. Bei der Verankerung hat Jev 1.14 0 % der nicht gestützten Aussagen des fiktiven Satzes akzeptiert, gegen 23 % im vom Rahmen zitierten Artikel."
+    sources:
+      - label_text: "RAGRouter-Bench: Routing pro Anfrage, 43,7 gegen 39,3 fest und 60,8 Orakel"
+        url: "https://arxiv.org/html/2602.00296v2"
+      - label_text: "Eden AI: Jev, ein Modell zum Entscheiden"
+        url: "https://www.edenai.co/post/jev-a-new-kind-of-ai-model-built-for-decisions-not-conversation"
+  passage_filter.local:
+    purpose_text: "Jede eingestufte Passage vor dem Kontext behalten oder verwerfen, nach dem Score des Rerankers des Bausteins: über der Schwelle wird die Passage behalten; darunter wird sie verworfen oder, bei aktiver Kaskade, vom SLM beurteilt. Der Vorab-Prüfstand hat diesen Reranker als lokalen Standardfilter gewählt."
+    when_text: "Verwenden, um themenfremde Passagen, die das Modell ablenken, aus dem Kontext zu entfernen. Eine hohe Schwelle vermeiden: Eine verworfene nützliche Passage kommt nicht zurück, und die Antwort verliert ihre Stütze. Der Score eines Rerankers ist keine kalibrierte Wahrscheinlichkeit: Seine Schwelle gilt nur für dieses Modell."
+    cost_text: "Nichts beim Aufbau oder bei der Aktualisierung. Bei jeder Anfrage ein Durchlauf des Rerankers pro Kandidat (141 ms Median im Prüfstand), auch nach einem Reranking: Der Filter liest die Kandidaten erneut."
+    literature_text: "Hypothese H7, nicht belegt: Ein Entscheidungsmodell würde die zwischengeschalteten LLM-Richter ohne Qualitätsverlust ersetzen. Seine Genauigkeit ist der eines LLM nahe, aber es akzeptiert mehr nicht gestützte Aussagen; keine Studie betrifft eine ganze Pipeline."
+    bench_text: "Prüfstand der Story 2 (fiktiver Satz, 279 Paare auf fr, en, de): Bei der Schwelle 0,02 behält der Reranker 95 % der erwarteten Passagen und verwirft 64 % der themenfremden (92 % bei 0,5). Schwelle am Satz selbst angepasst: optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "jev-corrective-rag: ein Passagenfilter durch ein Entscheidungsmodell"
+        url: "https://github.com/sudeshkar/jev-corrective-rag"
+  passage_filter.cloud:
+    purpose_text: "Jede Passage durch die Entscheidungs-API behalten oder verwerfen: eine Frage „noul“, die die Wahrscheinlichkeit des Ja auf „Reicht diese Passage zur Antwort?“ liefert. Standardmodell: PPLX Decider Flash 1.2, die Cloud-Wahl des Prüfstands. Ohne Schlüssel ist die Option ausgegraut."
+    when_text: "Verwenden, um ein Entscheidungsmodell und den Reranker bei derselben Sortierung zu vergleichen. Vermeiden offline oder bei echten Dokumenten: Nur der fiktive Korpus Exemplia geht in die Cloud."
+    cost_text: "Nichts beim Aufbau. Ein API-Aufruf pro Kandidat und pro Frage (249 ms Median im Prüfstand), auf die Eingabe berechnet; die Ausgabe zählt zur Obergrenze der Sitzung."
+    literature_text: "Hypothese H7, nicht belegt: Ein Entscheidungsmodell würde die zwischengeschalteten LLM-Richter ohne Qualitätsverlust ersetzen; keine Studie betrifft eine ganze Pipeline."
+    bench_text: "Bei der Schwelle 0,13 behält PPLX Decider Flash 1.2 95 % der erwarteten Passagen und verwirft 79 % der themenfremden (AUC 0,92), besser als der mitgelieferte Reranker. Schwelle am Satz angepasst: optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "MLflow: Jev als LLM-Richter"
+        url: "https://mlflow.org/blog/jev-llm-judge/"
+  grounding_check.local:
+    purpose_text: "Jeden Satz der Antwort (höchstens acht) an den Passagen des Kontexts prüfen, mit dem lokalen NLI deberta-v3-xsmall: über der Schwelle ist der Satz verankert; darunter gilt er als nicht verankert oder wird, bei aktiver Kaskade, vom SLM beurteilt. Die Prüfung meldet, sie korrigiert die Antwort nicht."
+    when_text: "Verwenden, um eine Antwort zu erkennen, die eine Tatsache, eine Zahl oder eine Bedingung hinzufügt oder ändert. Nicht als Garantie verwenden: Der Klassifikator lässt einen Teil der nicht gestützten Aussagen durch, und er liest nur 512 Tokens (ein langer Kontext wird gekürzt)."
+    cost_text: "Nichts beim Aufbau. Bei jeder Anfrage ein Durchlauf des Klassifikators pro Satz (28 ms Median im Prüfstand); 351 MB zusätzlicher RAM."
+    literature_text: "Hypothese H7, nicht belegt: Ein Entscheidungsmodell akzeptiert 23 % nicht gestützte Aussagen gegen 13 % bei einem LLM (Towards AI); keine Studie betrifft eine ganze Pipeline."
+    bench_text: "Bei der Schwelle 0,20 akzeptiert deberta-v3-xsmall 9 % der nicht gestützten Aussagen (KI 5 bis 16 %) und behält 81 % der gestützten. Der SLM-Richter des Prüfstands (Qwen3.5-2B mit Grammatik und Wahrscheinlichkeit) akzeptierte 64 %: Die Kaskade ist nicht validiert, und der Richter hier (das aktive Modell, ohne Grammatik) wurde nicht gemessen. Schwelle am Satz angepasst: optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "AnyJev (Nokia): Entscheidungen aus einem kleinen lokalen Modell"
+        url: "https://github.com/nokia-applied-research/AnyJev"
+  grounding_check.cloud:
+    purpose_text: "Dieselbe Prüfung durch die Entscheidungs-API: eine Frage „noul“ pro Satz, „Wird die Aussage von den Abschnitten vollständig gestützt?“. Standardmodell: Jev 1.14 (TypeSafe), die Cloud-Wahl des Prüfstands. Ohne Schlüssel ist die Option ausgegraut."
+    when_text: "Verwenden, um ein Entscheidungsmodell und einen lokalen Klassifikator an denselben Sätzen zu vergleichen. Vermeiden offline oder bei echten Dokumenten: Nur der fiktive Korpus Exemplia geht in die Cloud."
+    cost_text: "Nichts beim Aufbau. Ein API-Aufruf pro Satz (246 ms Median im Prüfstand), auf die Eingabe berechnet; die Ausgabe zählt zur Obergrenze der Sitzung."
+    literature_text: "Hypothese H7, nicht belegt: 23 % nicht gestützte Aussagen von Jev akzeptiert gegen 13 % von einem LLM im einzigen veröffentlichten Artikel (Towards AI)."
+    bench_text: "Bei der Schwelle 0,59 akzeptiert Jev 1.14 0 % der nicht gestützten Aussagen (KI 0 bis 3 %) und behält 81 % der gestützten. Kleiner fiktiver Satz, Items voneinander übersetzt: Die Intervalle sind optimistisch."
+    sources:
+      - label_text: "Towards AI: Jev als Richter der Aussageprüfung (23 % gegen 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "Arize: TypeSafe Jev als LLM-Richter"
+        url: "https://arize.com/blog/typesafe-jev-llm-judge/"
+  context.graph_search:
+    purpose_text: "Ohne Vektoren in einem einmal aufgebauten Wissensgraphen suchen: die Entitäten des Korpus, ihre Beziehungen (mit ihren Belegpassagen) und ihre zusammengefassten Communities. Lokal liefern die Entitäten der Frage und ihre Nachbarn einen Schritt entfernt die Passagen des Kontexts; global durchlaufen die nächsten Communities je einen « map »-Aufruf."
+    when_text: "Für Multi-Hop-Fragen (zwei Verfahren, zwei Abteilungen verbinden) und globale Fragen (ein Überblick über ein Thema) auf einem stabilen Korpus. Zu vermeiden für einen einfachen Fakt: Er verliert bei einfachen Fakten, gewinnt bei Multi-Hop- und globalen Fragen. Ebenso zu vermeiden bei einem Korpus, der sich oft ändert: Graph und Zusammenfassungen sind neu zu machen."
+    cost_text: "Der Aufbau ist der Aufbau-Kostenpunkt: per Regel (mitgelieferter Graph) wenige Millisekunden und kein Token, daher ein billigerer Aufbau als dichtes RAG; per Modell (« Neu aufbauen ») ein Aufruf pro Passage, dann einer pro Community, weit teurer. Eine Aktualisierung wiederholt die Extraktion des Dokuments, die Zusammenführung, die Communities und die betroffenen Zusammenfassungen. Jede Anfrage kostet einen Aufruf (lokal) oder drei « map »-Aufrufe (global), dann die Generierung."
+    literature_text: "Hypothesen H2 und H13, gestützt: GraphRAG verliert bei einfachen Fakten, gewinnt bei komplexem Schließen, und eine globale Anfrage kostet ~377-mal ein Vektor-RAG (GraphRAG-Bench); es halluziniert bei unbeantwortbaren Fragen (arXiv 2502.11371); seine Aktualisierung kostet ~100-mal mehr (EraRAG). H12: Weniger als 0,05 % des Korpus zu vergiften senkt seine Genauigkeit von 95 % auf 50 % (arXiv 2508.04276). Der Aufbau und die lokale Abfrage der Werkstatt orientieren sich an LightRAG, vereinfacht; der mitgelieferte Graph ist per Regel berechnet, ohne Modell."
+    bench_text: ""
+    sources:
+      - label_text: "GraphRAG-Bench: GraphRAG verliert bei einfachen Fakten, globale Anfrage ~377-mal ein Vektor-RAG"
+        url: "https://arxiv.org/html/2506.05690v3"
+      - label_text: "arXiv 2502.11371: GraphRAG halluziniert bei unbeantwortbaren Fragen"
+        url: "https://arxiv.org/html/2502.11371v2"
+      - label_text: "arXiv 2508.04276: Weniger als 0,05 % des Korpus vergiftet senkt GraphRAG von 95 % auf 50 %"
+        url: "https://arxiv.org/abs/2508.04276"
+      - label_text: "EraRAG: Die Aktualisierung eines Graphen kostet ~100-mal mehr"
+        url: "https://arxiv.org/pdf/2506.20963v1.pdf"
+      - label_text: "LightRAG (Guo et al., 2024), Entitätsgraph mit lokaler oder globaler Abfrage: die Vorlage des Aufbaus"
+        url: "https://arxiv.org/abs/2410.05779"
+  # V1.2 story 12 (CAP-7): RAPTOR, Corrective RAG's fallback.
+  context.raptor_search:
+    purpose_text: "In einem einmal aufgebauten Baum von Zusammenfassungen suchen: die Passagen nach Nähe gruppiert und zusammengefasst, dann die Zusammenfassungen ihrerseits gruppiert und zusammengefasst. Die Anfrage bewertet alle Knoten des Baums gemeinsam (der „abgeflachte Baum“ des Artikels) und behält die nächsten."
+    when_text: "Für Überblicksfragen, die keine einzelne Passage abdeckt: Die Zusammenfassung einer Gruppe vereint mehrere Dokumente. Zu meiden bei einem Korpus, der sich oft ändert: Jede Änderung erneuert die Zusammenfassungen ihres Zweigs, bis zur Wurzel."
+    cost_text: "Der Aufbau ist der Aufbau-Kostenpunkt: per Regel (mitgelieferter Baum) wenige Millisekunden und kein Token; per Modell („Neu aufbauen“) ein Aufruf je Zusammenfassung, von unten nach oben. Eine Aktualisierung zerlegt das betroffene Dokument, ordnet seine Passagen ein und erneuert die Zusammenfassungen seines Zweigs. Die Anfrage macht vor der Generierung keinen Aufruf, aber der Kontext kann Zusammenfassungen enthalten."
+    literature_text: "RAPTOR (Sarthi et al., 2024) gruppiert und fasst die Passagen rekursiv zusammen und sucht dann auf allen Ebenen des Baums; mit GPT-4 verbessert es das beste Ergebnis auf dem Benchmark QuALITY um 20 Punkte Genauigkeit. Der Artikel bettet die Passagen ein (SBERT) und gruppiert sie mit Gaußschen Mischungen; die Werkstatt gruppiert sie nach ihren Wörtern, für einen mitgelieferten Baum, der ohne Embedding-Modell reproduzierbar ist. H12 gilt: Jede Zusammenfassung ist eine abgeleitete Kopie, die mehrere Dokumente vermischt."
+    bench_text: ""
+    sources:
+      - label_text: "RAPTOR (Sarthi et al., 2024): rekursive Zusammenfassungen und Suche auf allen Ebenen des Baums"
+        url: "https://arxiv.org/abs/2401.18059"
+      - label_text: "arXiv 2508.04276: abgeleitete Inhalte vergrößern die Angriffsfläche (H12)"
+        url: "https://arxiv.org/abs/2508.04276"
+  fallback.retry:
+    purpose_text: "Eine Suche korrigieren, die nichts ergeben hat: Hat der Passagenfilter keine Passage behalten, formuliert das aktive Modell die Frage um, Suche und Filter laufen ein zweites Mal; bleibt nichts, antwortet die Werkstatt „Ich weiß es nicht“."
+    when_text: "Wenn eine falsche Antwort mehr kostet als eine Ablehnung und die Frage schlecht formuliert sein kann. Zu meiden, wenn der Filter zu Unrecht ablehnt: Die zweite Suche legt dem Filter erneut die ursprüngliche Frage vor, und die Ablehnung verdeckt dann eine Antwort, die im Korpus steht."
+    cost_text: "Nichts beim Aufbau und bei der Aktualisierung (die des hybriden RAG). Bei der Anfrage nur, wenn der Filter nichts behalten hat: ein Umformulierungsaufruf, eine zweite Suche, ein zweiter Durchlauf des Filters. Ein „Ich weiß es nicht“ kostet keine Generierung."
+    literature_text: "CRAG (Yan et al., 2024) beurteilt die Qualität der gefundenen Passagen mit einem leichten Bewerter und behält sie je nach dessen Zuversicht, ergänzt sie durch eine Websuche oder beides. Die Werkstatt behält die Beurteilung (den Passagenfilter von System One) und ersetzt die offline fehlende Websuche durch eine Umformulierung und eine zweite Suche im selben Korpus. Hypothese H7, nicht belegt: Ein Entscheidungsmodell ersetze die zwischengeschalteten LLM-Richter ohne Qualitätsverlust."
+    bench_text: ""
+    sources:
+      - label_text: "CRAG (Yan et al., 2024): ein Bewerter der Suche, dann Korrektur oder Websuche"
+        url: "https://arxiv.org/abs/2401.15884"
+      - label_text: "Towards AI: Jev als Richter der Aussagenprüfung (23 % gegenüber 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "jev-corrective-rag: ein Corrective RAG mit einem Entscheidungsmodell"
+        url: "https://github.com/sudeshkar/jev-corrective-rag"
+  fallback.abstain:
+    purpose_text: "„Ich weiß es nicht“ antworten, wenn der Passagenfilter keine Passage behalten hat, ohne zweiten Versuch und ohne das Modell aufzurufen."
+    when_text: "Für eine klare, kostenlose Ablehnung, wenn nichts Brauchbares gefunden wurde (eine Frage außerhalb des Korpus). Zu meiden, wenn sich die Frage umformulieren lässt: Die Option mit Umformulierung versucht vor der Ablehnung eine zweite Suche."
+    cost_text: "Keine: weder Aufbau noch Aktualisierung; bei der Anfrage ersetzt ein „Ich weiß es nicht“ die Generierung, null Token."
+    literature_text: "CRAG (Yan et al., 2024) löst eine korrigierende Aktion aus, wenn seine Passagen als falsch beurteilt werden; die Enthaltung ist die einfachste Aktion, ohne weitere Suche. Hypothese H7, nicht belegt: Ein Entscheidungsmodell ersetze die zwischengeschalteten LLM-Richter ohne Qualitätsverlust."
+    bench_text: ""
+    sources:
+      - label_text: "CRAG (Yan et al., 2024): ein Bewerter der Suche, dann Korrektur oder Websuche"
+        url: "https://arxiv.org/abs/2401.15884"
+      - label_text: "Towards AI: Jev als Richter der Aussagenprüfung (23 % gegenüber 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+  context.wiki_pages:
+    purpose_text: "Die Quellen einmal zu einem Wiki aus Markdown-Seiten kompilieren (eine Seite je Dokument, eine je Begriff, den mehrere Dokumente teilen, ein Index aller Seiten, verknüpft durch [[Seite]]-Verweise), es mit einer Prüfung kontrollieren und dann aus den Seiten antworten, die das Modell im Index wählt: das LLM-Wiki-Muster von Andrej Karpathy, hier von Hand umgesetzt."
+    when_text: "Zu verwenden für eine stabile Wissensbasis von einigen hundert Dokumenten, die Menschen lesen: eine Begriffsseite sammelt, was mehrere Quellen über ein Thema sagen. Zu vermeiden, wenn sich die Quellen schnell ändern (jede Aktualisierung kompiliert Seiten neu) oder wenn die Verankerung zählt: die Seite ist eine Synthese, nicht die Quelle."
+    cost_text: "Aufbau: alle Seiten kompilieren; nach der ausgelieferten Regel wenige Millisekunden und kein Token, daher ein Aufbau und eine Aktualisierung billiger als dichtes RAG; durch das Modell („Neu aufbauen“) ein Aufruf je Seite, weit teurer, dessen Schätzung gesondert angezeigt wird, außerhalb der Summen. Aktualisierung: die Seiten neu kompilieren, die das betroffene Dokument speist (seine Seite, die seiner Begriffe, den Index), dann die Prüfung. Anfrage: ein Aufruf, um die Seiten im Index zu wählen, dann die Generierung."
+    literature_text: "Hypothese H3, zum Umfang nicht untersucht: das LLM Wiki erreiche RAG bei einigen hundert Dokumenten und falle dann zurück. Eine Studie (24 Artikel, 13 Fragen) findet das Wiki besser bei der Synthese und RAG besser bei der Verankerung, für etwa 21-mal mehr Tokens (arXiv 2605.18490). Hypothese H13, teilweise gestützt: es kostet mehr bei der Indexierung und der Aktualisierung, wenn ein Modell die Seiten kompiliert. Das hier ausgelieferte Wiki wird nach einer Regel kompiliert, ohne Modell: teurer wird es erst, wenn das Modell es neu aufbaut."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2605.18490: LLM Wiki und RAG an 24 Artikeln und 13 Fragen, etwa 21-mal mehr Tokens"
+        url: "https://arxiv.org/html/2605.18490v1"

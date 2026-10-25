@@ -81,6 +81,7 @@
 | `guardrails` | onnxruntime==1.23.2, tokenizers==0.22.1, presidio ==2.2.360, spacy==3.8.7, fr-core-news-sm |
 | `rag-alt` | faiss-cpu==1.15.1, lancedb==0.39.0 |
 | `greenops` | codecarbon==3.3.1 |
+| `decision` (V1.2 story 8) | onnxruntime==1.23.2, tokenizers==0.22.1 : le classifieur local de System One (deberta_xsmall, NLI zero-shot en ONNX), sans Presidio ni spaCy de `guardrails` ; mêmes versions que `guardrails` |
 
 Base : llama-cpp-python>=0.3.35,<0.4, sqlite-vec==0.1.9, ecologits>=0.11.2,<0.12.
 
@@ -90,7 +91,7 @@ Base : llama-cpp-python>=0.3.35,<0.4, sqlite-vec==0.1.9, ecologits>=0.11.2,<0.12
 |---|---|---|
 | `otel` | opentelemetry-sdk, opentelemetry-exporter-otlp-proto-http | CAP-12, pur Python, aucun service |
 | `eval-adapters` | ragas, deepeval | CAP-11, optionnel ; à écarter s'ils tirent torch ou un service |
-| (aucun) | networkx ou union-find maison pour les communautés de GraphRAG | À trancher dans la story GraphRAG ; préférer le code maison s'il reste court |
+| (aucun) | networkx ou union-find maison pour les communautés de GraphRAG | Tranché par la story 13 (D2) : ni `networkx` ni union-find. Code maison, `rag/graph.py` `communities` : déplacements locaux de modularité (phase 1 de Louvain, déterministes, ≈ 60 lignes avec la fusion des petites communautés). Mesuré sur le corpus livré : union-find donne une composante géante (≥ 98 % des entités), la propagation d'étiquettes une communauté de 77 % (en) à 94 % (de) ; les déplacements de modularité 13 (fr), 15 (en), 20 (de) communautés, la plus grande à 16, 20 et 11 % des entités. `networkx` en extra seulement si ce code ne suffit plus (Reports de la story 13) |
 
 ## Travail reporté qui touche le RAG (`deferred-work.md`)
 

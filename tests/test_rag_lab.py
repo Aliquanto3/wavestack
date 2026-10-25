@@ -957,7 +957,8 @@ def test_state_catalog_default_chain_and_last_run(index):
     assert [s["kind"] for s in stages] == list(rag_lab.KINDS)
     assert state["catalog"]["insert_before"] == "context"
     movable = {s["kind"] for s in stages if s["movable"]}
-    assert movable == {"vector_search", "lexical_search", "fusion", "rerank"}
+    assert {"query", "vector_search", "lexical_search", "fusion", "rerank"} <= movable
+    assert movable == set(rag_lab.RETRIEVAL)  # V1.2 story 8: with the router and the filter
     options = {s["kind"]: s["options"][0] for s in stages}
     assert options["embedding"]["label_text"] == "Faux embedding"
     assert options["rerank"]["label_text"] == "Faux reranker"
@@ -989,7 +990,9 @@ def test_catalog_notes_say_what_a_run_would_meet(index):
     assert "modèle absent" in options["embedding"]["note_text"]
     assert "index absent" in options["vector_store"]["note_text"]
     assert "modèle absent" in options["rerank"]["note_text"]
-    assert all(o["available"] for o in options.values())
+    # V1.2 story 8: System One's local classifier needs its extra and its files, like the
+    # workshop's own models (unavailable, « Télécharger » offered).
+    assert all(o["available"] for k, o in options.items() if k not in rag_lab.DECISION_KINDS)
 
 
 def test_invalid_content_is_said_and_refuses_the_run(index, monkeypatch):
@@ -1023,13 +1026,27 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
     steps = {s["key"]: s for s in catalog["steps"]}
     assert list(steps) == list(rag_lab.STEPS)
     build = [k for k, s in steps.items() if s["phase"] == "build"]
-    assert build == ["documents", "chunking", "embed_passages", "vector_store", "lexical_index"]
+    assert build[:10] == [  # V1.2 stories 12 and 14 add theirs after these
+        "documents",
+        "chunking",
+        "embed_passages",
+        "vector_store",
+        "lexical_index",
+        "cache_prefix",  # V1.2 story 10: drawn for `cached_corpus` only
+        "tree_build",  # V1.2 story 11: drawn for `section_tree` only
+        "graph_build",  # V1.2 story 13: drawn for `graph_search` only
+        "wiki_build",  # V1.2 story 14: drawn for `wiki_pages` only
+        "wiki_lint",
+    ]
+    assert "raptor_build" in build  # V1.2 story 12: drawn for `raptor_search` only
     assert steps["documents"] | {"explain_text": ""} == {
         "key": "documents",
         "phase": "build",
         "stage": "chunking",
         "own": False,
         "part": None,
+        "options": [],
+        "hidden_with": [],
         "uses": [{"component": "documents", "how": "reads"}],
         "label_text": "Documents",
         "action_text": "Charger le corpus",
@@ -1051,15 +1068,29 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
     assert steps["rerank"]["explain_text"] == content.stages["rerank"].explain_text
     assert steps["question"]["stage"] is None and steps["question"]["explain_text"]
     assert steps["generation"]["note_text"] is None  # lot 5c-3: it runs, no « not run » note
-    assert [(s["key"], s["stage"]) for s in catalog["steps"] if not s["own"]] == [
+    not_own = [(s["key"], s["stage"]) for s in catalog["steps"] if not s["own"]]
+    assert ("raptor_build", "context") in not_own and ("raptor_query", "context") in not_own
+    assert not_own[:13] == [
         ("documents", "chunking"),
         ("lexical_index", "lexical_search"),
         ("question", None),
         ("embed_query", "embedding"),
+        ("cache_prefix", "context"),
+        ("tree_build", "context"),  # V1.2 story 11
+        ("agent_calls", "context"),
+        ("tree_levels", "context"),
+        ("graph_build", "context"),  # V1.2 story 13
+        ("graph_query", "context"),
+        ("wiki_build", "context"),  # V1.2 story 14
+        ("wiki_lint", "context"),
+        ("wiki_lookup", "context"),
     ]
     components = {c["id"]: c for c in catalog["components"]}
     assert list(components) == list(rag_lab.COMPONENTS)
-    assert [c["label_text"] for c in catalog["components"]] == [
+    labels = [c["label_text"] for c in catalog["components"]]
+    assert "Decision model" in labels  # V1.2 story 8: System One's model
+    assert "Arbre de résumés" in labels  # V1.2 story 12: RAPTOR's tree
+    assert [label for label in labels if label != "Decision model"][:15] == [
         "Documents",
         "Chunks",
         "Vector store",
@@ -1070,6 +1101,11 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "Question",
         "Augmented prompt",
         "Réponse",
+        "Model cache",
+        "Outils sur les fichiers",  # V1.2 story 11
+        "Arbre de sections",
+        "Graphe de connaissances",  # V1.2 story 13
+        "Wiki",  # V1.2 story 14
     ]
     assert components["reranker"]["group"] == "models"
     assert components["reranker"]["stage"] == "rerank"
@@ -1141,7 +1177,21 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
     session, _ = ready(index)
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
     presets = {p["id"]: p for p in session.rag_lab_state()["catalog"]["presets"]}
-    assert list(presets) == ["dense", "hybrid", "rerank"] == list(rag_lab.PRESETS)
+    # V1.2 stories 12 and 14 add theirs after these (an inclusion, not an equality).
+    assert list(presets)[:9] == [
+        "dense",
+        "hybrid",
+        "rerank",
+        "long_context",
+        "cag",
+        "agentic",  # V1.2 story 11
+        "pageindex",
+        "graphrag",  # V1.2 story 13
+        "llm_wiki",  # V1.2 story 14
+    ]
+    assert list(presets) == list(rag_lab.PRESETS)
+    search = ("dense", "hybrid", "rerank", "crag")  # V1.2 story 10, CRAG (story 12) last
+    assert [k for k, p in presets.items() if p["family"] == "search"] == list(search)
     content = rag_lab.load_lab_content()
     candidates = rag_lab.param(catalog.default.stages[3], "candidates", catalog)
     assert presets["hybrid"] == {
@@ -1156,15 +1206,19 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
         "available": True,
         "reason_text": None,
         "note_text": None,
+        "family": "search",
+        "context": {"option": "excerpts", "params": dict(catalog.default.stages[5].params)},
+        "replaces_context": False,
     }
     assert all(p["note_text"] is None for p in presets.values())  # every model on the PC
     assert [s["kind"] for s in presets["dense"]["segment"]] == ["vector_search"]
     assert [s["kind"] for s in presets["rerank"]["segment"]] == ["vector_search", "rerank"]
-    assert all(p["available"] and p["label_text"] for p in presets.values())
+    assert all(presets[k]["available"] and presets[k]["label_text"] for k in search)
     # « RAG + reranking » is the shipped chain; each preset only replaces its segment.
     shipped = catalog.preset_pipeline("rerank")
     assert shipped.model_dump() == catalog.default.model_dump()
-    for key, segment in rag_lab.PRESETS.items():
+    for key in search:
+        segment = rag_lab.PRESETS[key]
         chain = catalog.preset_pipeline(key)
         assert [(s.kind, s.option) for s in chain.stages[3:-2]] == list(segment)
         fixed = [s.model_dump(exclude={"id"}) for s in (*chain.stages[:3], *chain.stages[-2:])]

@@ -173,3 +173,13 @@ class GuardrailsManager:
             classifier.unload()
         self._instances.clear()
         self._load_errors.clear()  # story 5: a fresh try next time (off, then on again)
+
+    # V1.2 story 17 (Document piégé): a read of the instance a turn already uses.
+    def loaded_classifier(self, guardrail: GuardrailId) -> Classifier | None:
+        """The instance of `guardrail` already loaded (`loaded` true), else `None`. Loads
+        nothing, downloads nothing, reads no token: the Document piégé card borrows it to
+        classify a passage without ever triggering the lazy load of `classify`."""
+        instance = self._instances.get(guardrail)
+        if instance is not None and getattr(instance, "loaded", False):
+            return instance
+        return None

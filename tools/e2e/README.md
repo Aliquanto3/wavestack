@@ -10,6 +10,10 @@ scriptée et déterministe.
 uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py
 ```
 
+Sous Windows, lancez-le avec `PYTHONUTF8=1` (PowerShell : `$env:PYTHONUTF8 = "1"`) : sans lui,
+la console en cp1252 fait planter des scénarios dont la sortie contient un caractère hors de
+cette page de code (par exemple « ◐ » dans `themes`).
+
 - `--only h5 caveman` : seulement ces scénarios (le diagnostic est toujours joué). Chaque
   scénario se lance seul : aucun ne dépend de ceux qui le précèdent dans le parcours.
 - `--keep` : garde le dossier de données temporaire (journaux `wavestack.log`,
@@ -44,7 +48,7 @@ sinon le script essaie `/opt/pw-browsers/chromium`. Code de sortie 1 si une vér
 Les captures (JPEG) sont réécrites dans `tools/e2e/screenshots/`.
 
 Pour explorer à la main : `uv run python tools/e2e/stack.py` lance le faux modèle et WaveStack
-(adresse affichée), puis choisissez « Faux fournisseur (e2e) » au diagnostic. Le réseau sortant
+(adresse affichée), puis choisissez « Faux fournisseur (e2e) » sur la page Modèles. Le réseau sortant
 y est coupé comme pendant le parcours ; `--network` garde les proxys du poste, pour joindre les
 vrais services.
 
@@ -133,13 +137,13 @@ avertissement cloud dans la page (« Annuler » ne change rien, « Utiliser ce m
 chronomètre dans la barre haute et en fin de Vue humain, envoi et sélecteur désactivés avec la
 raison, conversation gardée, appel envoyé avec le nouveau modèle, lignes « Modèle : … », rejeu
 joué par le nouveau modèle, « Comparer » avec le modèle de chaque colonne, puis retour au
-premier modèle par « Choisir » au diagnostic, issue exacte « wavestack-fake est actif. », jamais
+premier modèle par « Choisir » sur la page Modèles, issue exacte « wavestack-fake est actif. », jamais
 « relancez WaveStack pour l'utiliser ». Capture :
 `22-changement-de-modele.jpg`.
 
 ## Serveur local déjà lancé (story 18)
 
-Le scénario `local_server` : au diagnostic, le modèle du faux
+Le scénario `local_server` : sur la page Modèles, le modèle du faux
 llama-server est listé (« Local », adresse, mémoire, « Choisir ») et celui du faux Ollama est
 incompatible, sans « Choisir » (GGUF introuvable) ; plus de mention « palier 2 ». Dans le
 sélecteur de la barre haute, le modèle servi est choisi puis chargé (« Préparation du modèle
@@ -399,8 +403,8 @@ Vérifications ajoutées aux scénarios existants :
   prix « — » sans `pricing`) ; dans le groupe Qwen, le faux Ollama (0.6B) avant le faux llama-server
   (taille inconnue) ; chaque modèle commence par « 🏠 Local · » ou « ☁️ RÉSEAU · » (story 5 de la V1.1) ; « Tableau des
   modèles et de leurs capacités… » puis « Autre fichier ou clé API… » en dernier. « Ouvrir le
-  tableau » mène à `/models` : onglet « 🛠️ Diagnostic » courant, aucun onglet « Modèles »,
-  « 🛠️ Diagnostic » vers `/diagnostic` (mêmes onglets) ; lignes du faux llama-server (Qwen, outils « oui », « activable »,
+  tableau » mène à `/models` : onglet « 🛠️ Modèles » courant,
+  « 🛠️ Modèles » vers `/diagnostic` (mêmes onglets) ; lignes du faux llama-server (Qwen, outils « oui », « activable »,
   « 4 096 tokens »), de R (« toujours »), de `wavestack-fake` (« jamais », « actif »), du faux
   Ollama (« inconnu », raison « introuvable » visible), « RÉSEAU » sur chaque ligne cloud,
   étiquette sur le jeton jaune, un en-tête par groupe du sélecteur. Puis R activé depuis le
@@ -716,9 +720,9 @@ haut) :
 
 - `diagnostic` : sur `/`, `<title>` « WaveStack — Atelier Harnais », un seul `h1` masqué
   (`.sr-only`) et l'onglet « Harnais » courant ; `model_catalog` : `/diagnostic` titré
-  « Diagnostic et modèles », lien `#models-link` vers `/models`.
+  « Modèles », lien `#models-link` vers `/models`.
 - `themes`, `mcp_lab`, `rag_lab`, `llm_screen` : la barre commune à cinq onglets
-  (`Harnais · LLM · RAG · MCP · 🛠️ Diagnostic`), titres et `h1` complets des ateliers.
+  (`Harnais · LLM · RAG · MCP · 🛠️ Modèles`), titres et `h1` complets des ateliers.
 - `forced_native` : le « ? » d'« Actions forcées » ouvre son aide, ancrée sous le bouton, encore
   ouverte après un nouveau rendu du panneau.
 - `gemini_shape`, `local_server`, `priced_estimate` : la dépense sur trois lignes (« Dépense
@@ -774,8 +778,112 @@ d'autres (story 21) :
   colonnes, l'épingle conservée après rechargement (`/rag#compare` ouvre l'onglet) ; capture
   `62-atelier-rag-comparer.jpg`.
 
+- `rag_lab_query`, V1.2 story 5 (CAP-3), après `rag` et `rag_rerank` : « Query understanding »
+  ajoutée depuis la palette (après le Vector store, chaîne valide), ses quatre options ; sur une
+  question multi-sauts du jeu préparé, la décomposition produit au moins deux sous-requêtes
+  (le faux llama-server coupe la question en deux), listées dans le focus de l'étape et cherchées
+  chacune (chaque extrait donne son rang pour chaque requête) ; la réécriture n'en produit
+  qu'une ; capture `63-atelier-rag-requetes.jpg`.
+
 - `rag_lab_diagnosis`, V1.2 story 9 (CAP-10), après `rag` et `rag_rerank` : sur une question
   préparée, le rang du passage attendu à chaque étape et l'étape fautive désignée (sans moyenne) ;
   une question libre et une question sans passage le disent ; les trois cas « Où naît l'erreur »
   (`not_indexed`, `ranked_low`, `cut_by_budget`) se rejouent en un clic, chacun avec son étape
   fautive, sans aucun événement de l'atelier ; capture `63-atelier-rag-diagnostic.jpg`.
+- `rag_lab_tree`, V1.2 story 16 (CAP-12), après `rag` et `rag_rerank` : l'arbre des étapes de
+  la dernière exécution dans son volet repliable (la course, ses étapes avec leur durée, l'appel
+  de modèle sous l'étape qui l'a fait), autant de nœuds que `steps` de `rag_lab_run_ended` ; sans
+  `[otel] endpoint`, pas de bouton d'export, la note dit que rien ne sort et aucun
+  `outbound_request` ; capture `92-atelier-rag-arbre.jpg`.
+- `rag_lab_chunking`, V1.2 story 6 (CAP-4), après `rag` et `rag_rerank` : les quatre options du
+  découpage ; « Parent-enfant » (les enfants listés dans le focus, chacun avec son parent) puis
+  « Avec contexte » (chaque contexte marqué « précalculé · heuristique, sans LLM ») ;
+  « Reconstruire » avec le faux modèle (contextes « reconstruits », méthode `llm`, relus après
+  rechargement), puis « Rétablir les contextes livrés » ; capture `64-atelier-rag-decoupage.jpg`.
+- `rag_lab_decision`, V1.2 story 8 (CAP-6), après `rag` et `rag_rerank` : les trois étapes de System One dans la palette ; « Passage filter » (score du faux reranker), seuil du banc (2 %) et cascade désactivée par défaut ; cascade activée, seuil 99 % puis 1 % : le faux modèle répond « oui » en juge, l'auteur d'au moins une décision change ; auteur, probabilité et seuil dans le focus ; options cloud grisées sans `OPENROUTER_API_KEY` (aucune option cloud n'est lancée) ; « Grounding check » ajouté après la génération, la raison du classifieur local indisponible ; capture `90-atelier-rag-system-one.jpg`.
+- `rag_lab_context`, V1.2 story 7 (CAP-5), après `rag` et `rag_rerank` : les quatre options du
+  contexte ; « Budget » à 450 tokens (deux passages entiers, un « coupé », deux « écartés »,
+  jauge du budget) et le prompt final en parties (consigne, contexte, question) retrouvé dans le
+  prompt rendu de la génération ; « Ordre » (positions 1, 5, 2, 4, 3 lues dans le focus) ;
+  « Compression » sans l'extra (`--no-headroom` ou extra absent : la raison près de l'option et
+  dans l'étape) ou avec lui (carte Compression activée, tokens avant et après dans le focus,
+  vrai Headroom hors ligne : la pile n'a pas de compresseur factice) ; capture
+  `65-atelier-rag-contexte.jpg`.
+
+- `rag_lab_evaluate`, V1.2 story 15 (CAP-11), après `rag` et `rag_rerank` : l'onglet Évaluer sans
+  exécution (bandeau « Démonstration, pas un banc : n = 10 questions, 2 architectures, 2 juges »
+  visible en permanence, 20 lignes du jeu enregistré, un désaccord écrit, provenance « cas
+  construit », « trop peu pour conclure » sous n = 5) ; les quatre pièges rejoués sans événement
+  de l'atelier (fidélité Ragas 0,6 et DeepEval 0,8, classement inversé) ; une exécution d'une
+  question préparée ajoutée (n = 11, « non annoté ») ; le juge cloud refusé sans clé (409) ;
+  aucune requête hors de `127.0.0.1` ; aucune moyenne dans Comparer ; capture
+  `67-atelier-rag-evaluer.jpg`. Le bouton « Juger » n'est pas exercé (il exige un modèle).
+
+- `rag_lab_attack`, V1.2 story 17 (CAP-13), après `rag` et `rag_rerank` : l'onglet Attaquer, carte
+  « Document piégé » (bandeau « aucune donnée réelle ne sort », document inactif d'emblée puis
+  activé) ; les trois scénarios sans puis avec garde-fou (Prompt Guard n'est pas chargé : verdict
+  `not_installed`, verdict enregistré à côté et non appliqué, rien d'écarté ni de téléchargé), modes
+  Bloquer et Signaler, rangs
+  BM25, limite de PoisonedRAG, étapes du graphe jusqu'à la persistance puis la reconstruction ;
+  entrées « Démonstration Document piégé » au Journal de sécurité, hors des compteurs de refus ;
+  aucun événement de l'atelier ;
+  corpus de Construire inchangé ; aucune requête hors de `127.0.0.1` ; capture
+  `68-atelier-rag-attaquer-document-piege.jpg`.
+
+- `rag_lab_rights`, V1.2 story 18 (CAP-14, CAP-15), après `rag` et `rag_rerank` : l'onglet Attaquer,
+  cartes « Effacement » et « Droits d'accès », sans modèle, sans index, sans clé. Sentinelle activée,
+  copies construites, sentinelle supprimée (chunks et BM25 effacés, contextes et dérivés « à
+  reconstruire », caches « à recharger », mentions « illustratif · cas construit »), question sur le
+  code, reconstruction de GraphRAG (ses endroits « effacé (illustratif, non mesuré) ») ; droits : profil Tous après la recherche (passage RH lu avant le
+  filtre, moins de k rendus, réécriture construite), avant la recherche (aucune fuite), profil RH ;
+  la carte « Document piégé » répond encore ; corpus de Construire inchangé ; aucune requête hors de
+  `127.0.0.1` ; capture `69-atelier-rag-attaquer-effacement-droits.jpg`.
+- `rag_lab_sheets`, V1.2 story 19 (CAP-16, CAP-17), après `rag` et `rag_rerank` : l'onglet Fiches,
+  sans modèle, sans index, sans clé. Échec de `/api/rag_lab/sheets` simulé : texte d'erreur, puis
+  la réouverture de l'onglet réessaie. Liste (tous les composants, dont les familles de la story 19b, 11 architectures ; le compte est lu de
+  `/api/rag_lab/sheets`, aucune famille en attente), fiche `vector_store.faiss` (sources H14), fiche `chunking.semantic` (cinq blocs, « Pas encore mesuré »), fiche `hybrid`
+  (sept axes, six niveaux en mot, axe réglementaire sans niveau, « proposition, à relire »,
+  « pas un avis juridique »), lien de l'axe Droits vers la carte de l'onglet Attaquer (à l'écran,
+  focus, pas Construire), fiche `graphrag` « à venir (story 13) », contrastes AA clair et sombre,
+  en puis de ; aucune requête hors de `127.0.0.1` ; captures `70-atelier-rag-fiches*.jpg`.
+- `rag_lab_mcp`, V1.2 story 20 (CAP-18), après `rag` (index de la brique construit) : la carte
+  « Exposer en MCP » de Construire. Arrêtée (deux outils « faible »), démarrée sur `hybrid` (adresse
+  `127.0.0.1`, jeton masqué puis révélé, commande `claude mcp add`), client JSON-RPC brut sans
+  `Origin` (`initialize`, `tools/list`, `tools/call`) : passages cités, aucun passage RH même pour
+  `q_global_rh`, 401 sans jeton ; contrastes AA clair et sombre ; arrêtée, 404 ; `cag` refusé avec
+  sa raison ; en puis de ; aucune requête hors de `127.0.0.1` ; captures `71-atelier-rag-mcp*.jpg`.
+- `rag_lab_agentic`, V1.2 story 11 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le
+  faux llama-server répond aux tâches courtes de l'atelier par son script (`workshop_plan` de
+  `fake_local_server.py` : `grep` de la question, `read_file corpus/teletravail.md`, `ANSWER` ;
+  `CHOICE:` du document de télétravail puis de ses deux premières sections ; un résumé fixe).
+  Familles Recherche, Structure, Sans index ; « Recherche agentique » : ligne « Tool calls », trois
+  tours dans le focus, la réponse ; `../../.env` refusé et dit ; « Ajouter » : U = 0 et le document
+  trouvé ; « PageIndex » : lignes « Tree building » et « Tree descent », deux niveaux, carte
+  « Arbre » « calculé par une règle, sans modèle » ; « Reconstruire » puis « Rétablir » ; Comparer
+  (les trois temps des deux) ; Effacement (`pageindex_tree` mesuré, « effacé » après sa
+  reconstruction) ; en puis de ; captures `84-atelier-rag-agentique.jpg`, `85-atelier-rag-pageindex.jpg`.
+- `rag_lab_graphrag`, V1.2 story 13 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le
+  faux llama-server répond aux appels de GraphRAG par son script (`ENTITIES: astreinte, gestion de
+  crise`, `POINTS: …`, lignes `ENTITY:` / `RELATION:`, un résumé de communauté fixe). « GraphRAG »
+  dans la famille Structure, carte « Graphe » « calculé par une règle, sans modèle » avec
+  l'estimation étiquetée ; mode local (entités et preuves dans le focus) ; mode global
+  (communautés et extraits « map ») ; « Reconstruire le graphe » ; « Ajouter un document » (les
+  quatre parties de la mise à jour) ; Comparer, graphe reconstruit en place : GraphRAG au-dessus du
+  RAG dense en tokens aux trois temps, sans estimation ; « Rétablir le graphe » ; captures
+  `86-atelier-rag-graphrag-local.jpg`, `87-atelier-rag-graphrag-reconstruit.jpg`,
+  `88-atelier-rag-graphrag-comparer.jpg`.
+- `rag_lab_raptor_crag`, V1.2 story 12 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle :
+  le faux llama-server écrit les résumés de RAPTOR (une phrase fixe). « RAPTOR » entre PageIndex et
+  GraphRAG dans la famille Structure, carte « Arbre » « calculé par une règle, sans modèle » avec
+  l'estimation étiquetée ; question globale (nœuds de plusieurs niveaux dans le focus) ;
+  « Reconstruire l'arbre » ; « Ajouter un document » (découpage, placement, résumés) ; « Rétablir
+  l'arbre » ; « Corrective RAG » en dernier de la famille Recherche, le repli après le filtre, son
+  focus (jugement, aucune recherche web, « je ne sais pas » de l'atelier si rien n'est gardé) ;
+  captures `93-atelier-rag-raptor.jpg`, `94-atelier-rag-crag.jpg`.
+- `rag_lab_wiki`, V1.2 story 14 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le faux
+  llama-server répond `PAGES:` de la page du télétravail et une synthèse fixe (`workshop_plan`).
+  « LLM Wiki » dans la famille Structure, après PageIndex ; lignes « Wiki compilation », « Wiki
+  lint », « Wiki lookup » ; la page du télétravail choisie dans l'index ; carte « Wiki » « compilé
+  par une règle, sans modèle » et son estimation ; « Ajouter » : pages recompilées puis
+  vérification, 0 token ; « Recompiler » puis « Rétablir » ; Effacement (`wiki_pages` mesuré,
+  « effacé » après la recompilation) ; en puis de ; capture `89-atelier-rag-wiki.jpg`.

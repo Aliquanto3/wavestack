@@ -1,0 +1,1961 @@
+# The LLM Wiki (V1.2 story 14). Built by tools/build_wiki.py, not by hand: compiled by a
+# rule, without a model; a page belongs to what it is compiled from by its sha256.
+author: shipped
+method: heuristic
+model: heuristic
+concepts:
+- admise
+- applications
+- astreinte
+- badge
+- besoins
+- charte
+- clauses
+- compte
+- confidentiel
+- contrat
+- courriel
+- crise
+- deplacement
+- directeur
+- direction
+- donnee
+- dossier
+- ecrit
+- entretien
+- euros
+- formation
+- grille
+- habilitations
+- incident
+- informations
+- manager
+- message
+- messagerie
+- outil
+- passe
+- pendant
+- personne
+- prestataire
+- principal
+- questionnaire
+- revue
+- secret
+- securisee
+- standard
+- travail
+- version
+pages:
+- id: index
+  kind: index
+  title_text: Index du wiki
+  synthesis_text: 'Pages du wiki : 66.'
+  sources:
+  - acces_physique
+  - astreinte
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - classification
+  - clauses_contrats
+  - deplacements
+  - donnees_personnelles
+  - dossier_disciplinaire
+  - entretiens_annuels
+  - formation_securite
+  - gestion_crise
+  - grille_remunerations
+  - ia_generative
+  - incidents
+  - mots_de_passe
+  - note_changement_messagerie
+  - plan_continuite_lyon
+  - prestataires
+  - registre_sous_traitants
+  - revue_habilitations
+  - rundschreiben_usb
+  - sauvegardes
+  - teletravail
+  - uk_visitor_badges
+  audience: hr
+  sha256: 1c8c308155d2a64979cc62abcf43dac1823aff6a65e53228d60874382cb73a1b
+  text: '# Index du wiki
+
+
+    Pages du wiki : 66.
+
+
+    ## Pages des sources
+
+    - [[source/mots_de_passe]] Politique des mots de passe — Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères. La longueur compte davantage que…
+
+    - [[source/teletravail]] Accord de télétravail — Tout collaborateur en contrat à durée indéterminée peut télétravailler jusqu''à 3 jours par semaine, après une période d…
+
+    - [[source/classification]] Classification de l''information — Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne,…
+
+    - [[source/incidents]] Incidents de sécurité — Un incident de sécurité est tout événement qui menace la confidentialité, l''intégrité ou la disponibilité des informati…
+
+    - [[source/donnees_personnelles]] Conservation des données personnelles — Une donnée personnelle n''est conservée que le temps nécessaire à la finalité pour laquelle elle a été collectée. Le reg…
+
+    - [[source/ia_generative]] Usage de l''IA générative — Exemplia encourage l''usage de l''intelligence artificielle générative pour gagner du temps sur la rédaction, la synthèse…
+
+    - [[source/deplacements]] Déplacements et notes de frais — Tout déplacement professionnel est validé à l''avance par le manager dans l''outil de réservation Voyagex, qui applique a…
+
+    - [[source/sauvegardes]] Sauvegardes — Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 c…
+
+    - [[source/prestataires]] Politique de sécurité des prestataires — Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, qu…
+
+    - [[source/clauses_contrats]] Clauses de sécurité des contrats — Ce modèle complète la politique de sécurité des prestataires : il liste les clauses que la cellule fournisseurs insère…
+
+    - [[source/registre_sous_traitants]] Registre des sous-traitants — Ce registre, tenu par la cellule fournisseurs et cité par le modèle de clauses de sécurité, liste chaque sous-traitant…
+
+    - [[source/gestion_crise]] Procédure de gestion de crise — Cette procédure prend le relais de la procédure de signalement des incidents dès qu''un incident de niveau 3 est déclaré…
+
+    - [[source/astreinte]] Annexe des contacts d''astreinte — Cette annexe de la procédure de gestion de crise liste les contacts à joindre en dehors des heures ouvrées, jour et nui…
+
+    - [[source/charte_messagerie_v1]] Charte de messagerie, version 1 (2024) — Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est con…
+
+    - [[source/charte_messagerie_v2]] Charte de messagerie, version 2 (2026) — Cette version remplace la version 1 depuis le 1er janvier 2026, à la suite du changement de fournisseur de messagerie d…
+
+    - [[source/note_changement_messagerie]] Note de changement de messagerie — Cette note explique le passage de la version 1 à la version 2 de la charte de messagerie, effectif depuis le 1er janvie…
+
+    - [[source/rundschreiben_usb]] Rundschreiben zu USB-Speichermedien (document en allemand uniquement) — Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es…
+
+    - [[source/uk_visitor_badges]] UK visitor badges (document en anglais uniquement) — This policy applies only to Exemplia''s United Kingdom subsidiary, in Manchester; it exists in English only, as the loca…
+
+    - [[source/plan_continuite_lyon]] Plan de continuité d''activité, site de Lyon (document en français uniquement) — Ce document concerne uniquement le site de Lyon d''Exemplia ; il n''existe qu''en français, car il relève d''une équipe loc…
+
+    - [[source/grille_remunerations]] Grille des rémunérations — Ce document décrit la structure des rémunérations d''Exemplia ; il est classé confidentiel et son accès est réservé aux…
+
+    - [[source/dossier_disciplinaire]] Procédure disciplinaire — Ce document décrit les étapes d''une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est…
+
+    - [[source/entretiens_annuels]] Procédure des entretiens annuels — Ce document décrit l''entretien annuel d''Exemplia, mené par le responsable direct de chaque collaborateur ; il est class…
+
+    - [[source/acces_physique]] Accès physique aux locaux — Chaque site d''Exemplia est divisé en 3 zones : normale (accueil, open space), restreinte (salles de réunion sensibles,…
+
+    - [[source/revue_habilitations]] Revue des habilitations — Une habilitation est un droit d''accès à une application, un dossier partagé ou une zone physique, décrit dans la politi…
+
+    - [[source/formation_securite]] Formation à la sécurité — Chaque collaborateur d''Exemplia suit une formation à la sécurité de l''information de 2 heures, en ligne, puis valide un…
+
+
+    ## Pages des concepts
+
+    - [[concept/admise]] admise — La première classe est admise pour un trajet de plus de 3 heures réservé la veille du départ ou le jour même, quand ell…
+
+    - [[concept/applications]] applications — Les journaux de connexion aux applications sont gardés 12 mois, les enregistrements de la vidéosurveillance des locaux…
+
+    - [[concept/astreinte]] astreinte — Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur géné…
+
+    - [[concept/badge]] badge — Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du bad…
+
+    - [[concept/besoins]] besoins — L''entretien couvre l''atteinte des objectifs de l''année écoulée, les besoins de formation, et les objectifs de l''année à…
+
+    - [[concept/charte]] charte — Exemplia encourage l''usage de l''intelligence artificielle générative pour gagner du temps sur la rédaction, la synthèse…
+
+    - [[concept/clauses]] clauses — Dans les deux cas, le contrat signé reprend les clauses de sécurité du modèle d''Exemplia, détaillées dans un document s…
+
+    - [[concept/compte]] compte — Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères.
+
+    - [[concept/confidentiel]] confidentiel — Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne,…
+
+    - [[concept/contrat]] contrat — Tout collaborateur en contrat à durée indéterminée peut télétravailler jusqu''à 3 jours par semaine, après une période d…
+
+    - [[concept/courriel]] courriel — Le support informatique ne demande jamais un mot de passe, ni par téléphone, ni par courriel.
+
+    - [[concept/crise]] crise — Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur géné…
+
+    - [[concept/deplacement]] déplacement — Le mardi est le jour d''équipe : chacun est présent sur site ce jour-là, sauf absence ou déplacement.
+
+    - [[concept/directeur]] directeur — Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur géné…
+
+    - [[concept/direction]] direction — Le second facteur est l''application ExempliaPass sur le téléphone professionnel ; une clé physique de sécurité est remi…
+
+    - [[concept/donnee]] donnée — Une donnée personnelle n''est conservée que le temps nécessaire à la finalité pour laquelle elle a été collectée.
+
+    - [[concept/dossier]] dossier — Ce document décrit les étapes d''une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est…
+
+    - [[concept/ecrit]] écrit — Le télétravail depuis l''étranger est limité à 20 jours par année civile, avec l''accord écrit du manager et de la direct…
+
+    - [[concept/entretien]] entretien — Le passage d''une catégorie à l''autre résulte d''une promotion décidée après l''entretien annuel.
+
+    - [[concept/euros]] euros — Exemplia verse une indemnité de 2,50 euros par jour télétravaillé, dans la limite de 55 euros par mois.
+
+    - [[concept/formation]] formation — Avant d''obtenir l''accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un que…
+
+    - [[concept/grille]] grille — La grille compte 5 catégories, de la catégorie A (postes d''entrée) à la catégorie E (direction), chacune divisée en 3 é…
+
+    - [[concept/habilitations]] habilitations — Chaque accès, badge accepté ou refusé, est enregistré et conservé 6 mois, consulté lors d''une enquête de sécurité ou de…
+
+    - [[concept/incident]] incident — Une erreur de classification n''est pas une faute, mais une information Secret diffusée par erreur doit être signalée co…
+
+    - [[concept/informations]] informations — Le niveau Secret est réservé à une liste courte d''informations stratégiques, comme les projets de rachat ou les plans d…
+
+    - [[concept/manager]] manager — Un manager peut demander une présence exceptionnelle avec un préavis de 48 heures.
+
+    - [[concept/message]] message — La cellule de crise communique un point de situation toutes les 2 heures aux directions concernées, et un message uniqu…
+
+    - [[concept/messagerie]] messagerie — Il est interdit de noter un mot de passe sur papier, dans un fichier texte ou dans la messagerie, et de réutiliser un m…
+
+    - [[concept/outil]] outil — Les jours de télétravail sont déclarés dans l''outil RH au plus tard le vendredi précédent.
+
+    - [[concept/passe]] passe — Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères.
+
+    - [[concept/pendant]] pendant — Après 5 tentatives de connexion échouées, un compte est verrouillé pendant 15 minutes.
+
+    - [[concept/personne]] personne — Toute personne peut exercer ses droits d''accès, de rectification et d''effacement en écrivant au délégué à la protection…
+
+    - [[concept/prestataire]] prestataire — Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, qu…
+
+    - [[concept/principal]] principal — Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 c…
+
+    - [[concept/questionnaire]] questionnaire — Avant d''obtenir l''accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un que…
+
+    - [[concept/revue]] revue — Chaque entrée du registre est revue chaque trimestre par la cellule fournisseurs : un sous-traitant qui n''est plus util…
+
+    - [[concept/secret]] secret — Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne,…
+
+    - [[concept/securisee]] sécurisée — Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du bad…
+
+    - [[concept/standard]] standard — Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, qu…
+
+    - [[concept/travail]] travail — Un siège ergonomique peut être prêté sur avis de la médecine du travail.
+
+    - [[concept/version]] version — Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est con…'
+- id: source/mots_de_passe
+  kind: source
+  title_text: Politique des mots de passe
+  synthesis_text: 'Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères. La longueur compte davantage que la complexité : une phrase de passe de quatre ou cinq mots sans lien entre eux est recommandée, par exemple une suite de mots tirés au hasard et séparés par des tirets.'
+  sources:
+  - mots_de_passe
+  audience: all
+  sha256: e7be9cc0bdaedadacab09a48cbf543fc87acd17665b22b1c83a53efa7ab3cf1c
+  text: '# Politique des mots de passe
+
+
+    Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères. La longueur compte davantage que la complexité : une phrase de passe de quatre ou cinq mots sans lien entre eux est recommandée, par exemple une suite de mots tirés au hasard et séparés par des tirets.
+
+
+    ## Points clés
+
+    - Les comptes d''administration, eux, exigent au moins 20 caractères, et leur mot de passe est généré par le coffre-fort de l''équipe d''exploitation.
+
+    - Dans ces cas, le changement doit intervenir dans les 12 heures qui suivent l''alerte de l''équipe sécurité.
+
+    - Après 5 tentatives de connexion échouées, un compte est verrouillé pendant 15 minutes.
+
+    - Au troisième verrouillage dans la même journée, le compte reste bloqué jusqu''à l''intervention du support, joignable au poste 3100.
+
+
+    ## Concepts
+
+    [[concept/compte]] · [[concept/courriel]] · [[concept/direction]] · [[concept/messagerie]] · [[concept/passe]] · [[concept/pendant]]
+
+
+    Source : corpus/mots_de_passe.md'
+- id: source/teletravail
+  kind: source
+  title_text: Accord de télétravail
+  synthesis_text: Tout collaborateur en contrat à durée indéterminée peut télétravailler jusqu'à 3 jours par semaine, après une période d'intégration de 2 mois. Les stagiaires et les alternants sont limités à 1 jour par semaine, pour garder le contact avec leur tuteur.
+  sources:
+  - teletravail
+  audience: all
+  sha256: 4c4819021ac9721cd95ff1c1bf084d4988ddcd8f8ac7ff40c725af73a71f979a
+  text: '# Accord de télétravail
+
+
+    Tout collaborateur en contrat à durée indéterminée peut télétravailler jusqu''à 3 jours par semaine, après une période d''intégration de 2 mois. Les stagiaires et les alternants sont limités à 1 jour par semaine, pour garder le contact avec leur tuteur.
+
+
+    ## Points clés
+
+    - Un manager peut demander une présence exceptionnelle avec un préavis de 48 heures.
+
+    - Exemplia verse une indemnité de 2,50 euros par jour télétravaillé, dans la limite de 55 euros par mois.
+
+    - Un équipement est fourni à la demande : un écran de 27 pouces, un clavier, une souris et un casque.
+
+    - Le télétravail depuis l''étranger est limité à 20 jours par année civile, avec l''accord écrit du manager et de la direction des ressources humaines, pour des raisons fiscales et de protection sociale.
+
+
+    ## Concepts
+
+    [[concept/contrat]] · [[concept/courriel]] · [[concept/deplacement]] · [[concept/direction]] · [[concept/ecrit]] · [[concept/euros]] · [[concept/manager]] · [[concept/outil]] · [[concept/travail]]
+
+
+    Source : corpus/teletravail.md'
+- id: source/classification
+  kind: source
+  title_text: Classification de l'information
+  synthesis_text: 'Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret. Par défaut, un document sans marquage est traité comme Interne.'
+  sources:
+  - classification
+  audience: all
+  sha256: 87553f1242f5a8765c1ab1202e5774a205b1e8949a6c6f1d513db4bc5d72677c
+  text: '# Classification de l''information
+
+
+    Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret. Par défaut, un document sans marquage est traité comme Interne.
+
+
+    ## Points clés
+
+    - Un document Confidentiel ne quitte le réseau d''Exemplia que chiffré, avec l''outil de partage sécurisé Transvault ; le lien de partage expire au bout de 7 jours.
+
+    - Les documents papier Confidentiel et Secret sont rangés dans une armoire fermée à clé et détruits au broyeur de niveau P-5.
+
+    - Chaque année, en janvier, le responsable de chaque service revoit la classification des 20 documents les plus consultés de son périmètre.
+
+
+    ## Concepts
+
+    [[concept/badge]] · [[concept/confidentiel]] · [[concept/courriel]] · [[concept/incident]] · [[concept/informations]] · [[concept/outil]] · [[concept/secret]] · [[concept/securisee]]
+
+
+    Source : corpus/classification.md'
+- id: source/incidents
+  kind: source
+  title_text: Incidents de sécurité
+  synthesis_text: 'Un incident de sécurité est tout événement qui menace la confidentialité, l''intégrité ou la disponibilité des informations d''Exemplia : un courriel d''hameçonnage ouvert, un ordinateur portable perdu, un virus détecté, un document confidentiel envoyé au mauvais destinataire, une connexion suspecte.…'
+  sources:
+  - incidents
+  audience: all
+  sha256: 27d5075ecd72cce32fde939d13ec0c7aa8c12d9de01feb4a0cdb45546a1aa067
+  text: '# Incidents de sécurité
+
+
+    Un incident de sécurité est tout événement qui menace la confidentialité, l''intégrité ou la disponibilité des informations d''Exemplia : un courriel d''hameçonnage ouvert, un ordinateur portable perdu, un virus détecté, un document confidentiel envoyé au mauvais destinataire, une connexion suspecte.…
+
+
+    ## Points clés
+
+    - Elle est joignable jour et nuit au numéro interne 4242, ou à l''adresse de messagerie dédiée indiquée sur l''intranet.
+
+    - La CERT-Ex classe chaque incident selon 3 niveaux de gravité.
+
+    - Un incident de niveau 1 est traité dans la journée par l''équipe de support.
+
+    - Un incident de niveau 2 mobilise la CERT-Ex, qui informe le responsable de la sécurité des systèmes d''information dans l''heure.
+
+
+    ## Concepts
+
+    [[concept/astreinte]] · [[concept/confidentiel]] · [[concept/courriel]] · [[concept/crise]] · [[concept/directeur]] · [[concept/ecrit]] · [[concept/incident]] · [[concept/informations]] · [[concept/messagerie]]
+
+
+    Source : corpus/incidents.md'
+- id: source/donnees_personnelles
+  kind: source
+  title_text: Conservation des données personnelles
+  synthesis_text: Une donnée personnelle n'est conservée que le temps nécessaire à la finalité pour laquelle elle a été collectée. Le registre des traitements d'Exemplia fixe pour chaque traitement une durée active, pendant laquelle les services utilisent la donnée, puis une durée d'archivage, pendant laquelle seul…
+  sources:
+  - donnees_personnelles
+  audience: all
+  sha256: 0940f112bd8d2f5712feaa2e50f69568dcf94276245db34fa72c58093532f98a
+  text: '# Conservation des données personnelles
+
+
+    Une donnée personnelle n''est conservée que le temps nécessaire à la finalité pour laquelle elle a été collectée. Le registre des traitements d''Exemplia fixe pour chaque traitement une durée active, pendant laquelle les services utilisent la donnée, puis une durée d''archivage, pendant laquelle seul…
+
+
+    ## Points clés
+
+    - Les candidatures non retenues sont conservées 2 ans après le dernier contact avec le candidat, qui en est informé et peut demander leur suppression plus tôt.
+
+    - Les données des prospects qui n''ont jamais répondu sont supprimées au bout de 3 ans sans contact.
+
+    - Les données des clients sont conservées pendant toute la relation contractuelle, puis archivées 5 ans après la fin du contrat.
+
+    - Les journaux de connexion aux applications sont gardés 12 mois, les enregistrements de la vidéosurveillance des locaux 30 jours, et les badges d''accès désactivés sont effacés 3 mois après le départ du collaborateur.
+
+
+    ## Concepts
+
+    [[concept/applications]] · [[concept/contrat]] · [[concept/courriel]] · [[concept/donnee]] · [[concept/pendant]] · [[concept/personne]] · [[concept/travail]]
+
+
+    Source : corpus/donnees_personnelles.md'
+- id: source/ia_generative
+  kind: source
+  title_text: Usage de l'IA générative
+  synthesis_text: Exemplia encourage l'usage de l'intelligence artificielle générative pour gagner du temps sur la rédaction, la synthèse et la traduction, dans le respect de cette charte. Elle s'applique aux assistants conversationnels, aux générateurs d'images et aux outils de complétion de code.
+  sources:
+  - ia_generative
+  audience: all
+  sha256: d670ca2a1e6810a092ca3a9dcec6392022eb4d4f547d7c6c74234fded6db53b4
+  text: '# Usage de l''IA générative
+
+
+    Exemplia encourage l''usage de l''intelligence artificielle générative pour gagner du temps sur la rédaction, la synthèse et la traduction, dans le respect de cette charte. Elle s''applique aux assistants conversationnels, aux générateurs d''images et aux outils de complétion de code.
+
+
+    ## Points clés
+
+    - Avant d''obtenir l''accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un questionnaire avec au moins 8 bonnes réponses sur 10.
+
+    - Un rappel de 45 minutes est obligatoire chaque année.
+
+    - Le comité IA, composé de 6 membres issus de la sécurité, du juridique, des ressources humaines et des métiers, examine chaque nouvel outil avant son adoption, dans un délai de 6 semaines.
+
+
+    ## Concepts
+
+    [[concept/charte]] · [[concept/compte]] · [[concept/confidentiel]] · [[concept/contrat]] · [[concept/formation]] · [[concept/informations]] · [[concept/outil]] · [[concept/personne]] · [[concept/questionnaire]] · [[concept/secret]]
+
+
+    Source : corpus/ia_generative.md'
+- id: source/deplacements
+  kind: source
+  title_text: Déplacements et notes de frais
+  synthesis_text: Tout déplacement professionnel est validé à l'avance par le manager dans l'outil de réservation Voyagex, qui applique automatiquement les règles ci-dessous. Une réservation faite en dehors de Voyagex n'est remboursée qu'à titre exceptionnel, sur justification écrite.
+  sources:
+  - deplacements
+  audience: all
+  sha256: 52c277ad56aa4194c4e993894a781ff4bd82cc43ace53ca04e7adc34cfc0d804
+  text: '# Déplacements et notes de frais
+
+
+    Tout déplacement professionnel est validé à l''avance par le manager dans l''outil de réservation Voyagex, qui applique automatiquement les règles ci-dessous. Une réservation faite en dehors de Voyagex n''est remboursée qu''à titre exceptionnel, sur justification écrite.
+
+
+    ## Points clés
+
+    - Le train est obligatoire pour tout trajet de moins de 4 heures et demie, en seconde classe.
+
+    - La première classe est admise pour un trajet de plus de 3 heures réservé la veille du départ ou le jour même, quand elle ne coûte pas plus de 20 % de plus que la seconde.
+
+    - L''avion n''est autorisé qu''au-delà de 4 heures et demie de train, en classe économique, et la classe affaires est réservée aux vols de plus de 7 heures.
+
+    - La nuit d''hôtel est remboursée dans la limite de 130 euros à Paris et de 95 euros dans les autres villes, petit déjeuner compris.
+
+
+    ## Concepts
+
+    [[concept/admise]] · [[concept/deplacement]] · [[concept/euros]] · [[concept/manager]] · [[concept/outil]] · [[concept/personne]]
+
+
+    Source : corpus/deplacements.md'
+- id: source/sauvegardes
+  kind: source
+  title_text: Sauvegardes
+  synthesis_text: 'Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 copie conservée hors du site principal. Cette règle s''applique aux serveurs de fichiers, aux bases de données des applications et à la messagerie.'
+  sources:
+  - sauvegardes
+  audience: all
+  sha256: 4c75e409d59c251c1f75e381ecb495cf25a645b35e959c8703547929dbc1fa70
+  text: '# Sauvegardes
+
+
+    Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 copie conservée hors du site principal. Cette règle s''applique aux serveurs de fichiers, aux bases de données des applications et à la messagerie.
+
+
+    ## Points clés
+
+    - La sauvegarde complète des serveurs a lieu chaque dimanche à 2 h du matin.
+
+    - Chaque nuit de la semaine, à 22 h, une sauvegarde incrémentale copie uniquement ce qui a changé depuis la veille.
+
+    - Les bases de données critiques, comme la comptabilité et la gestion des clients, sont en plus sauvegardées toutes les 4 heures en journée.
+
+    - Les sauvegardes quotidiennes sont conservées 35 jours, les sauvegardes hebdomadaires 12 semaines et une sauvegarde mensuelle est gardée 7 ans pour les obligations comptables.
+
+
+    ## Concepts
+
+    [[concept/admise]] · [[concept/applications]] · [[concept/donnee]] · [[concept/incident]] · [[concept/messagerie]] · [[concept/pendant]] · [[concept/principal]] · [[concept/travail]]
+
+
+    Source : corpus/sauvegardes.md'
+- id: source/prestataires
+  kind: source
+  title_text: Politique de sécurité des prestataires
+  synthesis_text: 'Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres. Le niveau est fixé par la cellule fournisseurs avant la signature du contrat, et révisé chaque…'
+  sources:
+  - prestataires
+  audience: all
+  sha256: d2f47f719f5a51bfb85645dce49e4519039360b03a850ffcd6ead8bd6383c572
+  text: '# Politique de sécurité des prestataires
+
+
+    Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres. Le niveau est fixé par la cellule fournisseurs avant la signature du contrat, et révisé chaque…
+
+
+    ## Points clés
+
+    - Un prestataire critique est audité avant la signature, puis tous les 3 ans, et doit présenter une certification ISO 27001 ou équivalente.
+
+    - La cellule fournisseurs, joignable au poste 3200, suit la liste des prestataires actifs et leur niveau, et déclenche la fin de la relation si un audit échoue deux fois de suite.
+
+
+    ## Concepts
+
+    [[concept/clauses]] · [[concept/contrat]] · [[concept/ecrit]] · [[concept/incident]] · [[concept/informations]] · [[concept/prestataire]] · [[concept/questionnaire]] · [[concept/standard]]
+
+
+    Source : corpus/prestataires.md'
+- id: source/clauses_contrats
+  kind: source
+  title_text: Clauses de sécurité des contrats
+  synthesis_text: 'Ce modèle complète la politique de sécurité des prestataires : il liste les clauses que la cellule fournisseurs insère dans tout contrat de prestation, selon le niveau du prestataire. Clause de notification : un prestataire signale à Exemplia tout incident de sécurité touchant les données ou les sy…'
+  sources:
+  - clauses_contrats
+  audience: all
+  sha256: 3525154ce731d3f5e6274d6d31db613424b45dff02ad21ee070abd3ef23af2bd
+  text: '# Clauses de sécurité des contrats
+
+
+    Ce modèle complète la politique de sécurité des prestataires : il liste les clauses que la cellule fournisseurs insère dans tout contrat de prestation, selon le niveau du prestataire. Clause de notification : un prestataire signale à Exemplia tout incident de sécurité touchant les données ou les sy…
+
+
+    ## Points clés
+
+    - Clause d''audit : Exemplia, ou un auditeur qu''elle désigne, peut contrôler sur place ou à distance le respect des clauses de sécurité, avec un préavis de 10 jours ouvrés pour un prestataire standard et sans préavis pour un prestataire criti…
+
+    - Clause de chiffrement : toute donnée d''Exemplia stockée par le prestataire est chiffrée au repos avec un algorithme d''au moins 256 bits, et en transit par un protocole à jour.
+
+    - Clause de restitution et d''effacement : à la fin du contrat, ou sur demande d''Exemplia, le prestataire restitue les données dans un format exploitable puis les efface de tous ses systèmes, y compris ses sauvegardes, dans un délai de 30 jou…
+
+
+    ## Concepts
+
+    [[concept/clauses]] · [[concept/contrat]] · [[concept/donnee]] · [[concept/incident]] · [[concept/prestataire]] · [[concept/standard]]
+
+
+    Source : corpus/clauses_contrats.md'
+- id: source/registre_sous_traitants
+  kind: source
+  title_text: Registre des sous-traitants
+  synthesis_text: 'Ce registre, tenu par la cellule fournisseurs et cité par le modèle de clauses de sécurité, liste chaque sous-traitant utilisé par un prestataire d''Exemplia : son nom, sa fonction, le pays où il héberge ou traite les données, et le niveau du prestataire qui le mandate. NuageSud, hébergement des ser…'
+  sources:
+  - registre_sous_traitants
+  audience: all
+  sha256: a8aed3b6df1e503191ef46093374d026c3980844faacacbb314d0f9d7a360979
+  text: '# Registre des sous-traitants
+
+
+    Ce registre, tenu par la cellule fournisseurs et cité par le modèle de clauses de sécurité, liste chaque sous-traitant utilisé par un prestataire d''Exemplia : son nom, sa fonction, le pays où il héberge ou traite les données, et le niveau du prestataire qui le mandate. NuageSud, hébergement des ser…
+
+
+    ## Points clés
+
+    - SupportNuit, support téléphonique de niveau 1 en dehors des heures ouvrées, Portugal, prestataire critique.
+
+
+    ## Concepts
+
+    [[concept/clauses]] · [[concept/prestataire]] · [[concept/revue]] · [[concept/standard]]
+
+
+    Source : corpus/registre_sous_traitants.md'
+- id: source/gestion_crise
+  kind: source
+  title_text: Procédure de gestion de crise
+  synthesis_text: Cette procédure prend le relais de la procédure de signalement des incidents dès qu'un incident de niveau 3 est déclaré, ou quand plusieurs sites d'Exemplia sont touchés en même temps. La cellule de crise se réunit en moins de 2 heures, jour et nuit, sous la présidence du directeur général ou, en s…
+  sources:
+  - gestion_crise
+  audience: all
+  sha256: a3153480a87631680f8e4709bd54025ecd7e4ebb6e35f0c695c2042f5cc72150
+  text: '# Procédure de gestion de crise
+
+
+    Cette procédure prend le relais de la procédure de signalement des incidents dès qu''un incident de niveau 3 est déclaré, ou quand plusieurs sites d''Exemplia sont touchés en même temps. La cellule de crise se réunit en moins de 2 heures, jour et nuit, sous la présidence du directeur général ou, en s…
+
+
+    ## Points clés
+
+    - La cellule de crise communique un point de situation toutes les 2 heures aux directions concernées, et un message unique aux collaborateurs est validé avant toute diffusion.
+
+
+    ## Concepts
+
+    [[concept/astreinte]] · [[concept/crise]] · [[concept/directeur]] · [[concept/direction]] · [[concept/incident]] · [[concept/message]]
+
+
+    Source : corpus/gestion_crise.md'
+- id: source/astreinte
+  kind: source
+  title_text: Annexe des contacts d'astreinte
+  synthesis_text: 'Cette annexe de la procédure de gestion de crise liste les contacts à joindre en dehors des heures ouvrées, jour et nuit, selon le domaine concerné. Astreinte sécurité, à joindre en premier pour tout incident majeur de nuit ou le week-end : le numéro unique d''astreinte est le 06 07 08 09 10, suivi…'
+  sources:
+  - astreinte
+  audience: all
+  sha256: 9a9421b36e18019e91e7f68fe2d258625109f6114379ac480b0da7755c3f832f
+  text: '# Annexe des contacts d''astreinte
+
+
+    Cette annexe de la procédure de gestion de crise liste les contacts à joindre en dehors des heures ouvrées, jour et nuit, selon le domaine concerné. Astreinte sécurité, à joindre en premier pour tout incident majeur de nuit ou le week-end : le numéro unique d''astreinte est le 06 07 08 09 10, suivi…
+
+
+    ## Points clés
+
+    - La rotation change chaque lundi à 9 heures ; la personne d''astreinte de la semaine est annoncée sur l''intranet.
+
+    - Astreinte infrastructure, pour une panne de serveur ou de réseau : poste 4100, puis 06 11 12 13 14 si aucune réponse en 15 minutes.
+
+    - Astreinte communication, pour préparer un message externe en urgence : poste 4200.
+
+    - Astreinte juridique, pour une question de notification réglementaire : poste 4300.
+
+
+    ## Concepts
+
+    [[concept/astreinte]] · [[concept/crise]] · [[concept/directeur]] · [[concept/incident]] · [[concept/message]] · [[concept/personne]]
+
+
+    Source : corpus/astreinte.md'
+- id: source/charte_messagerie_v1
+  kind: source
+  title_text: Charte de messagerie, version 1 (2024)
+  synthesis_text: 'Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est conservée ici à titre d''archive, pour comprendre les décisions passées. La messagerie professionnelle d''Exemplia est réservée à un usage professionnel ; un usage personnel occasionnel…'
+  sources:
+  - charte_messagerie_v1
+  audience: all
+  sha256: 55655e3f9d859dda90d6295afee8ede2a058360f84aa8fda4ad628bd7c78075c
+  text: '# Charte de messagerie, version 1 (2024)
+
+
+    Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est conservée ici à titre d''archive, pour comprendre les décisions passées. La messagerie professionnelle d''Exemplia est réservée à un usage professionnel ; un usage personnel occasionnel…
+
+
+    ## Points clés
+
+    - Chaque message, avec ses pièces jointes, ne dépasse pas 10 Mo ; au-delà, un lien de partage temporaire doit être utilisé.
+
+    - Les messages envoyés et reçus sont conservés 1 an dans la boîte de messagerie, puis archivés automatiquement et supprimés de la boîte principale.
+
+    - Un message supprimé par erreur peut être restauré par le support dans les 30 jours qui suivent sa suppression, au-delà desquels il est perdu.
+
+
+    ## Concepts
+
+    [[concept/charte]] · [[concept/informations]] · [[concept/message]] · [[concept/messagerie]] · [[concept/version]]
+
+
+    Source : corpus/charte_messagerie_v1.md'
+- id: source/charte_messagerie_v2
+  kind: source
+  title_text: Charte de messagerie, version 2 (2026)
+  synthesis_text: 'Cette version remplace la version 1 depuis le 1er janvier 2026, à la suite du changement de fournisseur de messagerie décrit dans la note de changement associée : c''est la version en vigueur. La messagerie professionnelle reste réservée à un usage professionnel, mais un usage personnel occasionnel…'
+  sources:
+  - charte_messagerie_v2
+  audience: all
+  sha256: f3539e8eed73c1b307bf793f85e01626c5e2b1fc3cda9aa59acd51538017e986
+  text: '# Charte de messagerie, version 2 (2026)
+
+
+    Cette version remplace la version 1 depuis le 1er janvier 2026, à la suite du changement de fournisseur de messagerie décrit dans la note de changement associée : c''est la version en vigueur. La messagerie professionnelle reste réservée à un usage professionnel, mais un usage personnel occasionnel…
+
+
+    ## Points clés
+
+    - Chaque message, avec ses pièces jointes, peut désormais atteindre 25 Mo grâce au nouveau fournisseur ; au-delà, un lien de partage temporaire reste nécessaire.
+
+    - Les messages sont conservés 3 ans dans la boîte de messagerie avant archivage, contre 1 an dans la version précédente : ce changement répond à une obligation de conservation du secteur.
+
+    - Un message supprimé par erreur peut être restauré par le support dans les 30 jours, comme auparavant.
+
+
+    ## Concepts
+
+    [[concept/informations]] · [[concept/message]] · [[concept/messagerie]] · [[concept/version]]
+
+
+    Source : corpus/charte_messagerie_v2.md'
+- id: source/note_changement_messagerie
+  kind: source
+  title_text: Note de changement de messagerie
+  synthesis_text: Cette note explique le passage de la version 1 à la version 2 de la charte de messagerie, effectif depuis le 1er janvier 2026. Exemplia a changé de fournisseur de messagerie le 1er janvier 2026, après un appel d'offres mené en 2025.
+  sources:
+  - note_changement_messagerie
+  audience: all
+  sha256: c862ee7b90e3928a4ef18ee540258cb377f8ad07211ed62079681d8280e4439b
+  text: '# Note de changement de messagerie
+
+
+    Cette note explique le passage de la version 1 à la version 2 de la charte de messagerie, effectif depuis le 1er janvier 2026. Exemplia a changé de fournisseur de messagerie le 1er janvier 2026, après un appel d''offres mené en 2025.
+
+
+    ## Points clés
+
+    - Ce changement a entraîné la révision de la charte de messagerie, passée de sa version 1 à sa version 2.
+
+    - D''abord, la taille maximale d''un message passe de 10 Mo à 25 Mo.
+
+    - Ensuite, la durée de conservation dans la boîte principale passe de 1 an à 3 ans, pour répondre à une nouvelle obligation réglementaire du secteur.
+
+    - La migration des boîtes s''est déroulée sur trois week-ends de décembre 2025, sans perte de message signalée.
+
+
+    ## Concepts
+
+    [[concept/charte]] · [[concept/message]] · [[concept/messagerie]] · [[concept/passe]] · [[concept/version]]
+
+
+    Source : corpus/note_changement_messagerie.md'
+- id: source/rundschreiben_usb
+  kind: source
+  title_text: Rundschreiben zu USB-Speichermedien (document en allemand uniquement)
+  synthesis_text: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet. Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale angeschlossen werden.
+  sources:
+  - rundschreiben_usb
+  audience: all
+  sha256: fc03641184a236d808049e4aa3b99d9b01335e38ea39dbc1f295c6def8891bef
+  text: '# Rundschreiben zu USB-Speichermedien (document en allemand uniquement)
+
+
+    Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet. Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale angeschlossen werden.
+
+
+    ## Points clés
+
+    - Jede Mitarbeiterin und jeder Mitarbeiter, der einen USB-Speicher benötigt, erhält auf Anfrage einen von der IT-Abteilung ausgegebenen, verschlüsselten USB-Stick mit 256-Bit-Verschlüsselung.
+
+    - Ein von der IT-Abteilung ausgegebener USB-Stick wird nach spätestens 2 Jahren gegen ein neues Modell ausgetauscht, unabhängig von seinem Zustand.
+
+    - Ein verlorener oder gestohlener USB-Stick wird innerhalb von 24 Stunden der Sicherheitsabteilung gemeldet, genau wie ein verlorenes Notebook nach der allgemeinen Richtlinie zu Sicherheitsvorfällen.
+
+
+    Source : corpus/rundschreiben_usb.md'
+- id: source/uk_visitor_badges
+  kind: source
+  title_text: UK visitor badges (document en anglais uniquement)
+  synthesis_text: This policy applies only to Exemplia's United Kingdom subsidiary, in Manchester; it exists in English only, as the local reception team works in that language. Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor regist…
+  sources:
+  - uk_visitor_badges
+  audience: all
+  sha256: 215c9b86c125ae410cce3c0fa38da6557a816b4f17a9b534f0b4f933eee4c3ef
+  text: '# UK visitor badges (document en anglais uniquement)
+
+
+    This policy applies only to Exemplia''s United Kingdom subsidiary, in Manchester; it exists in English only, as the local reception team works in that language. Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor regist…
+
+
+    ## Points clés
+
+    - The visitor register, with the visitor''s name, company, host and times of arrival and departure, is kept for 90 days, in line with the data retention rules of the physical access policy, then deleted.
+
+
+    ## Concepts
+
+    [[concept/badge]]
+
+
+    Source : corpus/uk_visitor_badges.md'
+- id: source/plan_continuite_lyon
+  kind: source
+  title_text: Plan de continuité d'activité, site de Lyon (document en français uniquement)
+  synthesis_text: Ce document concerne uniquement le site de Lyon d'Exemplia ; il n'existe qu'en français, car il relève d'une équipe locale qui travaille dans cette langue. Si le site principal de Lyon devient inaccessible, pour cause d'incendie, de panne électrique prolongée ou d'évacuation, le site de repli de Vi…
+  sources:
+  - plan_continuite_lyon
+  audience: all
+  sha256: c7cec5cb0d1033f9c67e7072770a0c5bdd795745ce1fa13505aff4b51e1a9002
+  text: '# Plan de continuité d''activité, site de Lyon (document en français uniquement)
+
+
+    Ce document concerne uniquement le site de Lyon d''Exemplia ; il n''existe qu''en français, car il relève d''une équipe locale qui travaille dans cette langue. Si le site principal de Lyon devient inaccessible, pour cause d''incendie, de panne électrique prolongée ou d''évacuation, le site de repli de Vi…
+
+
+    ## Points clés
+
+    - Ce site de repli accueille jusqu''à 50 personnes, avec des postes de travail et une connexion réseau indépendante du site principal.
+
+
+    ## Concepts
+
+    [[concept/crise]] · [[concept/directeur]] · [[concept/incident]] · [[concept/principal]] · [[concept/revue]] · [[concept/travail]]
+
+
+    Source : corpus/plan_continuite_lyon.md'
+- id: source/grille_remunerations
+  kind: source
+  title_text: Grille des rémunérations
+  synthesis_text: Ce document décrit la structure des rémunérations d'Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines et à la direction. La grille compte 5 catégories, de la catégorie A (postes d'entrée) à la catégorie E (direction), chacune divisée en 3 échelons selon l'ancien…
+  sources:
+  - grille_remunerations
+  audience: hr
+  sha256: a88df37d91a54dd5bebc7fe78d00b51a313bd6c57455fa8888497df472c44c52
+  text: '# Grille des rémunérations
+
+
+    Ce document décrit la structure des rémunérations d''Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines et à la direction. La grille compte 5 catégories, de la catégorie A (postes d''entrée) à la catégorie E (direction), chacune divisée en 3 échelons selon l''ancien…
+
+
+    ## Points clés
+
+    - Le passage d''un échelon à l''autre est automatique après 2 ans, sauf gel motivé par écrit.
+
+    - La révision prend effet au 1er avril.
+
+
+    ## Concepts
+
+    [[concept/compte]] · [[concept/confidentiel]] · [[concept/direction]] · [[concept/ecrit]] · [[concept/entretien]] · [[concept/grille]]
+
+
+    Source : corpus/grille_remunerations.md'
+- id: source/dossier_disciplinaire
+  kind: source
+  title_text: Procédure disciplinaire
+  synthesis_text: Ce document décrit les étapes d'une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines, à la direction et, pour un dossier qui le concerne, au collaborateur lui-même. Une anomalie de comportement ou un manquement donne lieu, selon sa…
+  sources:
+  - dossier_disciplinaire
+  audience: hr
+  sha256: 41ce04a4ea30316c5761a3c96a9643a6f81b05ab4c9672a2cac9309569722382
+  text: '# Procédure disciplinaire
+
+
+    Ce document décrit les étapes d''une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines, à la direction et, pour un dossier qui le concerne, au collaborateur lui-même. Une anomalie de comportement ou un manquement donne lieu, selon sa…
+
+
+    ## Points clés
+
+    - L''entretien est convoqué par écrit au moins 5 jours ouvrés avant sa date, avec le motif de la convocation.
+
+    - La décision est notifiée par écrit dans les 10 jours ouvrés qui suivent l''entretien, avec les voies de recours internes.
+
+    - Un avertissement écrit reste au dossier 3 ans ; passé ce délai, il n''est plus pris en compte pour une mesure ultérieure, sauf récidive du même manquement avant son effacement.
+
+    - Le dossier disciplinaire complet d''un collaborateur est conservé 5 ans après son départ d''Exemplia, puis anonymisé, conformément à la politique de conservation des données personnelles.
+
+
+    ## Concepts
+
+    [[concept/compte]] · [[concept/confidentiel]] · [[concept/direction]] · [[concept/dossier]] · [[concept/ecrit]] · [[concept/entretien]] · [[concept/passe]] · [[concept/personne]]
+
+
+    Source : corpus/dossier_disciplinaire.md'
+- id: source/entretiens_annuels
+  kind: source
+  title_text: Procédure des entretiens annuels
+  synthesis_text: Ce document décrit l'entretien annuel d'Exemplia, mené par le responsable direct de chaque collaborateur ; il est classé document des ressources humaines. L'entretien a lieu chaque année au premier trimestre, entre janvier et mars.
+  sources:
+  - entretiens_annuels
+  audience: hr
+  sha256: bda2123c650292dc42135cd4e8e87ecddfc67f326cf3ec3ce46dd3d036665526
+  text: '# Procédure des entretiens annuels
+
+
+    Ce document décrit l''entretien annuel d''Exemplia, mené par le responsable direct de chaque collaborateur ; il est classé document des ressources humaines. L''entretien a lieu chaque année au premier trimestre, entre janvier et mars.
+
+
+    ## Points clés
+
+    - Le collaborateur remplit d''abord une auto-évaluation, dans les 2 semaines qui précèdent la date fixée, puis l''entretien se tient en présence du seul responsable direct, pour une durée d''au moins 45 minutes.
+
+    - Le compte rendu, rédigé par le responsable et relu par le collaborateur, est signé par les deux parties dans les 10 jours ouvrés qui suivent l''entretien.
+
+    - Les comptes rendus sont conservés 3 ans par les ressources humaines, pour suivre l''évolution des objectifs et des besoins de formation d''un collaborateur sur plusieurs années.
+
+
+    ## Concepts
+
+    [[concept/besoins]] · [[concept/compte]] · [[concept/entretien]] · [[concept/formation]] · [[concept/grille]]
+
+
+    Source : corpus/entretiens_annuels.md'
+- id: source/acces_physique
+  kind: source
+  title_text: Accès physique aux locaux
+  synthesis_text: 'Chaque site d''Exemplia est divisé en 3 zones : normale (accueil, open space), restreinte (salles de réunion sensibles, locaux techniques) et sécurisée (salle serveurs, salle de crise). Un badge personnel, remis à chaque collaborateur dès son arrivée, donne accès aux zones nécessaires à son poste.'
+  sources:
+  - acces_physique
+  audience: all
+  sha256: c69ecbf4cf098607d333ae0e52dcb5dd4d4b723e5a48768fb723cd9432261733
+  text: '# Accès physique aux locaux
+
+
+    Chaque site d''Exemplia est divisé en 3 zones : normale (accueil, open space), restreinte (salles de réunion sensibles, locaux techniques) et sécurisée (salle serveurs, salle de crise). Un badge personnel, remis à chaque collaborateur dès son arrivée, donne accès aux zones nécessaires à son poste.
+
+
+    ## Points clés
+
+    - Le badge visiteur est rendu à l''accueil en sortant ; le registre des visites est conservé 90 jours.
+
+    - Le badge d''un collaborateur qui quitte Exemplia est désactivé dans les 24 heures qui suivent son départ.
+
+    - Chaque accès, badge accepté ou refusé, est enregistré et conservé 6 mois, consulté lors d''une enquête de sécurité ou de la revue des habilitations.
+
+
+    ## Concepts
+
+    [[concept/badge]] · [[concept/crise]] · [[concept/habilitations]] · [[concept/revue]] · [[concept/securisee]]
+
+
+    Source : corpus/acces_physique.md'
+- id: source/revue_habilitations
+  kind: source
+  title_text: Revue des habilitations
+  synthesis_text: Une habilitation est un droit d'accès à une application, un dossier partagé ou une zone physique, décrit dans la politique d'accès physique pour les locaux. Ce document fixe les règles de leur revue régulière.
+  sources:
+  - revue_habilitations
+  audience: all
+  sha256: 9c55b71172fcccb8e3840f2bb161e8d100fd3b8b25d40560d0edfed4c2efff41
+  text: '# Revue des habilitations
+
+
+    Une habilitation est un droit d''accès à une application, un dossier partagé ou une zone physique, décrit dans la politique d''accès physique pour les locaux. Ce document fixe les règles de leur revue régulière.
+
+
+    ## Points clés
+
+    - Le compte d''un collaborateur qui quitte Exemplia est désactivé le jour de son départ, et ses habilitations sont retirées dans les 48 heures ; un compte sans propriétaire identifié, dit compte orphelin, est suspendu dès sa détection puis su…
+
+    - Les écarts constatés sont corrigés dans les 15 jours ouvrés.
+
+
+    ## Concepts
+
+    [[concept/compte]] · [[concept/dossier]] · [[concept/habilitations]] · [[concept/outil]] · [[concept/revue]]
+
+
+    Source : corpus/revue_habilitations.md'
+- id: source/formation_securite
+  kind: source
+  title_text: Formation à la sécurité
+  synthesis_text: Chaque collaborateur d'Exemplia suit une formation à la sécurité de l'information de 2 heures, en ligne, puis valide un questionnaire d'au moins 8 bonnes réponses sur 10 pour l'obtenir. Un nouvel arrivant la suit dans son premier mois ; elle est renouvelée chaque année pour tous.
+  sources:
+  - formation_securite
+  audience: all
+  sha256: 4f740f5db738481a8039bcf21ff97bd1612145fad7c121302e174d1541390329
+  text: '# Formation à la sécurité
+
+
+    Chaque collaborateur d''Exemplia suit une formation à la sécurité de l''information de 2 heures, en ligne, puis valide un questionnaire d''au moins 8 bonnes réponses sur 10 pour l''obtenir. Un nouvel arrivant la suit dans son premier mois ; elle est renouvelée chaque année pour tous.
+
+
+    ## Points clés
+
+    - Qui clique sur le lien simulé reçoit immédiatement une explication pédagogique et une formation complémentaire de 20 minutes ; aucune sanction n''est appliquée à une première simulation réussie par l''attaquant.
+
+
+    ## Concepts
+
+    [[concept/besoins]] · [[concept/entretien]] · [[concept/formation]] · [[concept/habilitations]] · [[concept/messagerie]] · [[concept/passe]] · [[concept/questionnaire]] · [[concept/revue]]
+
+
+    Source : corpus/formation_securite.md'
+- id: concept/admise
+  kind: concept
+  title_text: admise
+  synthesis_text: La première classe est admise pour un trajet de plus de 3 heures réservé la veille du départ ou le jour même, quand elle ne coûte pas plus de 20 % de plus que la seconde.
+  sources:
+  - deplacements
+  - sauvegardes
+  audience: all
+  sha256: 5a81c366899354f694996533849c5f1a8f1debbb28c5e7c1113d395c6c4f636b
+  text: '# admise
+
+
+    La première classe est admise pour un trajet de plus de 3 heures réservé la veille du départ ou le jour même, quand elle ne coûte pas plus de 20 % de plus que la seconde.
+
+
+    ## Ce qu''en disent les sources
+
+    - La première classe est admise pour un trajet de plus de 3 heures réservé la veille du départ ou le jour même, quand elle ne coûte pas plus de 20 % de plus que la seconde. ([[source/deplacements]])
+
+    - Pour les applications critiques, la perte de données maximale admise est de 4 heures et le service doit repartir en moins de 8 heures. ([[source/sauvegardes]])'
+- id: concept/applications
+  kind: concept
+  title_text: applications
+  synthesis_text: Les journaux de connexion aux applications sont gardés 12 mois, les enregistrements de la vidéosurveillance des locaux 30 jours, et les badges d'accès désactivés sont effacés 3 mois après le départ du collaborateur.
+  sources:
+  - donnees_personnelles
+  - sauvegardes
+  audience: all
+  sha256: 955109e46baf7ec05a42bb382bb5aad5cbfee8e42eb1e193ef5e2596856194f3
+  text: '# applications
+
+
+    Les journaux de connexion aux applications sont gardés 12 mois, les enregistrements de la vidéosurveillance des locaux 30 jours, et les badges d''accès désactivés sont effacés 3 mois après le départ du collaborateur.
+
+
+    ## Ce qu''en disent les sources
+
+    - Les journaux de connexion aux applications sont gardés 12 mois, les enregistrements de la vidéosurveillance des locaux 30 jours, et les badges d''accès désactivés sont effacés 3 mois après le départ du collaborateur. ([[source/donnees_personnelles]])
+
+    - Cette règle s''applique aux serveurs de fichiers, aux bases de données des applications et à la messagerie. ([[source/sauvegardes]])'
+- id: concept/astreinte
+  kind: concept
+  title_text: astreinte
+  synthesis_text: Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d'astreinte.
+  sources:
+  - incidents
+  - gestion_crise
+  - astreinte
+  audience: all
+  sha256: 26480204aa3b29bdf061ebe99fce75ba4963b7d59368bca8ac8269ec73645098
+  text: '# astreinte
+
+
+    Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d''astreinte.
+
+
+    ## Ce qu''en disent les sources
+
+    - Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d''astreinte. ([[source/incidents]])
+
+    - Pour savoir qui appeler la nuit, l''annexe des contacts d''astreinte liste les numéros à joindre selon l''heure et le domaine concerné. ([[source/gestion_crise]])
+
+    - Astreinte sécurité, à joindre en premier pour tout incident majeur de nuit ou le week-end : le numéro unique d''astreinte est le 06 07 08 09 10, suivi d''un répondeur qui bascule vers la personne de la semaine. ([[source/astreinte]])'
+- id: concept/badge
+  kind: concept
+  title_text: badge
+  synthesis_text: 'Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du badge devant l''imprimante.'
+  sources:
+  - classification
+  - uk_visitor_badges
+  - acces_physique
+  audience: all
+  sha256: d4dbab07f93f01c7c7e248365a99cb48dcc17bc26dc61c6db8540201cbc52e0a
+  text: '# badge
+
+
+    Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du badge devant l''imprimante.
+
+
+    ## Ce qu''en disent les sources
+
+    - Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du badge devant l''imprimante. ([[source/classification]])
+
+    - Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor register. ([[source/uk_visitor_badges]])
+
+    - Un badge personnel, remis à chaque collaborateur dès son arrivée, donne accès aux zones nécessaires à son poste. ([[source/acces_physique]])'
+- id: concept/besoins
+  kind: concept
+  title_text: besoins
+  synthesis_text: L'entretien couvre l'atteinte des objectifs de l'année écoulée, les besoins de formation, et les objectifs de l'année à venir, fixés d'un commun accord.
+  sources:
+  - entretiens_annuels
+  - formation_securite
+  audience: hr
+  sha256: b7faaf356971110436ff426bf688ba92ed80422355907963840b48757b649d3f
+  text: '# besoins
+
+
+    L''entretien couvre l''atteinte des objectifs de l''année écoulée, les besoins de formation, et les objectifs de l''année à venir, fixés d''un commun accord.
+
+
+    ## Ce qu''en disent les sources
+
+    - L''entretien couvre l''atteinte des objectifs de l''année écoulée, les besoins de formation, et les objectifs de l''année à venir, fixés d''un commun accord. ([[source/entretiens_annuels]])
+
+    - Les ressources humaines tiennent la liste des formations suivies, utile à la revue des habilitations et à l''entretien annuel pour les besoins de formation futurs. ([[source/formation_securite]])'
+- id: concept/charte
+  kind: concept
+  title_text: charte
+  synthesis_text: Exemplia encourage l'usage de l'intelligence artificielle générative pour gagner du temps sur la rédaction, la synthèse et la traduction, dans le respect de cette charte.
+  sources:
+  - ia_generative
+  - charte_messagerie_v1
+  - note_changement_messagerie
+  audience: all
+  sha256: 42f360297eac156b40f7c357788c472023ccd10fb73a378df57c696ec9ba0cf4
+  text: '# charte
+
+
+    Exemplia encourage l''usage de l''intelligence artificielle générative pour gagner du temps sur la rédaction, la synthèse et la traduction, dans le respect de cette charte.
+
+
+    ## Ce qu''en disent les sources
+
+    - Exemplia encourage l''usage de l''intelligence artificielle générative pour gagner du temps sur la rédaction, la synthèse et la traduction, dans le respect de cette charte. ([[source/ia_generative]])
+
+    - Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est conservée ici à titre d''archive, pour comprendre les décisions passées. ([[source/charte_messagerie_v1]])
+
+    - Cette note explique le passage de la version 1 à la version 2 de la charte de messagerie, effectif depuis le 1er janvier 2026. ([[source/note_changement_messagerie]])'
+- id: concept/clauses
+  kind: concept
+  title_text: clauses
+  synthesis_text: Dans les deux cas, le contrat signé reprend les clauses de sécurité du modèle d'Exemplia, détaillées dans un document séparé.
+  sources:
+  - prestataires
+  - clauses_contrats
+  - registre_sous_traitants
+  audience: all
+  sha256: 5d2db828965c499c4c7653562ea26530feb16b0b1a0e33fc6a643dd3649b7d51
+  text: '# clauses
+
+
+    Dans les deux cas, le contrat signé reprend les clauses de sécurité du modèle d''Exemplia, détaillées dans un document séparé.
+
+
+    ## Ce qu''en disent les sources
+
+    - Dans les deux cas, le contrat signé reprend les clauses de sécurité du modèle d''Exemplia, détaillées dans un document séparé. ([[source/prestataires]])
+
+    - Ce modèle complète la politique de sécurité des prestataires : il liste les clauses que la cellule fournisseurs insère dans tout contrat de prestation, selon le niveau du prestataire. ([[source/clauses_contrats]])
+
+    - Ce registre, tenu par la cellule fournisseurs et cité par le modèle de clauses de sécurité, liste chaque sous-traitant utilisé par un prestataire d''Exemplia : son nom, sa fonction, le pays où il héberge ou traite les données, et le niveau… ([[source/registre_sous_traitants]])'
+- id: concept/compte
+  kind: concept
+  title_text: compte
+  synthesis_text: Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères.
+  sources:
+  - mots_de_passe
+  - ia_generative
+  - grille_remunerations
+  - dossier_disciplinaire
+  - entretiens_annuels
+  - revue_habilitations
+  audience: hr
+  sha256: bad5eec6dc59d025bb962aedff72fa9fb64a51187bd552aa32fc03eda19e9092
+  text: '# compte
+
+
+    Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères.
+
+
+    ## Ce qu''en disent les sources
+
+    - Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères. ([[source/mots_de_passe]])
+
+    - Il est interdit d''y coller un contrat, un extrait de code source d''Exemplia, des données personnelles ou un compte rendu de réunion interne. ([[source/ia_generative]])
+
+    - La grille compte 5 catégories, de la catégorie A (postes d''entrée) à la catégorie E (direction), chacune divisée en 3 échelons selon l''ancienneté dans le poste. ([[source/grille_remunerations]])
+
+    - Un avertissement écrit reste au dossier 3 ans ; passé ce délai, il n''est plus pris en compte pour une mesure ultérieure, sauf récidive du même manquement avant son effacement. ([[source/dossier_disciplinaire]])
+
+    - Le compte rendu, rédigé par le responsable et relu par le collaborateur, est signé par les deux parties dans les 10 jours ouvrés qui suivent l''entretien. ([[source/entretiens_annuels]])
+
+    - Le compte d''un collaborateur qui quitte Exemplia est désactivé le jour de son départ, et ses habilitations sont retirées dans les 48 heures ; un compte sans propriétaire identifié, dit compte orphelin, est suspendu dès sa détection puis su… ([[source/revue_habilitations]])'
+- id: concept/confidentiel
+  kind: concept
+  title_text: confidentiel
+  synthesis_text: 'Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret.'
+  sources:
+  - classification
+  - incidents
+  - ia_generative
+  - grille_remunerations
+  - dossier_disciplinaire
+  audience: hr
+  sha256: b88df5e134b4f90933d72f98aabc3cb268d5137c7e7287528ce8a2389fadd67e
+  text: '# confidentiel
+
+
+    Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret.
+
+
+    ## Ce qu''en disent les sources
+
+    - Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret. ([[source/classification]])
+
+    - Un incident de sécurité est tout événement qui menace la confidentialité, l''intégrité ou la disponibilité des informations d''Exemplia : un courriel d''hameçonnage ouvert, un ordinateur portable perdu, un virus détecté, un document confident… ([[source/incidents]])
+
+    - Il accepte les informations jusqu''au niveau Confidentiel. ([[source/ia_generative]])
+
+    - Ce document décrit la structure des rémunérations d''Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines et à la direction. ([[source/grille_remunerations]])
+
+    - Ce document décrit les étapes d''une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines, à la direction et, pour un dossier qui le concerne, au collaborateur lui-même. ([[source/dossier_disciplinaire]])'
+- id: concept/contrat
+  kind: concept
+  title_text: contrat
+  synthesis_text: Tout collaborateur en contrat à durée indéterminée peut télétravailler jusqu'à 3 jours par semaine, après une période d'intégration de 2 mois.
+  sources:
+  - teletravail
+  - donnees_personnelles
+  - ia_generative
+  - prestataires
+  - clauses_contrats
+  audience: all
+  sha256: d730eb546e30a462e5cb2825cae3e22bdec8447856ec40f0c16e14a37fd9ed02
+  text: '# contrat
+
+
+    Tout collaborateur en contrat à durée indéterminée peut télétravailler jusqu''à 3 jours par semaine, après une période d''intégration de 2 mois.
+
+
+    ## Ce qu''en disent les sources
+
+    - Tout collaborateur en contrat à durée indéterminée peut télétravailler jusqu''à 3 jours par semaine, après une période d''intégration de 2 mois. ([[source/teletravail]])
+
+    - Les données des clients sont conservées pendant toute la relation contractuelle, puis archivées 5 ans après la fin du contrat. ([[source/donnees_personnelles]])
+
+    - Il est interdit d''y coller un contrat, un extrait de code source d''Exemplia, des données personnelles ou un compte rendu de réunion interne. ([[source/ia_generative]])
+
+    - Le niveau est fixé par la cellule fournisseurs avant la signature du contrat, et révisé chaque année. ([[source/prestataires]])
+
+    - Ce modèle complète la politique de sécurité des prestataires : il liste les clauses que la cellule fournisseurs insère dans tout contrat de prestation, selon le niveau du prestataire. ([[source/clauses_contrats]])'
+- id: concept/courriel
+  kind: concept
+  title_text: courriel
+  synthesis_text: Le support informatique ne demande jamais un mot de passe, ni par téléphone, ni par courriel.
+  sources:
+  - mots_de_passe
+  - teletravail
+  - classification
+  - incidents
+  - donnees_personnelles
+  audience: all
+  sha256: aba271cc21f58a822c2fce64f2b1be498a282aba5a60758a06062c3e103898e7
+  text: '# courriel
+
+
+    Le support informatique ne demande jamais un mot de passe, ni par téléphone, ni par courriel.
+
+
+    ## Ce qu''en disent les sources
+
+    - Le support informatique ne demande jamais un mot de passe, ni par téléphone, ni par courriel. ([[source/mots_de_passe]])
+
+    - En dehors de ces plages, le droit à la déconnexion s''applique : aucun courriel envoyé après 20 h n''appelle de réponse avant le lendemain. ([[source/teletravail]])
+
+    - Un document Secret n''est jamais envoyé par courriel : il se consulte uniquement dans la salle de données, sur un poste sans connexion à internet, et chaque consultation est inscrite dans un registre signé. ([[source/classification]])
+
+    - Un incident de sécurité est tout événement qui menace la confidentialité, l''intégrité ou la disponibilité des informations d''Exemplia : un courriel d''hameçonnage ouvert, un ordinateur portable perdu, un virus détecté, un document confident… ([[source/incidents]])
+
+    - Les copies de travail, extractions dans un tableur ou fichiers envoyés par courriel, suivent les mêmes durées que le traitement d''origine : il appartient à chacun de les supprimer. ([[source/donnees_personnelles]])'
+- id: concept/crise
+  kind: concept
+  title_text: crise
+  synthesis_text: Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d'astreinte.
+  sources:
+  - incidents
+  - gestion_crise
+  - astreinte
+  - plan_continuite_lyon
+  - acces_physique
+  audience: all
+  sha256: 3b778307560a8916c0d3bcfe5af3c2d20a3d61538fe41076b821d55d39cccd0f
+  text: '# crise
+
+
+    Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d''astreinte.
+
+
+    ## Ce qu''en disent les sources
+
+    - Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d''astreinte. ([[source/incidents]])
+
+    - La cellule de crise se réunit en moins de 2 heures, jour et nuit, sous la présidence du directeur général ou, en son absence, du directeur de crise de permanence. ([[source/gestion_crise]])
+
+    - Cette annexe de la procédure de gestion de crise liste les contacts à joindre en dehors des heures ouvrées, jour et nuit, selon le domaine concerné. ([[source/astreinte]])
+
+    - L''activation du plan est décidée par le directeur de site de Lyon, ou par la cellule de crise si l''incident dépasse ce seul site. ([[source/plan_continuite_lyon]])
+
+    - Chaque site d''Exemplia est divisé en 3 zones : normale (accueil, open space), restreinte (salles de réunion sensibles, locaux techniques) et sécurisée (salle serveurs, salle de crise). ([[source/acces_physique]])'
+- id: concept/deplacement
+  kind: concept
+  title_text: déplacement
+  synthesis_text: 'Le mardi est le jour d''équipe : chacun est présent sur site ce jour-là, sauf absence ou déplacement.'
+  sources:
+  - teletravail
+  - deplacements
+  audience: all
+  sha256: 4ed137b26eacd95e870eb634c24af301af72d5fe791c4b4860055a221214444c
+  text: '# déplacement
+
+
+    Le mardi est le jour d''équipe : chacun est présent sur site ce jour-là, sauf absence ou déplacement.
+
+
+    ## Ce qu''en disent les sources
+
+    - Le mardi est le jour d''équipe : chacun est présent sur site ce jour-là, sauf absence ou déplacement. ([[source/teletravail]])
+
+    - Tout déplacement professionnel est validé à l''avance par le manager dans l''outil de réservation Voyagex, qui applique automatiquement les règles ci-dessous. ([[source/deplacements]])'
+- id: concept/directeur
+  kind: concept
+  title_text: directeur
+  synthesis_text: Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d'astreinte.
+  sources:
+  - incidents
+  - gestion_crise
+  - astreinte
+  - plan_continuite_lyon
+  audience: all
+  sha256: be05a9b4adbb202719bac19cd116e95014f370751f78afb293b2820f38c3c8a1
+  text: '# directeur
+
+
+    Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d''astreinte.
+
+
+    ## Ce qu''en disent les sources
+
+    - Un incident de niveau 3 déclenche la cellule de crise, réunie en moins de 2 heures sous la présidence du directeur général, selon la procédure de gestion de crise et son annexe des contacts d''astreinte. ([[source/incidents]])
+
+    - La cellule de crise se réunit en moins de 2 heures, jour et nuit, sous la présidence du directeur général ou, en son absence, du directeur de crise de permanence. ([[source/gestion_crise]])
+
+    - Si la personne d''astreinte sécurité ne répond pas dans les 30 minutes, l''appel est escaladé directement au responsable de la sécurité des systèmes d''information, puis au directeur général si celui-ci reste injoignable à son tour. ([[source/astreinte]])
+
+    - Si le site principal de Lyon devient inaccessible, pour cause d''incendie, de panne électrique prolongée ou d''évacuation, le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la décision du directeur de site. ([[source/plan_continuite_lyon]])'
+- id: concept/direction
+  kind: concept
+  title_text: direction
+  synthesis_text: Le second facteur est l'application ExempliaPass sur le téléphone professionnel ; une clé physique de sécurité est remise aux administrateurs et aux membres du comité de direction.
+  sources:
+  - mots_de_passe
+  - teletravail
+  - gestion_crise
+  - grille_remunerations
+  - dossier_disciplinaire
+  audience: hr
+  sha256: 7390cfee36ab96cf738ec973ab5c2319b99f88d87a969c5c1ee435e3fd016a3b
+  text: '# direction
+
+
+    Le second facteur est l''application ExempliaPass sur le téléphone professionnel ; une clé physique de sécurité est remise aux administrateurs et aux membres du comité de direction.
+
+
+    ## Ce qu''en disent les sources
+
+    - Le second facteur est l''application ExempliaPass sur le téléphone professionnel ; une clé physique de sécurité est remise aux administrateurs et aux membres du comité de direction. ([[source/mots_de_passe]])
+
+    - Le télétravail depuis l''étranger est limité à 20 jours par année civile, avec l''accord écrit du manager et de la direction des ressources humaines, pour des raisons fiscales et de protection sociale. ([[source/teletravail]])
+
+    - La cellule de crise comprend, au minimum, le responsable de la sécurité des systèmes d''information, le directeur de la communication, le délégué à la protection des données si des données personnelles sont concernées, et un représentant de… ([[source/gestion_crise]])
+
+    - Ce document décrit la structure des rémunérations d''Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines et à la direction. ([[source/grille_remunerations]])
+
+    - Ce document décrit les étapes d''une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines, à la direction et, pour un dossier qui le concerne, au collaborateur lui-même. ([[source/dossier_disciplinaire]])'
+- id: concept/donnee
+  kind: concept
+  title_text: donnée
+  synthesis_text: Une donnée personnelle n'est conservée que le temps nécessaire à la finalité pour laquelle elle a été collectée.
+  sources:
+  - donnees_personnelles
+  - sauvegardes
+  - clauses_contrats
+  audience: all
+  sha256: b8c69297db8f65fbd9d6197ccb061aa756ec27e9ecd052df358a50bc78d27554
+  text: '# donnée
+
+
+    Une donnée personnelle n''est conservée que le temps nécessaire à la finalité pour laquelle elle a été collectée.
+
+
+    ## Ce qu''en disent les sources
+
+    - Une donnée personnelle n''est conservée que le temps nécessaire à la finalité pour laquelle elle a été collectée. ([[source/donnees_personnelles]])
+
+    - Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 copie conservée hors du site principal. ([[source/sauvegardes]])
+
+    - Clause de chiffrement : toute donnée d''Exemplia stockée par le prestataire est chiffrée au repos avec un algorithme d''au moins 256 bits, et en transit par un protocole à jour. ([[source/clauses_contrats]])'
+- id: concept/dossier
+  kind: concept
+  title_text: dossier
+  synthesis_text: Ce document décrit les étapes d'une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines, à la direction et, pour un dossier qui le concerne, au collaborateur lui-même.
+  sources:
+  - dossier_disciplinaire
+  - revue_habilitations
+  audience: hr
+  sha256: 1065ac6be0b5b3f0d03db80c3f35fc327346d4e851249e805f9d736ce9c87f8d
+  text: '# dossier
+
+
+    Ce document décrit les étapes d''une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines, à la direction et, pour un dossier qui le concerne, au collaborateur lui-même.
+
+
+    ## Ce qu''en disent les sources
+
+    - Ce document décrit les étapes d''une procédure disciplinaire chez Exemplia ; il est classé confidentiel et son accès est réservé aux ressources humaines, à la direction et, pour un dossier qui le concerne, au collaborateur lui-même. ([[source/dossier_disciplinaire]])
+
+    - Une habilitation est un droit d''accès à une application, un dossier partagé ou une zone physique, décrit dans la politique d''accès physique pour les locaux. ([[source/revue_habilitations]])'
+- id: concept/ecrit
+  kind: concept
+  title_text: écrit
+  synthesis_text: Le télétravail depuis l'étranger est limité à 20 jours par année civile, avec l'accord écrit du manager et de la direction des ressources humaines, pour des raisons fiscales et de protection sociale.
+  sources:
+  - teletravail
+  - incidents
+  - prestataires
+  - grille_remunerations
+  - dossier_disciplinaire
+  audience: hr
+  sha256: db7bcc44548ab0c66539378d90a199952f27b16b363462e6254cd6f715563381
+  text: '# écrit
+
+
+    Le télétravail depuis l''étranger est limité à 20 jours par année civile, avec l''accord écrit du manager et de la direction des ressources humaines, pour des raisons fiscales et de protection sociale.
+
+
+    ## Ce qu''en disent les sources
+
+    - Le télétravail depuis l''étranger est limité à 20 jours par année civile, avec l''accord écrit du manager et de la direction des ressources humaines, pour des raisons fiscales et de protection sociale. ([[source/teletravail]])
+
+    - Chaque incident de niveau 2 ou 3 donne lieu à un retour d''expérience écrit, rédigé sous 15 jours ouvrés, qui décrit la chronologie, la cause et les mesures prises pour éviter qu''il ne se reproduise. ([[source/incidents]])
+
+    - À la fin d''un contrat, le prestataire efface les données d''Exemplia et le confirme par écrit dans un délai fixé par les clauses du contrat. ([[source/prestataires]])
+
+    - Le passage d''un échelon à l''autre est automatique après 2 ans, sauf gel motivé par écrit. ([[source/grille_remunerations]])
+
+    - Une anomalie de comportement ou un manquement donne lieu, selon sa gravité, à l''une de ces mesures : un rappel oral, un avertissement écrit versé au dossier, une mise à pied de 1 à 5 jours sans salaire, ou un licenciement pour faute. ([[source/dossier_disciplinaire]])'
+- id: concept/entretien
+  kind: concept
+  title_text: entretien
+  synthesis_text: Le passage d'une catégorie à l'autre résulte d'une promotion décidée après l'entretien annuel.
+  sources:
+  - grille_remunerations
+  - dossier_disciplinaire
+  - entretiens_annuels
+  - formation_securite
+  audience: hr
+  sha256: 935971855a7370d623b8d273ab68e971eccd17adb22a914aa8b46d56e957c8eb
+  text: '# entretien
+
+
+    Le passage d''une catégorie à l''autre résulte d''une promotion décidée après l''entretien annuel.
+
+
+    ## Ce qu''en disent les sources
+
+    - Le passage d''une catégorie à l''autre résulte d''une promotion décidée après l''entretien annuel. ([[source/grille_remunerations]])
+
+    - Chaque mesure, hors rappel oral, est précédée d''un entretien où le collaborateur peut se faire assister par une personne de son choix. ([[source/dossier_disciplinaire]])
+
+    - Ce document décrit l''entretien annuel d''Exemplia, mené par le responsable direct de chaque collaborateur ; il est classé document des ressources humaines. ([[source/entretiens_annuels]])
+
+    - Un échec au questionnaire, après deux tentatives, entraîne un entretien avec le responsable direct et une nouvelle session dans le mois. ([[source/formation_securite]])'
+- id: concept/euros
+  kind: concept
+  title_text: euros
+  synthesis_text: Exemplia verse une indemnité de 2,50 euros par jour télétravaillé, dans la limite de 55 euros par mois.
+  sources:
+  - teletravail
+  - deplacements
+  audience: all
+  sha256: 9926e8c78f85daf3f827773696b3c9cb216f614358325f7492f1e485df07b6d5
+  text: '# euros
+
+
+    Exemplia verse une indemnité de 2,50 euros par jour télétravaillé, dans la limite de 55 euros par mois.
+
+
+    ## Ce qu''en disent les sources
+
+    - Exemplia verse une indemnité de 2,50 euros par jour télétravaillé, dans la limite de 55 euros par mois. ([[source/teletravail]])
+
+    - La nuit d''hôtel est remboursée dans la limite de 130 euros à Paris et de 95 euros dans les autres villes, petit déjeuner compris. ([[source/deplacements]])'
+- id: concept/formation
+  kind: concept
+  title_text: formation
+  synthesis_text: Avant d'obtenir l'accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un questionnaire avec au moins 8 bonnes réponses sur 10.
+  sources:
+  - ia_generative
+  - entretiens_annuels
+  - formation_securite
+  audience: hr
+  sha256: 143596ffe6bc804db90a7b2cb49f413f53ba31948adb011205d033600dcd9570
+  text: '# formation
+
+
+    Avant d''obtenir l''accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un questionnaire avec au moins 8 bonnes réponses sur 10.
+
+
+    ## Ce qu''en disent les sources
+
+    - Avant d''obtenir l''accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un questionnaire avec au moins 8 bonnes réponses sur 10. ([[source/ia_generative]])
+
+    - L''entretien couvre l''atteinte des objectifs de l''année écoulée, les besoins de formation, et les objectifs de l''année à venir, fixés d''un commun accord. ([[source/entretiens_annuels]])
+
+    - Chaque collaborateur d''Exemplia suit une formation à la sécurité de l''information de 2 heures, en ligne, puis valide un questionnaire d''au moins 8 bonnes réponses sur 10 pour l''obtenir. ([[source/formation_securite]])'
+- id: concept/grille
+  kind: concept
+  title_text: grille
+  synthesis_text: La grille compte 5 catégories, de la catégorie A (postes d'entrée) à la catégorie E (direction), chacune divisée en 3 échelons selon l'ancienneté dans le poste.
+  sources:
+  - grille_remunerations
+  - entretiens_annuels
+  audience: hr
+  sha256: baa3d2210a861c33bb715d84f59f2dc7855c787aa038b85a78e975f51d0b83f0
+  text: '# grille
+
+
+    La grille compte 5 catégories, de la catégorie A (postes d''entrée) à la catégorie E (direction), chacune divisée en 3 échelons selon l''ancienneté dans le poste.
+
+
+    ## Ce qu''en disent les sources
+
+    - La grille compte 5 catégories, de la catégorie A (postes d''entrée) à la catégorie E (direction), chacune divisée en 3 échelons selon l''ancienneté dans le poste. ([[source/grille_remunerations]])
+
+    - Il sert aussi de base à une éventuelle proposition de promotion vers la grille des rémunérations, examinée ensuite par le comité de rémunération. ([[source/entretiens_annuels]])'
+- id: concept/habilitations
+  kind: concept
+  title_text: habilitations
+  synthesis_text: Chaque accès, badge accepté ou refusé, est enregistré et conservé 6 mois, consulté lors d'une enquête de sécurité ou de la revue des habilitations.
+  sources:
+  - acces_physique
+  - revue_habilitations
+  - formation_securite
+  audience: all
+  sha256: 62dc482dc2dc75493cb77d745cfb32b6110f716ec1bfdb725b363133fe7c1b7b
+  text: '# habilitations
+
+
+    Chaque accès, badge accepté ou refusé, est enregistré et conservé 6 mois, consulté lors d''une enquête de sécurité ou de la revue des habilitations.
+
+
+    ## Ce qu''en disent les sources
+
+    - Chaque accès, badge accepté ou refusé, est enregistré et conservé 6 mois, consulté lors d''une enquête de sécurité ou de la revue des habilitations. ([[source/acces_physique]])
+
+    - Chaque responsable revoit, chaque trimestre, la liste des habilitations de son équipe : il confirme celles qui restent nécessaires et signale celles à retirer, par exemple après un changement de poste. ([[source/revue_habilitations]])
+
+    - Les ressources humaines tiennent la liste des formations suivies, utile à la revue des habilitations et à l''entretien annuel pour les besoins de formation futurs. ([[source/formation_securite]])'
+- id: concept/incident
+  kind: concept
+  title_text: incident
+  synthesis_text: Une erreur de classification n'est pas une faute, mais une information Secret diffusée par erreur doit être signalée comme un incident de sécurité.
+  sources:
+  - classification
+  - incidents
+  - sauvegardes
+  - prestataires
+  - clauses_contrats
+  - gestion_crise
+  - astreinte
+  - plan_continuite_lyon
+  audience: all
+  sha256: c85c8ef432fcf4ce44e8138c315bec479f2cd04103b416bc5918328ac5cd3968
+  text: '# incident
+
+
+    Une erreur de classification n''est pas une faute, mais une information Secret diffusée par erreur doit être signalée comme un incident de sécurité.
+
+
+    ## Ce qu''en disent les sources
+
+    - Une erreur de classification n''est pas une faute, mais une information Secret diffusée par erreur doit être signalée comme un incident de sécurité. ([[source/classification]])
+
+    - Un incident de sécurité est tout événement qui menace la confidentialité, l''intégrité ou la disponibilité des informations d''Exemplia : un courriel d''hameçonnage ouvert, un ordinateur portable perdu, un virus détecté, un document confident… ([[source/incidents]])
+
+    - Le résultat de chaque test est consigné dans le registre de l''équipe d''exploitation ; un échec est traité comme un incident de niveau 2. ([[source/sauvegardes]])
+
+    - Tout incident de sécurité survenu chez un prestataire doit être signalé à Exemplia, selon le délai fixé dans son contrat. ([[source/prestataires]])
+
+    - Clause de notification : un prestataire signale à Exemplia tout incident de sécurité touchant les données ou les systèmes d''Exemplia dans les 24 heures qui suivent sa découverte, même en cas de doute. ([[source/clauses_contrats]])
+
+    - Cette procédure prend le relais de la procédure de signalement des incidents dès qu''un incident de niveau 3 est déclaré, ou quand plusieurs sites d''Exemplia sont touchés en même temps. ([[source/gestion_crise]])
+
+    - Astreinte sécurité, à joindre en premier pour tout incident majeur de nuit ou le week-end : le numéro unique d''astreinte est le 06 07 08 09 10, suivi d''un répondeur qui bascule vers la personne de la semaine. ([[source/astreinte]])
+
+    - L''activation du plan est décidée par le directeur de site de Lyon, ou par la cellule de crise si l''incident dépasse ce seul site. ([[source/plan_continuite_lyon]])'
+- id: concept/informations
+  kind: concept
+  title_text: informations
+  synthesis_text: Le niveau Secret est réservé à une liste courte d'informations stratégiques, comme les projets de rachat ou les plans de continuité détaillés.
+  sources:
+  - classification
+  - incidents
+  - ia_generative
+  - prestataires
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  audience: all
+  sha256: e1f1ed276c21311b593fdc9b9587aa7805a778ecb02d3983bf0ca6d6cb9b03f3
+  text: '# informations
+
+
+    Le niveau Secret est réservé à une liste courte d''informations stratégiques, comme les projets de rachat ou les plans de continuité détaillés.
+
+
+    ## Ce qu''en disent les sources
+
+    - Le niveau Secret est réservé à une liste courte d''informations stratégiques, comme les projets de rachat ou les plans de continuité détaillés. ([[source/classification]])
+
+    - Un incident de sécurité est tout événement qui menace la confidentialité, l''intégrité ou la disponibilité des informations d''Exemplia : un courriel d''hameçonnage ouvert, un ordinateur portable perdu, un virus détecté, un document confident… ([[source/incidents]])
+
+    - Il accepte les informations jusqu''au niveau Confidentiel. ([[source/ia_generative]])
+
+    - Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres. ([[source/prestataires]])
+
+    - Un message envoyé par erreur à un mauvais destinataire externe est signalé à la cellule de réponse aux incidents dans l''heure, surtout s''il contient des informations confidentielles ou des données personnelles. ([[source/charte_messagerie_v1]])
+
+    - Un message envoyé par erreur à un mauvais destinataire externe reste signalé à la cellule de réponse aux incidents dans l''heure, surtout s''il contient des informations confidentielles ou des données personnelles. ([[source/charte_messagerie_v2]])'
+- id: concept/manager
+  kind: concept
+  title_text: manager
+  synthesis_text: Un manager peut demander une présence exceptionnelle avec un préavis de 48 heures.
+  sources:
+  - teletravail
+  - deplacements
+  audience: all
+  sha256: e6e5528beecefbdc653ce74687f534b0256165fff9a0b743427da133bf681541
+  text: '# manager
+
+
+    Un manager peut demander une présence exceptionnelle avec un préavis de 48 heures.
+
+
+    ## Ce qu''en disent les sources
+
+    - Un manager peut demander une présence exceptionnelle avec un préavis de 48 heures. ([[source/teletravail]])
+
+    - Tout déplacement professionnel est validé à l''avance par le manager dans l''outil de réservation Voyagex, qui applique automatiquement les règles ci-dessous. ([[source/deplacements]])'
+- id: concept/message
+  kind: concept
+  title_text: message
+  synthesis_text: La cellule de crise communique un point de situation toutes les 2 heures aux directions concernées, et un message unique aux collaborateurs est validé avant toute diffusion.
+  sources:
+  - gestion_crise
+  - astreinte
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - note_changement_messagerie
+  audience: all
+  sha256: 5fa6456f868ee152aadce5b83df50898e4f7c9f08758d772cb19ca4a79917e2d
+  text: '# message
+
+
+    La cellule de crise communique un point de situation toutes les 2 heures aux directions concernées, et un message unique aux collaborateurs est validé avant toute diffusion.
+
+
+    ## Ce qu''en disent les sources
+
+    - La cellule de crise communique un point de situation toutes les 2 heures aux directions concernées, et un message unique aux collaborateurs est validé avant toute diffusion. ([[source/gestion_crise]])
+
+    - Astreinte communication, pour préparer un message externe en urgence : poste 4200. ([[source/astreinte]])
+
+    - Chaque message, avec ses pièces jointes, ne dépasse pas 10 Mo ; au-delà, un lien de partage temporaire doit être utilisé. ([[source/charte_messagerie_v1]])
+
+    - La messagerie professionnelle reste réservée à un usage professionnel, mais un usage personnel occasionnel et raisonnable est désormais toléré, par exemple un message bref à caractère privé. ([[source/charte_messagerie_v2]])
+
+    - D''abord, la taille maximale d''un message passe de 10 Mo à 25 Mo. ([[source/note_changement_messagerie]])'
+- id: concept/messagerie
+  kind: concept
+  title_text: messagerie
+  synthesis_text: Il est interdit de noter un mot de passe sur papier, dans un fichier texte ou dans la messagerie, et de réutiliser un mot de passe professionnel sur un site personnel.
+  sources:
+  - mots_de_passe
+  - incidents
+  - sauvegardes
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - note_changement_messagerie
+  - formation_securite
+  audience: all
+  sha256: 8b0e95559488b7929c7fadd29d65198c1fc37474b7784aea771a69dab977f20b
+  text: '# messagerie
+
+
+    Il est interdit de noter un mot de passe sur papier, dans un fichier texte ou dans la messagerie, et de réutiliser un mot de passe professionnel sur un site personnel.
+
+
+    ## Ce qu''en disent les sources
+
+    - Il est interdit de noter un mot de passe sur papier, dans un fichier texte ou dans la messagerie, et de réutiliser un mot de passe professionnel sur un site personnel. ([[source/mots_de_passe]])
+
+    - Elle est joignable jour et nuit au numéro interne 4242, ou à l''adresse de messagerie dédiée indiquée sur l''intranet. ([[source/incidents]])
+
+    - Cette règle s''applique aux serveurs de fichiers, aux bases de données des applications et à la messagerie. ([[source/sauvegardes]])
+
+    - Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est conservée ici à titre d''archive, pour comprendre les décisions passées. ([[source/charte_messagerie_v1]])
+
+    - Cette version remplace la version 1 depuis le 1er janvier 2026, à la suite du changement de fournisseur de messagerie décrit dans la note de changement associée : c''est la version en vigueur. ([[source/charte_messagerie_v2]])
+
+    - Cette note explique le passage de la version 1 à la version 2 de la charte de messagerie, effectif depuis le 1er janvier 2026. ([[source/note_changement_messagerie]])
+
+    - La formation couvre le signalement des incidents, la politique des mots de passe, la classification de l''information et les bons usages de la messagerie et de l''IA générative. ([[source/formation_securite]])'
+- id: concept/outil
+  kind: concept
+  title_text: outil
+  synthesis_text: Les jours de télétravail sont déclarés dans l'outil RH au plus tard le vendredi précédent.
+  sources:
+  - teletravail
+  - classification
+  - ia_generative
+  - deplacements
+  - revue_habilitations
+  audience: all
+  sha256: 95bfc24143f97a7407bcc764d58a7f4a9f14e517df67eaeb10d6e22f939eb7b1
+  text: '# outil
+
+
+    Les jours de télétravail sont déclarés dans l''outil RH au plus tard le vendredi précédent.
+
+
+    ## Ce qu''en disent les sources
+
+    - Les jours de télétravail sont déclarés dans l''outil RH au plus tard le vendredi précédent. ([[source/teletravail]])
+
+    - Un document Confidentiel ne quitte le réseau d''Exemplia que chiffré, avec l''outil de partage sécurisé Transvault ; le lien de partage expire au bout de 7 jours. ([[source/classification]])
+
+    - L''outil de référence est ExempliaGPT, un assistant hébergé dans le centre de données d''Exemplia : les textes qu''on lui confie ne quittent pas l''entreprise et ne servent à entraîner aucun modèle. ([[source/ia_generative]])
+
+    - Tout déplacement professionnel est validé à l''avance par le manager dans l''outil de réservation Voyagex, qui applique automatiquement les règles ci-dessous. ([[source/deplacements]])
+
+    - La revue est consignée dans l''outil de gestion des accès, avec la date et le nom du responsable. ([[source/revue_habilitations]])'
+- id: concept/passe
+  kind: concept
+  title_text: passe
+  synthesis_text: Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères.
+  sources:
+  - mots_de_passe
+  - note_changement_messagerie
+  - dossier_disciplinaire
+  - formation_securite
+  audience: hr
+  sha256: e1dcb84092d8bc68e8f6b53de3945e2136f816c6b67ff8ac6c3eab7a40f480df
+  text: '# passe
+
+
+    Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères.
+
+
+    ## Ce qu''en disent les sources
+
+    - Chez Exemplia, un mot de passe de compte utilisateur compte au minimum 14 caractères. ([[source/mots_de_passe]])
+
+    - D''abord, la taille maximale d''un message passe de 10 Mo à 25 Mo. ([[source/note_changement_messagerie]])
+
+    - Un avertissement écrit reste au dossier 3 ans ; passé ce délai, il n''est plus pris en compte pour une mesure ultérieure, sauf récidive du même manquement avant son effacement. ([[source/dossier_disciplinaire]])
+
+    - La formation couvre le signalement des incidents, la politique des mots de passe, la classification de l''information et les bons usages de la messagerie et de l''IA générative. ([[source/formation_securite]])'
+- id: concept/pendant
+  kind: concept
+  title_text: pendant
+  synthesis_text: Après 5 tentatives de connexion échouées, un compte est verrouillé pendant 15 minutes.
+  sources:
+  - mots_de_passe
+  - donnees_personnelles
+  - sauvegardes
+  audience: all
+  sha256: aa8f3f41480db29f5dc59696fc55b3de4cc1f59b4b379f436bdefc502edfd94e
+  text: '# pendant
+
+
+    Après 5 tentatives de connexion échouées, un compte est verrouillé pendant 15 minutes.
+
+
+    ## Ce qu''en disent les sources
+
+    - Après 5 tentatives de connexion échouées, un compte est verrouillé pendant 15 minutes. ([[source/mots_de_passe]])
+
+    - Le registre des traitements d''Exemplia fixe pour chaque traitement une durée active, pendant laquelle les services utilisent la donnée, puis une durée d''archivage, pendant laquelle seul le service juridique peut y accéder. ([[source/donnees_personnelles]])
+
+    - Un fichier supprimé par erreur peut être restauré par le support pendant les 35 jours de conservation, sur simple demande. ([[source/sauvegardes]])'
+- id: concept/personne
+  kind: concept
+  title_text: personne
+  synthesis_text: Toute personne peut exercer ses droits d'accès, de rectification et d'effacement en écrivant au délégué à la protection des données.
+  sources:
+  - donnees_personnelles
+  - ia_generative
+  - deplacements
+  - astreinte
+  - dossier_disciplinaire
+  audience: hr
+  sha256: d161cef40d56d47c2c2e5c4a2bad844d2e289d9f28f8af597189eb260402944e
+  text: '# personne
+
+
+    Toute personne peut exercer ses droits d''accès, de rectification et d''effacement en écrivant au délégué à la protection des données.
+
+
+    ## Ce qu''en disent les sources
+
+    - Toute personne peut exercer ses droits d''accès, de rectification et d''effacement en écrivant au délégué à la protection des données. ([[source/donnees_personnelles]])
+
+    - Un contenu produit par une IA est toujours relu par un humain avant d''être diffusé, et la personne qui le diffuse en reste responsable. ([[source/ia_generative]])
+
+    - Un repas pris en déplacement est remboursé jusqu''à 22 euros ; le repas pris avec un client est remboursé sur facture, à hauteur de 60 euros par personne, avec le nom de l''entreprise invitée. ([[source/deplacements]])
+
+    - Astreinte sécurité, à joindre en premier pour tout incident majeur de nuit ou le week-end : le numéro unique d''astreinte est le 06 07 08 09 10, suivi d''un répondeur qui bascule vers la personne de la semaine. ([[source/astreinte]])
+
+    - Chaque mesure, hors rappel oral, est précédée d''un entretien où le collaborateur peut se faire assister par une personne de son choix. ([[source/dossier_disciplinaire]])'
+- id: concept/prestataire
+  kind: concept
+  title_text: prestataire
+  synthesis_text: 'Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres.'
+  sources:
+  - prestataires
+  - clauses_contrats
+  - registre_sous_traitants
+  audience: all
+  sha256: 770388fab0260131b8853da3085e47b565c44171449917e9d1e3e1b0a1948fee
+  text: '# prestataire
+
+
+    Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres.
+
+
+    ## Ce qu''en disent les sources
+
+    - Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres. ([[source/prestataires]])
+
+    - Ce modèle complète la politique de sécurité des prestataires : il liste les clauses que la cellule fournisseurs insère dans tout contrat de prestation, selon le niveau du prestataire. ([[source/clauses_contrats]])
+
+    - Ce registre, tenu par la cellule fournisseurs et cité par le modèle de clauses de sécurité, liste chaque sous-traitant utilisé par un prestataire d''Exemplia : son nom, sa fonction, le pays où il héberge ou traite les données, et le niveau… ([[source/registre_sous_traitants]])'
+- id: concept/principal
+  kind: concept
+  title_text: principal
+  synthesis_text: 'Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 copie conservée hors du site principal.'
+  sources:
+  - sauvegardes
+  - plan_continuite_lyon
+  audience: all
+  sha256: 12dff25dbc314b83a300c5d6321aa5f981c02b063d8dfe76e618f1e4c80eff66
+  text: '# principal
+
+
+    Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 copie conservée hors du site principal.
+
+
+    ## Ce qu''en disent les sources
+
+    - Les données d''Exemplia suivent la règle 3-2-1 : au moins 3 copies de chaque donnée, sur 2 supports différents, dont 1 copie conservée hors du site principal. ([[source/sauvegardes]])
+
+    - Si le site principal de Lyon devient inaccessible, pour cause d''incendie, de panne électrique prolongée ou d''évacuation, le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la décision du directeur de site. ([[source/plan_continuite_lyon]])'
+- id: concept/questionnaire
+  kind: concept
+  title_text: questionnaire
+  synthesis_text: Avant d'obtenir l'accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un questionnaire avec au moins 8 bonnes réponses sur 10.
+  sources:
+  - ia_generative
+  - prestataires
+  - formation_securite
+  audience: all
+  sha256: b4cc6ff3ef4f9ffccfe65d07b837dc7ecf3760aa21296a1015f8125b3d446bd4
+  text: '# questionnaire
+
+
+    Avant d''obtenir l''accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un questionnaire avec au moins 8 bonnes réponses sur 10.
+
+
+    ## Ce qu''en disent les sources
+
+    - Avant d''obtenir l''accès à ExempliaGPT, chaque collaborateur suit une formation en ligne de 3 heures, puis valide un questionnaire avec au moins 8 bonnes réponses sur 10. ([[source/ia_generative]])
+
+    - Un prestataire standard répond à un questionnaire de sécurité annuel. ([[source/prestataires]])
+
+    - Chaque collaborateur d''Exemplia suit une formation à la sécurité de l''information de 2 heures, en ligne, puis valide un questionnaire d''au moins 8 bonnes réponses sur 10 pour l''obtenir. ([[source/formation_securite]])'
+- id: concept/revue
+  kind: concept
+  title_text: revue
+  synthesis_text: 'Chaque entrée du registre est revue chaque trimestre par la cellule fournisseurs : un sous-traitant qui n''est plus utilisé est retiré, et un nouveau sous-traitant n''est ajouté qu''après la vérification de ses propres garanties de sécurité,…'
+  sources:
+  - registre_sous_traitants
+  - plan_continuite_lyon
+  - acces_physique
+  - revue_habilitations
+  - formation_securite
+  audience: all
+  sha256: 80e0ed1ecd21093e1c6fcd4b0e68e3c3af45e56b4a4c45b557af62d2a24a24bd
+  text: '# revue
+
+
+    Chaque entrée du registre est revue chaque trimestre par la cellule fournisseurs : un sous-traitant qui n''est plus utilisé est retiré, et un nouveau sous-traitant n''est ajouté qu''après la vérification de ses propres garanties de sécurité,…
+
+
+    ## Ce qu''en disent les sources
+
+    - Chaque entrée du registre est revue chaque trimestre par la cellule fournisseurs : un sous-traitant qui n''est plus utilisé est retiré, et un nouveau sous-traitant n''est ajouté qu''après la vérification de ses propres garanties de sécurité,… ([[source/registre_sous_traitants]])
+
+    - La liste des équipes prioritaires, celles qui doivent rejoindre le site de repli en premier, est affichée dans chaque bureau du site de Lyon et revue chaque année. ([[source/plan_continuite_lyon]])
+
+    - Chaque accès, badge accepté ou refusé, est enregistré et conservé 6 mois, consulté lors d''une enquête de sécurité ou de la revue des habilitations. ([[source/acces_physique]])
+
+    - Ce document fixe les règles de leur revue régulière. ([[source/revue_habilitations]])
+
+    - Les ressources humaines tiennent la liste des formations suivies, utile à la revue des habilitations et à l''entretien annuel pour les besoins de formation futurs. ([[source/formation_securite]])'
+- id: concept/secret
+  kind: concept
+  title_text: secret
+  synthesis_text: 'Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret.'
+  sources:
+  - classification
+  - ia_generative
+  audience: all
+  sha256: 0d57347db703398adb85782b355f23f0296fa251c7bc3daee9521152acd707b0
+  text: '# secret
+
+
+    Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret.
+
+
+    ## Ce qu''en disent les sources
+
+    - Toute information produite ou reçue par Exemplia porte l''un des 4 niveaux de classification suivants : Public, Interne, Confidentiel et Secret. ([[source/classification]])
+
+    - Les informations de niveau Secret ne sont confiées à aucun outil d''IA, même interne. ([[source/ia_generative]])'
+- id: concept/securisee
+  kind: concept
+  title_text: sécurisée
+  synthesis_text: 'Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du badge devant l''imprimante.'
+  sources:
+  - classification
+  - acces_physique
+  audience: all
+  sha256: f0e6387932f69b2bbefc8edcd9a9cff5b2125defb0c9e3e5c17a96defbfe4201
+  text: '# sécurisée
+
+
+    Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du badge devant l''imprimante.
+
+
+    ## Ce qu''en disent les sources
+
+    - Les impressions de ces niveaux passent par l''impression sécurisée : le document ne sort qu''après la présentation du badge devant l''imprimante. ([[source/classification]])
+
+    - Chaque site d''Exemplia est divisé en 3 zones : normale (accueil, open space), restreinte (salles de réunion sensibles, locaux techniques) et sécurisée (salle serveurs, salle de crise). ([[source/acces_physique]])'
+- id: concept/standard
+  kind: concept
+  title_text: standard
+  synthesis_text: 'Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres.'
+  sources:
+  - prestataires
+  - clauses_contrats
+  - registre_sous_traitants
+  audience: all
+  sha256: 05bb80f0081abbf95b9515af6167fe3ed5811673399e84795d7e9f973b9a9602
+  text: '# standard
+
+
+    Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres.
+
+
+    ## Ce qu''en disent les sources
+
+    - Exemplia classe chaque prestataire qui traite des informations de l''entreprise dans l''un de deux niveaux : critique, quand il héberge des données ou accède au réseau interne, ou standard pour les autres. ([[source/prestataires]])
+
+    - Clause d''audit : Exemplia, ou un auditeur qu''elle désigne, peut contrôler sur place ou à distance le respect des clauses de sécurité, avec un préavis de 10 jours ouvrés pour un prestataire standard et sans préavis pour un prestataire criti… ([[source/clauses_contrats]])
+
+    - ArchivePlus, archivage papier des dossiers du personnel, Belgique, prestataire standard. ([[source/registre_sous_traitants]])'
+- id: concept/travail
+  kind: concept
+  title_text: travail
+  synthesis_text: Un siège ergonomique peut être prêté sur avis de la médecine du travail.
+  sources:
+  - teletravail
+  - donnees_personnelles
+  - sauvegardes
+  - plan_continuite_lyon
+  audience: all
+  sha256: 9a17238435ebf38167ab7dde96054b9cf92098c0144e2ba30957e7e5c819fdb0
+  text: '# travail
+
+
+    Un siège ergonomique peut être prêté sur avis de la médecine du travail.
+
+
+    ## Ce qu''en disent les sources
+
+    - Un siège ergonomique peut être prêté sur avis de la médecine du travail. ([[source/teletravail]])
+
+    - Les copies de travail, extractions dans un tableur ou fichiers envoyés par courriel, suivent les mêmes durées que le traitement d''origine : il appartient à chacun de les supprimer. ([[source/donnees_personnelles]])
+
+    - Les postes de travail ne sont pas sauvegardés : chaque collaborateur enregistre ses documents dans son espace réseau ou dans l''espace de son équipe, qui eux le sont. ([[source/sauvegardes]])
+
+    - Ce site de repli accueille jusqu''à 50 personnes, avec des postes de travail et une connexion réseau indépendante du site principal. ([[source/plan_continuite_lyon]])'
+- id: concept/version
+  kind: concept
+  title_text: version
+  synthesis_text: 'Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est conservée ici à titre d''archive, pour comprendre les décisions passées.'
+  sources:
+  - charte_messagerie_v1
+  - charte_messagerie_v2
+  - note_changement_messagerie
+  audience: all
+  sha256: af9790193a42f389ba49c5282d5b6e5c56cbb01eccecb9cf3dcc0a268400c3e9
+  text: '# version
+
+
+    Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est conservée ici à titre d''archive, pour comprendre les décisions passées.
+
+
+    ## Ce qu''en disent les sources
+
+    - Cette version de la charte de messagerie, en vigueur depuis janvier 2024, est remplacée par la version 2 : elle est conservée ici à titre d''archive, pour comprendre les décisions passées. ([[source/charte_messagerie_v1]])
+
+    - Cette version remplace la version 1 depuis le 1er janvier 2026, à la suite du changement de fournisseur de messagerie décrit dans la note de changement associée : c''est la version en vigueur. ([[source/charte_messagerie_v2]])
+
+    - Cette note explique le passage de la version 1 à la version 2 de la charte de messagerie, effectif depuis le 1er janvier 2026. ([[source/note_changement_messagerie]])'

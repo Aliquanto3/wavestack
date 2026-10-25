@@ -1,0 +1,27 @@
+{
+  "budget": {
+    "calls": 5403,
+    "cap_calls": 6000,
+    "cap_model_usd": 0.33,
+    "cap_usd": 2.0,
+    "model_calls": {
+      "inception/mercury-decide:free": 902,
+      "liquid/d1": 900,
+      "microsoft/microsoft-decision-1": 900,
+      "openai/gpt-6-luna-decisions": 901,
+      "perplexity/pplx-decider-flash-v1.2": 900,
+      "typesafe/jev-1.14": 900
+    },
+    "model_spent_usd": {
+      "inception/mercury-decide:free": 0.0,
+      "liquid/d1": 0.005326,
+      "microsoft/microsoft-decision-1": 0.010419,
+      "openai/gpt-6-luna-decisions": 0.036276,
+      "perplexity/pplx-decider-flash-v1.2": 0.003066,
+      "typesafe/jev-1.14": 0.020977
+    },
+    "spent_usd": 0.076063
+  },
+  "incomplete": {},
+  "stopped": null
+}

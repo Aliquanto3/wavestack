@@ -8,6 +8,7 @@ the envelope.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -50,7 +51,7 @@ class OutboundHeader(BaseModel):
 
 
 class OutboundRequestPayload(BaseModel):
-    origin: Literal["brick", "diagnostic", "download", "model"]
+    origin: Literal["brick", "diagnostic", "download", "model", "otel"]  # otel: V1.2 story 16
     method: str
     url: str
     # Story 23: the headers sent (AD-15); empty for events traced before them.
@@ -66,7 +67,7 @@ class OutboundResponsePayload(BaseModel):
     outside the loopback range, with its headers in the order received. Outside
     `PUBLIC_RESPONSE_HEADERS` and the quota prefixes, each value is « [masqué] »."""
 
-    origin: Literal["brick", "diagnostic", "download", "model"]
+    origin: Literal["brick", "diagnostic", "download", "model", "otel"]  # otel: V1.2 story 16
     method: str
     url: str
     status: int
@@ -1532,6 +1533,15 @@ class RagLabItem(BaseModel):
     text: str
     score: float | None = None  # this stage's, 3 decimals
     sources: list[RagLabSource] = []
+    # V1.2 story 7 (CAP-5): the context's passages. `placed`: the position in the context;
+    # `state`: `whole` or `cut` (the budget); `tokens`: estimated, before a compression and
+    # `tokens_after`: after it (`None` without one); its transforms; why it failed on this one.
+    placed: int | None = None
+    state: Literal["whole", "cut"] | None = None
+    tokens: int | None = None
+    tokens_after: int | None = None
+    transforms: list[str] = []
+    error_text: str | None = None
 
 
 class RagLabCost(BaseModel):
@@ -1571,6 +1581,327 @@ class RagLabCostSummary(BaseModel):
     note_text: str | None = None
 
 
+class RagLabChunk(BaseModel):
+    """V1.2 story 6 (CAP-4): a chunk as the chunking's focus lists it (its text cut), with its
+    parent (`parent_child`) or its context and the mark that says where it comes from."""
+
+    doc_id: str
+    title_text: str
+    position: int
+    text: str
+    parent_position: int | None = None
+    parent_text: str | None = None
+    context_text: str | None = None
+    context_label: str | None = None
+
+
+class RagLabBudget(BaseModel):
+    """V1.2 story 7 (CAP-5): the context's estimated tokens against its budget (`used`, after a
+    compression; `before`: before it, `None` without one)."""
+
+    used: int
+    budget: int
+    before: int | None = None
+
+
+class RagLabPromptPart(BaseModel):
+    """V1.2 story 7: a part of the prompt the generation would send (`system`, `context` or
+    `question`), its label in the page's language and its estimated tokens."""
+
+    kind: Literal["system", "context", "question"]
+    label_text: str
+    text: str
+    tokens: int
+
+
+class RagLabCache(BaseModel):
+    """V1.2 story 10 (CAG): what one run did with the prefix kept in the model's memory:
+    `cold` (built by this run), `warm` (read back), `lost` (a server evicted it meanwhile),
+    `none` (no state kept: memory, a failed copy) or `unknown` (the engine says nothing); its
+    tokens, those read from the cache and those evaluated, the state's size in bytes and the
+    prefix's build duration. A figure `None` was not measured."""
+
+    state: Literal["cold", "warm", "lost", "none", "unknown"]
+    prefix_tokens: int | None = None
+    read_tokens: int | None = None
+    evaluated_tokens: int | None = None
+    state_bytes: int | None = None
+    build_ms: int | None = None
+
+
+class RagLabWarning(BaseModel):
+    """V1.2 story 11: a warning of the agent's loop or of the tree's descent, by its code
+    (`agent_round_limit`, `agent_unreadable`, `no_node_chosen`…) and its text."""
+
+    code: str
+    text: str
+
+
+class RagLabAgentTurn(BaseModel):
+    """V1.2 story 11 (CAP-7): one round of the agentic search: the action the model asked for
+    (`None`: an unreadable answer), its argument, what came of it (`ok`, `refused`,
+    `unreadable`, `answer`, `cancelled`, `too_long`, `error`), the tool's result only as a cut
+    preview and its length, and the call's tokens."""
+
+    round: int
+    action: str | None = None
+    argument: str = ""
+    status: str
+    result_preview: str = ""
+    result_chars: int = 0
+    result_tokens: int = 0
+    cut: bool = False
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+    answer_preview: str = ""
+
+
+class RagLabAgent(BaseModel):
+    """V1.2 story 11: the agent's loop of a Context stage (`agent_loop`): its rounds, why it
+    stopped (`answer`, `round_limit`, `unreadable`, `cancelled`, `too_long`, `error`), the
+    tokens of the tools' results kept and its warnings."""
+
+    rounds: int
+    max_rounds: int
+    stop: str
+    turns: list[RagLabAgentTurn] = []
+    result_tokens: int = 0
+    warnings: list[RagLabWarning] = []
+
+
+class RagLabTreeChild(BaseModel):
+    number: int
+    node_id: str
+    title_text: str
+    summary_text: str = ""
+
+
+class RagLabTreeLevel(BaseModel):
+    """V1.2 story 11: one level of PageIndex's descent: the children shown to the model (title
+    and summary), the nodes it chose, how many children the window left out, its answer cut
+    and the call's tokens."""
+
+    level: int
+    shown: list[RagLabTreeChild] = []
+    chosen: list[str] = []
+    trimmed: int = 0
+    answer_preview: str = ""
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+
+
+class RagLabTree(BaseModel):
+    """V1.2 story 11 (CAP-7): the tree a Context stage (`section_tree`) went down: who wrote
+    its summaries (`shipped`/`heuristic` or `rebuilt`/`llm`), its nodes, depth and stale nodes,
+    the levels, the sections reached, why it stopped and its warnings."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    nodes: int = 0
+    depth: int = 0
+    stale: int = 0
+    levels: list[RagLabTreeLevel] = []
+    chosen: list[str] = []
+    stop: str = ""
+    warnings: list[RagLabWarning] = []
+
+
+class RagLabDecision(BaseModel):
+    """V1.2 story 8 (CAP-6): one System One decision. `author`: `classifier` (the local model
+    or the decision API) or `judge` (the SLM judge, under the threshold, cascade on);
+    `probability`: the classifier's (of « yes », or of the strategy chosen), `None` when it
+    failed; `below`: under the threshold; `judge_text`: the judge's answer, cut."""
+
+    subject_text: str
+    verdict: str
+    verdict_text: str
+    probability: float | None = None
+    probability_text: str
+    threshold: float
+    threshold_text: str
+    author: Literal["classifier", "judge"]
+    author_text: str
+    below: bool = False
+    judge_text: str | None = None
+    note_text: str | None = None
+    truncated: bool = False
+    probabilities: dict[str, float] = {}
+    chunk_id: int | None = None
+    doc_id: str | None = None
+
+
+class RagLabGraphEntity(BaseModel):
+    id: str
+    name: str
+    audience: str = "all"
+
+
+class RagLabGraphPassage(BaseModel):
+    """V1.2 story 13: an evidence passage a local query kept: its id, document and rank, its
+    audience (shown, never filtered), the relations it backs, its text only as a length and a
+    cut preview."""
+
+    passage_id: str
+    doc_id: str
+    rank: int
+    audience: str = "all"
+    relation_text: str = ""
+    chars: int = 0
+    preview: str = ""
+
+
+class RagLabGraphCommunity(BaseModel):
+    """V1.2 story 13: a community a global query ranked: its entities, sources and audience,
+    its score (the words it shares with the question), its « map » call (the answer cut, the
+    tokens) and whether its points were kept."""
+
+    community_id: str
+    entities: list[str] = []
+    size: int = 0
+    sources: list[str] = []
+    audience: str = "all"
+    score: int = 0
+    summary_preview: str = ""
+    answer_preview: str = ""
+    kept: bool = False
+    trimmed: bool = False
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+
+
+class RagLabGraphEstimate(BaseModel):
+    """V1.2 story 13: what an extraction by a model would need, an estimate never measured."""
+
+    calls: int
+    input_tokens: int
+    text: str
+
+
+class RagLabGraph(BaseModel):
+    """V1.2 story 13 (CAP-7): GraphRAG's query of a Context stage (`graph_search`): who built
+    the graph and its numbers, the mode, the entities asked and recognized, their neighbours,
+    the evidence passages (local) or the communities ranked (global), the calls, why it
+    stopped and its warnings."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    rule_note_text: str | None = None
+    mode: str = "local"
+    entities: int = 0
+    relations: int = 0
+    communities: int = 0
+    isolated: int = 0
+    stale: int = 0
+    estimate: RagLabGraphEstimate | None = None
+    asked: list[str] = []
+    matched: list[RagLabGraphEntity] = []
+    neighbours: list[RagLabGraphEntity] = []
+    passages: list[RagLabGraphPassage] = []
+    ranked: list[RagLabGraphCommunity] = []
+    calls: int = 0
+    answer_preview: str = ""
+    stop: str = ""
+    warnings: list[RagLabWarning] = []
+
+
+class RagLabRaptorPick(BaseModel):
+    """V1.2 story 12: a node RAPTOR's search kept: a passage (level 0) or a summary, its
+    documents, its audience (shown, never filtered), its BM25 score, its text only as a length
+    and a cut preview."""
+
+    node_id: str
+    level: int = 0
+    sources: list[str] = []
+    audience: str = "all"
+    score: float = 0.0
+    chars: int = 0
+    preview: str = ""
+
+
+class RagLabRaptor(BaseModel):
+    """V1.2 story 12 (CAP-7): RAPTOR's search of a Context stage (`raptor_search`): who wrote
+    the tree and its numbers, the labelled estimate (shipped tree), the nodes kept."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    rule_note_text: str | None = None
+    passages: int = 0
+    summaries: int = 0
+    levels: int = 0
+    stale: int = 0
+    estimate: RagLabGraphEstimate | None = None
+    picked: list[RagLabRaptorPick] = []
+    warnings: list[RagLabWarning] = []
+
+
+class RagLabFallback(BaseModel):
+    """V1.2 story 12 (CAP-7): Corrective RAG's fallback: its option, its verdict (`correct`,
+    `incorrect`, `corrected`), the passages kept before and after the second attempt, the
+    question rewritten, whether the workshop answered « je ne sais pas », never the web."""
+
+    option: str
+    verdict: str
+    kept_before: int = 0
+    rewritten: str | None = None
+    kept_after: int | None = None
+    abstained: bool = False
+    web: bool = False
+    warnings: list[RagLabWarning] = []
+
+
+class RagLabWikiShown(BaseModel):
+    """V1.2 story 14: a page of the index shown to the model (its title and synthesis cut)."""
+
+    number: int
+    page_id: str
+    kind: str = ""
+    title_text: str
+    summary_text: str = ""
+    audience: str = "all"
+
+
+class RagLabWikiFinding(BaseModel):
+    """V1.2 story 14: a finding of the wiki's lint (its code, its page, its sentence)."""
+
+    code: str
+    page_id: str
+    text: str = ""
+
+
+class RagLabWiki(BaseModel):
+    """V1.2 story 14 (CAP-7): the LLM Wiki a Context stage (`wiki_pages`) read, or an update's
+    lint checked: who wrote its syntheses (`shipped`/`heuristic` or `rebuilt`/`llm`), its pages,
+    concepts, links and stale pages, the lint's findings, the estimate of a compilation by a
+    model (shipped wiki only), the index shown to the model, the pages it picked, its answer
+    cut, the call's tokens, why it stopped and its warnings."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    pages: int = 0
+    concepts: int = 0
+    links: int = 0
+    stale: int = 0
+    findings: int = 0
+    lint: list[RagLabWikiFinding] = []
+    estimate_text: str | None = None
+    shown: list[RagLabWikiShown] = []
+    chosen: list[str] = []
+    trimmed: int = 0
+    answer_preview: str = ""
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+    stop: str = ""
+    warnings: list[RagLabWarning] = []
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1599,6 +1930,58 @@ class RagLabStageEndedPayload(BaseModel):
     part: str | None = None
     # V1.2 story 3 (CAP-8): what the stage cost, by time (build, update, query).
     costs: list[RagLabCost] = []
+    # V1.2 story 5 (CAP-3): the queries the query understanding produced (empty elsewhere).
+    queries: list[str] = []
+    # V1.2 story 6 (CAP-4): the chunking's first chunks (bounded), and how many it made.
+    chunks: list[RagLabChunk] = []
+    chunks_total: int = 0
+    # V1.2 story 7 (CAP-5): the passages the budget left out (the context's `items` are those
+    # that are in), the tokens against the budget, and the prompt's parts with their total.
+    dropped: list[RagLabItem] = []
+    budget: RagLabBudget | None = None
+    prompt_parts: list[RagLabPromptPart] = []
+    prompt_tokens: int | None = None
+    # V1.2 story 10: the effective window a whole corpus is shown against, and the CAG's
+    # cache (never the engine's state itself).
+    window: int | None = None
+    cache: RagLabCache | None = None
+    # V1.2 story 11: the agent's rounds and the tree's descent (the documents read only as a
+    # cut preview and a length).
+    agent: RagLabAgent | None = None
+    tree: RagLabTree | None = None
+    # V1.2 story 8 (CAP-6): System One's decisions (the router's, each passage's, each
+    # sentence's), with their author, probability and threshold.
+    decisions: list[RagLabDecision] = []
+    graph: RagLabGraph | None = None  # V1.2 story 13: GraphRAG's query
+    # V1.2 story 12: RAPTOR's search on every level, Corrective RAG's fallback.
+    raptor: RagLabRaptor | None = None
+    fallback: RagLabFallback | None = None
+    wiki: RagLabWiki | None = None  # V1.2 story 14
+
+
+class RagLabStep(BaseModel):
+    """V1.2 story 16 (CAP-12): one node of a run's tree of steps, read from the journal by
+    `trace/tree.py`: the run, a stage (`step_id` « run.sN »), a part of a stage run apart
+    (« run.sN.index ») or a model call (the events of its stage's step; `id` « step.cK »).
+    Durations in ms and tokens as the events measured them (`None`: not measured). No text
+    of the question, the passages or the answer: only names, figures and statuses."""
+
+    id: str
+    parent: str | None = None
+    kind: Literal["run", "stage", "part", "model_call"]
+    name: str
+    stage_kind: str | None = None
+    option: str | None = None
+    model: str | None = None  # a model call: the model's id, and its provider
+    provider: str | None = None
+    status: str
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    duration_ms: int | None = None
+    input_tokens: int | None = None  # the model calls' (a stage: the sum of its calls')
+    output_tokens: int | None = None
+    tokens: int | None = None  # a stage without a call: the tokens its costs counted
+    children: list[RagLabStep] = []
 
 
 class RagLabRunEndedPayload(BaseModel):
@@ -1607,6 +1990,8 @@ class RagLabRunEndedPayload(BaseModel):
     duration_ms: int
     # V1.2 story 3 (CAP-8): the run's costs by time (an update run: `update` only).
     cost_summary: list[RagLabCostSummary] = []
+    # V1.2 story 16 (CAP-12): the run's tree of steps (`None`: an older journal).
+    steps: RagLabStep | None = None
 
 
 # ---------- the MCP workshop, context `mcp_lab` (story 6 of 2026-09-30; lot 4, AD-27) ----------

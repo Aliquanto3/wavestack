@@ -63,7 +63,14 @@ _SENSITIVE_BODY_FIELDS = frozenset(
 )
 
 
+# V1.2 story 16 (CAP-12): a binary body (the OTLP export's protobuf) is traced by its size,
+# never decoded as text.
+_BINARY_TYPES = ("application/x-protobuf", "application/octet-stream")
+
+
 def _masked_body(raw: bytes, content_type: str) -> str:
+    if any(kind in content_type.lower() for kind in _BINARY_TYPES):
+        return f"[binaire, {len(raw)} octets]"
     text = raw.decode("utf-8", "replace")
     if "application/x-www-form-urlencoded" not in content_type.lower():
         return text

@@ -1,6 +1,7 @@
 """Compose the README demo from drive.py's screenshots: captions, highlights, title and end cards.
 
-Writes `docs/assets/wavestack-demo.gif` and `.mp4` with ffmpeg, and the guide's
+Writes `docs/assets/wavestack-demo.gif` and `.mp4` with ffmpeg (the `PATH`'s, else the binary of
+the `imageio-ffmpeg` package when it is installed), and the guide's
 `docs/assets/atelier.jpg`. Fonts: Segoe UI and Segoe UI Emoji (Windows). A highlight is either
 named (measured by drive.py on each screenshot) or a box in the 1600 × 900 pixels of the
 screenshots: check those against the new screenshots whenever the layout changes.
@@ -24,6 +25,20 @@ SCALE = W / 1600
 PRIMARY, DEEP, ACCENT, ORANGE, LAVENDER = "#451DC7", "#250F6B", "#04F06A", "#E0762B", "#D9D0F6"
 FONTS = Path("C:/Windows/Fonts")
 EMOJI = ImageFont.truetype(str(FONTS / "seguiemj.ttf"), 109)  # bitmap strike, scaled after
+
+
+def ffmpeg_exe() -> str:
+    """ffmpeg from the PATH, else imageio-ffmpeg's binary (`uv run --with imageio-ffmpeg`)."""
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    try:
+        import imageio_ffmpeg
+    except ImportError:
+        sys.exit(
+            "ffmpeg introuvable : installez-le, ou lancez avec `uv run --with imageio-ffmpeg`."
+        )
+    return imageio_ffmpeg.get_ffmpeg_exe()
 
 
 def font(name: str, size: int) -> ImageFont.FreeTypeFont:
@@ -111,8 +126,11 @@ class Film:
             caption(img, step, text, icon)
             for box, *rest in highlights:
                 if isinstance(box, str):  # measured by drive.py on this very screenshot
-                    box = self.entries[path].get("boxes", {}).get(box)
+                    name, box = box, self.entries[path].get("boxes", {}).get(box)
                     if box is None:  # not (whole) in view
+                        print(
+                            f"Cadre « {name} » non mesuré sur {path.name} : sauté.", file=sys.stderr
+                        )
                         continue
                 highlight(img, box, *rest)
             self.add(img, total / len(paths))
@@ -191,29 +209,52 @@ def build(frames: Path) -> Film:
             ((476, 655, 626, 776), "Schéma : outils sur le poste", PRIMARY),
         ],
     )
+    film.run(
+        final,
+        "2",
+        "Chaque appel a un coût, et le cache du serveur est visible",
+        3.0,
+        "💶",
+        [
+            ("spend", "Bilan de la séance", ORANGE, "below"),
+            ("gauge", "Jauge du cache", PRIMARY, "above"),
+        ],
+    )
+
+    def harness_map(name: str) -> list[Path]:
+        return film.phase("map", name)
+
+    film.run(
+        harness_map("map_open")[-1:],
+        "3",
+        "La carte du harnais : sept sous-systèmes, vos briques à leur place",
+        3.6,
+        "🗺",
+        [("map", "Les briques de la conversation, par sous-système", ORANGE, "below")],
+    )
 
     def lab(name: str) -> list[Path]:
         return film.phase("llm", name)
 
     inside = "L'Atelier LLM : ce qui se passe dans le modèle"
-    film.run(lab("llm_intro")[-2:] + lab("llm_type"), "3", inside, 2.0, "🔬")
+    film.run(lab("llm_intro")[-2:] + lab("llm_type"), "4", inside, 2.0, "🔬")
     numbers = "Le texte devient des tokens, puis des nombres"
     film.run(
-        lab("input_text") + lab("input_tokens") + lab("input_ids")[:-1], "3", numbers, 2.0, "🔢"
+        lab("input_text") + lab("input_tokens") + lab("input_ids")[:-1], "4", numbers, 2.0, "🔢"
     )
     film.run(
         lab("input_ids")[-1:],
-        "3",
+        "4",
         numbers,
         2.2,
         "🔢",
         [("chips", "Le modèle ne lit que ces nombres", ORANGE, "below")],
     )
     layers = "Chaque nombre devient un vecteur, que les couches transforment"
-    film.run(lab("transfo_scroll") + lab("transfo_embedding"), "3", layers, 2.0, "🧠")
+    film.run(lab("transfo_scroll") + lab("transfo_embedding"), "4", layers, 2.0, "🧠")
     film.run(
         lab("transfo_attention")[-1:],
-        "3",
+        "4",
         layers,
         2.6,
         "🧠",
@@ -221,14 +262,14 @@ def build(frames: Path) -> Film:
     )
     film.run(
         lab("output_scroll") + lab("output_logits")[:-1],
-        "3",
+        "4",
         "Une probabilité pour chaque token suivant",
         1.4,
         "📊",
     )
     film.run(
         lab("output_logits")[-1:],
-        "3",
+        "4",
         "Une probabilité pour chaque token suivant",
         2.2,
         "📊",
@@ -236,7 +277,7 @@ def build(frames: Path) -> Film:
     )
     film.run(
         lab("output_draw")[-1:],
-        "3",
+        "4",
         "Puis un token est tiré au sort : c'est toute la génération",
         3.0,
         "🎲",
@@ -246,25 +287,42 @@ def build(frames: Path) -> Film:
     def rag(name: str) -> list[Path]:
         return film.phase("rag", name)
 
-    chain = "L'Atelier RAG : la chaîne RAG, étape par étape"
-    film.run(rag("rag_intro") + rag("rag_steps"), "4", chain, 3.0, "📚")
+    chain = "L'Atelier recherche documentaire : la chaîne RAG, étape par étape"
+    film.run(rag("rag_intro") + rag("rag_steps"), "5", chain, 3.0, "📚")
     film.run(
         rag("rag_done")[-1:],
-        "4",
+        "5",
         chain,
         1.8,
         "📚",
         [("focus", "Ce que fait chaque étape", PRIMARY, "below")],
     )
+    sheets = "Chaque architecture a sa fiche : coût, littérature, conformité"
+    film.run(
+        rag("rag_sheet_top")[-1:],
+        "5",
+        sheets,
+        1.8,
+        "📋",
+        [
+            (
+                "tabs",
+                "Cinq onglets : Construire, Comparer, Évaluer, Attaquer, Fiches",
+                PRIMARY,
+                "below",
+            )
+        ],
+    )
+    film.run(rag("rag_sheet")[-1:], "5", sheets, 2.0, "📋")
 
     def mcp(name: str) -> list[Path]:
         return film.phase("mcp", name)
 
     protocol = "L'Atelier MCP : le protocole, message par message"
-    film.run(mcp("mcp_intro") + mcp("mcp_handshake"), "5", protocol, 3.0, "🔌")
+    film.run(mcp("mcp_intro") + mcp("mcp_handshake"), "6", protocol, 3.0, "🔌")
     film.run(
         mcp("mcp_done")[-1:],
-        "5",
+        "6",
         protocol,
         2.2,
         "🔌",
@@ -280,7 +338,7 @@ def build(frames: Path) -> Film:
     security = "La page Sécurité : ce que le harnais contrôle, refuse et journalise"
     film.run(
         sec("sec_intro") + sec("sec_control"),
-        "6",
+        "7",
         security,
         3.2,
         "🛡",
@@ -288,7 +346,7 @@ def build(frames: Path) -> Film:
     )
     film.run(
         sec("sec_limit")[-1:],
-        "6",
+        "7",
         security,
         2.2,
         "🛡",
@@ -322,7 +380,18 @@ def render(film: Film, work: Path) -> None:
     lines.append(f"file '{path.as_posix()}'")  # the concat demuxer ignores the last duration
     concat = work / "concat.txt"
     concat.write_text("\n".join(lines), encoding="utf-8")
-    source = ["ffmpeg", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(concat)]
+    source = [
+        ffmpeg_exe(),
+        "-loglevel",
+        "error",
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        str(concat),
+    ]
     palette = (
         "fps=10,split[a][b];[a]palettegen=max_colors=256:stats_mode=diff[p];"
         "[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"

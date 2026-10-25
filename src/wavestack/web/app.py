@@ -31,18 +31,26 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import (
     AliasChoices,
     BaseModel,
+    ConfigDict,
     Field,
     SecretStr,
     field_validator,
     model_validator,
 )
+from starlette.routing import Route
 
 from wavestack import config
+from wavestack.mcp import architecture_server  # V1.2 story 20
 from wavestack.messages import in_language, msg, render
 from wavestack.models import catalog
 from wavestack.models.cloud_base import session_spend
 from wavestack.models.engine import SAMPLING_BOUNDS, Sampling
+from wavestack.rag import access as rag_access
+from wavestack.rag import attack as rag_attack
 from wavestack.rag import diagnosis as rag_diagnosis
+from wavestack.rag import erasure as rag_erasure
+from wavestack.rag import evaluation as rag_evaluation
+from wavestack.rag import sheets as rag_sheets
 from wavestack.rag.lab import QUESTION_MAX, Pipeline
 from wavestack.session.app_session import (
     AppSession,
@@ -51,6 +59,7 @@ from wavestack.session.app_session import (
     SendRefused,
 )
 from wavestack.session.diagnostic import DiagnosticSession, Refused
+from wavestack.trace import otel as trace_otel
 from wavestack.trace.envelope import Envelope
 from wavestack.trace.journal import get_journal
 
@@ -293,12 +302,23 @@ class LlmExampleDistributionRequest(BaseModel):
     sampling: SamplingIntention
 
 
+class RagMcpStartIntention(BaseModel):
+    """V1.2 story 20: the chain to expose (the shipped one when absent), a list of one."""
+
+    pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+
+
 class RagLabRunIntention(BaseModel):
     """Story 30: the question the RAG workshop's chain runs on (500 characters at most), and
     the chain (the shipped one when absent). Lot 5c-1: one chain, a list of one (two: 422)."""
 
+    # V1.2 story 13: an unknown field is refused (no `profile`: the workshop filters no
+    # audience, D7); GraphRAG's mode, local (by default) or global.
+    model_config = ConfigDict(extra="forbid")
+
     question: str = Field(min_length=1, max_length=QUESTION_MAX)
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+    graph_mode: Literal["local", "global"] = "local"
 
     @field_validator("question")
     @classmethod
@@ -306,6 +326,19 @@ class RagLabRunIntention(BaseModel):
         if not value.strip():
             raise ValueError("question vide")
         return value
+
+
+class RagLabJudgeIntention(BaseModel):
+    """V1.2 story 15 (CAP-11): one criterion of one finished run (the page holds its lists and
+    its answer), judged by `judge` of the panel: `role` `local` (a model of the poste, by its
+    `ref`) or `cloud` (a `[[cloud.models]]` `id`)."""
+
+    run: rag_evaluation.LiveRun
+    role: Literal["local", "cloud"]
+    judge: str = Field(min_length=1, max_length=500)
+    criterion: Literal[
+        "context_precision", "faithfulness", "relevance", "accuracy", "correct_refusal"
+    ]
 
 
 class RagLabUpdateIntention(BaseModel):
@@ -318,6 +351,17 @@ class RagLabUpdateIntention(BaseModel):
     title_text: str = Field(default="", max_length=200)
     text: str = Field(default="", max_length=20_000)
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+
+
+class RagLabRebuildIntention(BaseModel):
+    """V1.2 story 6 (CAP-4): the contexts of the contextual chunking rewritten by the active
+    model, for the chain's chunk size (the shipped chain when absent)."""
+
+    pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+    # V1.2 story 11: what is rebuilt, the contexts (by default) or PageIndex's summaries.
+    # V1.2 story 13: or GraphRAG's graph; story 14: or the LLM Wiki's syntheses; story 12: or
+    # RAPTOR's tree of summaries.
+    target: Literal["contexts", "pageindex", "graph", "wiki", "raptor"] = "contexts"
 
 
 class RagLabValidateRequest(BaseModel):
@@ -369,6 +413,12 @@ class McpLabAskIntention(BaseModel):
     question: str | None = Field(default=None, max_length=4000)
     of: str | None = None
     doc_mode: Literal["full", "lazy"] = "full"
+
+
+class RagLabOtelIntention(BaseModel):
+    """V1.2 story 16 (CAP-12): the finished run whose tree goes to the OTLP collector."""
+
+    run_id: str = Field(min_length=1, max_length=64)
 
 
 class SystemPromptIntention(BaseModel):
@@ -462,7 +512,9 @@ def create_app(
         if request.method == "POST":
             origin = request.headers.get("origin")
             expected = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
-            if origin not in expected:
+            # V1.2 story 20: an MCP client sends no `Origin`; the endpoint's guard checks it.
+            exposed_path = architecture_server.is_exposed_path(request.url.path)
+            if origin not in expected and not exposed_path:
                 return JSONResponse({"detail": t("web.origin_refused")}, status_code=403)
             if request.headers.get("content-type", "").split(";")[0] != "application/json":
                 return JSONResponse({"detail": t("web.json_expected")}, status_code=415)
@@ -662,7 +714,9 @@ def create_app(
         ends; « Arrêter » (`stop`) stops it. A chain refused: 409 with the reason."""
         try:
             chain = intention.pipelines[0] if intention.pipelines else None
-            return {"run_id": app_session.run_rag_lab(intention.question, chain)}
+            return {
+                "run_id": app_session.run_rag_lab(intention.question, chain, intention.graph_mode)
+            }
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
@@ -689,6 +743,74 @@ def create_app(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
             ) from None
 
+    @app.post("/api/intentions/rag_lab_rebuild")
+    def rag_lab_rebuild(intention: RagLabRebuildIntention) -> dict[str, str]:
+        """V1.2 story 6 (CAP-4), class (b): accepted in `idle` only; the contexts are rewritten
+        by the active model into the data folder (never `content/`), as a run `ctx{n}`.
+        Refused (no model, a chain refused): 409."""
+        try:
+            chain = intention.pipelines[0] if intention.pipelines else None
+            return {"run_id": app_session.rebuild_rag_lab_contexts(chain, intention.target)}
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/contexts/reset")
+    def rag_lab_contexts_reset() -> dict[str, object]:
+        """V1.2 story 6: the rebuilt contexts deleted, the shipped ones read again; 409 while a
+        run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_contexts()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/wiki/reset")
+    def rag_lab_wiki_reset() -> dict[str, object]:
+        """V1.2 story 14: the LLM Wiki recompiled by a model deleted, the shipped wiki read
+        again; 409 while a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_wiki()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/pageindex/reset")
+    def rag_lab_pageindex_reset() -> dict[str, object]:
+        """V1.2 story 11: PageIndex's rebuilt summaries deleted, the shipped tree read again;
+        409 while a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_pageindex()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/raptor/reset")
+    def rag_lab_raptor_reset() -> dict[str, object]:
+        """V1.2 story 12: RAPTOR's rebuilt tree deleted, the shipped tree read again; 409 while
+        a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_raptor()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/graph/reset")
+    def rag_lab_graph_reset() -> dict[str, object]:
+        """V1.2 story 13: GraphRAG's rebuilt graph deleted, the shipped graph read again; 409
+        while a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_graph()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
     @app.post("/api/rag_lab/copy/reset")
     def rag_lab_copy_reset() -> dict[str, object]:
         """V1.2 story 3: back to the shipped corpus, the work copy deleted; 409 while a run
@@ -698,6 +820,26 @@ def create_app(
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.get("/api/rag_lab/otel")
+    def rag_lab_otel() -> dict[str, object]:
+        """V1.2 story 16 (CAP-12): whether the OTLP export can run (the extra, the URL)."""
+        return shown(app_session.rag_lab_otel())
+
+    @app.post("/api/rag_lab/otel/export")
+    def rag_lab_otel_export(intention: RagLabOtelIntention) -> dict[str, object]:
+        """V1.2 story 16 (CAP-12): a finished run's tree sent as OTLP spans; 409 without the
+        extra, the URL or the run, 502 when the collector cannot be reached or refuses."""
+        try:
+            return shown(app_session.export_rag_lab_otel(intention.run_id))
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+        except trace_otel.ExportFailed as failed:
+            raise HTTPException(
+                status_code=502, detail=render(failed.reason_text, app_session.language)
             ) from None
 
     @app.get("/api/rag_lab/diagnosis")
@@ -723,6 +865,145 @@ def create_app(
         if found is None:
             raise HTTPException(status_code=404, detail="unknown case")
         return found
+
+    # ----- V1.2 story 15 (CAP-11): the Evaluate tab -----
+
+    @app.get("/api/rag_lab/evaluation")
+    def rag_lab_evaluation_state() -> dict[str, object]:
+        """V1.2 story 15: the tab's texts, the judges' panel (admitted, or set aside with the
+        reason), the FinOps spend and cap, the recorded set with its aggregates, the traps.
+        Reads the disk for the local models; no model loaded, nothing sent."""
+        return app_session.rag_lab_evaluation(with_panel=True)
+
+    @app.post("/api/rag_lab/evaluation")
+    def rag_lab_evaluation(request: rag_evaluation.EvaluationRequest) -> dict[str, object]:
+        """V1.2 story 15: the recorded set plus the finished runs the page holds (a free
+        question is left out of n), with the session's verdicts. Pure: no model."""
+        return app_session.rag_lab_evaluation(request.runs)
+
+    @app.post("/api/intentions/rag_lab_judge")
+    def rag_lab_judge(intention: RagLabJudgeIntention) -> dict[str, str]:
+        """V1.2 story 15, class (b): accepted in `idle` only. 409 with the reason when the
+        judge is set aside, a cloud judge has no key or the session is at its cap."""
+        try:
+            return {
+                "judgment_id": app_session.judge_rag_lab_run(
+                    intention.run,
+                    role=intention.role,
+                    judge_id=intention.judge,
+                    criterion=intention.criterion,
+                )
+            }
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.get("/api/rag_lab/evaluation/traps/{trap_id}")
+    def rag_lab_trap(trap_id: str) -> dict[str, object]:
+        """V1.2 story 15: one of the four traps replayed from its recording, no model. 404:
+        unknown."""
+        found = rag_evaluation.replay_trap(trap_id, app_session.language)
+        if found is None:
+            raise HTTPException(status_code=404, detail="unknown trap")
+        return found
+
+    # ----- V1.2 story 17 (CAP-13): the Attack tab's « Document piégé » card -----
+
+    @app.get("/api/rag_lab/attack")
+    def rag_lab_attack_texts() -> dict[str, object]:
+        """V1.2 story 17: the card's texts, scenarios (with their provenance), default state
+        (the trap inactive) and whether the session's Prompt Guard is loaded. Read only."""
+        return app_session.rag_lab_attack_texts()
+
+    @app.post("/api/rag_lab/attack")
+    def rag_lab_attack(request: rag_attack.AttackRequest) -> dict[str, object]:
+        """V1.2 story 17: the target question's two columns, recomputed from the request (the
+        trap's activation is a field, nothing is kept). No model, no download, no network. An
+        unknown field or value: 422."""
+        return app_session.rag_lab_attack(request)
+
+    @app.get("/api/rag_lab/attack/cases/{scenario_id}")
+    def rag_lab_attack_case(scenario_id: str) -> dict[str, object]:
+        """V1.2 story 17: a scenario's recorded case replayed, no computation. 404: unknown."""
+        found = rag_attack.replay(scenario_id, app_session.language)
+        if found is None:
+            raise HTTPException(status_code=404, detail="unknown scenario")
+        return found
+
+    # ----- V1.2 story 18 (CAP-14, CAP-15): the Attack tab's Effacement and Droits cards -----
+
+    @app.get("/api/rag_lab/erasure")
+    def rag_lab_erasure_texts() -> dict[str, object]:
+        """V1.2 story 18: the card's texts and default state. Read only, no computation."""
+        return app_session.rag_lab_erasure_texts()
+
+    @app.post("/api/rag_lab/erasure")
+    def rag_lab_erasure(request: rag_erasure.ErasureRequest) -> dict[str, object]:
+        """V1.2 story 18: the places where the sentinel survives, recomputed from the request
+        (nothing is kept). No model, no network. An unknown field or value: 422."""
+        return app_session.rag_lab_erasure(request)
+
+    @app.get("/api/rag_lab/access")
+    def rag_lab_access_texts() -> dict[str, object]:
+        """V1.2 story 18: the card's texts and default state. Read only, no computation."""
+        return app_session.rag_lab_access_texts()
+
+    @app.post("/api/rag_lab/access")
+    def rag_lab_access(request: rag_access.AccessRequest) -> dict[str, object]:
+        """V1.2 story 18: what the pipeline read before the filter, recomputed. No model, no
+        network. An unknown field or value: 422."""
+        return app_session.rag_lab_access(request)
+
+    # V1.2 story 19: the « Fiches » tab. Declared content, read only; an unknown id is a 404.
+    @app.get("/api/rag_lab/sheets")
+    def rag_lab_sheets() -> dict[str, object]:
+        """The component sheets, the architecture sheets and the families still pending."""
+        return app_session.rag_lab_sheets()
+
+    @app.get("/api/rag_lab/sheets/component/{key}")
+    def rag_lab_sheet_component(key: str) -> dict[str, object]:
+        try:
+            return app_session.rag_lab_sheet_component(key)
+        except rag_sheets.UnknownSheet:
+            raise HTTPException(status_code=404, detail="unknown sheet") from None
+
+    @app.get("/api/rag_lab/sheets/architecture/{arch_id}")
+    def rag_lab_sheet_architecture(arch_id: str) -> dict[str, object]:
+        try:
+            return app_session.rag_lab_sheet_architecture(arch_id)
+        except rag_sheets.UnknownSheet:
+            raise HTTPException(status_code=404, detail="unknown sheet") from None
+
+    # V1.2 story 20 (CAP-18): the workshop's chain exposed as a read-only MCP server.
+    @app.get("/api/rag_lab/mcp")
+    def rag_lab_mcp() -> dict[str, object]:
+        """The card's state, with the token: same origin only (no CORS, `TrustedHostMiddleware`),
+        the one place the token is rendered."""
+        return shown(app_session.rag_mcp_state(with_token=True))
+
+    @app.post("/api/intentions/rag_mcp_start")
+    def rag_mcp_start(intention: RagMcpStartIntention) -> dict[str, object]:
+        """The chain of the page (the shipped one when absent) frozen and exposed; refused with
+        its reason (409). Already running: the same state."""
+        try:
+            chain = intention.pipelines[0] if intention.pipelines else None
+            return shown(app_session.rag_mcp_start(chain))
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/intentions/rag_mcp_stop")
+    def rag_mcp_stop() -> dict[str, object]:
+        """Stopped: 404 at the address from now on."""
+        return shown(app_session.rag_mcp_stop())
+
+    rag_mcp_endpoint = architecture_server.ExposedEndpoint(port)
+    app_session.attach_rag_mcp(rag_mcp_endpoint)
+    # Mounted once; `/mcp/architecture` itself too (a mount alone would redirect it to `…/`).
+    app.router.routes.append(Route(architecture_server.PATH, rag_mcp_endpoint))
+    app.mount(architecture_server.PATH, rag_mcp_endpoint)
 
     @app.get("/mcp")
     def mcp_page() -> FileResponse:
