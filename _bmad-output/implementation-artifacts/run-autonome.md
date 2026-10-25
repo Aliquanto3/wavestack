@@ -590,3 +590,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 15:18 · 12.8 · décision · diagnostics Pyright sur config.py (str passé pour Message, l. 1000-1053) à faire vérifier par le second avis de 12.8 · —
 - 2026-10-25 15:36 · 12.13 · CI · rouge (Windows et Ubuntu groupe 4) : test_ui_texts, guillemets français « » dans rag.graph_title_global et rag.graph_map_answer en et de ; corrigé (“ ” et „ “), test_ui_texts et test_i18n verts, file_prs.py relancé · fad7fbe
 - 2026-10-25 15:36 · run · décision · ajouter tests/test_ui_texts.py aux tests ciblés de toute story qui ajoute des textes (12.14, 12.8) · —
+- 2026-10-25 15:42 · 12.13 · CI · verte après correctif · fad7fbe
+- 2026-10-25 15:42 · 12.13 · fusion · #120 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.8 prévenue · 1db4ec2
+- 2026-10-25 15:42 · 12.14 · review · lancé (Opus ; refusion lourde avec 12.13 d'abord, test_ui_texts ajouté) · 538aa5d
