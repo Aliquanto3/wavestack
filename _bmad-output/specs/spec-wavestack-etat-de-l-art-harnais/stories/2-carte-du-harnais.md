@@ -114,3 +114,14 @@ Relecture de spec avant code (point de contrôle tenu à la place d'Anaël), bra
 - H3 (injection de contexte) n'est pas reconduit à `compression` et `harness_map` (`hooks: [h1, h2]`) : avec H3 le second prompt déborde (1 692 × 1,1 + 1 851 > 3 584). `tests/test_program.py` gagne `HOOKS_NOT_CARRIED_FR` : un hook absent du premier scénario d'un module n'est toléré que si la consigne le dit (« sans l'injection de contexte (H3) »), comme pour les briques AD-9 ; en-tête de `scenarios.yaml` complété.
 - Durée totale du programme : 5 h 45 (sept modules) dans `README.md` et `docs/guide.md` ; `tools/demo/compose.py:300` (« 6 modules · 5 h 15 », visuel de démonstration) non touché.
 - Bouton du panneau des briques : hors de `#bricks` (reconstruit à chaque rendu), activé dès que `store.bricks` existe.
+
+### Passe 2 (2026-10-25, SHA revu 6cde8b9)
+
+Revue du code (0daec7d), après fusion d'origin/main (14.1, 14.3 #91, V1.3-5 #93) : conflits `app.css` et `run_e2e.py` résolus en gardant les deux côtés ; capture `01b-diagnostic-cartes.jpg` prise de main (à regénérer par l'E2E).
+
+- Important, high, second avis : `tests/test_compression.py` cherchait `scenarios: [subagent, compression]`, cassé par la scission ; corrigé (test renommé `…_opens_the_last_module`, ordre RAG < sous-agent < `[compression, harness_map]`).
+- Important, medium, second avis : après #91, 22 scénarios (`test_scenarios.py` disait 21) et 6 h de programme (README et `docs/guide.md` disaient 5 h 45) ; corrigé.
+- Nit, low, second avis : `tools/demo/compose.py:300` « 6 modules · 5 h 15 » ; texte corrigé (« 7 modules · 6 h »), vidéo de démonstration non regénérée.
+- Nit, low, second avis : exception H3 de `test_program.py` non bornée au module 7 ; rejeté : elle exige que la consigne le dise, comme les exceptions AD-9 des briques.
+- Nit, low, second avis : brique éteinte à `opacity: 0.45` (environ 3,2:1 sur la surface claire) ; rejeté pour cette story : même traitement que les autres éléments éteints de l'interface, l'état est doublé d'un texte accessible.
+- Report : E2E `harness_map`, `rag_agentic` et `01b` à rejouer sur la branche fusionnée (Edge), non lancés dans cette passe.

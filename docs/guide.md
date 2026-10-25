@@ -77,7 +77,7 @@ l'empreinte estimées sont dans le bouton **Dépense** de la barre de navigation
 ## Programme de formation
 
 Le sélecteur de scénario de la barre du bas liste sept modules, dans l'ordre des briques, soit
-5 h 45 au total, à répartir sur plusieurs séances :
+6 h au total, à répartir sur plusieurs séances :
 
 | Module | Durée | Scénarios |
 |---|---|---|
