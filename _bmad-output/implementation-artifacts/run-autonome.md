@@ -631,3 +631,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:09 · 12.21 · décision · à revoir : seuils (pic ≤ 4 096 Mo, indexation ≤ 15 s par page, requête ≤ 3 s, rappel@3 ≥ 0,75) sans source sauf le budget ; corpus fr seul ; licence Gemma de ColPali ; ColQwen2.5 écarté faute de voie sans torch · e647ad10
 - 2026-10-25 17:09 · 12.21 · attente humaine · accord d'Anaël pour télécharger ~6,9 Go (ou ColSmol seul ~1 Go) : réseau peut-être sur données mobiles ; mesure ~20-30 min sur poste libre ensuite ; notification envoyée · —
 - 2026-10-25 17:09 · run · décision · dossier parasite C:\c\Users\… (2 Mo, fichiers de plusieurs sessions et projets, dont p0.png de 12.21) laissé en place, à supprimer par Anaël s'il le souhaite · —
+- 2026-10-25 17:16 · 12.21 · décision · Anaël : téléchargement des 6,9 Go accordé, sur le WiFi actuel (~3,5 Mo/s mesuré ; données mobiles en repli si besoin) ; téléchargement lancé · e647ad10
