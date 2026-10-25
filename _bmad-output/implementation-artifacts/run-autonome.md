@@ -82,17 +82,9 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - (Avancée dans le run le 2026-10-25, décision d'Anaël.) Story d'outillage : accélérer les tests lents propres à Windows de `tests/test_model_servers.py` et `tests/test_context_window_setting.py` (11 à 33 s chacun sous Windows, absents du haut de la liste sous Ubuntu ; piste : connexion à un port fermé qui met ~2 s à échouer sous Windows). Gain mesuré attendu : ~2 min 30 de tests Windows. Décision d'Anaël du 2026-10-25.
 - Rafraîchir `test-durations-windows-latest.json` et `test-durations-ubuntu-latest.json` depuis les artefacts `test-durations-<os>-<groupe>` d'une CI récente (fusion des 4 fichiers par système), quand l'écart entre groupes dépasse ~2 min.
 
-## Prochaines étapes (mise à jour du 2026-10-25 17:55, avant /clear)
+## Prochaines étapes (mise à jour du 2026-10-25 18:55 : run terminé)
 
-État : toutes les stories de l'epic 12 sont fusionnées dans integration/v1-2-atelier (dernière : #125, f6a96cf), sauf 12.21 (revue faite, résultats commités, PR à ouvrir) ; plus aucun agent ni tâche de fond.
-
-1. Correctif du graphe (12.13), worktree ../wavestack-v12-graphfix, branche fix/v1-2-mise-a-jour-du-graphe, dd11fac3 : second avis fait, 1 medium à corriger avant PR : le test 1 de tests/test_rag_lab_graphrag.py:528-546 ne couvre pas l'échec à l'extraction (le texte ZEPHYR fait un seul passage sous rag_chunk_max_chars 700, donc le 2e appel est le résumé) ; un texte de plus de 700 caractères en deux paragraphes, échec au 2e appel d'extraction, assertion qu'aucun appel de résumé n'a lieu. Puis fusion de l'intégration (elle a avancé : #124, #125), PR vers l'intégration, file_prs.py --methode merge.
-2. 12.21, worktree ../wavestack-v12-s21, branche feat/v1-2-story-21-recherche-visuelle, 055c5ca5 (revue 15b01313, remesure de ColSmol commitée) : fusionner l'intégration, PR vers l'intégration, fusion. Verdict : ne tient pas (ColPali au plafond de 16 384 Mo ; ColSmol pic 6 098 Mo, requête 9 s, rappel@3 0,88). Pas de passe 2 de revue nécessaire (remesure seulement).
-3. Fin du lot V1.2 :
-   a. README.md à refaire (interface changée par les epics 13, 14, 12 : onglet harnais, cache, atelier recherche documentaire à onglets, onglet « Modèles ») et démo docs/assets/wavestack-demo.gif + .mp4 à regénérer par tools/demo/compose.py (programme, modules et durées à jour) ; captures de l'E2E qui montrent l'ancien libellé « Diagnostic » à regénérer ; demande d'Anaël.
-   b. PR integration/v1-2-atelier → main (merge), CI verte.
-   c. PR de version 1.5.0 (SemVer mineure), tag annoté v1.5.0, release GitHub avec notes (epic 12).
-   d. Rapport de fin de run (fusionné, reporté, liste « à revoir » du journal, recettes d'Anaël), mémoire du projet, suppression des worktrees ../wavestack-v12-* et ../wavestack-v12-modeles, ../wavestack-v12-graphfix.
+Run terminé : epics 12, 13 et 14 fusionnés dans main, versions 1.3.0, 1.4.0 et 1.5.0 publiées. Suite : recettes d'Anaël et décisions « à revoir » de [rapport-nuit-2026-10-25.md](rapport-nuit-2026-10-25.md).
 
 ## Journal
 
@@ -672,3 +664,33 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:51 · 12.21 · dev · remesure de ColSmol (17:47 → 17:50) : pic 6 098 Mo, indexation 9,7 s par page, requête médiane 8,97 s, rappel@3 0,88 sur 8 requêtes ; conclusion : ne tient pas (mémoire et latence) · 055c5ca5
 - 2026-10-25 17:51 · 13 · second-avis · correctif du graphe : 0 high, 1 medium (test 1 ne couvre pas l'échec à l'extraction), code conforme au schéma de RAPTOR · dd11fac3
 - 2026-10-25 17:51 · run · décision · /clear proposé à Anaël (aucune tâche de fond) ; reprise par « Prochaines étapes » · —
+- 2026-10-25 17:56 · run · décision · reprise après /clear ; état réel conforme au journal · —
+- 2026-10-25 17:56 · 13 · dev · test de l'échec à l'extraction (texte en deux passages) et fusion de l'intégration lancés (Sonnet) · dd11fac3
+- 2026-10-25 17:57 · 12.21 · PR · intégration fusionnée sans conflit, 26 tests verts ; #126 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · e0c5b1d
+- 2026-10-25 17:58 · run · dev · README et démo (gif, mp4) lancés sur docs/v1-2-readme-demo (worktree ../wavestack-v12-readme ; Edge et imageio-ffmpeg, sans installation système) ; captures E2E « Diagnostic » incluses · f6a96cf
+- 2026-10-25 18:01 · 13 · dev · fini ; test de l'échec à la 2e extraction (deux passages vérifiés, aucun résumé), test du résumé renommé ; intégration fusionnée sans conflit ; 35 tests verts · 1a5290c6
+- 2026-10-25 18:02 · 13 · PR · #127 ouverte vers integration/v1-2-atelier (medium du second avis corrigé, pas de passe de revue Opus : test seul), file_prs.py --methode merge lancé · 1a5290c6
+- 2026-10-25 18:08 · 12.21 · CI · verte · e0c5b1d
+- 2026-10-25 18:08 · 12.21 · fusion · #126 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; epic 12 complet · e1bbdc8
+- 2026-10-25 18:12 · run · dev · README et démo finis : README 104 lignes (8 modules, 7 h) ; démo 71,6 s, GIF 2,7 Mo, MP4 2,1 Mo, prises nouvelles jauge du cache et bilan, carte du harnais, onglet Fiches ; captures E2E themes et annex_language regénérées · 753aea71
+- 2026-10-25 18:12 · run · décision · à revoir : prise carte du harnais sur la conversation Outils natifs ; prise Fiches sur « RAG dense » ; lien de barre « RAG » ; carte de fin « 3 ateliers » inchangée · 753aea71
+- 2026-10-25 18:12 · run · blocked · E2E annex_language rouge préexistant : /rag en allemand affiche « Documents » en français (ui.rag.graph_col_sources) ; à corriger par la revue · —
+- 2026-10-25 18:12 · run · second-avis · README et démo lancé · 753aea71
+- 2026-10-25 18:12 · 13 · CI · verte · 1a5290c6
+- 2026-10-25 18:12 · 13 · fusion · #127 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; correctif du graphe intégré · a8353dc
+- 2026-10-25 18:15 · run · second-avis · README et démo : 1 high (README 104 lignes, test_docs_links impose ≤ 100), 2 medium (jauge du cache placée en barre du haut ; conflit avec main 42b5e37b sur le README), 3 low · 753aea71
+- 2026-10-25 18:15 · run · review · lancé (Opus ; fusion de l'intégration et de main d'abord ; traductions de /rag pour annex_language, PYTHONUTF8 dans le README E2E) · 753aea71
+- 2026-10-25 18:16 · run · review · README et démo passe 1 : high et medium corrigés (100 lignes, jauge en barre du bas), 3 low corrigés ; « Documents » allemand = faux positif de l'E2E (nom technique), exemption dans run_e2e.py, annex_language 33/33 ; intégration et main fusionnées sans conflit · 46d1dede
+- 2026-10-25 18:16 · run · décision · à revoir : exemption des noms techniques de rag_lab.yaml dans annex_language (masquerait un « Documents » français oublié) · 46d1dede
+- 2026-10-25 18:22 · run · dev · légende « Atelier RAG » de la démo corrigée, GIF et MP4 recomposés depuis les captures · 590aab91
+- 2026-10-25 18:23 · run · PR · #128 (README et démo) ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 590aab91
+- 2026-10-25 18:31 · run · CI · #128 verte · 590aab91
+- 2026-10-25 18:31 · run · fusion · #128 MERGED dans integration/v1-2-atelier (README et démo) via file_prs.py · de3b1d6
+- 2026-10-25 18:32 · run · PR · #129 integration/v1-2-atelier → main ouverte (merge ; main déjà incluse), file_prs.py lancé · de3b1d6
+- 2026-10-25 18:42 · run · CI · #129 verte (8 groupes, Windows et Ubuntu) · de3b1d6
+- 2026-10-25 18:42 · run · fusion · #129 MERGED dans main (merge) via file_prs.py ; lot V1.2 dans main · 79169f7
+- 2026-10-25 18:44 · run · PR · #130 version 1.5.0 ouverte (pyproject, __init__, cli, uv.lock), file_prs.py --methode squash lancé · —
+- 2026-10-25 18:52 · run · CI · #130 verte · —
+- 2026-10-25 18:52 · run · fusion · #130 MERGED dans main (squash), version 1.5.0 · f41cf5bb
+- 2026-10-25 18:53 · run · décision · tag annoté v1.5.0 et release GitHub « WaveStack 1.5.0 » publiés (notes : epic 12) · f41cf5bb
+- 2026-10-25 18:55 · run · décision · fin du run : rapport-nuit-2026-10-25.md, mémoire du projet à jour, worktrees supprimés · —
