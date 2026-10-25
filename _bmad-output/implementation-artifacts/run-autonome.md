@@ -362,3 +362,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:52 · 12.15 · review · passe 1 : 1 medium (sondage sans limite, arrêt après 5 échecs, bouton rétabli) et 4 low corrigés (réponse tardive ignorée, juge introuvable = 409, moteur fermé si grant échoue, JUDGE_MAX_TOKENS 256) ; E2E 181/181 · af7e5f9
 - 2026-10-25 08:52 · 12.15 · décision · à revoir : JUDGE_MAX_TOKENS 256 relève aussi la réserve du juge cloud · af7e5f9
 - 2026-10-25 08:52 · 12.15 · PR · #108 ouverte vers integration/v1-2-atelier · af7e5f9
+- 2026-10-25 08:55 · 12.17 · review · spec approuvée ; rangs BM25 mesurés (injection hors contexte, reformulation prévue), Prompt Guard sans téléchargement (loaded_classifier), décision not_installed journalisée, références corrigées · 5dffbb1
+- 2026-10-25 08:55 · 12.17 · décision · à revoir : 8 points tranchés par le relecteur Opus (cas constructed, mini-graphe illustratif, block par défaut, un seul document piégé) · 5dffbb1
+- 2026-10-25 08:55 · 12.17 · attente humaine · avant de déclarer finie (done_checkpoint) : recette visuelle fr/en/de clair et sombre, relecture des reformulations en/de, vrai verdict Prompt Guard 2, enregistrement des réponses, entrées de la page Sécurité · —
+- 2026-10-25 08:55 · 12.17 · dev · phase 2 (code) lancée · 5dffbb1
