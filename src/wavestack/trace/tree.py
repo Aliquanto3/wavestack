@@ -81,8 +81,8 @@ def build(
     root = RagLabStep(id=run_id, kind="run", name=run_id, status="running")
     root.started_at = started.ts
     nodes: dict[str, RagLabStep] = {run_id: root}
-    calls: dict[str, int] = {}  # step id -> calls seen
-    open_calls: dict[str, RagLabStep] = {}  # step id -> its call under way
+    calls: dict[str, int] = {}  # parent node id -> calls numbered under it
+    open_calls: dict[str, list[RagLabStep]] = {}  # step id -> its calls under way, in order
     prompts: dict[str, str] = {}  # stage node id -> its prompt as sent (`prompt_text`)
     model = model or {}
     if texts is not None and started.payload.get("question"):
@@ -127,10 +127,10 @@ def build(
                 texts.outputs[run_id] = p["output_text"]
         elif e.kind == "model_call_started":
             step = e.step_id or run_id
-            calls[step] = calls.get(step, 0) + 1
             parent = nodes.get(step, root)
+            calls[parent.id] = calls.get(parent.id, 0) + 1
             call = RagLabStep(
-                id=f"{parent.id}.c{calls[step]}",
+                id=f"{parent.id}.c{calls[parent.id]}",
                 parent=parent.id,
                 kind="model_call",
                 name=model.get("label") or model.get("id") or "model",
@@ -140,11 +140,12 @@ def build(
                 started_at=e.ts,
             )
             parent.children.append(call)
-            open_calls[step] = call
+            open_calls.setdefault(step, []).append(call)
         elif e.kind == "model_call_ended":
-            call = open_calls.pop(e.step_id or run_id, None)
-            if call is None:
+            under_way = open_calls.get(e.step_id or run_id)
+            if not under_way:
                 continue
+            call = under_way.pop(0)
             call.status = p.get("stop_reason", "stop")
             call.ended_at = e.ts
             call.duration_ms = p.get("duration_ms")

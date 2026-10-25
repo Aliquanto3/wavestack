@@ -320,3 +320,55 @@ def test_the_page_panel_and_file_are_wired():
         assert f'id="{element}"' in html
     source = (static / "rag-tree.js").read_text(encoding="utf-8")
     assert 'registerTab("tree"' in source and "/api/rag_lab/otel/export" in source
+
+
+# ---------- review, pass 1 ----------
+
+
+def test_auth_env_never_names_a_model_key():
+    """`auth_env` refuses a model's key: the decision's, the Hub's, a cloud entry's, any
+    `…_API_KEY`; a dedicated name passes."""
+    cloud = {"models": [{"id": "m", "key_env": "MY_CLOUD_SECRET"}]}
+    for name in ("OPENROUTER_API_KEY", "anthropic_api_key", "HF_TOKEN", "MY_CLOUD_SECRET"):
+        cfg = config.Config(values={"otel": {"auth_env": name}, "cloud": cloud})
+        assert cfg.otel_auth_env is None, name
+    cfg = config.Config(values={"otel": {"auth_env": "LANGFUSE_OTEL_AUTH"}, "cloud": cloud})
+    assert cfg.otel_auth_env == "LANGFUSE_OTEL_AUTH"
+    for url in ("https://x.example/otel?token=abc", "https://x.example/otel#t"):
+        assert config.Config(values={"otel": {"endpoint": url}}).otel_endpoint is None
+
+
+def test_outside_the_loopback_the_export_is_journaled_masked(index, monkeypatch):
+    """A collector outside the loopback range (the factory's predicate forced): one
+    `outbound_request` of origin `otel`, its `Authorization` masked, its body by its size."""
+    otel_needed()
+    from wavestack.net import factory
+
+    monkeypatch.setenv("WAVESTACK_TEST_OTEL_AUTH", AUTH)
+    with Collector() as collector:
+        otel = {"endpoint": collector.url, "auth_env": "WAVESTACK_TEST_OTEL_AUTH"}
+        session = ready(index, otel=otel)
+        run(session)
+        mark = get_journal().last_seq()
+        monkeypatch.setattr(factory, "is_loopback", lambda host: False)
+        session.export_rag_lab_otel("lab1")
+    ((_, headers, body),) = collector.requests
+    assert headers["Authorization"] == AUTH
+    (sent,) = [e for e in get_journal().events_since(mark) if e.kind == "outbound_request"]
+    assert sent.payload["origin"] == "otel" and sent.payload["url"].endswith("/v1/traces")
+    values = {h["name"].lower(): h["value"] for h in sent.payload["headers"]}
+    assert values["authorization"] != AUTH and AUTH not in str(sent.payload)
+    assert sent.payload["body"] == f"[binaire, {len(body)} octets]"
+
+
+def test_only_the_inference_spans_carry_the_usage(index):
+    otel_needed()
+    with Collector() as collector:
+        session = ready(index, otel={"endpoint": collector.url})
+        run(session)
+        session.export_rag_lab_otel("lab1")
+    spans = decoded(collector.requests[0][2])
+    usage = [s for s in spans if "gen_ai.usage.output_tokens" in attrs(s)]
+    assert [attrs(s)["gen_ai.operation.name"] for s in usage] == ["chat"]
+    stage = next(s for s in spans if s.span_id == usage[0].parent_span_id)
+    assert attrs(stage)["wavestack.rag_lab.usage.output_tokens"] == 20

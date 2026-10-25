@@ -667,7 +667,7 @@ tree:
   otel_missing_text: "OTLP-Export: Installieren Sie das Extra otel (uv sync --extra otel) und stellen Sie die URL Ihres Langfuse oder Phoenix ein. Sonst verlässt nichts den Rechner."
   otel_unset_text: "OTLP-Export: Stellen Sie [otel] endpoint ein, die URL Ihres Langfuse oder Phoenix, und starten Sie WaveStack neu. Sonst verlässt nichts den Rechner."
   otel_ready_text: "OTLP-Export an {endpoint}, nach den GenAI-Konventionen von OpenTelemetry. Ohne die Texte: keine Frage, keine Passage, keine Antwort."
-  otel_content_text: "OTLP-Export an {endpoint}, nach den GenAI-Konventionen von OpenTelemetry. Die Texte gehen mit: Frage, Prompts und Antworten (capture_content)."
+  otel_content_text: "OTLP-Export an {endpoint}, nach den GenAI-Konventionen von OpenTelemetry. Die Texte gehen mit: Frage, Prompts mit den Passagen des Korpus, und Antworten (capture_content)."
   export_text: "Diesen Lauf exportieren"
   export_running_text: "Export läuft…"
   export_done_text: "{count} Spans an {endpoint} gesendet."

@@ -12170,6 +12170,7 @@ class AppSession:
                 events, ended["run_id"], model=self._rag_lab_model_info(), ended=(ended, now_iso())
             )
         except Exception:  # noqa: BLE001 - AD-16: a tree that cannot be read is left out
+            _log.warning("rag_lab: tree of run %s left out", ended.get("run_id"), exc_info=True)
             return None
         return tree.model_dump(mode="json") if tree is not None else None
 

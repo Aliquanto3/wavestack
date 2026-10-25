@@ -109,8 +109,9 @@ def _attributes(node: RagLabStep, texts: Texts | None) -> tuple[str, Any, dict[s
             "gen_ai.operation.name": "chat",
             "gen_ai.provider.name": node.provider or "llama_cpp",
             "gen_ai.request.model": model,
-            "gen_ai.response.finish_reasons": [node.status],
         }
+        if node.status != "running":  # a call that never ended has no finish reason
+            attrs["gen_ai.response.finish_reasons"] = [node.status]
         if node.input_tokens is not None:
             attrs["gen_ai.usage.input_tokens"] = node.input_tokens
         if node.output_tokens is not None:
@@ -125,16 +126,20 @@ def _attributes(node: RagLabStep, texts: Texts | None) -> tuple[str, Any, dict[s
         "wavestack.rag_lab.stage.option": node.option or "",
         "wavestack.rag_lab.status": node.status,
     }
+    # A stage's tokens are its calls' sum: never `gen_ai.usage.*` here, which only the
+    # inference spans carry (a backend that adds the spans up would count them twice).
     for key, value in (
-        ("gen_ai.usage.input_tokens", node.input_tokens),
-        ("gen_ai.usage.output_tokens", node.output_tokens),
+        ("wavestack.rag_lab.usage.input_tokens", node.input_tokens),
+        ("wavestack.rag_lab.usage.output_tokens", node.output_tokens),
         ("wavestack.rag_lab.tokens", node.tokens),
     ):
         if value is not None:
             attrs[key] = value
     if node.kind == "stage" and node.stage_kind in RETRIEVAL_KINDS:
-        attrs |= {"gen_ai.operation.name": "retrieval", "gen_ai.data_source.id": node.option}
-        return f"retrieval {node.option}", SpanKind.INTERNAL, attrs
+        attrs["gen_ai.operation.name"] = "retrieval"
+        if node.option:
+            attrs["gen_ai.data_source.id"] = node.option
+        return f"retrieval {node.option or node.stage_kind}", SpanKind.INTERNAL, attrs
     return (
         node.name if node.kind == "part" else node.stage_kind or node.name,
         (SpanKind.INTERNAL),

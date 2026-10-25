@@ -672,6 +672,11 @@ def compute_memory_budget(mode: str, cap_mb: int, ratio: float) -> MemoryBudget:
     )
 
 
+# V1.2 story 16 (CAP-12): model keys `[otel] auth_env` may never name (the decision's
+# `rag.decision.KEY_ENV`, the Hub token); the cloud entries' `key_env` are added at read time.
+_MODEL_KEY_ENVS = frozenset({"OPENROUTER_API_KEY", "HF_TOKEN"})
+
+
 @dataclass(frozen=True)
 class Config:
     """Merged configuration: wavestack.toml defaults overridden by settings.json."""
@@ -719,6 +724,8 @@ class Config:
             return None
         if parts.scheme not in ("http", "https") or not host or parts.username:
             return None
+        if parts.query or parts.fragment:  # no token in the URL: `auth_env` carries it
+            return None
         return value
 
     @property
@@ -731,10 +738,22 @@ class Config:
     def otel_auth_env(self) -> str | None:
         """`[otel] auth_env`: the environment variable whose value is the collector's
         `Authorization` header (Langfuse's Basic key). A name, never the value; `None` when
-        unset or not a valid variable name."""
+        unset, not a valid variable name, or the name of a model's key: a cloud entry's
+        `key_env`, `OPENROUTER_API_KEY` (the decision), `HF_TOKEN`, any `…_API_KEY` (never a
+        cloud model's key sent to the collector)."""
         value = self.get("otel", "auth_env", default="")
         valid = isinstance(value, str) and value.isascii() and value.replace("_", "A").isalnum()
-        return value if valid and not value[0].isdigit() else None
+        if not valid or value[0].isdigit():
+            return None
+        raw = self.get("cloud", "models", default=[])
+        entries = raw if isinstance(raw, list) else []
+        model_keys = {
+            str(e["key_env"]).upper() for e in entries if isinstance(e, dict) and e.get("key_env")
+        }
+        name = value.upper()
+        if name in _MODEL_KEY_ENVS or name in model_keys or name.endswith("_API_KEY"):
+            return None
+        return value
 
     @property
     def net_contact(self) -> str:

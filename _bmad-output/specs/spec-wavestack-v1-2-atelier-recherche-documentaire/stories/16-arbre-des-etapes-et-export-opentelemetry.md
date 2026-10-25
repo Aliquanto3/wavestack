@@ -76,7 +76,7 @@ Source : dépôt `open-telemetry/semantic-conventions-genai` (les conventions Ge
 
 ## Verification
 
-- `uv run pytest -q tests/test_rag_lab_otel.py` (10 tests ; 3 sautés sans l'extra, dont la CI qui fait `uv sync --locked` sans extra).
+- `uv run pytest -q tests/test_rag_lab_otel.py` (13 tests ; 5 sautés sans l'extra ; la CI fait `uv sync --locked --extra otel` depuis la revue).
 - Ciblés : `test_rag_lab`, `test_rag_lab_generation`, `_decision`, `_graphrag`, `_wiki`, `_agentic`, `_views`, `_costs`, `test_net_*`, `test_trace_architecture`, `test_i18n`, `test_ui_texts`, `test_backend_messages`.
 - E2E : `rag rag_rerank rag_lab rag_lab_tree` (capture `92-atelier-rag-arbre.jpg`).
 
@@ -91,9 +91,9 @@ Source : dépôt `open-telemetry/semantic-conventions-genai` (les conventions Ge
 - **Export à la demande** (bouton), jamais automatique à chaque course ; vues.md parle d'un bouton, CAP-12 dit « une exécution produit des spans ». À revoir par Anaël.
 - **Pas d'exporteur HTTP du SDK** : l'extra prend `opentelemetry-sdk` + l'encodeur OTLP commun (pas `opentelemetry-exporter-otlp-proto-http` de brownfield.md), l'envoi passe par la fabrique (AD-15). À revoir par Anaël.
 - **Règle de journalisation** : aucun texte par défaut (convention GenAI + journal local) ; `capture_content` opt-in envoie question, prompt rendu (celui de l'étape quand elle n'a qu'un appel) et réponses. Le prompt contient les passages. À revoir par Anaël.
-- **`auth_env`** : seul moyen d'atteindre un Langfuse (Basic auth) ; nom de variable, jamais la valeur dans la configuration. À revoir par Anaël.
+- **`auth_env`** : seul moyen d'atteindre un Langfuse (Basic auth) ; nom de variable, jamais la valeur dans la configuration ; refusé s'il nomme une clé de modèle (`key_env` d'une entrée cloud, `OPENROUTER_API_KEY`, `HF_TOKEN`, tout `…_API_KEY`). L'URL ne porte ni identifiants, ni requête, ni fragment. À revoir par Anaël.
 - **Appel de modèle** : `step_id` de son étape conservé, `parent_step` = l'étape elle-même (pas d'identifiant d'appel distinct dans les événements, pour garder le contrat existant) ; l'arbre numérote les appels `étape.cK`. À revoir par Anaël.
-- **Changement d'URL = redémarrage** : la garde réseau est installée au démarrage avec `allowed_hosts`. À revoir par Anaël.
+- **Changement d'URL = redémarrage** : la session lit `[otel] endpoint` à son démarrage ; la garde de la fabrique relit `allowed_hosts` à chaque requête, et l'hôte du collecteur y est autorisé pour tous les clients de la fabrique, comme celui d'un modèle cloud. À revoir par Anaël.
 - **Origine `otel`** ajoutée aux requêtes sortantes (journal) ; envoi en boucle locale non tracé, comme toute requête loopback (AD-15).
 - **Extra épinglé sur 1.44.0** (dernière 1.45.1) pour ne pas relever l'`opentelemetry-api` de la base.
 
@@ -101,9 +101,27 @@ Source : dépôt `open-telemetry/semantic-conventions-genai` (les conventions Ge
 
 - Spans `embeddings` pour l'étape Embedding (nom du modèle à exposer dans l'arbre).
 - Arbre et export pour l'onglet Évaluer (plusieurs courses) et pour les courses de mise à jour (l'arbre est déjà joint, non dessiné).
-- Tests de l'export en CI : la CI n'installe pas les extras ; un job `--extra otel` les ferait tourner.
 - Plusieurs requêtes (`dense_retrieval × 2` de la maquette) : une seule étape par recherche dans l'arbre actuel.
 
 ## Spec Change Log
 
 - 2026-10-25 : création et implémentation (dev-story, sans point de contrôle de spec).
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 219eb637)
+
+Base : `origin/integration/v1-2-atelier` 3525323, sans écart (pas de fusion nécessaire).
+
+- Important · medium · second avis 1 · corrigé : `[otel] auth_env` acceptait `OPENROUTER_API_KEY` et envoyait la clé cloud au collecteur ; refus des `key_env` des entrées cloud, de `OPENROUTER_API_KEY`, `HF_TOKEN` et de tout `…_API_KEY` (`test_auth_env_never_names_a_model_key`).
+- Important · medium · second avis 2 · corrigé : tests d'export sautés en CI ; `uv sync --locked --extra otel` (cinq roues pur Python, ~0,5 Mo) et test hors boucle locale (`test_outside_the_loopback_the_export_is_journaled_masked` : `outbound_request` d'origine `otel`, `Authorization` masqué).
+- Important · medium · second avis 3 · corrigé : `gen_ai.usage.*` sur les spans d'étape (double compte) ; l'étape porte `wavestack.rag_lab.usage.*`, seuls les spans `chat` portent `gen_ai.usage.*` (`test_only_the_inference_spans_carry_the_usage`).
+- Nit · low · second avis 4 · corrigé (spec) : la garde relit la configuration à chaque requête et l'hôte du collecteur vaut pour toute la fabrique, comme un hôte cloud ; restreindre au seul client d'export demanderait une liste par client (non fait). Décision « redémarrage » réécrite.
+- Nit · low · second avis 5 · corrigé : avertissement `capture_content` (fr, en, de) cite les passages du corpus.
+- Nit · low · second avis 6 · corrigé : appels numérotés par nœud parent (plus de doublon `lab1.cK`) et appels en cours d'une étape en file (deux appels simultanés ne s'écrasent plus).
+- Nit · low · second avis 7 · rejeté : l'arbre a un nœud par étape de la chaîne et par appel de modèle, tous deux déjà bornés par la chaîne (étapes) et les plafonds d'itération de l'agentique ; pas de croissance libre.
+- Nit · low · second avis 8 · corrigé : `retrieval {option}` retombe sur le type d'étape, `gen_ai.data_source.id` omis sans option ; `finish_reasons` omis pour un appel non terminé.
+- Nit · low · second avis 9 · corrigé : l'échec de construction de l'arbre est journalisé (`_log.warning`, avec la trace).
+- Nit · low · second avis 10 · corrigé : corps binaire (`application/x-protobuf`, `octet-stream`) tracé par sa taille (« [binaire, N octets] ») ; URL avec requête ou fragment refusée par `otel_endpoint` (aucun jeton possible dans l'URL journalisée).
+- Complexité : 0 constat. `run_events` et `build` parcourent le journal une fois par fin de course ou par export (O(n), pas par événement).
+- Report : vérification manuelle avec un vrai Phoenix ou Langfuse (done_checkpoint ci-dessus), service absent ici.
