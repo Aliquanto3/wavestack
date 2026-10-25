@@ -378,3 +378,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:22 · 12.18 · dev · spec prête (16 critères, 8 points ouverts : instantanés en mémoire, dérivés illustratifs, sentinelle projet_orion dans l'état de la page, corpus livré inchangé) · af49d59
 - 2026-10-25 09:22 · 12.18 · review · relecture de la spec lancée · af49d59
 - 2026-10-25 09:22 · 12.18 · attente humaine · décision : corriger « story 14 » en « story 18 » dans projet_orion.md (corpus livré, empreintes) · —
+- 2026-10-25 09:23 · 12.15 · CI · verte après une relance · 9c9adf2
+- 2026-10-25 09:23 · 12.15 · fusion · #108 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · b3246b2

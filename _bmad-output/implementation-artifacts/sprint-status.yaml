@@ -1,7 +1,7 @@
 # Statuts du run de nuit V1.3, V1.4, V1.2, dérivés du journal de run-autonome.md (lu par avancement-run).
 # Correspondance : epic 13 = V1.3 (spec-wavestack-cache-visible), 14 = V1.4 (spec-wavestack-etat-de-l-art-harnais),
 # 12 = V1.2 (spec-wavestack-v1-2-atelier-recherche-documentaire) ; story N = id de son stories.yaml.
-last_updated: 2026-10-25 08:40
+last_updated: 2026-10-25 09:23
 development_status:
   epic-12: in-progress
   12-1-corpus-exemplia-enrichi: done
@@ -18,7 +18,7 @@ development_status:
   12-12-raptor-et-corrective-rag: backlog
   12-13-graphrag-simplifie: backlog
   12-14-llm-wiki: backlog
-  12-15-vue-evaluer: review
+  12-15-vue-evaluer: done
   12-16-arbre-des-etapes-et-opentelemetry: backlog
   12-17-document-piege: review
   12-18-effacement-et-droits-d-acces: in-progress
