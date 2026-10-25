@@ -155,6 +155,7 @@ common:
         error: "Fehler"
         flagged: "Gemeldet"
         partial: "Nichts erkannt (teilweise)"
+        not_installed: "Nicht geladen"
         passed: "Nichts erkannt"
   # Lot 4 (AD-28): the panes' mechanics (static/panes.js), shared by the workshops.
   panes:

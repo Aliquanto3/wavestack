@@ -1456,6 +1456,7 @@ guardrails:
     passed: "nichts erkannt"
     error: Fehler
     partial: "nichts erkannt (teilweise analysiert)"
+    not_installed: "nicht geladen"
   banner:
     blocked_input: "Vom Garde-fou {guardrail} blockiert. Das Modell hat sie nicht erhalten."
     blocked_output: "Vom Garde-fou {guardrail} blockiert. Sie haben die Antwort nicht erhalten."
@@ -1473,6 +1474,12 @@ guardrails:
     error: "{guardrail}: Ladefehler ({detail}), die Runde geht weiter."
     passed: "{guardrail}: nichts erkannt."
     partial: "{guardrail}: nichts erkannt, Text nur teilweise analysiert (zu lang)."
+    not_installed: "{guardrail}: nicht geladen, nichts geprüft ({detail})."
+  # V1.2 story 17: die Karte « Präpariertes Dokument » schreibt in dasselbe Journal.
+  attack:
+    reason: "Demonstration Präpariertes Dokument, Passage {passage}: {decision}"
+    blocked: "{guardrail}: Passage aus dem Kontext entfernt."
+    not_loaded: "Prompt Guard 2 ist in dieser Sitzung nicht geladen (kein Token, kein Modell oder ein Modell auf der Platte, das nicht geladen ist): Aktivieren Sie die Injektions-Leitplanke im Baustein Leitplanken."
   install_extra:
     installing: "Installation läuft…"
     already_installed: "Bereits installiert."
