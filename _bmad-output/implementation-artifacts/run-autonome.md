@@ -112,3 +112,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:57 · 15.3 · review · lancé (Opus) · —
 - 2026-10-25 22:02 · 15.2 · review · prête (4 medium et 5 low corrigés ; brique reasoning ajoutée au cas R22 ; compaction du cas TLV prouvée) · b43d4bd8
 - 2026-10-25 22:02 · 15.2 · PR · #138 ouverte, CI en cours · b43d4bd8
+- 2026-10-25 22:05 · 15.3 · review · prête (1 high et 3 medium corrigés ; ajout AppSession.journal_floor) · 51bd3579
+- 2026-10-25 22:05 · 15.3 · PR · #139 ouverte, CI en cours · 51bd3579
