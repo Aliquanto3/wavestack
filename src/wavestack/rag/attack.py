@@ -17,6 +17,7 @@ every case says whether it was recorded or constructed. Nothing is loaded, downl
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable
 from typing import Any, Literal
 
@@ -176,6 +177,9 @@ class AttackRequest(_Strict):
     guardrails: bool = False
     mode: Literal["block", "flag"] = "block"
     graph_step: Literal["start", "inject", "remove", "rebuild"] = "start"
+    # The step the graph is at before this one (the page keeps it, the session is pure): a
+    # removal needs an injection before it.
+    graph_from: Literal["start", "inject", "remove", "rebuild"] = "start"
 
 
 # ---------- text helpers ----------
@@ -281,6 +285,28 @@ class NotLoaded:
         return None
 
 
+class LoadedOnly:
+    """The session's already loaded instance, borrowed so that it can never load: a shallow
+    copy taken at borrow time keeps the loaded model's references even if the brick unloads
+    the original meanwhile (its `classify` then finds itself loaded and never reaches the lazy
+    `ensure_loaded`), and a copy found not loaded says `not_installed` instead of loading."""
+
+    def __init__(self, instance: Classifier, reason: str) -> None:
+        self._instance = copy.copy(instance)
+        self._reason = reason
+
+    def classify(self, text: str) -> Classification:
+        if not getattr(self._instance, "loaded", False):
+            raise NotInstalled(self._reason)
+        return self._instance.classify(text)
+
+    def mask(self, text: str, entities: tuple[Entity, ...]) -> str:
+        return text
+
+    def unload(self) -> None:
+        return None  # never the session's instance: the brick owns it
+
+
 def decision_of(verdict: Verdict) -> str:
     """As `AppSession._guardrail_check` says it, plus `not_installed` (nothing was checked)."""
     if verdict.status == "error":
@@ -323,18 +349,13 @@ def _checked(
     texts: dict[str, Any],
 ) -> dict[str, Any]:
     """A passage of the « with » column: the verdict as the manager gave it, the recorded one
-    beside it when nothing was checked, and what it comes to (`kept`, `removed`, `flagged`)."""
+    beside it when nothing was checked, and what it comes to (`kept`, `removed`, `flagged`).
+    Only the real verdict acts (decision 2): a guardrail not loaded or failing removes nothing,
+    the recorded verdict is shown beside, marked as such, and never acted on."""
     decision = decision_of(verdict)
     recorded = content.fallback_verdicts.by_role[passage["role"]]
-    # The basis of what the card acts on: the real verdict; the recorded one only when the
-    # guardrail is not loaded (said so); nothing when the guardrail failed.
     basis = "live" if decision in ("blocked", "flagged", "passed") else decision
-    detected = (
-        verdict.detected
-        if basis == "live"
-        else (recorded.detected if decision == "not_installed" else False)
-    )
-    if detected:
+    if basis == "live" and verdict.detected:
         outcome = "removed" if mode == "block" else "flagged"
     else:
         outcome = "kept"
@@ -406,12 +427,14 @@ def _answer(scenario: Scenario, context: list[dict[str, Any]], mode: str | None)
     return {"kind": "clean", "text": answers.clean_text}
 
 
-def mini_graph_state(content: AttackContent, step: str, trap_active: bool) -> dict[str, Any]:
-    """The automaton of the illustrative graph, from the step asked and whether the document
-    is in the corpus. `start` -> `inject` -> `remove` -> `rebuild`: the false relation comes
-    with the document, stays when the document is removed (the graph is not rebuilt), and goes
-    only at the rebuild. A step the document's state does not allow is refused with a message
-    and the graph stays as it was."""
+def mini_graph_state(
+    content: AttackContent, step: str, trap_active: bool, previous: str = "start"
+) -> dict[str, Any]:
+    """The automaton of the illustrative graph, from the step asked, the step the graph was at
+    (`previous`, kept by the page) and whether the document is in the corpus. `start` ->
+    `inject` -> `remove` -> `rebuild`: the false relation comes with the document, stays when
+    the document is removed (the graph is not rebuilt), and goes only at the rebuild. A step
+    the state does not allow is refused with a message and the graph stays as it was."""
     message: str | None = None
     effective = step
     present, stale = False, False
@@ -419,9 +442,12 @@ def mini_graph_state(content: AttackContent, step: str, trap_active: bool) -> di
         if trap_active:
             present = True
         else:
-            effective, message = "start", "inject_needs_document"
+            effective, message = previous, "inject_needs_document"
+            present, stale = previous in ("inject", "remove"), previous == "remove"
     elif step == "remove":
-        if trap_active:
+        if previous not in ("inject", "remove"):  # nothing was injected: nothing to remove
+            effective, message = previous, "remove_needs_injection"
+        elif trap_active:
             effective, message, present = "inject", "remove_needs_uncheck", True
         else:
             present, stale = True, True
@@ -479,7 +505,9 @@ def run(
         "graph": None,
     }
     if request.scenario == "graph":
-        body["graph"] = mini_graph_state(content, request.graph_step, request.trap_active)
+        body["graph"] = mini_graph_state(
+            content, request.graph_step, request.trap_active, request.graph_from
+        )
         return body
     top = ranked[: content.top_k]
     body["without"] = {

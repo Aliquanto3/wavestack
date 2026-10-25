@@ -11937,7 +11937,11 @@ class AppSession:
         per passage checked in the « with guardrail » column."""
         loaded = self._guardrails.loaded_classifier("injection")
         reason = self._t("guardrails.attack.not_loaded")
-        factory = (lambda: loaded) if loaded is not None else (lambda: rag_attack.NotLoaded(reason))
+        factory = (
+            (lambda: rag_attack.LoadedOnly(loaded, reason))
+            if loaded is not None
+            else (lambda: rag_attack.NotLoaded(reason))
+        )
         body = rag_attack.run(request, self._language, factory)
         label = self._t("guardrails.labels.injection")
         for passage in (body["with"] or {}).get("passages", []):
@@ -11959,6 +11963,7 @@ class AppSession:
                         passage=where,
                         decision=self._t(key, guardrail=label, detail=check["detail_text"]),
                     ),
+                    counted=False,  # a demonstration: shown, never in the session's counts
                 )
             )
         body["guard"] = self._attack_guard()

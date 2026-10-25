@@ -177,7 +177,13 @@ def test_injection_with_a_guard_that_detects_it_blocks_the_passage(lang):
     assert len(entries) == 3  # one per passage checked, the « with » column only
     assert {e.name for e in entries} == {"guardrails.injection"}
     assert sorted(e.decision for e in entries) == ["blocked", "passed", "passed"]
-    assert all("Démonstration" in e.reason_text or lang != "fr" for e in entries)
+    demo = {"fr": "Démonstration Document piégé", "en": "Trapped document demonstration"}
+    demo["de"] = "Demonstration Präpariertes Dokument"
+    assert all(e.reason_text.startswith(demo[lang]) for e in entries)
+    # A demonstration's « blocked » moves none of the session's counters (badge, « bloqués »).
+    counts = session._security_journal.counts()
+    assert counts["denied_count"] == 0 and counts["guardrail_blocked_count"] == 0
+    assert counts["total"] == 3
 
 
 @pytest.mark.parametrize("lang", LANGS)
@@ -248,11 +254,16 @@ def test_no_loaded_instance_means_not_installed_and_nothing_is_loaded_or_downloa
         assert "cas construit" in check["recorded"]["provenance"]["text"]
     by_role = roles_of(body["with"]["passages"])
     assert by_role["injection"]["check"]["recorded"]["detected"] is True
+    # Decision 2: what really happens (nothing checked, nothing removed); the recorded
+    # verdict is shown beside, never acted on.
+    assert {p["outcome"] for p in body["with"]["passages"]} == {"kept"}
+    assert "non appliqué" in by_role["injection"]["check"]["recorded"]["text"]
+    assert "injection" in {p["role"] for p in body["with"]["context"]}
     assert body["guard"]["loaded"] is False and body["guard"]["reason_text"]
     assert {e.decision for e in journal(session)} == {"not_installed"}
     assert len(journal(session)) == 3
     assert session._guardrails.loaded_classifier("injection") is None
-    assert body["with"]["answer"]["kind"] in {"grounded", "obeys"}
+    assert body["with"]["answer"]["kind"] == "obeys"
 
 
 def test_the_session_guardrail_modes_and_instances_are_not_touched():
@@ -306,8 +317,8 @@ def test_not_loaded_says_not_installed_through_the_manager():
 # ---------- the graph ----------
 
 
-def graph(step: str, trap: bool, lang: str = "fr") -> dict:
-    return attack.mini_graph_state(attack.load_attack(lang), step, trap)
+def graph(step: str, trap: bool, previous: str = "start", lang: str = "fr") -> dict:
+    return attack.mini_graph_state(attack.load_attack(lang), step, trap, previous)
 
 
 def test_graph_automaton_steps_on_the_written_out_values():
@@ -324,19 +335,28 @@ def test_graph_automaton_steps_on_the_written_out_values():
     assert injected["false_relation_present"] is True and injected["stale"] is False
     assert "8 caractères" in injected["summary_text"]
     assert "policy_eight" in [r["id"] for r in injected["relations"]]
-    removed = graph("remove", False)  # unticking is the removal: the effect stays
+    removed = graph("remove", False, "inject")  # unticking is the removal: the effect stays
     assert removed["false_relation_present"] is True and removed["stale"] is True
     assert "8 caractères" in removed["summary_text"]
-    again = graph("remove", False)  # a double removal changes nothing
+    again = graph("remove", False, "remove")  # a double removal changes nothing
     assert again == removed
-    rebuilt = graph("rebuild", False)
+    rebuilt = graph("rebuild", False, "remove")
     assert rebuilt["false_relation_present"] is False and rebuilt["stale"] is False
     assert "14 caractères" in rebuilt["summary_text"] and rebuilt["message_text"] is None
-    kept = graph("rebuild", True)  # the document is still there
+    kept = graph("rebuild", True, "inject")  # the document is still there
     assert kept["false_relation_present"] is True and kept["message_text"]
     assert graph("inject", False)["false_relation_present"] is False  # nothing to inject
     assert graph("inject", False)["message_text"]
-    assert graph("remove", True)["message_text"]  # still ticked: not removed
+    still = graph("remove", True, "inject")  # still ticked: not removed
+    assert still["message_text"] and still["false_relation_present"] and not still["stale"]
+    for previous in ("start", "rebuild"):  # nothing injected: nothing to remove, nor stale
+        for trap in (False, True):
+            refused = graph("remove", trap, previous)
+            assert refused["false_relation_present"] is False and refused["stale"] is False
+            assert refused["effective_step"] == previous and "Rien à retirer" in (
+                refused["message_text"] or ""
+            )
+            assert "policy_eight" not in [r["id"] for r in refused["relations"]]
 
 
 def test_graph_scenario_through_the_session_is_illustrative_and_constructed():
@@ -497,6 +517,7 @@ def test_endpoints_shapes_404_and_422():
         "guardrails": False,
         "mode": "block",
         "graph_step": "start",
+        "graph_from": "start",
     }
     assert [s["id"] for s in body["scenarios"]] == ["injection", "poisoning", "graph"]
     assert body["guard"]["loaded"] is True
@@ -550,3 +571,41 @@ def test_the_tab_script_has_no_colour_and_no_inner_html():
     html = (config.repo_root() / "src/wavestack/web/static/rag.html").read_text("utf-8")
     panel = html.split('id="rag-panel-attack"')[1].split('id="rag-panel-sheets"')[0]
     assert "rag-soon" in panel and "Démonstration" not in panel  # the text comes from the file
+
+
+def test_a_borrowed_instance_never_loads_even_if_the_brick_unloads_it(monkeypatch):
+    monkeypatch.setenv("HF_TOKEN", "hf_not_a_real_token")
+
+    def fails(*args, **kwargs):
+        raise AssertionError("the card must never load, check a licence or download")
+
+    monkeypatch.setattr(injection, "check_licence", fails)
+    monkeypatch.setattr(injection, "download_files", fails)
+    real_ensure = injection.PromptGuardGuardrail.ensure_loaded
+
+    def ensure_loaded(self, *args, **kwargs):  # the real one, but a load fails the test
+        if not self.loaded:
+            fails()
+        return real_ensure(self, *args, **kwargs)
+
+    monkeypatch.setattr(injection.PromptGuardGuardrail, "ensure_loaded", ensure_loaded)
+    real = injection.PromptGuardGuardrail()
+    monkeypatch.setattr(injection, "malicious_score", lambda logits: 0.9)
+
+    class Session:  # the loaded ONNX session, at the model's frontier
+        def get_inputs(self):
+            return []
+
+        def run(self, *args):
+            return [[[0.0, 1.0]]]
+
+    class Tokenizer:
+        def encode(self, text):
+            return type("E", (), {"ids": [1], "attention_mask": [1], "overflowing": []})()
+
+    real._session, real._tokenizer = Session(), Tokenizer()
+    borrowed = attack.LoadedOnly(real, "why")
+    real.unload()  # the brick frees the model meanwhile
+    assert borrowed.classify("x").detected is True  # the copy kept it: no lazy load
+    with pytest.raises(NotInstalled):
+        attack.LoadedOnly(real, "why").classify("x")  # borrowed unloaded: says so

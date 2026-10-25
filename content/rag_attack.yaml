@@ -119,7 +119,7 @@ texts:
     clean_text: "rien détecté (score {score}, seuil {threshold})"
     error_text: "erreur du garde-fou : {detail}"
     not_installed_text: "garde-fou non chargé : {detail}"
-    recorded_text: "verdict enregistré, cas construit : {verdict}"
+    recorded_text: "verdict enregistré, montré à côté et non appliqué : {verdict}"
     live_text: "verdict réel de Prompt Guard 2"
   outcome:
     removed_text: "écarté du contexte"
@@ -164,6 +164,7 @@ texts:
     messages:
       inject_needs_document: "Activez d'abord le document piégé pour l'injecter."
       remove_needs_uncheck: "Décochez le document piégé pour le retirer."
+      remove_needs_injection: "Rien à retirer : injectez d'abord le document dans le graphe."
       rebuild_document_still_there: "Le document est toujours dans le corpus : la reconstruction garde la relation fausse. Retirez-le d'abord."
   story18_text: "Effacement et Droits : à venir (story 18)."
   unknown_text: "Scénario inconnu."
