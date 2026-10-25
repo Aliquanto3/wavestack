@@ -238,3 +238,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:35 · run · dev · lancé : faux blobs creux sous Windows (chore/tests-fichiers-creux) · —
 - 2026-10-25 06:38 · 12.4 · fusion · #99 fusionnée · 881e14a
 - 2026-10-25 06:42 · 12.5 · dev · lancé · 881e14a
+- 2026-10-25 06:47 · run · PR · #100 ouverte (faux blobs creux sous Windows : 5 tests de 2-6 s à < 0,2 s en local, deux fichiers 43,8 s → 18,0 s) · 984a492
+- 2026-10-25 06:47 · run · second-avis · lancé sur #100 · 984a492
+- 2026-10-25 06:47 · run · CI · #98 en conflit (.gitignore), main fusionnée, CI équilibrée par durées relancée · bb84a21
+- 2026-10-25 06:47 · 12.9 · dev · lancé · 881e14a
