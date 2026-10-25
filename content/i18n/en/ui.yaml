@@ -1108,7 +1108,7 @@ llm:
   distribution_list: "Candidates of the chosen token"
 
 rag:
-  page_title: "WaveStack — RAG workshop"
+  page_title: "WaveStack — Document search workshop"
   chain: "Pipeline {label}"
   rank:
     one: "No. {count}"

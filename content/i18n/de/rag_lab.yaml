@@ -1,7 +1,7 @@
 # German translation of content/rag_lab.yaml (languages 4/5, AD-19): same keys, same stage,
 # option and param ids, same placeholders.
 
-title_text: "RAG-Werkstatt: die RAG-Architektur zum Ausprobieren"
+title_text: "Werkstatt Dokumentensuche: die Suchmaschinen-Architektur zum Ausprobieren"
 intro_text: >-
   Ein RAG (Retrieval-Augmented Generation: Das Modell antwortet anhand von Passagen, die in
   Dokumenten gefunden wurden) arbeitet in zwei Phasen. Die Indexierung (Build) zerlegt den
@@ -404,3 +404,50 @@ costs:
   apply_text: "Messen"
   cancel_text: "Abbrechen"
   update_of_text: "Zuletzt gemessene Aktualisierung"
+
+# V1.2 Story 4: die Ansichts-Tabs, die vorbereitete Frage, der Vergleich zweier Läufe.
+tabs:
+  label_text: "Ansichten der Werkstatt"
+  build_text: "Aufbauen"
+  compare_text: "Vergleichen"
+  evaluate_text: "Bewerten"
+  attack_text: "Angreifen"
+  sheets_text: "Steckbriefe"
+  soon_text: "{name}: folgt."
+prepared:
+  label_text: "Vorbereitete Frage"
+  free_text: "Freie Frage"
+  types:
+    factual_text: "Faktenfrage"
+    multi_hop_text: "Mehrstufig"
+    global_text: "Übergreifend"
+    no_answer_text: "Ohne Antwort"
+    temporal_text: "Zeitlich"
+    cross_lingual_text: "Sprachübergreifend"
+    follow_up_text: "Nachfrage"
+compare:
+  title_text: "Zwei Läufe vergleichen"
+  hint_text: "Pinnen Sie einen Lauf im Tab Aufbauen, starten Sie die Kette erneut (andere Architektur, andere Einstellung) und lesen Sie dann die Unterschiede: Passagen, Antwort, Kosten. Keine geschriebene Zusammenfassung."
+  pin_text: "Diesen Lauf anpinnen"
+  pin_wait_text: "Starten Sie die Kette: ein beendeter Lauf lässt sich anpinnen."
+  unpin_text: "Lösen"
+  pinned_status_text: "Angepinnt: {question}"
+  pinned_text: "Angepinnt"
+  current_text: "Aktuell"
+  empty_pin_text: "Kein Lauf angepinnt."
+  empty_current_text: "Kein beendeter Lauf zum Vergleichen."
+  need_pin_text: "Pinnen Sie den aktuellen Lauf an (Tab Aufbauen) und starten Sie die Kette mit einer anderen Einstellung erneut."
+  need_current_text: "Starten Sie die Kette, um den aktuellen Lauf zu erhalten."
+  other_question_text: "Die beiden Läufe haben nicht dieselbe Frage: der Unterschied kann daher stammen."
+  at_text: "um {time}"
+  search_text: "Suche"
+  context_text: "Kontext"
+  answer_text: "Antwort"
+  costs_text: "Kosten (Aufbau, Aktualisierung, Anfrage)"
+  prompt_text: "Endgültiger Prompt"
+  no_answer_text: "Keine Antwort erzeugt."
+  none_text: "Keine Passage."
+  same_text: "Dieselben Passagen in derselben Reihenfolge."
+  differs_text: "Die Passagen unterscheiden sich."
+  lost_text: "verloren"
+  added_text: "hinzugefügt"

@@ -553,7 +553,7 @@ Vérifications ajoutées aux scénarios existants :
   `/rag`, sept cartes dans l'ordre (Découpage, Embedding, Base vectorielle, Recherche,
   Reranking, Construction du contexte, Génération), les options « Faux embedding (e2e) »,
   « sqlite-vec » et « Faux reranker (e2e) », chaque carte expliquée, la génération sur
-  `--color-ink-fill`, l'onglet « RAG » courant et le titre « Atelier RAG », contrastes AA en clair et en sombre
+  `--color-ink-fill`, l'onglet « RAG » courant et le titre « Atelier recherche documentaire », contrastes AA en clair et en sombre
   (`_contrast_sweep`) ; capture `55-atelier-rag-chaine.jpg` ; (3) « Combien de jours de
   télétravail par semaine ? » puis « Lancer la chaîne » : une paire `started`/`ended` par étape
   exécutée, les statuts vus au fil de l'eau (`MutationObserver`) passent par « en cours » puis
@@ -766,3 +766,10 @@ d'autres (story 21) :
   travail (`rag_lab/work_corpus/fr.json` du dossier de données, `git status` inchangé), un refus
   (identifiant pris) dit sa raison, la carte et la copie survivent au rechargement, un run lit
   alors la copie (le Chunking le dit), « Revenir à l'état livré » supprime la copie ; capture `60-atelier-rag-couts.jpg`.
+
+- `rag_lab_views`, V1.2 story 4 (CAP-9, CAP-2), après `rag` et `rag_rerank` : les cinq onglets de
+  `/rag` (Construire par défaut, Évaluer, Attaquer et Fiches « à venir »), le sélecteur de questions
+  préparées et son badge, une exécution épinglée puis relancée (même question : mêmes passages ;
+  autre question : passages perdus et ajoutés marqués, avertissement), les coûts B/U/Q des deux
+  colonnes, l'épingle conservée après rechargement (`/rag#compare` ouvre l'onglet) ; capture
+  `62-atelier-rag-comparer.jpg`.

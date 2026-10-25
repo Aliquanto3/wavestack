@@ -33,6 +33,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, NamedTuple
 
 import httpx
+import yaml
 from mcp.shared.exceptions import MCPError
 from pydantic import SecretStr
 
@@ -196,7 +197,13 @@ from wavestack.models.servers import (
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
 from wavestack.rag import workcopy
-from wavestack.rag.corpus import Chunk, RagContent, chunk_corpus, load_rag_content
+from wavestack.rag.corpus import (
+    Chunk,
+    RagContent,
+    chunk_corpus,
+    load_rag_content,
+    load_rag_questions,
+)
 from wavestack.rag.retriever import Excerpt, SqliteVecRetriever
 from wavestack.scenarios import EMPTY_PROGRAM, ScenariosContent, load_scenarios
 from wavestack.session import llm_lab
@@ -10393,9 +10400,25 @@ class AppSession:
             "last_run": rag_lab.last_run(events),
             "last_update": rag_lab.last_update(events),
             "work_copy": self._rag_lab_work_copy(),
+            "questions": self._rag_lab_questions(),
             "session_state": {"state": state, "reason_text": reason_text},
             "seq": tip,
         }
+
+    def _rag_lab_questions(self) -> list[dict[str, str]]:
+        """V1.2 story 4 (CAP-2): the prepared questions of `content/rag_questions.yaml` (story
+        1) in the session's language, for the page's selector. A missing or invalid file gives
+        none (the page keeps the free question): the content's own test is what fails. A
+        follow-up question needs its earlier turns, which the workshop has not: left out."""
+        try:
+            questions = load_rag_questions(self._language)
+        except (OSError, ValueError, yaml.YAMLError):
+            return []
+        return [
+            {"id": q.id, "type": q.type, "question_text": q.question_text}
+            for q in questions
+            if not q.history
+        ]
 
     def _rag_lab_work_copy(self) -> dict[str, Any] | None:
         """V1.2 story 3 (CAP-8): the work copy of the corpus the update buttons act on: where
