@@ -6,7 +6,7 @@ import ast
 import operator
 import re
 import unicodedata
-from collections.abc import Sequence
+from collections.abc import Iterable, Iterator
 from datetime import datetime
 from pathlib import Path, PurePath, PurePosixPath
 
@@ -209,10 +209,15 @@ def search_documents(query: str, lang: str = config.DEFAULT_LANGUAGE) -> str:
     """The lines of the active corpus documents (in `lang`, file by file as `read_file`
     reads them) holding the words of `query`, as `corpus/<doc>.md:<line>: <text>`: the
     lines with the most words first, in document order, at most `MAX_RESULTS`."""
-    return match_lines(query, [(name, _corpus_text(name, lang)) for name in corpus_files()], lang)
+
+    def docs() -> Iterator[tuple[str, str]]:  # lazy: the query is checked before any reading
+        for name in corpus_files():
+            yield name, _corpus_text(name, lang)
+
+    return match_lines(query, docs(), lang)
 
 
-def match_lines(query: str, docs: Sequence[tuple[str, str]], lang: str) -> str:
+def match_lines(query: str, docs: Iterable[tuple[str, str]], lang: str) -> str:
     """V1.2 story 11: `search_documents`'s rule, pure: the lines of `docs` (pairs of a name
     and a text, in order) holding the words of `query`, as `<name>:<line>: <text>`, the lines
     with the most words first, at most `MAX_RESULTS`. The RAG workshop's agent applies it to

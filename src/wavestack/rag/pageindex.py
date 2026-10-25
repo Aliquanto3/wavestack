@@ -376,6 +376,25 @@ def write_rebuilt(
     return path
 
 
+def forget(lang: str, doc_ids: Sequence[str], folder: Path | None = None) -> int:
+    """The summaries the rebuilt file keeps for the nodes of `doc_ids` (the document and its
+    sections), removed: a deleted document leaves none of its text on disk. Written whole
+    (`_replace`), only when there was something to remove; the number removed."""
+    path = rebuilt_path(lang, folder)
+    if not doc_ids or not path.is_file():
+        return 0
+    try:
+        file = _read(path)
+    except (OSError, ValueError, yaml.YAMLError, ValidationError):
+        return 0
+    gone = set(doc_ids)
+    kept = [n for n in file.nodes if n.id.split("#", 1)[0] not in gone]
+    removed = len(file.nodes) - len(kept)
+    if removed:
+        _replace(path, dump(file.model_copy(update={"nodes": kept})))
+    return removed
+
+
 def reset(lang: str, folder: Path | None = None) -> bool:
     """« Rétablir l'arbre livré »: the rebuilt file deleted. Whether there was one."""
     path = rebuilt_path(lang, folder)

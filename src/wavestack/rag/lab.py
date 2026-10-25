@@ -4770,6 +4770,8 @@ class UpdateRun(LabRun):
             facts=facts,
         )
         if not by_model:
+            # A deleted document's model summaries leave the rebuilt file (story 18: erased).
+            pageindex.forget(self._lang, removed, deps.lab_dir)
             ms = math.ceil((time.perf_counter() - began) * 1000)
             result.output_text = say(
                 "update.tree_rule", redone=count(len(redone)), removed=count(gone)
@@ -4786,6 +4788,7 @@ class UpdateRun(LabRun):
         result.costs = costs
         if status == "cancelled":
             raise LabCancelled(result)
+        pageindex.forget(self._lang, removed, deps.lab_dir)
         if entries:
             pageindex.write_rebuilt(
                 self._lang,

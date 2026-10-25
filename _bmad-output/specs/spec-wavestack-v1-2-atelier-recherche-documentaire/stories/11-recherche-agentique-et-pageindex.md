@@ -186,3 +186,20 @@ Point de contrôle de la spec du 2026-10-25 (reviewer, Opus 5.5). Les neuf point
 - Arbre à plus de deux niveaux (corpus avec sous-titres) : le code l'accepte, le corpus livré n'en a pas.
 - Sections de l'agentique dans le diagnostic (story 9) : l'ancre du passage attendu est lue dans les éléments ; pas de note spécifique à la boucle.
 - Constaté au point de contrôle, hors de cette story : `rag_erasure.yaml` garde `long_context` et `cag` en `available: false` (`story: 10`) alors que la story 10 les met dans `PRESETS`. À corriger par la story 10 (ou la story 19, dont le critère 7 suppose « huit architectures hors `PRESETS` » et doit lire `id in PRESETS`) ; cette story ne touche que les lignes `agentic` et `pageindex`.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 8b0342b)
+
+Intégration `origin/integration/v1-2-atelier` à jour (aucun commit à fusionner).
+
+- **Important**, low, second avis 1 : `search_documents` lisait tout le corpus avant de valider la requête (liste passée à `match_lines`), contraire à « `search_documents` strictement inchangé ». Corrigé : générateur paresseux (`corpus_files()` compris), test `test_the_query_is_checked_before_any_document_is_read` (rouge sans le correctif).
+- **Important**, low, second avis 3 : un document supprimé gardait ses résumés écrits par le modèle dans le fichier reconstruit alors que la mise à jour annonce « N nœuds retirés » (texte d'un document effacé resté sur disque, story 18). Corrigé : `pageindex.forget`, appelé par `_update_tree` sur les deux chemins (après le contrôle d'annulation sur le chemin modèle) ; tests unitaire et de bout en bout de la session.
+- Rejeté, second avis 2 (audience `hr`) : aucune architecture de l'atelier (dense, hybride, rerank, contexte long, CAG) ne filtre `hr` ; la carte d'accès (`access.py`) démontre justement la fuite d'une recherche sans filtre. L'agentique et PageIndex suivent la même règle ; la spec de 12.11 n'en demande pas. Un filtre `hr` pour tout l'atelier serait une décision transverse (story 18 ou 20), à trancher par Anaël.
+- Rejeté, second avis 4 : le refus du lien symbolique par « nom absent » est le contrôle voulu (noms virtuels, aucun accès disque) ; le test le prouve.
+- Décision (b) gardée : `test_i18n` impose des `label_text` d'étapes identiques dans les trois langues (sauf `question`), convention des noms techniques anglais (« Generation », « Prompt augmentation ») ; « Appels d'outils » imposerait ce français en en et de. Écart au critère 16 à valider par Anaël.
+- Décision (d) gardée : 400 tokens par résultat × 6 tours tient dans la fenêtre d'un SLM local ; `grep` complète. À mesurer au report « boucle agentique ».
+- Décision (f) conforme : la matrice (ligne « Reconstruire, annulé ») exige « état inchangé ».
+- Complexité : 0 constat (prompt de chaque tour borné, résultats bornés).
+
+Tests : contrôle rapide vert ; ciblés 548 verts, 1 sauté (lien symbolique sous Windows) ; E2E `rag rag_rerank rag_lab rag_lab_no_index rag_lab_agentic rag_lab_sheets` : 189 vérifications, 0 échec.

@@ -126,6 +126,19 @@ def test_rebuilds_add_up_and_reset_deletes_the_file(tmp_path):
     assert not pageindex.reset("fr", tmp_path)
 
 
+def test_forget_removes_a_deleted_document_from_the_rebuilt_file(tmp_path):
+    nodes = pageindex.build_tree(DOCS)
+    entries = [n.entry() for n in nodes.values() if n.id != pageindex.ROOT_ID]
+    pageindex.write_rebuilt("fr", entries, model="m", tokens=1, duration_ms=1, folder=tmp_path)
+    alpha = sum(1 for n in entries if n.id.split("#")[0] == "alpha")
+    assert alpha >= 2  # the document and its sections
+    assert pageindex.forget("fr", ["alpha"], tmp_path) == alpha
+    rebuilt = pageindex.load_files("fr", tmp_path)[1]
+    assert rebuilt is not None and {n.id.split("#")[0] for n in rebuilt.nodes} == {"beta"}
+    assert pageindex.forget("fr", ["alpha"], tmp_path) == 0
+    assert pageindex.forget("fr", ["beta"], tmp_path / "none") == 0  # no file: nothing
+
+
 def test_an_unreadable_rebuilt_file_is_ignored(tmp_path):
     path = pageindex.rebuilt_path("fr", tmp_path)
     path.parent.mkdir(parents=True)
