@@ -101,3 +101,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:44 · 15.4 · dev · fini (phase spec : état de session agent_eval, 11 points ouverts) · 63c0c771
 - 2026-10-25 21:44 · 15.4 · review · lancé (spec_checkpoint, Opus) · —
 - 2026-10-25 21:45 · 15.4 · dev · spec mise à jour avec les écarts de 15.2 (accesseurs publics de configuration, case_player supprimé) · 87a40c37
+- 2026-10-25 21:51 · 15.2 · second-avis · 4 medium (plafond mesuré sur les échecs ; cas joués hors de leur fenêtre, compaction non prouvée ; cas R22 sans brique Raisonnement ; symptôme de chemin_invente non vérifié), 7 low · 74b431a7
+- 2026-10-25 21:51 · 15.2 · review · lancé (Opus) · —
