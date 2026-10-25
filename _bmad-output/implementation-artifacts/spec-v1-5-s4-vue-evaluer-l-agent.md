@@ -697,3 +697,20 @@ Statut : 4a livrée, en revue ; 4b (vue) à faire. Base : `origin/main` avec les
 - La contre-épreuve de fenêtre est dans `tests/test_agent_cases_provided.py`.
 
 **Reports :** décisions 4 et 5 (plafond en cours de cas, `approve`), en vérification manuelle dans la recette du lot.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu c087f36a, partie 4a)
+
+Base : origin/main ffd2d60e, à jour (pas de rebase).
+
+- **Important**, medium, second avis n° 1, corrigé : un tour sourd à « Arrêter » au-delà de `_SETTLE_S` faisait lever `SendRefused` à `restore_case_config`, puis la séance repassait en `idle` avec la configuration du cas. Désormais l'exécution est notée finie (`wait` rend la main) mais la séance reste dans son exécution (intentions refusées, « Arrêter » offert) jusqu'à la fin du tour, puis la configuration est rétablie et la séance passe en `idle`. Borne injectable (`AgentEvalRunner._settle_s`). Test : `test_a_turn_deaf_to_stop_keeps_the_run_until_it_ends_then_restores`.
+- second avis n° 2, rejeté : vider la conversation est voulu (« Exécuteur », la conversation est vidée) ; l'avertissement du premier lancement relève de la vue (Front, point 4, texte `first_run.text`), donc de la partie 4b.
+- **Nit**, low, second avis n° 3, corrigé : `_wait` rend la main `_settle_s` après « Arrêter » si le tour ne finit pas. Sans « Arrêter », pas de borne, car un tour long sur CPU est légitime. `session.join()` est sauté dans ce cas, le worker étant tenu par le tour.
+- **Nit**, low, second avis n° 4, corrigé : `thread.start()` est passé sous le `try`. Un échec, comme celui de `case_config_snapshot`, retire aussi l'exécution de la liste : avant le correctif, elle y restait `running`. Test : `test_a_thread_that_fails_to_start_leaves_the_session_idle`.
+- **Nit**, low, second avis n° 5, corrigé : `close()` prévient d'abord l'exécuteur (`agent_eval.close()`). Celui-ci n'attend plus et ne restaure rien sur une séance qui se ferme, si bien que `join(5.0)` suffit.
+- second avis n° 6, laissé : `check_window` est réservé aux tests par convention, avec un test d'absence côté API ; aucun défaut.
+- second avis n° 7, rejeté : l'en-tête est lu par `system_prompt_state()` et `active_model()`, qui prennent le verrou de la séance ; aucune donnée de l'exécuteur n'y est lue hors de `self._lock`.
+- Complexité : 0 constat. Les exécutions sont bornées à `MAX_RUNS`, et `_of_try` est linéaire sur les enveloppes d'un essai.
+
+API pour 4b : inchangée.

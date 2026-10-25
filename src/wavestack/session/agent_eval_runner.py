@@ -102,6 +102,10 @@ class AgentEvalRunner:
         self._envelopes: dict[tuple[str, str, int], list[Envelope]] = {}
         self._current: Progress | None = None
         self._thread: threading.Thread | None = None
+        # Review 4a: how long a stopped turn's end is awaited before the run is recorded as
+        # over (its restoration then waits for that end); an attribute, so tests shorten it.
+        self._settle_s = _SETTLE_S
+        self._closing = threading.Event()  # the session closes: nothing restored any more
 
     # ---------- the cases ----------
 
@@ -231,18 +235,25 @@ class AgentEvalRunner:
         session._emit_state()  # noqa: SLF001 - out of `_lock`, which is not re-entrant
         try:
             snapshot = session.case_config_snapshot()
-        except BaseException:
+            thread = threading.Thread(
+                target=self._execute,
+                args=(run, cases, snapshot),
+                daemon=True,
+                name="wavestack-agent-eval",
+            )
+            thread.start()
+        except BaseException:  # review 4a: no run left `running`, the session back to `idle`
+            with self._lock:
+                self._runs.pop(run.run_id, None)
+                self._done.pop(run.run_id, None)
             session._end_eval_run()  # noqa: SLF001
             raise
-        thread = threading.Thread(
-            target=self._execute,
-            args=(run, cases, snapshot),
-            daemon=True,
-            name="wavestack-agent-eval",
-        )
         self._thread = thread
-        thread.start()
         return run.run_id
+
+    def close(self) -> None:
+        """The session closes: a run under way stops waiting and restores nothing."""
+        self._closing.set()
 
     def join(self, timeout: float | None = None) -> None:
         thread = self._thread
@@ -296,18 +307,36 @@ class AgentEvalRunner:
             self._finish(run, snapshot, status)
 
     def _finish(self, run: runs.Run, snapshot: CaseConfigSnapshot, status: str) -> None:
+        """The configuration restored once the session rests in `agent_eval` again, then
+        `idle`. Review 4a: a stopped turn that outlasts `_settle_s` (an engine deaf to the
+        cancellation) records the run as over, but the session stays in its run, refusing
+        intentions and stoppable, until that turn ends: never `idle` unrestored."""
         session = self._session
-        try:
-            if session.state != "agent_eval":  # a failure under way: its turn ends first
-                session.stop()
-                self._settle(_SETTLE_S)
-            session.restore_case_config(snapshot)
-        except Exception as exc:  # noqa: BLE001 - the session still goes back to `idle`
-            session._error(  # noqa: SLF001
-                Message("agent_eval.run_failed.message"),
-                exc,
-                Message("agent_eval.run_failed.effect"),
-            )
+        done: threading.Event | None = None
+        recorded = False
+        if session.state != "agent_eval":  # a failure under way: its turn ends first
+            session.stop()
+            if not self._settle(self._settle_s):
+                done, recorded = self._record_end(run, status), True
+                if done is not None:
+                    done.set()
+                self._settle(None)
+        if not self._closing.is_set():
+            try:
+                session.restore_case_config(snapshot)
+            except Exception as exc:  # noqa: BLE001 - the session still goes back to `idle`
+                session._error(  # noqa: SLF001
+                    Message("agent_eval.run_failed.message"),
+                    exc,
+                    Message("agent_eval.run_failed.effect"),
+                )
+        if not recorded:
+            done = self._record_end(run, status)
+        session._end_eval_run()  # noqa: SLF001
+        if done is not None:
+            done.set()
+
+    def _record_end(self, run: runs.Run, status: str) -> threading.Event | None:
         with self._lock:
             run.case_tag = None
             run.status = status  # type: ignore[assignment]
@@ -316,14 +345,17 @@ class AgentEvalRunner:
             self._current = None
             done = self._done.get(run.run_id)
             self._evict()
-        session._end_eval_run()  # noqa: SLF001
-        if done is not None:
-            done.set()
+        return done
 
-    def _settle(self, timeout: float) -> None:
-        deadline = time.monotonic() + timeout
-        while self._session.state != "agent_eval" and time.monotonic() < deadline:
+    def _settle(self, timeout: float | None) -> bool:
+        """Whether the session rests in `agent_eval` again within `timeout` (`None`: as
+        long as it takes, or until the session closes)."""
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while self._session.state != "agent_eval":
+            if self._closing.is_set() or (deadline is not None and time.monotonic() >= deadline):
+                return False
             time.sleep(_POLL_S)
+        return True
 
     def _skip_from(self, run: runs.Run, start: int, reason: str, lang: str) -> None:
         """Every try not played yet of the cases from `start` (the one under way
@@ -417,18 +449,19 @@ class AgentEvalRunner:
                 if not run.stop_requested:
                     raise
                 return runs.not_run(trial, "cancelled", runs.cancelled_text(lang)), []
-            self._wait(wake, case)
+            settled = self._wait(wake, run, case)
             mine = self._of_try(received, run, case)
             ended = [e for e in mine if e.kind == "turn_ended" and _is_main(e)]
             overflowed = ended and ended[-1].payload.get("status") == "overflow"
-            if overflowed and case.on_overflow != "none" and not run.stop_requested:
+            if settled and overflowed and case.on_overflow != "none" and not run.stop_requested:
                 try:  # 7. the refused message again after the strategy
                     session.compact(case.on_overflow, resend_turn_id=ended[-1].turn_id, by_run=True)
                 except SendRefused:
                     pass  # the verdict reads the overflow
                 else:
-                    self._wait(wake, case)
-            session.join()  # the turn's last emissions, on the worker
+                    settled = self._wait(wake, run, case)
+            if settled:  # a deaf turn still holds the worker: `_finish` waits for its end
+                session.join()  # the turn's last emissions, on the worker
         finally:
             journal.unsubscribe(collect)
             run.case_tag = None
@@ -449,11 +482,20 @@ class AgentEvalRunner:
         }
         return [e for e in list(received) if e.turn_id in tagged]
 
-    def _wait(self, wake: queue.Queue[Envelope], case: AgentCase) -> None:
+    def _wait(self, wake: queue.Queue[Envelope], run: runs.Run, case: AgentCase) -> bool:
         """Until the session rests in `agent_eval` again (the turn or the strategy over);
-        H5's validation answered as the case says, never by the trainer."""
+        H5's validation answered as the case says, never by the trainer. Review 4a: `False`
+        when « Arrêter » (or the session's closing) came `_settle_s` ago and the turn still
+        runs."""
         session = self._session
+        deadline: float | None = None
         while True:
+            if self._closing.is_set():
+                return False
+            if deadline is None and run.stop_requested:
+                deadline = time.monotonic() + self._settle_s
+            if deadline is not None and time.monotonic() >= deadline:
+                return False
             try:
                 env = wake.get(timeout=_POLL_S)
             except queue.Empty:
@@ -467,7 +509,7 @@ class AgentEvalRunner:
                     pass  # already resolved (« Arrêter »)
             with session._lock:  # noqa: SLF001
                 if session.state == "agent_eval":
-                    return
+                    return True
 
     # ---------- reading ----------
 

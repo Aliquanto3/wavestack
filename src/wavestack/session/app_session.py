@@ -1933,6 +1933,7 @@ class AppSession:
 
     def close(self) -> None:
         if self.agent_eval.running:  # V1.5 story 4: the run stops, its thread is waited for
+            self.agent_eval.close()  # review 4a: it waits no more, restores nothing
             self.stop()
             self.agent_eval.join(5.0)
         self._cag_drop()  # V1.2 story 10: the CAG state freed with the session

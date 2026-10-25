@@ -610,3 +610,52 @@ def test_the_global_memory_is_set_back_between_cases_and_at_the_end(closing):
     assert "Entrée écrite par un cas." not in read  # the second reads the snapshot's
     assert before and [(e.id, e.text) for e in session._memory] == before
     assert since(mark, "harness_reset") == []
+
+
+# ---------- review 4a: an engine deaf to « Arrêter », a thread that fails to start ----------
+
+
+def test_a_turn_deaf_to_stop_keeps_the_run_until_it_ends_then_restores(closing):
+    gate = threading.Event()  # the fake engine waits on it, whatever the cancellation
+    c = case("udeaf", system_prompt="Prompt du cas.", checks=[{"kind": "turn_completed"}])
+    engine, session, _ = make([c], [GD, "Il est 10 h."], gate=gate)
+    closing(session)
+    before = config_of(session)
+    session.agent_eval._settle_s = 0.2  # the bound, short for the test
+    try:
+        run_id = session.agent_eval.start(["udeaf"], 1)
+        wait_until(lambda: len(engine.calls) == 1)
+        assert session.stop() is True
+        run = session.agent_eval.wait(run_id, timeout=3)  # recorded over past the bound
+        assert run.status == "cancelled"
+        assert run.cases[0].not_run_reason == "cancelled"
+        # Still in its run: never `idle` with the case's configuration.
+        assert session.agent_eval.running and session.state != "idle"
+        assert session._custom_prompt == "Prompt du cas."
+        with pytest.raises(SendRefused) as refused:
+            session.send("Bonjour")
+        assert str(refused.value.reason_text) == RUNNING_FR
+    finally:
+        gate.set()
+    wait_until(lambda: session.state == "idle")
+    assert not session.agent_eval.running and config_of(session) == before
+
+
+def test_a_thread_that_fails_to_start_leaves_the_session_idle(closing, monkeypatch):
+    _, session, _ = make([case("u1")], [GD, "Il est 10 h."])
+    closing(session)
+    real, failed = threading.Thread.start, []
+
+    def start(self):  # noqa: ANN001, ANN202 - the run's thread fails once
+        if self.name == "wavestack-agent-eval" and not failed:
+            failed.append(1)
+            raise RuntimeError("can't start new thread")
+        return real(self)
+
+    monkeypatch.setattr(threading.Thread, "start", start)
+    with pytest.raises(RuntimeError):
+        session.agent_eval.start(["u1"], 1)
+
+    assert session.state == "idle" and not session.agent_eval.running
+    assert session.agent_eval.state().runs == []
+    assert play(session, ["u1"]).cases[0].status == "passed"
