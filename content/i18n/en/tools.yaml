@@ -40,6 +40,14 @@ tools:
         args: {path: journal_serveur.log}
       - label_text: Harness guide (prose, compression)
         args: {path: guide_harnais.md}
+  search_documents:
+    label_text: Document search
+    description: >-
+      Searches for words in the Exemplia corpus documents and returns the lines
+      found, as file:line: text. Search first, then read the file found with
+      read_file.
+    parameters:
+      query: One or two keywords, for example password or remote work.
   public_holidays:
     label_text: Public holidays
     sends_text: the requested year

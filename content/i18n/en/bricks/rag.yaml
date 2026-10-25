@@ -47,3 +47,13 @@ explanation_text:
   - >-
     First installation: “Download” fetches the embedding model, then “Build the index”
     splits the corpus and indexes it on the workstation, without a command line.
+  - >-
+    Injected RAG or agentic search: RAG decides for you, at every turn, what the model reads;
+    agentic search lets the model look for itself, with the search_documents tool (the words
+    of its query, in the active documents of the corpus), then read the passage it found with
+    read_file (“search, then read”). RAG adds an embedding model and excerpts at every turn,
+    useful or not; agentic search only adds the tool-call turns, but a small model may pick
+    poor words or forget to read. RAG suits a corpus the model cannot browse; search suits a
+    corpus of files where exact words matter. Coding harnesses (Claude Code, Codex, Cursor)
+    make this second choice: they search with grep and open the files, rather than indexing
+    the code with embeddings.

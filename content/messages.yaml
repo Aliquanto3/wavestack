@@ -712,8 +712,12 @@ tools:
     unreadable: "Expression illisible : « {expression} ». Utilisez {allowed}."
   read_file:
     outside: "Accès refusé : « {path} » sort du dossier de démonstration. Seuls les fichiers de content/demo_files/ sont lisibles, par un chemin relatif."
-    listing: "Fichiers disponibles :\n{files}"
+    listing: "Fichiers disponibles (les documents du corpus s'ouvrent sous corpus/) :\n{files}"
     missing: "Fichier absent : « {path} ». Fichiers disponibles : {files}."
+  search_documents:
+    header: "{count} ligne(s) affichée(s) sur {total}, au format fichier:ligne: texte. Lisez ensuite le fichier avec read_file."
+    empty: "Requête vide : donnez au moins un mot de {min} lettres ou plus."
+    none: "Aucun résultat pour « {query} » dans le corpus. Essayez d'autres mots, ou un seul mot-clé."
   network:
     blocked: "Connexion refusée par le harnais ({cause})."
     unreachable: "Service injoignable ({kind}) : le poste n'a pas accès à {host}."

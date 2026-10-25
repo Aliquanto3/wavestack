@@ -57,6 +57,7 @@ class ToolSpec:
     hosting: Hosting = "local_process"
     network: bool = False
     reads_local_path: str | None = None  # the argument holding a path, if any
+    default_enabled: bool = True  # an offline tool starts enabled, unless a scenario offers it
     # Network tools (AD-14): `preview(**args) -> {method, url, body}`, exactly what `run` sends.
     preview: Callable[..., dict[str, str]] | None = None
     # MCP tools (story 6): their own documentation, as the server lists it. `params` then maps

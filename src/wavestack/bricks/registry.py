@@ -140,6 +140,12 @@ BRICKS = [
                 hosting="local_process",
                 edges_to=["core.harness", "file.demo_dir"],
             ),
+            Component(
+                id="tools.search_documents",
+                kind="tool",
+                hosting="local_process",
+                edges_to=["core.harness"],
+            ),
             *(
                 Component(
                     id=f"tools.{name}",

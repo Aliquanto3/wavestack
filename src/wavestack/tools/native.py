@@ -1,9 +1,11 @@
-"""The three offline native tools, confined whatever hooks say (AD-14)."""
+"""The offline native tools, confined whatever hooks say (AD-14)."""
 
 from __future__ import annotations
 
 import ast
 import operator
+import re
+import unicodedata
 from datetime import datetime
 from pathlib import Path, PurePath, PurePosixPath
 
@@ -88,7 +90,9 @@ def calculator(expression: str) -> str:
     return str(value) if isinstance(value, int) else format(value, ".12g")
 
 
-# ---------- read_file: confined to content/demo_files/ ----------
+# ---------- read_file: confined to content/demo_files/ and the RAG corpus ----------
+
+CORPUS = "corpus"  # the prefix under which `read_file` opens the RAG corpus (CAP-4)
 
 
 def demo_dir() -> Path:
@@ -97,31 +101,71 @@ def demo_dir() -> Path:
     return (config.content_dir() / "demo_files").resolve()
 
 
+def corpus_dir() -> Path:
+    """The French RAG corpus folder, the second root `read_file` opens, read-only."""
+    return (config.content_dir() / CORPUS).resolve()
+
+
+def _under_corpus(path: str) -> bool:
+    """`path` names the corpus prefix (`corpus`, `corpus/doc.md`, whatever the case)."""
+    parts = PurePosixPath(path.replace("\\", "/")).parts
+    return bool(parts) and parts[0].casefold() == CORPUS
+
+
 def resolve_demo_path(path: str) -> Path | None:
     """`path` as `read_file` resolves it; `None` for an absolute, drive or UNC path, refused
-    before any filesystem access. The hooks (H1) resolve it the same way (AD-14)."""
-    return None if PurePath(path).anchor else (demo_dir() / path).resolve()
+    before any filesystem access. The hooks (H1) resolve it the same way (AD-14). A path under
+    `corpus/` is resolved from `content/`, the others from the demonstration folder."""
+    if PurePath(path).anchor:
+        return None
+    if _under_corpus(path):  # `CORPUS/…` names `corpus/…` on every OS, whatever its case
+        rest = PurePosixPath(path.replace("\\", "/")).parts[1:]
+        return config.content_dir().joinpath(CORPUS, *rest).resolve()
+    return (demo_dir() / path).resolve()
 
 
 def demo_relative(path: str) -> PurePosixPath | None:
-    """`path` relative to the French demonstration folder, as `read_file` resolves it;
-    `None` when it leaves the folder. H1 and the translation judge this relative path,
-    never the folder it is finally read from (languages 3/5)."""
+    """`path` relative to the French demonstration folder, as `read_file` resolves it, or
+    `corpus/<doc>` for the corpus; `None` when it leaves both. H1 and the translation judge
+    this relative path, never the folder it is finally read from (languages 3/5)."""
     target = resolve_demo_path(path)
+    if target is None:
+        return None
+    corpus = corpus_dir()
+    if target == corpus or target.is_relative_to(corpus):
+        return PurePosixPath(CORPUS) / target.relative_to(corpus).as_posix()
     base = demo_dir()
-    if target is None or not target.is_relative_to(base):
+    if not target.is_relative_to(base):
         return None
     return PurePosixPath(target.relative_to(base).as_posix())
+
+
+def corpus_files() -> list[str]:
+    """The active documents of the corpus, `corpus/<doc>.md`, as `rag.yaml` declares them:
+    the same rule as `chunk_corpus`, so the agentic search never reaches a document the RAG
+    keeps out (the trapped one, the sentinel)."""
+    from wavestack.rag.corpus import load_rag_content
+
+    docs = load_rag_content(config.DEFAULT_LANGUAGE).documents
+    return sorted(d.file for d in docs if d.active and PurePosixPath(d.file).parts[0] == CORPUS)
 
 
 def read_file(path: str, lang: str = config.DEFAULT_LANGUAGE) -> str:
     """The demonstration file `path` in `lang` (the session's, never `settings.json`'s):
     its translation under `content/i18n/{lang}/demo_files/` when it exists, else the French
-    file, file by file. The confinement and the listing are the French folder's."""
-    base = demo_dir()
+    file, file by file. The confinement and the listing are the French folder's. `corpus/<doc>`
+    opens an active document of the RAG corpus the same way (CAP-4)."""
     rel = demo_relative(path)
     if rel is None:
         raise ToolError("tools.read_file.outside", path=path)
+    base = demo_dir()
+    if rel.parts and rel.parts[0] == CORPUS:
+        docs = corpus_files()
+        if rel.as_posix() in docs:
+            return _corpus_text(rel.as_posix(), lang)
+        if rel == PurePosixPath(CORPUS):
+            return msg("tools.read_file.listing", lang, files="\n".join(docs))
+        raise ToolError("tools.read_file.missing", path=path, files=", ".join(docs))
     target = base / rel
     files = sorted(p.relative_to(base).as_posix() for p in base.rglob("*") if p.is_file())
     if target.is_dir():
@@ -129,6 +173,58 @@ def read_file(path: str, lang: str = config.DEFAULT_LANGUAGE) -> str:
     if not target.is_file():
         raise ToolError("tools.read_file.missing", path=path, files=", ".join(files))
     return config.content_file(PurePosixPath("demo_files") / rel, lang).read_text(encoding="utf-8")
+
+
+# ---------- search_documents: words in the corpus, files and lines (CAP-4) ----------
+
+MAX_RESULTS = 5  # lines returned: a result stays small in a 4 096-token window
+MAX_LINE = 120  # characters kept of a line
+MIN_TERM = 3  # shorter words (« de », « la ») are not searched
+_COMMENT = re.compile(r"<!--.*?-->", re.S)
+# Frequent words of three letters or more (folded): matched as substrings, they would
+# bring up nearly every line.
+_STOPWORDS = frozenset(
+    "les des une est dans pour par sur avec qui que quoi quel quelle quels quelles sont aux "
+    "ces ses son leur leurs pas plus comment the and are for with what which how who does "
+    "der die das und ist ein eine mit von wie was wer fur den dem".split()
+)
+
+
+def _corpus_text(name: str, lang: str) -> str:
+    """A corpus document in `lang`, its HTML comments (the « texte fictif » notice) dropped
+    as `chunk_corpus` drops them, their line breaks kept: `search_documents` numbers the
+    lines `read_file` returns."""
+    text = config.content_file(name, lang).read_text(encoding="utf-8-sig")
+    return _COMMENT.sub(lambda m: "\n" * m.group().count("\n"), text)
+
+
+def _fold(text: str) -> str:
+    """Case and accents removed, so « Télétravail » finds « teletravail »."""
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
+def search_documents(query: str, lang: str = config.DEFAULT_LANGUAGE) -> str:
+    """The lines of the active corpus documents (in `lang`, file by file as `read_file`
+    reads them) holding the words of `query`, as `corpus/<doc>.md:<line>: <text>`: the
+    lines with the most words first, in document order, at most `MAX_RESULTS`."""
+    words = re.findall(r"\w+", _fold(query))
+    terms = list(dict.fromkeys(t for t in words if len(t) >= MIN_TERM and t not in _STOPWORDS))
+    if not terms:
+        raise ToolError("tools.search_documents.empty", min=MIN_TERM)
+    hits: list[tuple[int, str, int, str]] = []  # (words found, file, line number, text)
+    for name in corpus_files():
+        for number, line in enumerate(_corpus_text(name, lang).splitlines(), start=1):
+            folded = _fold(line)
+            found = sum(term in folded for term in terms)
+            if found:
+                hits.append((found, name, number, " ".join(line.split())))
+    if not hits:
+        raise ToolError("tools.search_documents.none", query=query)
+    hits.sort(key=lambda h: -h[0])  # stable: document order within the same count
+    lines = [f"{n}:{i}: {t[:MAX_LINE]}" for _, n, i, t in hits[:MAX_RESULTS]]
+    result = msg("tools.search_documents.header", lang, count=len(lines), total=len(hits))
+    return "\n".join([result, *lines])
 
 
 NATIVE_TOOLS = [
@@ -145,5 +241,12 @@ NATIVE_TOOLS = [
         params={"path": "string"},
         component="tools.read_file",
         reads_local_path="path",
+    ),
+    ToolSpec(
+        name="search_documents",
+        run=search_documents,
+        params={"query": "string"},
+        component="tools.search_documents",
+        default_enabled=False,  # offered by the RAG comparison scenario, or by its checkbox
     ),
 ]

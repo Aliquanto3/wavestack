@@ -40,6 +40,14 @@ tools:
         args: {path: journal_serveur.log}
       - label_text: Harness-Leitfaden (Fließtext, Komprimierung)
         args: {path: guide_harnais.md}
+  search_documents:
+    label_text: Dokumentensuche
+    description: >-
+      Sucht Wörter in den Dokumenten des Exemplia-Korpus und gibt die gefundenen
+      Zeilen im Format Datei:Zeile: Text zurück. Erst suchen, dann die gefundene
+      Datei mit read_file lesen.
+    parameters:
+      query: Ein oder zwei Stichwörter, zum Beispiel Passwort oder Homeoffice.
   public_holidays:
     label_text: Feiertage
     sends_text: das angefragte Jahr

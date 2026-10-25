@@ -698,8 +698,12 @@ tools:
     unreadable: "Unreadable expression: “{expression}”. Use {allowed}."
   read_file:
     outside: "Access refused: “{path}” goes outside the demonstration folder. Only the files in content/demo_files/ can be read, through a relative path."
-    listing: "Available files:\n{files}"
+    listing: "Available files (the corpus documents open under corpus/):\n{files}"
     missing: "File not found: “{path}”. Available files: {files}."
+  search_documents:
+    header: "{count} line(s) shown out of {total}, as file:line: text. Then read the file with read_file."
+    empty: "Empty query: give at least one word of {min} letters or more."
+    none: "No result for “{query}” in the corpus. Try other words, or a single keyword."
   network:
     blocked: "Connection refused by the harness ({cause})."
     unreachable: "Service unreachable ({kind}): the workstation has no access to {host}."
