@@ -614,3 +614,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 16:33 · 12.14 · CI · verte · 5be654fe
 - 2026-10-25 16:33 · 12.14 · fusion · #122 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.12 prévenue · 3525323
 - 2026-10-25 16:33 · 12.16 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; worktree ../wavestack-v12-s16 depuis l'intégration 3525323) · 3525323
+- 2026-10-25 16:57 · 12.12 · dev · fini ; RAPTOR (arbre livré par règle : fr 73 passages, 27 résumés sur 3 niveaux, 23 Ko ; ~60 ms) et CRAG (hybride, passage_filter de 12.8, étape fallback retry / abstain, sans recherche web) ; critères 1 à 10, MCP refusé, raptor_summaries mesuré, sources RAPTOR 2401.18059 et CRAG 2401.15884 ajoutées à litterature.md ; E2E 87/87, 175/175, 109/109 ; intégration fusionnée (12.8, 12.14) · 16043c36
+- 2026-10-25 16:57 · 12.12 · décision · à revoir : D1 arbre par règle, D2 vecteurs de mots et BM25 au lieu des embeddings d'architectures.md, D3 résumé extractif qui privilégie les codes, D5 CRAG limité au cas « rien gardé », D6 pas de recherche web, D9 ordre des familles envoyé par le catalogue · 16043c36
+- 2026-10-25 16:57 · 12.12 · attente humaine · recette : « Reconstruire l'arbre » avec un vrai modèle, RAPTOR sur q_global_rh contre l'hybride, CRAG sur q_noanswer_* · —
+- 2026-10-25 16:57 · 12.12 · second-avis · lancé · 16043c36
