@@ -536,3 +536,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:06 · 12.11 · CI · verte · ec11ca5
 - 2026-10-25 13:06 · 12.11 · fusion · #116 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.20 prévenue (agentic et pageindex dans PRESETS) · cc3ec10
 - 2026-10-25 13:06 · 12.19b · dev · refusion de l'intégration (avec 12.11) lancée avant la PR · 6b00d2c
+- 2026-10-25 13:09 · 12.13 · review · spec approuvée après 2 défauts bloquants mesurés sur le corpus (règle d'entités : 25 à 31 entités sans relations ; propagation d'étiquettes : une communauté à 77-94 %) ; entités tf-idf + codes (116 à 128), Louvain phase 1 maison (15 à 17 communautés, la plus grande à 14-17 %), aucun filtre hr, exposition MCP selon 12.20 · 0cdc471
+- 2026-10-25 13:09 · 12.13 · décision · à revoir : D1 graphe heuristique livré, D2 sans networkx, D5 construction du graphe livré moins chère que dense (surcoût prouvé sur graphe reconstruit), D7 pas de filtre hr (décision transverse) · 0cdc471
+- 2026-10-25 13:09 · 12.13 · attente humaine · done_checkpoint : reconstruction du graphe avec un vrai modèle sur le PC cible (durée, tokens, graph_passages_fallback), local et global contre l'hybride, coût dans Comparer · —
+- 2026-10-25 13:09 · 12.13 · dev · phase 2 (code) lancée (Opus, effort high ; fusion de l'intégration avec 12.11 d'abord) · 0cdc471
