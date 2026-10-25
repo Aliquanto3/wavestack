@@ -47,6 +47,7 @@ from wavestack.rag import attack as rag_attack
 from wavestack.rag import diagnosis as rag_diagnosis
 from wavestack.rag import erasure as rag_erasure
 from wavestack.rag import evaluation as rag_evaluation
+from wavestack.rag import sheets as rag_sheets
 from wavestack.rag.lab import QUESTION_MAX, Pipeline
 from wavestack.session.app_session import (
     AppSession,
@@ -860,6 +861,26 @@ def create_app(
         """V1.2 story 18: what the pipeline read before the filter, recomputed. No model, no
         network. An unknown field or value: 422."""
         return app_session.rag_lab_access(request)
+
+    # V1.2 story 19: the « Fiches » tab. Declared content, read only; an unknown id is a 404.
+    @app.get("/api/rag_lab/sheets")
+    def rag_lab_sheets() -> dict[str, object]:
+        """The component sheets, the architecture sheets and the families still pending."""
+        return app_session.rag_lab_sheets()
+
+    @app.get("/api/rag_lab/sheets/component/{key}")
+    def rag_lab_sheet_component(key: str) -> dict[str, object]:
+        try:
+            return app_session.rag_lab_sheet_component(key)
+        except rag_sheets.UnknownSheet:
+            raise HTTPException(status_code=404, detail="unknown sheet") from None
+
+    @app.get("/api/rag_lab/sheets/architecture/{arch_id}")
+    def rag_lab_sheet_architecture(arch_id: str) -> dict[str, object]:
+        try:
+            return app_session.rag_lab_sheet_architecture(arch_id)
+        except rag_sheets.UnknownSheet:
+            raise HTTPException(status_code=404, detail="unknown sheet") from None
 
     @app.get("/mcp")
     def mcp_page() -> FileResponse:

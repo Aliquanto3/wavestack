@@ -26,13 +26,11 @@ architectures:
     label_text: "RAG with reranking"
     update_text: "remove the passages from the store, by identifier; the reranker keeps nothing."
   - id: long_context
-    available: false
-    story: 10
+    available: true
     label_text: "Long context, no retrieval"
     update_text: "no copy of the corpus to rebuild, except the cached prefix, to reload."
   - id: cag
-    available: false
-    story: 10
+    available: true
     label_text: "CAG"
     update_text: "reload the whole model cache, because the prefix contains the document."
   - id: agentic
