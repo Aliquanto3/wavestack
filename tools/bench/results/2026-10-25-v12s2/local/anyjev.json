@@ -1,0 +1,26 @@
+{
+  "determinism": {
+    "checked": 20,
+    "deterministic": true,
+    "max_gap": 0.0
+  },
+  "guard": "wavestack.net.guard",
+  "id": "anyjev",
+  "peak_before_load_mb": 1934,
+  "probabilistic": true,
+  "revisions": {
+    "anyjev": "35311c58955716cb8955ce1368a665988bc63735",
+    "slm": "Qwen3.5-2B-Q4_K_M.gguf"
+  },
+  "rss_added_mb": 1938,
+  "rss_before_load_mb": 1934,
+  "rss_loaded_mb": 3867,
+  "rss_peak_mb": 3872,
+  "rss_with_slm_mb": 1934,
+  "status": "measured",
+  "truncated_items": 0,
+  "versions": {
+    "anyjev": "0.3.0",
+    "llama-cpp-python": "0.3.35"
+  }
+}

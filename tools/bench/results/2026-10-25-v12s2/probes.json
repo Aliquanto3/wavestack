@@ -1,0 +1,20 @@
+{
+  "inception/mercury-decide:free": {
+    "status": "ok"
+  },
+  "liquid/d1": {
+    "status": "ok"
+  },
+  "microsoft/microsoft-decision-1": {
+    "status": "ok"
+  },
+  "openai/gpt-6-luna-decisions": {
+    "status": "ok"
+  },
+  "perplexity/pplx-decider-flash-v1.2": {
+    "status": "ok"
+  },
+  "typesafe/jev-1.14": {
+    "status": "ok"
+  }
+}
