@@ -68,3 +68,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:09 · 15.1 · second-avis · lancé · —
 - 2026-10-25 21:11 · 15.6 · second-avis · 1 medium (YAMLError non attrapée dans /api/glossary), 6 low · de484e94
 - 2026-10-25 21:11 · 15.6 · review · lancé (Opus) · —
+- 2026-10-25 21:12 · 15.1 · second-avis · 2 medium (cas fourni sans événement exigé ; tour annulé ou bloqué jugé complet), 3 low · 214f9289
+- 2026-10-25 21:12 · 15.1 · review · lancé (Opus) · —
