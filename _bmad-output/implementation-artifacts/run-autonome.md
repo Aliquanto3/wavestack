@@ -73,6 +73,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - Fusions par `scripts/file_prs.py` du kit (vérifie `MERGED`), puis journal. Sur `integration/v1-2-atelier` : `--methode merge` (les branches V1.2 sont empilées ; un squash recrée des conflits dans la story suivante).
 - Fin de lot : PR de version (SemVer mineure), tag annoté, release GitHub ; V1.3 dès la fusion de 13.6, V1.4 dès celle de 14.4.
 - E2E : `TEMP` et `TMP` en chemin long (`C:\Users\Utilisateur\AppData\Local\Temp`) ; un `TEMP` en nom court 8.3 peut faire échouer `rag` (« index non construit ») et tous les scénarios en aval (constat de 12.7).
+- Fichiers temporaires des agents : chacun dans son sous-dossier du scratchpad (`scratchpads<story>`), jamais à la racine (collision de `msgs.py` constatée par 12.10).
 - Fin de run : `rapport-nuit-2026-10-25.md` (fusionné, bloqué, reporté, liste « à revoir », tests manuels du matin), mémoire du projet, suppression des worktrees.
 
 ## Après le run
@@ -430,3 +431,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:10 · 12.18 · CI · #111 en conflit après #110 (3 captures) ; intégration fusionnée, captures de l'intégration, 273 tests ciblés verts, CI relancée · c5c9f02
 - 2026-10-25 10:16 · 12.18 · CI · verte · c5c9f02
 - 2026-10-25 10:16 · 12.18 · fusion · #111 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 488af94
+- 2026-10-25 10:34 · 12.10 · dev · fini ; 19 critères, test_rag_lab_no_index 50 verts, 5220 tests ciblés verts ; E2E 1er passage 8 échecs (RAM 790 Mo, 2 défauts corrigés), 2e 213/213 · 598f633
+- 2026-10-25 10:34 · 12.10 · décision · à revoir : préfixe en cache comme partie de l'étape Contexte ; sans état gardé, la génération relit le préfixe resté dans le moteur ; catalogue de validation relu au changement de modèle ou de fenêtre ; captures 77 et 78 · 598f633
+- 2026-10-25 10:34 · 12.10 · second-avis · lancé · 598f633
+- 2026-10-25 10:34 · 12.11 · dev · lancé (phase spec, empilé sur 12.10, worktree ../wavestack-v12-s11) · 598f633

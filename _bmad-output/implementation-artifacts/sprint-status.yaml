@@ -13,8 +13,8 @@ development_status:
   12-7-construction-du-contexte: done
   12-8-couche-de-decision-system-one: backlog
   12-9-diagnostic-du-bon-extrait: done
-  12-10-architectures-sans-index: in-progress
-  12-11-recherche-agentique-et-pageindex: backlog
+  12-10-architectures-sans-index: review
+  12-11-recherche-agentique-et-pageindex: in-progress
   12-12-raptor-et-corrective-rag: backlog
   12-13-graphrag-simplifie: backlog
   12-14-llm-wiki: backlog
