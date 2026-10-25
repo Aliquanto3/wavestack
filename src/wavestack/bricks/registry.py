@@ -76,7 +76,15 @@ BRICKS = [
                 kind="memory",
                 hosting="local_process",
                 edges_to=["core.harness"],
-            )
+            ),
+            # V1.4 story 4 (CAP-5): the compaction's summary call and the summary in the
+            # context; not drawn on the schema (`_drawn_components`).
+            Component(
+                id="short_memory.compaction",
+                kind="memory",
+                hosting="local_process",
+                edges_to=["core.harness"],
+            ),
         ],
     ),
     # Story 14: the global memory, a local file the harness alone writes (AD-20, AD-23); no

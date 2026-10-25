@@ -195,6 +195,9 @@ class TurnStartedPayload(BaseModel):
     message: str
     # Story 17: the model that plays this turn, for « Modèle : … » and « Comparer ».
     active_model: ActiveModel | None = None
+    # V1.4 story 4 (CAP-5): a harness turn that summarizes the old exchanges (`compaction`);
+    # its `message` is the summary's request.
+    kind: Literal["message", "compaction"] = "message"
 
 
 class TurnEndedPayload(BaseModel):
@@ -363,11 +366,46 @@ class ContextWindowStatePayload(BaseModel):
     choices: list[WindowChoicePayload]
 
 
+class CompactionChoice(BaseModel):
+    """V1.4 story 4 (CAP-5): one strategy offered on the main chat's short memory, with the
+    exchanges it summarizes or removes (`count`) and, unavailable, why."""
+
+    strategy: Literal["compaction", "sliding_window"]
+    available: bool
+    count: int
+    kept: int = 0  # the recent exchanges it keeps (« les 2 derniers échanges »)
+    detail_text: str
+    reason_text: str | None = None
+
+
+class CompactionStatePayload(BaseModel):
+    """V1.4 story 4: the strategies of « Compacter ▾ », outside an overflow."""
+
+    choices: list[CompactionChoice]
+
+
+class HistoryCompactedPayload(BaseModel):
+    """V1.4 story 4: a strategy applied to the main chat's history; `removed_turn_ids` left it
+    (summarized or removed); `before_tokens` and `after_tokens`, the context's preview."""
+
+    strategy: Literal["compaction", "sliding_window"]
+    removed_turn_ids: list[str]
+    summary_text: str | None = None
+    before_tokens: int
+    after_tokens: int
+    message_text: str
+
+
 class ContextOverflowPayload(BaseModel):
     used: int
     usable: int
     message_text: str
     strategies_text: list[str]
+    # V1.4 story 4 (CAP-5): the clickable strategies of the main chat's overflow (empty
+    # elsewhere, without an exchange or with the short memory off), and the texts of the
+    # other ones, shown under « Autres stratégies » when `choices` is not empty.
+    choices: list[CompactionChoice] = []
+    other_strategies_text: list[str] = []
 
 
 class OutputTruncatedPayload(BaseModel):
@@ -815,6 +853,8 @@ PrefixCause = Literal[
     "mcp_lab",  # lot 4 of 2026-10-04: the MCP workshop's model took the engine's cache
     "rag_lab",  # lot 5c-3: the RAG workshop's generation took the engine's cache
     "cache_cleared",  # V1.3 story 3: « Vider le cache » emptied the engine's memory
+    "compaction",  # V1.4 story 4: the old exchanges summarized by the model
+    "sliding_window",  # V1.4 story 4: the oldest exchanges removed, without a call
 ]
 
 
@@ -1893,6 +1933,8 @@ PAYLOAD_MODELS: dict[str, type[BaseModel]] = {
     "special_token_neutralized": SpecialTokenNeutralizedPayload,
     "bricks_changed": BricksChangedPayload,
     "conversation_cleared": ConversationClearedPayload,
+    "compaction_state": CompactionStatePayload,
+    "history_compacted": HistoryCompactedPayload,
     "tool_started": ToolStartedPayload,
     "tool_ended": ToolEndedPayload,
     "tool_call_malformed": ToolCallMalformedPayload,

@@ -87,7 +87,7 @@ Le sélecteur de scénario de la barre du bas liste sept modules, dans l'ordre d
 | 4. MCP | 45 min | documentation complète, lazy loading |
 | 5. Skills et hooks | 60 min | skills, Caveman, hooks |
 | 6. Sous-agent | 45 min | sous-agent |
-| 7. Contexte long et carte | 45 min | compression du contexte, carte du harnais |
+| 7. Contexte long et carte | 60 min | compression du contexte, compaction et fenêtre glissante, carte du harnais |
 
 Lancer le premier scénario d'un module active les briques des modules précédents et restaure la
 mémoire globale de démonstration : on peut reprendre la formation à n'importe quel module, dans

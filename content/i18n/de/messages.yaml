@@ -123,6 +123,8 @@ session:
       mcp_lab: "Die MCP-Werkstatt hat den Cache der Engine belegt{why}."
       rag_lab: "Die RAG-Werkstatt hat den Cache der Engine für ihre Generierung belegt{why}."
       cache_cleared: "Der Cache der Engine wurde auf Wunsch geleert (Schaltfläche « Cache leeren »): der gesamte Kontext wird neu gelesen."
+      compaction: "Die alten Austausche wurden zusammengefasst (Kompaktierung): der Verlauf hat sich geändert, die Engine liest den Kontext ab dem Verlauf neu."
+      sliding_window: "Die ältesten Austausche wurden entfernt (gleitendes Fenster): der Verlauf hat sich geändert, die Engine liest den Kontext ab dem Verlauf neu."
     evicted:
       stateless: ": Diese Engine kann den Zustand des Hauptkontexts nicht sichern"
       failed: ": Das Sichern oder Wiederherstellen des Zustands des Hauptkontexts ist fehlgeschlagen"
@@ -151,6 +153,18 @@ session:
       compaction: "Compaction: alte Wechsel in wenigen Zeilen zusammenfassen."
       old_tool_results: Entfernen alter Tool-Ergebnisse.
       lazy_loading: "Lazy Loading: die Dokumentation der Tools nur bei Bedarf laden."
+    choices:
+      compaction:
+        one: "den ältesten Austausch in wenigen Zeilen zusammenfassen (ein Modellaufruf{duration})"
+        other: "die {count} alten Austausche in wenigen Zeilen zusammenfassen (ein Modellaufruf{duration})"
+      duration: ", ≈ {seconds} s lokal"
+      sliding_window:
+        one: "nur die neuesten Austausche behalten (kein Aufruf; der älteste wird entfernt)"
+        other: "nur die neuesten Austausche behalten (kein Aufruf; die {count} ältesten werden entfernt)"
+      unavailable:
+        single: "Nur ein Austausch: nichts zu entfernen."
+        too_few: "Nicht genug Austausche: die Unterhaltung behält bereits nur die neuesten."
+        still_too_long: "Selbst dann passten die Nachricht und die Ergebnisse des Durchgangs nicht: kürzen Sie die Nachricht oder versuchen Sie eine andere Strategie."
   # AD-6: the name of a model capability a brick requires.
   capabilities:
     tool_call_parser: "den Tool-Aufruf ({parser})"
@@ -224,7 +238,26 @@ session:
       cloud: "Kein Speicher auf diesem Arbeitsplatz: Das Modell läuft bei {provider}."
       server: "Von {provider} geladen, in seinem eigenen Prozess, im RAM dieses Arbeitsplatzes: etwa {cost} vom Budget angerechnet."
       file: "Arbeitsspeicher (RAM) des Prozessors, keine Grafikkarte: WaveStack belegt jetzt {after} statt {before}; das Budget rechnet etwa {cost} an. Die per mmap gelesenen Gewichte gelangen beim ersten Aufruf in den RAM."
+  compaction:
+    request: "Fasse unsere bisherige Unterhaltung zusammen."
+    label: "Zusammenfassung (Kompaktierung)"
+    summarized:
+      one: "{count} Austausch zusammengefasst (Kompaktierung)"
+      other: "{count} Austausche zusammengefasst (Kompaktierung)"
+    removed:
+      one: "{count} Austausch entfernt (gleitendes Fenster)"
+      other: "{count} Austausche entfernt (gleitendes Fenster)"
+    failed: "Die Kompaktierung ist fehlgeschlagen."
+    unchanged: "Die Unterhaltung bleibt, wie sie war; keine Nachricht wird erneut gesendet."
+    transcript:
+      previous: "Vorherige Zusammenfassung:"
+      user: "Benutzer:"
+      assistant: "Assistent:"
+      tool: "[Tool {name}: {chars} Zeichen]"
   refused:
+    compact_empty: "Kein Austausch zu kompaktieren: die Unterhaltung ist leer."
+    compact_short_memory: "Der Baustein Kurzzeitgedächtnis ist aus: es gibt keinen Verlauf zu kompaktieren."
+    compact_stale: "Diese Karte ist veraltet: seitdem gab es einen anderen Durchgang, ein Leeren oder ein Szenario."
     turn: "Es läuft bereits eine Runde: Warten Sie ihr Ende ab oder klicken Sie auf „Stoppen“."
     no_model: "Es ist kein Modell geladen: Schließen Sie die Startdiagnose ab."
     nothing_to_replay: "Kein Prompt zum Wiederholen: Senden Sie zuerst eine Nachricht."

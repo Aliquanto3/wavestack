@@ -792,7 +792,7 @@ def test_scenario_compression_opens_the_last_module():
     assert (
         scenarios.index("scenarios: [rag, rag_rerank, rag_agentic]")
         < scenarios.index("scenarios: [subagent]\n")
-        < scenarios.index("scenarios: [compression, harness_map]\n\ntransverse:")
+        < scenarios.index("scenarios: [compression, compaction, harness_map]\n\ntransverse:")
     )
     lines = LOG.splitlines()
     assert ERROR_LINE in LOG and len(lines) >= 60  # Headroom sees a log from about 50 lines

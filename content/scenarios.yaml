@@ -60,8 +60,8 @@ program:
     duration_min: 45
     scenarios: [subagent]
   - title_text: Contexte long et carte
-    duration_min: 45
-    scenarios: [compression, harness_map]
+    duration_min: 60
+    scenarios: [compression, compaction, harness_map]
 
 transverse: [data_flows, soc, iam, sovereignty]
 
@@ -383,10 +383,42 @@ scenarios:
         la sauvegarde de cette nuit a rencontrée.
       - Dans le journal_serveur.log, à quelle heure le lot 12 a-t-il été copié ?
 
+  compaction:
+    title_text: Compaction et fenêtre glissante
+    description_text: >-
+      Ce scénario déborde exprès (exception AD-9) : seules la mémoire courte, le prompt
+      système et l'outil read_file sont allumés. Envoyez les trois prompts dans l'ordre : les
+      deux premiers lisent chacun un fichier, qui reste dans l'historique ; au troisième, le
+      contexte dépasse la fenêtre de 4 096 tokens. La carte « Contexte dépassé » propose alors
+      « Continuer avec : » deux stratégies. Cliquez « Compacter » : le harnais demande au
+      modèle actif de résumer les anciens échanges (étape « Résumé de compaction » dans
+      Orchestration, avec ses tokens, sa durée et son coût), le résumé remplace ces échanges
+      dans la conversation (bulle « Résumé (compaction) »), puis le message refusé repart
+      seul. La jauge du cache montre l'appel suivant en écriture, cause « compaction ».
+      Relancez ensuite le scénario, refaites déborder la conversation et choisissez
+      « Fenêtre glissante » : aucun appel au modèle, les échanges les plus anciens sont
+      retirés (« N échanges retirés »), cause « fenêtre glissante » ; comparez ce que le
+      modèle sait encore du journal. Le bouton « Compacter ▾ », à côté de « Vider la
+      conversation », applique les mêmes stratégies hors débordement.
+    bricks: [short_memory, system_prompt, tools]
+    tools: [read_file]
+    overflow_prompt: 3
+    prompts:
+      - >-
+        Appelle l'outil read_file sur journal_serveur.log, puis dis-moi quelle erreur grave
+        la sauvegarde de cette nuit a rencontrée.
+      - >-
+        Appelle l'outil read_file sur alertes_siem.log, puis dis-moi quelle alerte est la
+        plus grave.
+      - >-
+        Appelle à nouveau l'outil read_file sur journal_serveur.log, puis dis-moi si l'erreur
+        grave de la sauvegarde correspond à l'une des alertes.
+
   harness_map:
     title_text: Carte du harnais
     description_text: >-
-      Les briques de compression restent actives, comme au scénario précédent. Aucun appel
+      Les briques de compression restent actives, comme au scénario « Compression du
+      contexte ». Aucun appel
       d'outil ici : cliquez « Carte du harnais » sous ce texte (ou en pied du panneau des
       briques) pour ouvrir la carte. Chaque brique y est placée dans l'un des 7 sous-systèmes
       d'un harnais, avec son rôle : guide (il oriente le modèle avant qu'il agisse), capteur

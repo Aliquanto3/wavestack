@@ -73,6 +73,15 @@ const store = {
   // Orchestration), and the seq of the clearing, to hide the MCP connections seen before it.
   chatFrom: 0,
   clearedSeq: null,
+  // V1.4 story 4 (CAP-5): the turns a strategy took out of the history (hidden in the Vue
+  // humain and Contexte LLM), the marker shown in place of the first one, « Compacter ▾ »'s
+  // last `compaction_state`, the overflow cards already used, and their refusal.
+  compactedOut: new Set(),
+  compactMarkers: new Map(), // first removed turn id -> { strategy, text, turnId }
+  compactionState: null,
+  compactUsed: new Set(),
+  compactErrors: new Map(), // overflow turn id -> refusal text
+  compactMenuError: null,
   // Story 10: the last `scenario_changed` ({ program, active }); the seq of the last
   // `harness_reset`, the first journal index the event log shows, and the top bar's message.
   scenarios: null,
@@ -372,6 +381,23 @@ function applyEnvelope(envelope) {
       store.clearedSeq = envelope.seq;
       store.compare = null;
       break;
+    case "history_compacted":
+      // V1.4 story 4: the exchanges out of the history leave the Vue humain and Contexte LLM;
+      // the marker (summary or « N échanges retirés ») takes the first one's place.
+      for (const id of p.removed_turn_ids) store.compactedOut.add(id);
+      if (p.removed_turn_ids.length) {
+        store.compactMarkers.set(p.removed_turn_ids[0], {
+          strategy: p.strategy,
+          text: p.message_text,
+          turnId: envelope.turn_id,
+        });
+      }
+      if (turn) turn.summaryText = p.summary_text;
+      dropSelection();
+      break;
+    case "compaction_state":
+      store.compactionState = p;
+      break;
     case "scenario_changed":
       if (!isLive(envelope)) break;
       store.scenarios = p;
@@ -423,6 +449,8 @@ function applyEnvelope(envelope) {
       store.turns.push({
         id: envelope.turn_id,
         message: p.message,
+        kind: p.kind ?? "message", // V1.4 story 4: `compaction`, a harness turn
+        summaryText: null, // V1.4 story 4: its summary, once applied
         model: p.active_model ?? null, // story 17: « Modèle : … » and « Comparer »
         replayOf: p.replay_of, // story 9b: the turn this one replays, or null
         startedAt: Date.parse(envelope.ts),
@@ -3406,6 +3434,147 @@ function answerText(turn, kept) {
   return div;
 }
 
+// V1.4 story 4 (CAP-5): a compaction turn's bubble, « 📝 Résumé (compaction) » and the
+// summary (streamed, then applied); while it runs, its working indicator; failed, its note.
+function compactionBubble(turn, answers) {
+  const bubble = el("div", "bubble bubble-model is-compaction");
+  bubble.appendChild(el("div", "compaction-title", `📝 ${t("main.chat.compaction_title")}`));
+  const text = turn.summaryText ?? turn.text;
+  if (text) bubble.appendChild(answerText({ ...turn, text }, answers));
+  if (turn.status === null) {
+    const since = turn.callStartedAt ?? turn.startedAt;
+    const label = turn.stopRequested ? t("main.chat.stop_requested") : t("main.orch.rows.compaction");
+    bubble.appendChild(el("div", "working-indicator", `${label}… ${seconds(Date.now() - since)}`));
+  }
+  const note = turn.status === "completed" ? null : turnNote(turn);
+  if (note) bubble.appendChild(el("div", `bubble-note is-${turn.status}`, note));
+  return bubble;
+}
+
+// V1.4 story 4: an overflow's clickable strategies (`choices`), in the Vue humain (`view`
+// `chat`) and in Orchestration (`orch`); one click disables both views' buttons.
+function compactChoices(turn, view) {
+  const box = el("div", "compact-choices");
+  box.appendChild(el("p", "label", t("main.orch.overflow.continue")));
+  const used = store.compactUsed.has(turn.id);
+  for (const choice of turn.overflow.choices) {
+    const row = el("div", "compact-choice");
+    const button = el("button", "pane-text-action", t(`main.orch.overflow.buttons.${choice.strategy}`));
+    button.type = "button";
+    button.dataset.strategy = choice.strategy;
+    button.dataset.focusKey = `compact:${view}:${turn.id}:${choice.strategy}`;
+    button.disabled = used || !choice.available;
+    row.append(button, el("span", "compact-choice-detail", choice.detail_text));
+    if (!choice.available && choice.reason_text) {
+      const reason = el("span", "compact-choice-reason", choice.reason_text);
+      reason.id = `compact-reason-${view}-${turn.id}-${choice.strategy}`;
+      button.title = choice.reason_text;
+      button.setAttribute("aria-describedby", reason.id);
+      row.appendChild(reason);
+    }
+    button.addEventListener("click", () => compactFromCard(turn.id, choice.strategy));
+    box.appendChild(row);
+  }
+  const error = store.compactErrors.get(turn.id);
+  if (error) {
+    const line = el("p", "compact-error", error);
+    line.setAttribute("role", "alert");
+    box.appendChild(line);
+  }
+  return box;
+}
+
+// V1.4 story 4: `POST /api/intentions/compact`; the refusal's text, or `null`.
+async function postCompact(body) {
+  try {
+    const response = await postIntention("/api/intentions/compact", body);
+    if (response.ok) return null;
+    const detail = (await response.json().catch(() => ({}))).detail;
+    return typeof detail === "string" ? detail : t("common.action_refused");
+  } catch {
+    return t("main.chat.compact_no_answer");
+  }
+}
+
+async function compactFromCard(turnId, strategy) {
+  store.compactUsed.add(turnId);
+  store.compactErrors.delete(turnId);
+  render();
+  const refused = await postCompact({ strategy, resend_turn_id: turnId });
+  if (refused) {
+    store.compactUsed.delete(turnId);
+    store.compactErrors.set(turnId, refused);
+  }
+  render();
+}
+
+// V1.4 story 4: « Compacter ▾ » and its menu, from `compaction_state` and the session's state.
+function renderCompactMenu(state) {
+  const toggle = document.getElementById("compact-conversation");
+  const panel = document.getElementById("compact-menu-panel");
+  const brick = (store.bricks?.bricks || []).find((b) => b.id === "short_memory");
+  let reason = null;
+  if (state?.state !== "idle") reason = state?.reason_text || t("main.chat.compact_disabled.turn");
+  else if (!(brick?.wanted && brick?.available)) reason = t("main.chat.compact_disabled.short_memory");
+  else if (shownTurns().length === 0) reason = t("main.chat.compact_disabled.empty");
+  toggle.disabled = reason !== null;
+  toggle.title = reason ?? "";
+  if (reason) toggle.setAttribute("aria-label", `${t("main.chat.compact")} : ${reason}`);
+  else toggle.removeAttribute("aria-label");
+  if (reason && !panel.hidden) setCompactMenu(false);
+  const choices = store.compactionState?.choices || [];
+  for (const item of panel.querySelectorAll(".compact-menu-item")) {
+    const choice = choices.find((c) => c.strategy === item.dataset.strategy);
+    const keep = choice?.kept ?? 0;
+    const text = t(`main.chat.compact_menu.${item.dataset.strategy}`, { keep: String(keep) });
+    setText(item.querySelector(".compact-menu-text"), text);
+    const why = choice && !choice.available ? choice.reason_text : null;
+    item.disabled = !choice || !choice.available;
+    item.title = why ?? "";
+    setText(item.querySelector(".compact-menu-reason"), why ?? "");
+    item.querySelector(".compact-menu-reason").hidden = !why;
+  }
+  const error = document.getElementById("compact-menu-error");
+  setText(error, store.compactMenuError ?? "");
+  error.hidden = !store.compactMenuError;
+}
+
+function setCompactMenu(open) {
+  const toggle = document.getElementById("compact-conversation");
+  document.getElementById("compact-menu-panel").hidden = !open;
+  toggle.setAttribute("aria-expanded", String(open));
+  if (open) store.compactMenuError = null;
+}
+
+async function compactFromMenu(strategy) {
+  setCompactMenu(false);
+  document.getElementById("compact-conversation").focus();
+  store.compactMenuError = await postCompact({ strategy });
+  if (store.compactMenuError) setCompactMenu(true);
+  render();
+}
+
+function initCompactMenu() {
+  const toggle = document.getElementById("compact-conversation");
+  const panel = document.getElementById("compact-menu-panel");
+  toggle.addEventListener("click", () => {
+    setCompactMenu(panel.hidden);
+    if (!panel.hidden) panel.querySelector(".compact-menu-item:not(:disabled)")?.focus();
+  });
+  for (const item of panel.querySelectorAll(".compact-menu-item")) {
+    item.addEventListener("click", () => compactFromMenu(item.dataset.strategy));
+  }
+  document.addEventListener("click", (event) => {
+    if (!panel.hidden && !event.target.closest("#compact-menu")) setCompactMenu(false);
+  });
+  document.getElementById("compact-menu").addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || panel.hidden) return;
+    event.stopPropagation();
+    setCompactMenu(false);
+    toggle.focus();
+  });
+}
+
 function renderChat() {
   const chat = document.getElementById("chat");
   const followTail = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 40;
@@ -3418,6 +3587,19 @@ function renderChat() {
   if (turns.length === 0) nodes.push(emptyNote(cleared() ? clearedText() : noTurnText()));
   let shownBefore = null;
   for (const turn of turns) {
+    // V1.4 story 4: the marker of a strategy in place of the first exchange it removed; the
+    // removed exchanges, and a compaction placed by its marker, are not shown again.
+    const marker = store.compactMarkers.get(turn.id);
+    if (marker) {
+      const owner = marker.turnId && store.turns.find((t) => t.id === marker.turnId);
+      if (owner && !store.compactedOut.has(owner.id)) nodes.push(compactionBubble(owner, answers));
+      else if (!owner) nodes.push(el("div", "compact-marker", marker.text));
+    }
+    if (store.compactedOut.has(turn.id)) continue;
+    if (turn.kind === "compaction") {
+      if (turn.summaryText === null) nodes.push(compactionBubble(turn, answers));
+      continue;
+    }
     // Story 17: « Modèle : … » above the first turn shown, then above each turn played by
     // another model than the turn shown before it.
     if (turn.model && modelKey(shownBefore?.model) !== modelKey(turn.model)) {
@@ -3471,6 +3653,7 @@ function renderChat() {
     }
     const note = turnNote(turn);
     if (note) answer.appendChild(el("div", `bubble-note is-${turn.status}`, note));
+    if (turn.overflow?.choices?.length && !turn.contextId) answer.appendChild(compactChoices(turn, "chat"));
     if (turn.status === "completed" && !turn.text) {
       answer.appendChild(el("div", "bubble-note", t("main.chat.empty_answer")));
     }
@@ -3593,6 +3776,7 @@ function renderComposer() {
   const inCloud = store.activeModel?.hosting === "network";
   clearCacheButton.disabled = clear.disabled || inCloud;
   clearCacheButton.title = clear.disabled ? clear.title : inCloud ? t("main.chat.clear_cache_cloud") : "";
+  renderCompactMenu(state); // V1.4 story 4
   const replay = document.getElementById("replay-last");
   replay.disabled = clear.disabled || shownTurns().length === 0; // class (b), story 9b
   replay.title = clear.disabled ? clear.title : replay.disabled ? t("main.chat.nothing_to_replay") : "";
@@ -3956,7 +4140,7 @@ function objectId(o) {
 
 // The turn and the context shown: the tab chosen (story 22), else the last turn with a context.
 function ctxShown() {
-  const turns = shownTurns();
+  const turns = shownTurns().filter((t) => !store.compactedOut.has(t.id)); // V1.4 story 4
   const chosen = store.ctxView && turns.find((t) => t.id === store.ctxView.turn);
   const turn = chosen?.subs.get(store.ctxView.sub)?.context ? chosen : turns.findLast((t) => t.context);
   if (!turn) return null;
@@ -5152,16 +5336,21 @@ function connectBody(step) {
   return nodes;
 }
 
-function overflowCard(overflow) {
+function overflowCard(overflow, turn = null) {
   const card = el("div", "overflow-card");
   card.append(
     el("h3", "", `⚠ ${t("main.orch.overflow.title")}`),
     el("p", "number", t("main.orch.overflow.figures", { used: overflow.used, usable: overflow.usable })),
-    el("p", "", overflow.message_text),
-    el("p", "label", t("main.orch.overflow.strategies"))
+    el("p", "", overflow.message_text)
   );
+  // V1.4 story 4: the main chat's clickable strategies, then the others, as text.
+  const clickable = Boolean(turn && !turn.contextId && overflow.choices?.length);
+  if (clickable) card.appendChild(compactChoices(turn, "orch"));
+  card.appendChild(el("p", "label", t(clickable ? "main.orch.overflow.others" : "main.orch.overflow.strategies")));
   const list = el("ul");
-  for (const strategy of overflow.strategies_text) list.appendChild(el("li", "", strategy));
+  for (const strategy of clickable ? overflow.other_strategies_text : overflow.strategies_text) {
+    list.appendChild(el("li", "", strategy));
+  }
   card.appendChild(list);
   return card;
 }
@@ -5654,8 +5843,8 @@ function turnRows(turn) {
       figure: t("main.orch.overflow.figures", { used: turn.overflow.used, usable: turn.overflow.usable }),
       tone: "error",
       sticky: true,
-      sig: 1,
-      body: () => [overflowCard(turn.overflow)],
+      sig: [1, store.compactUsed.has(turn.id), store.compactErrors.get(turn.id) ?? null],
+      body: () => [overflowCard(turn.overflow, turn)],
     });
   }
   return rows;
@@ -5738,8 +5927,14 @@ function stepRows(turn, step, i, calls, rows) {
       }
       rows.push({
         key: `${key}:call`,
-        icon: isFinal ? "💬" : "🤖",
-        title: isFinal ? t("main.orch.rows.answers") : t("main.orch.rows.calls_model"),
+        icon: turn.kind === "compaction" ? "📝" : isFinal ? "💬" : "🤖",
+        // V1.4 story 4: the compaction turn's only call is the summary.
+        title:
+          turn.kind === "compaction"
+            ? t("main.orch.rows.compaction")
+            : isFinal
+              ? t("main.orch.rows.answers")
+              : t("main.orch.rows.calls_model"),
         actor: "model",
         // Story 34: a model out of the workstation: the call crosses the boundary.
         via: turn.model?.hosting === "network",
@@ -7762,6 +7957,7 @@ async function boot() {
   document.getElementById("composer").addEventListener("submit", sendMessage);
   document.getElementById("composer-stop").addEventListener("click", stopTurn);
   document.getElementById("clear-conversation").addEventListener("click", clearConversation);
+  initCompactMenu(); // V1.4 story 4
   document.getElementById("clear-cache").addEventListener("click", clearCache);
   document.getElementById("replay-last").addEventListener("click", replayLast);
   document.getElementById("scenario-picker").addEventListener("change", launchScenario);

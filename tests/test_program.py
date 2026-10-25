@@ -633,6 +633,30 @@ def _result_room(
     return 0
 
 
+def _check_overflow_prompt(
+    scenario_id: str,
+    scenario: scenarios.Scenario,
+    used: int,
+    ctx: dict,
+    figures: tuple[int, int, int, int],
+    tokenizer,  # noqa: ANN001 - the GGUF's, or `None` (the 2-character estimate)
+) -> None:
+    """V1.4 story 4 (`overflow_prompt`): with the whole history of the previous prompts, the
+    prompt overflows: at the estimate, their answers at 0 (a lower bound); with the exact
+    gauge, at their measured size (D18). With the exact gauge, it then holds after a
+    compaction (a summary of `compaction_max_tokens`) and after a sliding window (the last
+    exchange alone)."""
+    lower, last, prompt, room = figures
+    assert used + lower + prompt + room > ctx["usable"], (scenario_id, "ne déborde pas", lower)
+    if tokenizer is None:
+        return
+    plain = scenario.model_copy(update={"overflow_prompt": None})
+    summary = config.Config(values={}).compaction_max_tokens + EXCHANGE_TEMPLATE
+    for kept in (summary, last):
+        verdict = _verdict(plain, used, ctx, kept + prompt, room, EXACT)
+        assert verdict is None, (scenario_id, "après la stratégie", verdict)
+
+
 def test_every_scenario_fits_the_default_window_with_every_prompt(index, loop, web):  # noqa: F811
     """With `WAVESTACK_TEST_GGUF`, that GGUF booted in local mode: the exact local gauge
     (lot J). Else as the cloud estimate does at 2 characters per token, with a safety factor.
@@ -701,6 +725,9 @@ def test_every_scenario_fits_the_default_window_with_every_prompt(index, loop, w
             assert reserve == (1536 if "reasoning" in scenario.bricks else 512), scenario_id
             keeps = "short_memory" in scenario.bricks and scenario_id not in CLEARED_BETWEEN_PROMPTS
             history = 0
+            lower = last = (
+                0  # V1.4 story 4: the whole history at its lower bound; the last exchange
+            )
             for n in range(len(scenario.prompts)):
                 room = _result_room(
                     scenario_id,
@@ -713,15 +740,22 @@ def test_every_scenario_fits_the_default_window_with_every_prompt(index, loop, w
                 )
                 prompt = count(scenario.prompts[n])
                 measured[(scenario_id, n + 1)] = (used, ctx["usable"], history, room)
+                if scenario.overflow_prompt == n + 1:  # V1.4 story 4: it overflows on purpose
+                    _check_overflow_prompt(
+                        scenario_id, scenario, used, ctx, (history if tokenizer else lower, last, prompt, room), tokenizer
+                    )
+                    break
                 verdict = _verdict(scenario, used, ctx, history + prompt, room, safety)
                 assert verdict is None, (scenario_id, f"prompt {n + 1}", verdict)
                 if keeps:  # this exchange joins the history the next prompt reads; its
                     # result at most the bound (`compression`: Headroom on for the second
                     # prompt), its answer of the measured size (D18)
                     kept = min(room, cfg.tool_result_max_tokens)
+                    lower += prompt + kept + EXCHANGE_TEMPLATE  # its answer at 0
                     if tokenizer is not None:  # the whole history, answers as measured
                         answer = min(reserve, MEASURED_ANSWERS[min(n, len(MEASURED_ANSWERS) - 1)])
                         history += prompt + kept + answer + EXCHANGE_TEMPLATE
+                        last = prompt + kept + answer + EXCHANGE_TEMPLATE
                     else:  # the previous exchange, its answer at the reserve (the worst case)
                         history = prompt + kept + reserve + EXCHANGE_TEMPLATE
             segments = " ".join(s["text"] for s in ctx["segments"])

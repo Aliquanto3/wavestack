@@ -24,8 +24,8 @@ program:
     duration_min: 45
     scenarios: [subagent]
   - title_text: Langer Kontext und Karte
-    duration_min: 45
-    scenarios: [compression, harness_map]
+    duration_min: 60
+    scenarios: [compression, compaction, harness_map]
 
 transverse: [data_flows, soc, iam, sovereignty]
 
@@ -363,10 +363,43 @@ scenarios:
         schweren Fehler die Sicherung heute Nacht gestoßen ist.
       - Um wie viel Uhr wurde laut journal_serveur.log das Paket 12 kopiert?
 
+  compaction:
+    title_text: Kompaktierung und gleitendes Fenster
+    description_text: >-
+      Dieses Szenario läuft absichtlich über (Ausnahme AD-9): Nur das Kurzzeitgedächtnis,
+      der System-Prompt und das Tool read_file sind eingeschaltet. Senden Sie die drei
+      Prompts der Reihe nach: Die ersten beiden lesen je eine Datei, die im Verlauf bleibt;
+      beim dritten überschreitet der Kontext das Fenster von 4.096 Tokens. Die Karte
+      „Kontext überschritten“ bietet dann unter „Weiter mit:“ zwei Strategien an. Klicken
+      Sie auf „Kompaktieren“: Das Harness bittet das aktive Modell, die alten Austausche
+      zusammenzufassen (Schritt „Zusammenfassung der Kompaktierung“ in der Orchestrierung,
+      mit Tokens, Dauer und Kosten), die Zusammenfassung ersetzt diese Austausche in der
+      Unterhaltung (Blase „Zusammenfassung (Kompaktierung)“), dann geht die abgelehnte
+      Nachricht allein erneut los. Die Cache-Anzeige zeigt den nächsten Aufruf beim
+      Schreiben, Ursache „Kompaktierung“. Starten Sie das Szenario dann neu, lassen Sie die
+      Unterhaltung erneut überlaufen und wählen Sie „Gleitendes Fenster“: kein
+      Modellaufruf, die ältesten Austausche werden entfernt („N Austausche entfernt“),
+      Ursache „gleitendes Fenster“; vergleichen Sie, was das Modell noch über das Protokoll
+      weiß. Die Schaltfläche „Kompaktieren ▾“ neben „Unterhaltung leeren“ wendet dieselben
+      Strategien außerhalb eines Überlaufs an.
+    bricks: [short_memory, system_prompt, tools]
+    tools: [read_file]
+    overflow_prompt: 3
+    prompts:
+      - >-
+        Rufe das Tool read_file für journal_serveur.log auf und sag mir dann, auf welchen
+        schweren Fehler die Sicherung heute Nacht gestoßen ist.
+      - >-
+        Rufe das Tool read_file für alertes_siem.log auf und sag mir dann, welche Warnung
+        die schwerste ist.
+      - >-
+        Rufe das Tool read_file für journal_serveur.log erneut auf und sag mir dann, ob der
+        schwere Fehler der Sicherung einer der Warnungen entspricht.
+
   harness_map:
     title_text: Harness-Karte
     description_text: >-
-      Die Kompressions-Bausteine bleiben aktiv, wie im vorigen Szenario. Hier gibt es keinen
+      Die Kompressions-Bausteine bleiben aktiv, wie im Szenario zur Kompression. Hier gibt es keinen
       Tool-Aufruf: Klicken Sie unter diesem Text (oder am Fuß des Baustein-Bereichs) auf
       „Harness-Karte“, um die Karte zu öffnen. Jeder Baustein ist dort in eines der 7
       Subsysteme eines Harness eingeordnet, mit seiner Rolle: Guide (er lenkt das Modell,

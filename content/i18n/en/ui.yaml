@@ -342,6 +342,16 @@ main:
     clear_cache: "Clear the cache"
     clear_cache_cloud: "A cloud provider's cache cannot be purged: it expires on its side."
     clear_cache_no_answer: "WaveStack does not answer: the cache was not cleared."
+    compact: "Compact"
+    compact_menu:
+      compaction: "Compaction: summarize the old exchanges (one model call)"
+      sliding_window: "Sliding window: keep only the last {keep} exchanges"
+    compact_disabled:
+      turn: "A turn is running: wait for its end to compact."
+      empty: "No exchange to compact: the conversation is empty."
+      short_memory: "The Short memory brick is off: there is no history to compact."
+    compact_no_answer: "WaveStack does not answer: the strategy was not applied."
+    compaction_title: "Summary (compaction)"
     tools_used: "Tools consulted during this turn:"
     tools_used_title: "See the “{tool}” step in Orchestration"
   composer:
@@ -540,6 +550,11 @@ main:
       title: "Context exceeded — the call to the model was not sent"
       figures: "{used} / {usable} tokens"
       strategies: "In production, a harness could"
+      continue: "Continue with:"
+      others: "Other strategies (not shown here):"
+      buttons:
+        compaction: "Compact"
+        sliding_window: "Sliding window"
     rag:
       query: "Query"
       placement: "Placement: {placement}"
@@ -595,6 +610,8 @@ main:
       mcp_lab: "MCP workshop"
       rag_lab: "RAG workshop"
       cache_cleared: "cache cleared"
+      compaction: "compaction"
+      sliding_window: "sliding window"
     hook_decisions:
       allow: "let through"
       modify: "modified"
@@ -683,6 +700,7 @@ main:
     rows:
       overflow: "Context exceeded"
       sub_overflow: "Sub-agent context exceeded"
+      compaction: "Compaction summary"
       catalog: "Describes the tools"
       reinject: "Reinjects the result"
       reinject_body: "Tool results added to the context of this call: {tokens} tokens."

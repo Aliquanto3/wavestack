@@ -354,6 +354,16 @@ main:
     clear_cache: "Vider le cache"
     clear_cache_cloud: "Le cache d'un fournisseur cloud ne se purge pas : il expire de son côté."
     clear_cache_no_answer: "WaveStack ne répond pas : le cache n'a pas été vidé."
+    compact: "Compacter"
+    compact_menu:
+      compaction: "Compaction : résumer les anciens échanges (un appel au modèle)"
+      sliding_window: "Fenêtre glissante : ne garder que les {keep} derniers échanges"
+    compact_disabled:
+      turn: "Un tour est en cours : attendez sa fin pour compacter."
+      empty: "Aucun échange à compacter : la conversation est vide."
+      short_memory: "La brique Mémoire courte est éteinte : il n'y a pas d'historique à compacter."
+    compact_no_answer: "WaveStack ne répond pas : la stratégie n'a pas été appliquée."
+    compaction_title: "Résumé (compaction)"
     tools_used: "Outils consultés pendant ce tour :"
     tools_used_title: "Voir l'étape « {tool} » dans Orchestration"
   composer:
@@ -552,6 +562,11 @@ main:
       title: "Contexte dépassé — l'appel au modèle n'a pas été envoyé"
       figures: "{used} / {usable} tokens"
       strategies: "En production, un harnais pourrait"
+      continue: "Continuer avec :"
+      others: "Autres stratégies (non montrées ici) :"
+      buttons:
+        compaction: "Compacter"
+        sliding_window: "Fenêtre glissante"
     rag:
       query: "Requête"
       placement: "Placement : {placement}"
@@ -607,6 +622,8 @@ main:
       mcp_lab: "Atelier MCP"
       rag_lab: "Atelier RAG"
       cache_cleared: "cache vidé"
+      compaction: "compaction"
+      sliding_window: "fenêtre glissante"
     hook_decisions:
       allow: "laissé passer"
       modify: "modifié"
@@ -695,6 +712,7 @@ main:
     rows:
       overflow: "Contexte dépassé"
       sub_overflow: "Contexte du sous-agent dépassé"
+      compaction: "Résumé de compaction"
       catalog: "Décrit les outils"
       reinject: "Réinjecte le résultat"
       reinject_body: "Résultats d'outils ajoutés au contexte de cet appel : {tokens} tokens."

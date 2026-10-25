@@ -67,6 +67,7 @@ HOOKS = ["h1", "h2", "h3", "h5"]
 LLM_DEFAULTS = (
     "prompts/system.md",
     "prompts/subagent.md",
+    "prompts/compaction.md",  # V1.4 story 4: the compaction's summary instruction
     "tools.yaml",
     "hooks.yaml",
     "memory/memory.yaml",
@@ -198,7 +199,7 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert _placeholders(translated) == _placeholders(french)
     assert translated.read_text(encoding="utf-8") != french.read_text(encoding="utf-8")
 
-    if rel in ("prompts/system.md", "prompts/subagent.md"):
+    if rel in ("prompts/system.md", "prompts/subagent.md", "prompts/compaction.md"):
         assert translated.read_text(encoding="utf-8").strip()
     elif rel == "tools.yaml":
         fr, tr = load_tools_content("fr"), load_tools_content(lang)
