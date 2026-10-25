@@ -15045,6 +15045,136 @@ def s_rag_lab_evaluate(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_attack(r: Run) -> None:
+    """V1.2 story 17 (CAP-13), after `rag` and `rag_rerank`: the Attaquer tab, « Document piégé »:
+    the banner « aucune donnée réelle ne sort » and the trap inactive, then active; the three
+    scenarios without then with the guardrail (Prompt Guard is not loaded here: the verdict is
+    `not_installed`, the recorded one beside it, nothing downloaded); the BM25 ranks, the limit of
+    PoisonedRAG, the steps of the graph up to the persistence and the rebuild; the entries in the
+    Security journal; nothing leaving 127.0.0.1; the corpus of Construire unchanged. Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    outside: list[str] = []
+
+    def listener(request) -> None:  # noqa: ANN001
+        if not request.url.startswith(("http://127.0.0.1", "data:", "blob:")):
+            outside.append(request.url)
+
+    page.on("request", listener)
+    _goto_rag_lab(r)
+    try:
+        before = r.api("GET", "/api/rag_lab").json()
+        corpus_before = json.dumps(
+            before.get("corpus", before.get("documents", "")), sort_keys=True
+        )
+        before_denied = r.api("GET", "/api/security_journal").json().get("denied_count", 0)
+        page.click("#rag-tab-attack")
+        banner = page.locator("#rag-atk-banner")
+        expect(banner).to_have_text("Démonstration : aucune donnée réelle ne sort", timeout=10_000)
+        r.check(
+            banner.is_visible()
+            and not page.locator("#rag-atk-trap").is_checked()
+            and page.inner_text("#rag-atk-trap-state") == "inactif",
+            "Attaquer : bandeau visible, document piégé inactif d'emblée",
+        )
+        page.locator("#rag-atk-trap").check()
+        expect(page.locator("#rag-atk-trap-state")).to_have_text(re.compile("actif"))
+        without_column = page.locator('#rag-atk-columns [data-column="without"]')
+        expect(without_column).to_be_visible(timeout=10_000)
+        expect(without_column.locator('[data-role="injection"]')).to_have_count(1, timeout=10_000)
+        r.check(
+            "[liste factice : aucune donnée réelle]" in without_column.inner_text(),
+            "injection sans garde-fou : le passage piégé est lu et la réponse enregistrée obéit",
+        )
+        r.check(
+            "affirmation fausse 1" in page.inner_text("#rag-atk-ranks"),
+            "Attaquer : les rangs BM25 recalculés (affirmation fausse en tête)",
+            page.inner_text("#rag-atk-ranks"),
+        )
+        seq = r.ev.mark()
+        page.locator("#rag-atk-guard").check()
+        with_column = page.locator('#rag-atk-columns [data-column="with"]')
+        expect(with_column.locator("[data-recorded]").first).to_be_visible(timeout=10_000)
+        r.check(
+            with_column.locator('[data-decision="not_installed"]').count() == 3
+            and "cas construit" in with_column.inner_text()
+            and "n'est pas chargé" in with_column.inner_text(),
+            "avec garde-fou non chargé : not_installed, verdict enregistré à côté, cas construit",
+        )
+        r.check(
+            with_column.locator('[data-outcome="removed"]').count() == 0
+            and "non appliqué" in with_column.inner_text()
+            and with_column.locator('[data-kind="obeys"]').count() == 1,
+            "mode Bloquer, garde-fou non chargé : rien n'est écarté, le verdict enregistré "
+            "n'est pas appliqué, la réponse obéit",
+        )
+        page.locator("#rag-atk-mode-flag").check()
+        expect(with_column.locator('[data-outcome="flagged"]')).to_have_count(0, timeout=10_000)
+        expect(with_column.locator('[data-kind="obeys"]')).to_have_count(1, timeout=10_000)
+        r.check(
+            with_column.locator('[data-outcome="kept"]').count() == 3,
+            "mode Signaler, garde-fou non chargé : les passages restent, la réponse obéit",
+        )
+
+        page.locator('#rag-atk-scenarios [data-scenario="poisoning"]').click()
+        expect(page.locator('#rag-atk-columns [data-kind="false"]')).to_have_count(
+            2, timeout=10_000
+        )
+        r.check(
+            "Aucun garde-fou de contenu ne détecte cette affirmation"
+            in page.inner_text("#rag-atk-columns")
+            and "CAP-6" in page.inner_text("#rag-atk-poison-helps"),
+            "PoisonedRAG : la limite est dite et les deux pistes nommées",
+        )
+
+        page.locator('#rag-atk-scenarios [data-scenario="graph"]').click()
+        expect(page.locator("#rag-atk-graph-box")).to_be_visible(timeout=10_000)
+        summary = page.locator("#rag-atk-graph-summary")
+        page.locator('#rag-atk-graph-steps [data-step="inject"]').click()
+        expect(summary).to_contain_text("8 caractères", timeout=10_000)
+        page.locator('#rag-atk-graph-steps [data-step="remove"]').click()
+        expect(summary).to_contain_text("à reconstruire", timeout=10_000)
+        r.check(
+            "8 caractères" in summary.inner_text()
+            and not page.locator("#rag-atk-trap").is_checked()
+            and "illustratif" in page.inner_text("#rag-atk-graph-note"),
+            "graphe : après le retrait la relation fausse persiste, marquée « à reconstruire »",
+        )
+        r.shot("68-atelier-rag-attaquer-document-piege", full_page=True)
+        page.locator('#rag-atk-graph-steps [data-step="rebuild"]').click()
+        expect(summary).to_contain_text("14 caractères", timeout=10_000)
+        r.check(
+            "8 caractères" not in summary.inner_text(),
+            "graphe : reconstruit, la relation fausse a disparu",
+        )
+
+        entries = r.api("GET", "/api/security_journal").json()["entries"]
+        mine = [e for e in entries if "Démonstration Document piégé" in e["reason_text"]]
+        r.check(
+            len(mine) >= 6 and {e["decision"] for e in mine} == {"not_installed"},
+            "Journal de sécurité : les entrées de la démonstration, décision not_installed",
+            str(len(mine)),
+        )
+        r.check(
+            r.api("GET", "/api/security_journal").json().get("denied_count", 0) == before_denied,
+            "Journal de sécurité : la démonstration ne compte dans aucun compteur de refus",
+        )
+        r.check(
+            not [e for e in r.ev.since(seq) if e["kind"].startswith(("rag_lab_", "model_"))],
+            "Attaquer : aucun événement de l'atelier (ni modèle, ni exécution)",
+        )
+        after = r.api("GET", "/api/rag_lab").json()
+        r.check(
+            json.dumps(after.get("corpus", after.get("documents", "")), sort_keys=True)
+            == corpus_before,
+            "Construire : le corpus actif n'a pas changé",
+        )
+        r.check(not outside, "Attaquer : aucune requête hors de 127.0.0.1", str(outside[:3]))
+    finally:
+        page.remove_listener("request", listener)
+        r.goto_app()
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -15060,7 +15190,7 @@ def _rag_lab_tabs(r: Run) -> None:
         "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
         str(tabs.all_inner_texts()),
     )
-    for tab in ("attack", "sheets"):  # V1.2 story 15: Évaluer has its own scenario
+    for tab in ("sheets",):  # V1.2 stories 15 and 17: Évaluer and Attaquer have their own
         page.click(f"#rag-tab-{tab}")
         r.check(
             "à venir" in page.locator(f"#rag-panel-{tab} .rag-soon").inner_text()
@@ -17575,6 +17705,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
     ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
+    ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

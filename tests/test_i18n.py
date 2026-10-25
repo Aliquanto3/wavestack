@@ -430,6 +430,29 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
                 r: v.verdict for r, v in tr_trap.verdicts.items()
             }
             assert (fr_trap.kind, fr_trap.causes) == (tr_trap.kind, tr_trap.causes)
+    elif rel == "rag_attack.yaml":  # V1.2 story 17: the same scenarios, roles, verdicts, graph
+        from wavestack.rag import attack as rag_attack
+
+        fr, tr = rag_attack.load_attack("fr"), rag_attack.load_attack(lang)
+
+        def holes(value: object) -> object:  # the placeholders of every text, by path
+            if isinstance(value, dict):
+                return {k: holes(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [holes(v) for v in value]
+            return sorted(re.findall(r"\{(\w+)\}", str(value)))
+
+        assert holes(tr.texts) == holes(fr.texts)
+        texts = {"title_text", "explain_text", "answers", "provenance"}
+        for fr_s, tr_s in zip(fr.scenarios, tr.scenarios, strict=True):
+            assert fr_s.provenance.kind == tr_s.provenance.kind
+            assert fr_s.model_dump(exclude=texts) == tr_s.model_dump(exclude=texts)
+            assert tr_s.title_text != fr_s.title_text or fr_s.id == "poisoning"
+        assert fr.fallback_verdicts.by_role == tr.fallback_verdicts.by_role
+        keep = {"id", "source", "target", "is_false"}
+        assert [r.model_dump(include=keep) for r in tr.graph.relations] == [
+            r.model_dump(include=keep) for r in fr.graph.relations
+        ]
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()

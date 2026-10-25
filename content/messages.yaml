@@ -1501,6 +1501,7 @@ guardrails:
     passed: "rien détecté"
     error: erreur
     partial: "rien détecté (analysé en partie)"
+    not_installed: "non chargé"
   # Vue humain (verdict-banner): always names who decided and what did not go through.
   banner:
     blocked_input: "Bloqué par le garde-fou {guardrail}. Le modèle ne l'a pas reçu."
@@ -1520,6 +1521,12 @@ guardrails:
     error: "{guardrail} : erreur de chargement ({detail}), le tour continue."
     passed: "{guardrail} : rien détecté."
     partial: "{guardrail} : rien détecté, texte analysé en partie seulement (trop long)."
+    not_installed: "{guardrail} : non chargé, rien vérifié ({detail})."
+  # V1.2 story 17: the « Document piégé » card writes to the same journal.
+  attack:
+    reason: "Démonstration Document piégé, passage {passage} : {decision}"
+    blocked: "{guardrail} : passage écarté du contexte."
+    not_loaded: "Prompt Guard 2 n'est pas chargé dans cette session (jeton absent, modèle absent ou modèle sur disque non chargé) : activez le garde-fou d'injection dans la brique Garde-fous."
   # Story 13 (CAP-5): the brick's own « Installer » (the `guardrails` extra, pip packages).
   install_extra:
     installing: "Installation en cours…"

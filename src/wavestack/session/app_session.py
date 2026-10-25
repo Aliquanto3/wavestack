@@ -197,6 +197,7 @@ from wavestack.models.servers import (
     ollama_load_bytes,
     open_engine,
 )
+from wavestack.rag import attack as rag_attack
 from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag import index as rag_index
@@ -11960,6 +11961,61 @@ class AppSession:
             open_model=open_model,
             soft=True,
         )
+
+    # ---------- V1.2 story 17 (CAP-13): the Attack tab's « Document piégé » card ----------
+
+    def _attack_guard(self) -> dict[str, Any]:
+        """Whether the session's own Prompt Guard is loaded now, and why not: read only."""
+        loaded = self._guardrails.loaded_classifier("injection") is not None
+        return {
+            "loaded": loaded,
+            "reason_text": None if loaded else self._t("guardrails.attack.not_loaded"),
+        }
+
+    def rag_lab_attack_texts(self) -> dict[str, Any]:
+        """`GET /api/rag_lab/attack`: the card's texts, scenarios and default state."""
+        return rag_attack.listing(self._language, self._attack_guard())
+
+    def rag_lab_attack(self, request: rag_attack.AttackRequest) -> dict[str, Any]:
+        """`POST /api/rag_lab/attack`: the two columns of the target question, recomputed.
+        Accepted in any state (no intention: no generation, no load, no download, no network).
+        The classifier is the instance the session has already loaded, else one that says
+        `not_installed`: the card never loads the model nor sends the token. The session's
+        own guardrail modes and instances are not touched. One entry of the security journal
+        per passage checked in the « with guardrail » column."""
+        loaded = self._guardrails.loaded_classifier("injection")
+        reason = self._t("guardrails.attack.not_loaded")
+        factory = (
+            (lambda: rag_attack.LoadedOnly(loaded, reason))
+            if loaded is not None
+            else (lambda: rag_attack.NotLoaded(reason))
+        )
+        body = rag_attack.run(request, self._language, factory)
+        label = self._t("guardrails.labels.injection")
+        for passage in (body["with"] or {}).get("passages", []):
+            check = passage["check"]
+            decision = check["decision"]
+            key = (
+                "guardrails.attack.blocked"
+                if decision == "blocked"
+                else (f"guardrails.decisions.{decision}")
+            )
+            where = f"{passage['title_text']} {passage['position']}"
+            self._emit_security(
+                self._security_journal.record(
+                    "guardrail",
+                    "guardrails.injection",
+                    decision,
+                    self._t(
+                        "guardrails.attack.reason",
+                        passage=where,
+                        decision=self._t(key, guardrail=label, detail=check["detail_text"]),
+                    ),
+                    counted=False,  # a demonstration: shown, never in the session's counts
+                )
+            )
+        body["guard"] = self._attack_guard()
+        return body
 
     # ---------- the MCP workshop (context `mcp_lab`): story 6 of 2026-09-30, lot 4 of 2026-10-04 --
 
