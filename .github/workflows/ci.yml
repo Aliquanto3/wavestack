@@ -16,6 +16,8 @@ jobs:
       matrix:
         # shortcut: no macOS, the abetlen CPU index has no llama-cpp-python wheel for it
         os: [windows-latest, ubuntu-latest]
+        group: [1, 2, 3, 4]
+        group: [1, 2, 3, 4]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     env:
@@ -26,8 +28,16 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
+      - if: matrix.group == 1  # lint once per OS, not in every group
+        run: uv run ruff check .
+      - if: matrix.group == 1
+        run: uv run ruff format --check .
       - if: runner.os == 'Windows'  # Git Bash, not the WSL bash.exe, for the install.sh tests
         run: echo "C:\Program Files\Git\bin" >> $env:GITHUB_PATH
-      - run: uv run pytest -q --tb=short
+      - run: uv run pytest -q --tb=short --splits 4 --group ${{ matrix.group }} --durations=40 --store-durations --clean-durations --durations-path .test_durations_${{ matrix.os }}_${{ matrix.group }}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-durations-${{ matrix.os }}-${{ matrix.group }}
+          path: .test_durations_${{ matrix.os }}_${{ matrix.group }}
+          if-no-files-found: ignore
