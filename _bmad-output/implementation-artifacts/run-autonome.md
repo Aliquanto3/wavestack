@@ -37,7 +37,17 @@ Au plus 2 stories en développement à la fois
 | V7 | 12.1 | PR #79 : rebase, CI, fusion (revue déjà faite) |
 | V8 | 12.2 (humaine) · 12.3 | 12.3 ← 12.1 |
 | V9 | 12.4 | 12.4 ← 12.3 (même page) |
-| V10 | 12.5 · 12.6 · 12.7 · 12.8 · 12.9 · 12.10 · 12.11 · 12.12 · 12.13 · 12.14 · 12.15 · 12.16 · 12.17 · 12.18 · 12.19 · 12.20 · 12.21 | à découper d'après stories.yaml de la V1.2 ; 12.8 ← 12.2 |
+| V10 | 12.5 · 12.9 | 12.5 ← 12.4 ; 12.9 ← 12.4 |
+| V11 | 12.6 · 12.15 | 12.6 ← 12.5 ; 12.15 ← 12.9 |
+| V12 | 12.7 · 12.17 | 12.7 ← 12.6 ; 12.17 ← 12.15 |
+| V13 | 12.10 · 12.18 | 12.10 ← 12.7 ; 12.18 ← 12.17 |
+| V14 | 12.11 · 12.19 | 12.11 ← 12.10 ; 12.19 ← 12.18 |
+| V15 | 12.13 · 12.14 | 12.13 ← 12.11 ; 12.14 ← 12.11 |
+| V16 | 12.16 | 12.16 ← 12.13 ; 12.16 ← 12.14 |
+| V17 | 12.8 (humaine) · 12.20 | 12.8 ← 12.2 ; 12.20 ← 12.19 |
+| V18 | 12.12 · 12.21 | 12.12 ← 12.8 ; 12.21 ← 12.16 |
+
+Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/lab.py`, focus de `rag.js`) 5, 6, 7, 10, 11, 13, 14, 16, 12 ; piste onglets (`rag.js` par onglet, `rag.css`, `rag.html`, `app.py`) 9, 15, 17, 18, 19. Les deux pistes partagent `rag_lab.yaml` ×3, `ui.yaml` et `run_e2e.py` en ajouts seulement : le reviewer fusionne `origin/main` et garde les deux côtés.
 
 ## Règles du run
 
@@ -196,3 +206,4 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 05:53 · 14.2 · CI · E2E harness_map et rag_agentic verts en local, capture 01b regénérée · fec1aa6
 - 2026-10-25 05:56 · run · décision · Anaël : CI découpée en 4 groupes par système (PR chore/ci-shards) et analyse des fichiers partagés de la V1.2 avant de planifier ses vagues · —
 - 2026-10-25 05:56 · run · décision · Anaël : mesurer l'effet d'un allègement ciblé des tests (tests lents, rechargements de modèle, tests instables) sans l'appliquer pendant le run · —
+- 2026-10-25 05:57 · run · décision · à revoir : V1.2 en deux pistes (chaîne et onglets), vagues V10 à V18 ; code JS de chaque onglet dans son propre fichier dès 12.4 · —
