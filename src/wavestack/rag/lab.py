@@ -3407,6 +3407,8 @@ class LabRun:
             )
         text = self._context_text(items) if items else ""
         before = estimate(text)
+        if before > budget:  # the best passage's first sentence alone goes over it: said
+            warnings.append(say("context.budget_over", used=count(before), budget=count(budget)))
         used_fact = (
             say("fact.tokens_used"),
             say("context.budget_used", used=count(before), budget=count(budget)),

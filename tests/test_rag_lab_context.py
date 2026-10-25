@@ -7,6 +7,7 @@ no Headroom load. The real Headroom path is skipped when the extra is absent.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 from pathlib import Path
 
@@ -26,6 +27,8 @@ from wavestack.rag.corpus import load_rag_content
 from wavestack.session.app_session import AppSession
 
 LANGS = ("fr", "en", "de")
+# The context text `excerpts` built before the story (top_k 3, chunks of 700 characters).
+EXCERPTS_BEFORE_SHA256 = "dadd9b461eddd4a7f27d422a9ebcd568d19ab08c36aa90e6e9fdb27ee80efae6"
 
 
 @pytest.fixture
@@ -35,10 +38,16 @@ def index(tmp_path) -> Path:
     return path
 
 
-def ready(index: Path, *, min_chars: int | None = None, bricks: tuple[str, ...] = ()):
+def ready(
+    index: Path,
+    *,
+    min_chars: int | None = None,
+    bricks: tuple[str, ...] = (),
+    extra: dict | None = None,
+):
     place_reranker()
     place_model()
-    values = rerank_config(index)
+    values = rerank_config(index) | (extra or {})
     if min_chars is not None:
         values = values | {"compression": {"min_chars": min_chars}}
     session, _ = session_for(
@@ -153,6 +162,17 @@ def test_excerpts_keeps_its_items_text_and_facts(index):
     assert facts(payload)["Extraits gardés"].startswith("3 sur ")
     assert payload["dropped"] == [] and payload["budget"] is None
     assert payload["warning_text"] is None
+    # Frozen from the workshop before the story (origin/integration/v1-2-atelier at 15 commits
+    # past #99, same fixture and chain): the chunks, the context text and the facts, unchanged.
+    assert [i["chunk_id"] for i in items] == [5, 7, 34]
+    text = payload["output_text"].replace("\r\n", "\n")
+    assert len(text) == 1992
+    assert hashlib.sha256(text.encode()).hexdigest() == EXCERPTS_BEFORE_SHA256
+    assert facts(payload) == {
+        "Extraits gardés": "3 sur 8",
+        "Caractères": "1 992",
+        "Placement": "Dans le message de l'utilisateur de ce tour, avant la question",
+    }
 
 
 def test_excerpts_shows_the_final_prompt_too(index):
@@ -224,6 +244,20 @@ def test_a_budget_smaller_than_the_introduction_and_the_first_passage_cuts_the_f
     assert estimator(session)(payload["output_text"]) <= 100
     assert [d["rank"] for d in payload["dropped"]] == [2, 3, 4, 5]
     assert "plus petit que l'introduction" in payload["warning_text"]
+    assert "dépasse le budget" not in payload["warning_text"]
+
+
+def test_a_budget_not_even_the_first_sentence_fits_in_says_it_goes_over(index):
+    # One character a token: the introduction alone is over 100 tokens, so the best passage
+    # keeps its first sentence and the context goes over the budget, which the warning says.
+    session = ready(index, extra={"cloud": {"chars_per_token": 1.0}})
+    payload = context_of(session, "budget", top_k=5, budget=100)
+    items = payload["items"]
+    assert [i["state"] for i in items] == ["cut"] and items[0]["text"].endswith(rag_lab.CUT_MARK)
+    used = estimator(session)(payload["output_text"])
+    assert used > 100 and payload["budget"]["used"] == used
+    assert "plus petit que l'introduction" in payload["warning_text"]
+    assert f"dépasse le budget : {used} tokens estimés sur 100" in payload["warning_text"]
 
 
 def test_the_cuts_end_at_a_sentence_else_at_a_word():
@@ -376,8 +410,21 @@ def test_the_real_headroom_compresses_an_extract_of_the_corpus(index):
         payload = context_of(session, "compress", top_k=2, budget=4000)
     finally:
         compressor.close()
+    estimate = estimator(session)
+    said = facts(payload)
+    assert payload["warning_text"] is None  # no extract failed with the real adapter
+    assert headroom_adapter.HeadroomCompressor.label_text in said["Compression"]
+    assert said["Extraits compressés"].endswith(" sur 2")
     for item in payload["items"]:
         assert isinstance(item["tokens"], int) and isinstance(item["tokens_after"], int)
+        assert item["error_text"] is None
+        assert item["tokens_after"] <= item["tokens"]  # kept only when it shrinks
+        assert item["tokens_after"] == estimate(item["text"])  # the text sent, counted after
+    after = sum(i["tokens_after"] for i in payload["items"])
+    before = sum(i["tokens"] for i in payload["items"])
+    assert f"{before} → {after} tokens estimés" in said["Compression"]
+    assert payload["budget"]["used"] == estimate(payload["output_text"])
+    assert payload["prompt_parts"][0]["text"] == payload["output_text"]
 
 
 # ---------- criterion 11: the final prompt, one function ----------
@@ -482,3 +529,34 @@ def test_with_the_extra_missing_the_warning_gives_its_reason(index, monkeypatch)
     payload = context_of(session, "compress", top_k=3, budget=4000)
     assert "Headroom n'est pas installé." in payload["warning_text"]
     assert all(i["tokens_after"] == i["tokens"] for i in payload["items"])
+
+
+class SwitchingOffCompressor(FakeCompressor):
+    """Switches the Compression card off from inside the run, at its first extract, and
+    records whether it was closed while the workshop still compressed."""
+
+    def __init__(self, session: AppSession) -> None:
+        super().__init__(prose=True)
+        self.session = session
+        self.closed_while_used = False
+
+    def compress(self, text: str) -> Compressed:
+        if not self.seen:
+            self.session.set_brick("compression", False)
+        self.closed_while_used = self.closed_while_used or self.closed
+        return super().compress(text)
+
+
+def test_the_card_switched_off_during_a_run_releases_the_compressor_after_it(index):
+    # The release runs on the session's single worker, as the run does: it waits for the run's
+    # end, so the borrowed compressor is never closed nor its slot freed while it compresses.
+    session = ready(index, min_chars=0)
+    compressor = SwitchingOffCompressor(session)
+    with session._lock:
+        session._wanted.add("compression")
+    session._compressor = compressor
+    payload = context_of(session, "compress", top_k=3, budget=4000)
+    session.join()
+    assert len(compressor.seen) == 3 and not compressor.closed_while_used
+    assert facts(payload)["Extraits compressés"] == "3 sur 3"
+    assert compressor.closed and session._compressor is None  # released once the run ended
