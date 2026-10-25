@@ -45,4 +45,4 @@ data/*.tmp
 recette-scenarios-2b.json
 .claude/cost-kit/.blocages
 /mesures-couts/
-test-durations-*.json
+
