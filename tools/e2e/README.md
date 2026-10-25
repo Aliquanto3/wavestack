@@ -808,3 +808,23 @@ d'autres (story 21) :
   question préparée ajoutée (n = 11, « non annoté ») ; le juge cloud refusé sans clé (409) ;
   aucune requête hors de `127.0.0.1` ; aucune moyenne dans Comparer ; capture
   `67-atelier-rag-evaluer.jpg`. Le bouton « Juger » n'est pas exercé (il exige un modèle).
+
+- `rag_lab_attack`, V1.2 story 17 (CAP-13), après `rag` et `rag_rerank` : l'onglet Attaquer, carte
+  « Document piégé » (bandeau « aucune donnée réelle ne sort », document inactif d'emblée puis
+  activé) ; les trois scénarios sans puis avec garde-fou (Prompt Guard n'est pas chargé : verdict
+  `not_installed`, verdict enregistré à côté et non appliqué, rien d'écarté ni de téléchargé), modes
+  Bloquer et Signaler, rangs
+  BM25, limite de PoisonedRAG, étapes du graphe jusqu'à la persistance puis la reconstruction ;
+  entrées « Démonstration Document piégé » au Journal de sécurité, hors des compteurs de refus ;
+  aucun événement de l'atelier ;
+  corpus de Construire inchangé ; aucune requête hors de `127.0.0.1` ; capture
+  `68-atelier-rag-attaquer-document-piege.jpg`.
+
+- `rag_lab_rights`, V1.2 story 18 (CAP-14, CAP-15), après `rag` et `rag_rerank` : l'onglet Attaquer,
+  cartes « Effacement » et « Droits d'accès », sans modèle, sans index, sans clé. Sentinelle activée,
+  copies construites, sentinelle supprimée (chunks et BM25 effacés, contextes et dérivés « à
+  reconstruire », caches « à recharger », mentions « illustratif · cas construit »), question sur le
+  code, reconstruction de GraphRAG (ses endroits « effacé (illustratif, non mesuré) ») ; droits : profil Tous après la recherche (passage RH lu avant le
+  filtre, moins de k rendus, réécriture construite), avant la recherche (aucune fuite), profil RH ;
+  la carte « Document piégé » répond encore ; corpus de Construire inchangé ; aucune requête hors de
+  `127.0.0.1` ; capture `69-atelier-rag-attaquer-effacement-droits.jpg`.

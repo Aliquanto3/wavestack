@@ -430,6 +430,56 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
                 r: v.verdict for r, v in tr_trap.verdicts.items()
             }
             assert (fr_trap.kind, fr_trap.causes) == (tr_trap.kind, tr_trap.causes)
+    elif rel == "rag_attack.yaml":  # V1.2 story 17: the same scenarios, roles, verdicts, graph
+        from wavestack.rag import attack as rag_attack
+
+        fr, tr = rag_attack.load_attack("fr"), rag_attack.load_attack(lang)
+
+        def holes(value: object) -> object:  # the placeholders of every text, by path
+            if isinstance(value, dict):
+                return {k: holes(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [holes(v) for v in value]
+            return sorted(re.findall(r"\{(\w+)\}", str(value)))
+
+        assert holes(tr.texts) == holes(fr.texts)
+        texts = {"title_text", "explain_text", "answers", "provenance"}
+        for fr_s, tr_s in zip(fr.scenarios, tr.scenarios, strict=True):
+            assert fr_s.provenance.kind == tr_s.provenance.kind
+            assert fr_s.model_dump(exclude=texts) == tr_s.model_dump(exclude=texts)
+            assert tr_s.title_text != fr_s.title_text or fr_s.id == "poisoning"
+        assert fr.fallback_verdicts.by_role == tr.fallback_verdicts.by_role
+        keep = {"id", "source", "target", "is_false"}
+        assert [r.model_dump(include=keep) for r in tr.graph.relations] == [
+            r.model_dump(include=keep) for r in fr.graph.relations
+        ]
+    elif rel in ("rag_erasure.yaml", "rag_access.yaml"):  # V1.2 story 18: same ids and structure
+        raw = {
+            lng: yaml.safe_load(config.content_file(rel, lng).read_text(encoding="utf-8"))
+            for lng in ("fr", lang)
+        }
+
+        def shape(value: object) -> object:  # keys and lengths, no text
+            if isinstance(value, dict):
+                return {k: shape(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [shape(v) for v in value]
+            return None
+
+        assert shape(raw[lang]["texts"]) == shape(raw["fr"]["texts"])
+        if rel == "rag_erasure.yaml":
+            from wavestack.rag import erasure
+
+            fr, tr = erasure.load_erasure("fr"), erasure.load_erasure(lang)
+            texts = {"label_text", "update_text", "unit_text", "measured_on_text", "text"}
+            texts |= {"rebuilt_text", "provenance"}
+            assert [a.id for a in tr.architectures] == [a.id for a in fr.architectures]
+            for f, t in zip(fr.places, tr.places, strict=True):
+                assert f.model_dump(exclude=texts) == t.model_dump(exclude=texts)
+                assert (f.provenance and f.provenance.kind) == (t.provenance and t.provenance.kind)
+        else:
+            assert raw[lang]["rewrite"]["doc_id"] == raw["fr"]["rewrite"]["doc_id"]
+            assert raw[lang]["question_id"] == raw["fr"]["question_id"]
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()

@@ -155,6 +155,7 @@ common:
         error: "Error"
         flagged: "Flagged"
         partial: "Nothing detected (partly)"
+        not_installed: "Not loaded"
         passed: "Nothing detected"
   # Lot 4 (AD-28): the panes' mechanics (static/panes.js), shared by the workshops.
   panes:

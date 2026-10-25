@@ -1527,6 +1527,7 @@ guardrails:
     passed: "nothing detected"
     error: error
     partial: "nothing detected (partly analysed)"
+    not_installed: "not loaded"
   banner:
     blocked_input: "Blocked by the {guardrail} guardrail. The model did not receive it."
     blocked_output: "Blocked by the {guardrail} guardrail. You did not receive the answer."
@@ -1544,6 +1545,12 @@ guardrails:
     error: "{guardrail}: load error ({detail}), the turn goes on."
     passed: "{guardrail}: nothing detected."
     partial: "{guardrail}: nothing detected, text only partly analysed (too long)."
+    not_installed: "{guardrail}: not loaded, nothing checked ({detail})."
+  # V1.2 story 17: the « Trapped document » card writes to the same journal.
+  attack:
+    reason: "Trapped document demonstration, passage {passage}: {decision}"
+    blocked: "{guardrail}: passage dropped from the context."
+    not_loaded: "Prompt Guard 2 is not loaded in this session (no token, no model, or a model on disk that is not loaded): switch the injection guardrail on in the Guardrails brick."
   install_extra:
     installing: "Installing…"
     already_installed: "Already installed."

@@ -1,0 +1,61 @@
+# V1.2 story 18 (CAP-15), l'onglet Attaquer, carte « Droits d'accès » : profils Tous et RH, modes
+# « filtrage après la recherche » et « contrôle avant la recherche », sur la question globale
+# `q_global_rh`. Le calcul est déterministe (BM25 sur le corpus en mémoire), sans modèle. Les
+# identifiants et la structure sont communs aux trois langues ; seuls les textes diffèrent
+# (surcouches `content/i18n/{en,de}/rag_access.yaml`).
+
+chunk_max_chars: 700
+top_k: 3
+question_id: q_global_rh
+
+# La réécriture de requête qui « a lu » le passage en mode « après » : un texte construit, non un
+# appel. Il cite le titre d'un document du passage lu avant le filtre (vérifié par test).
+rewrite:
+  provenance:
+    kind: constructed
+    to_record_with: "le modèle actif, en direct, dans une story ultérieure"
+  doc_id: entretiens_annuels
+  text: "Réécriture de la requête pour la recherche : « processus RH entre Exemplia et ses collaborateurs : {title}, grille des rémunérations, procédure disciplinaire ». Le passage RH a été lu pour écrire cette phrase, avant d'être retiré."
+
+texts:
+  banner_text: "Démonstration : corpus fictif, aucune donnée réelle"
+  title_text: "Droits d'accès"
+  hint_text: "Un filtre de droits placé après la recherche laisse déjà passer un passage RH dans le pipeline ; un contrôle placé avant la recherche ne le peut pas. Choisissez un profil et un mode : la carte montre ce que le pipeline a lu avant le filtre."
+  profile_label_text: "Profil"
+  profile:
+    all: "Tous"
+    hr: "RH"
+  mode_label_text: "Contrôle"
+  mode:
+    after: "Filtrage après la recherche"
+    before: "Contrôle avant la recherche"
+  question_label_text: "Question"
+  corpus_text: "Corpus en mémoire : {docs} documents dont {hr} réservés aux RH, {chunks} passages de {size} caractères au plus ; les {k} meilleurs au score BM25 sont lus."
+  seen_title_text: "Lu par le pipeline, avant le filtre"
+  returned_title_text: "Rendu après le filtre"
+  returned_none_text: "Aucun passage rendu."
+  leaked_title_text: "Passages RH lus (fuite)"
+  leaked_none_text: "Aucun passage RH n'a été lu."
+  passage_text: "{rank}. {title} (extrait {position}), score {score}"
+  audience:
+    all: "tous"
+    hr: "RH"
+  kept_text: "rendu"
+  removed_text: "retiré après lecture"
+  leak_badge_text: "fuite"
+  count_text: "Rendu : {count} passages sur {k} demandés."
+  rewrite_title_text: "Réécriture de requête"
+  provenance:
+    constructed_text: "cas construit pour la démonstration (à enregistrer avec {model})"
+    recorded_text: "enregistré le {date} avec {model}"
+  notes:
+    leak_text: "Fuite : {count} passage(s) RH ont été lus par le pipeline avant d'être retirés. Un modèle qui reçoit le contexte ou la réécriture les a déjà vus."
+    shortfall_text: "Seulement {count} résultat(s) sur {k} : le nombre de résultats trahit l'existence du document retiré."
+    safe_before_text: "Aucune fuite : l'index ne contient que les documents autorisés au profil, l'idf est calculé sans les autres, et le nombre de résultats atteint k."
+    authorized_text: "Autorisation, pas fuite : le profil RH a le droit de lire les passages RH."
+    no_leak_text: "Aucun passage RH n'est remonté pour cette question."
+  limits_title_text: "Ce que la carte ne dit pas"
+  limits:
+    - "Le filtre vit dans la carte seulement : ni le chat ni l'atelier (Construire, Comparer, Évaluer) ne filtrent par droits."
+    - "La réécriture de requête est un texte construit. La fuite réelle par le contexte d'un modèle actif sera enregistrée dans une story ultérieure."
+    - "GraphRAG : un résumé de communauté peut mêler des documents de profils différents ; filtrer ses passages après coup ne suffit pas à retirer ce qu'il a déjà résumé."

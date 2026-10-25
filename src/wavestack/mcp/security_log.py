@@ -47,13 +47,19 @@ class SecurityJournal:
         self._guardrail_blocked = 0
         self._total = 0
 
-    def record(self, source: str, name: str, decision: str, reason_text: str) -> JournalEntry:
+    def record(
+        self, source: str, name: str, decision: str, reason_text: str, *, counted: bool = True
+    ) -> JournalEntry:
+        """`counted=False` (V1.2 story 17, a demonstration's verdict): the entry is kept and
+        shown, but moves none of the refusal counters (the bar's red badge, « bloqués »)."""
         with self._lock:
             self._total += 1
             entry = JournalEntry(
                 datetime.now(UTC), source, name, decision, reason_text, self._total
             )
             self._entries.append(entry)
+            if not counted:
+                return entry
             if decision in _DENIED:
                 self._denied += 1
             if decision == "allow_once":

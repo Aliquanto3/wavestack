@@ -166,6 +166,7 @@ common:
         error: "Erreur"
         flagged: "Signalé"
         partial: "Rien détecté (en partie)"
+        not_installed: "Non chargé"
         passed: "Rien détecté"
   panes:
     focus: "Mode focus"
