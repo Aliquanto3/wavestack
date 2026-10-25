@@ -1389,3 +1389,112 @@ body.rag-page {
   margin: 0;
   color: var(--color-error, #b00020);
 }
+
+/* V1.2 story 4: the view tabs, the prepared-question selector and the comparison (CAP-9).
+   Contrast AA by the tokens; a difference is marked by a border and a word, never by opacity. */
+.rag-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+  margin: var(--spacing-3) 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.rag-tabs [role="tab"] {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--rounded-sm) var(--rounded-sm) 0 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rag-tabs [role="tab"][aria-selected="true"] {
+  border-color: var(--color-line);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.rag-page .rag-tabs [role="tab"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.rag-panel[hidden] {
+  display: none;
+}
+
+.rag-prepared {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  max-width: 100%;
+}
+
+.rag-prepared select {
+  max-width: 22rem;
+}
+
+.rag-badge {
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--rounded-md);
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.rag-cmp-heads,
+.rag-cmp-cells {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+
+.rag-cmp-head,
+.rag-cmp-cell {
+  padding: var(--spacing-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rag-cmp-row {
+  margin-top: var(--spacing-3);
+}
+
+.rag-cmp-row.is-diff .rag-cmp-cell,
+.rag-cmp-cost.is-diff {
+  border-left: 4px solid var(--color-primary);
+}
+
+.rag-cmp-cost {
+  padding-left: var(--spacing-2);
+  border-left: 4px solid transparent;
+}
+
+.rag-cmp-passages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rag-cmp-passages li {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: baseline;
+}
+
+.rag-cmp-mark {
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--rounded-md);
+  color: var(--color-primary);
+}
+
+.rag-cmp-prompt .rag-prompt {
+  white-space: pre-wrap;
+}

@@ -6,7 +6,7 @@
   <script type="module" src="/static/i18n.js"></script>
   <script type="module" src="/static/site-nav.js"></script>
   <script type="module" src="/static/bar.js"></script>
-  <title data-i18n="rag.page_title">WaveStack — Atelier RAG</title>
+  <title data-i18n="rag.page_title">WaveStack — Atelier recherche documentaire</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/static/fonts.css" />
@@ -87,7 +87,7 @@
 
   <main class="rag-main">
     <header class="rag-header">
-      <h1 id="rag-title">Atelier RAG : l'architecture RAG à manipuler</h1>
+      <h1 id="rag-title">Atelier recherche documentaire : l'architecture de recherche à manipuler</h1>
       <p class="rag-intro" id="rag-intro"></p>
       <p class="rag-error" id="rag-content-error" role="alert" hidden></p>
       <p class="rag-busy" id="rag-busy" role="status" hidden></p>
@@ -96,15 +96,34 @@
     <!-- Lot 5a: one section, the bar (question, « Lancer », mode), then three views side by
          side (the sequence BUILD then RUN, the architecture of its components, the focus on
          a step), every step's detail folded under them (vues-atelier-rag.md). -->
+    <!-- V1.2 story 4: the view tabs (vues.md). Build is the lot 5 page, unchanged; Compare is
+         CAP-9; the three others stay « à venir » until their stories. -->
+    <div class="rag-tabs" id="rag-tabs" role="tablist" aria-label="Vues">
+      <button type="button" role="tab" id="rag-tab-build" data-tab="build" aria-selected="true" aria-controls="rag-panel-build">Construire</button>
+      <button type="button" role="tab" id="rag-tab-compare" data-tab="compare" aria-selected="false" aria-controls="rag-panel-compare" tabindex="-1">Comparer</button>
+      <button type="button" role="tab" id="rag-tab-evaluate" data-tab="evaluate" aria-selected="false" aria-controls="rag-panel-evaluate" tabindex="-1">Évaluer</button>
+      <button type="button" role="tab" id="rag-tab-attack" data-tab="attack" aria-selected="false" aria-controls="rag-panel-attack" tabindex="-1">Attaquer</button>
+      <button type="button" role="tab" id="rag-tab-sheets" data-tab="sheets" aria-selected="false" aria-controls="rag-panel-sheets" tabindex="-1">Fiches</button>
+    </div>
+
+    <div id="rag-panel-build" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-build">
     <section class="rag-section" id="sec-chain" aria-labelledby="sec-chain-title">
       <h2 class="rag-section-title" id="sec-chain-title"><span class="rag-step" aria-hidden="true">1</span> <span data-text="chain_title_text">La chaîne RAG, étape par étape</span></h2>
       <p class="rag-note" data-text="chain_help_text"></p>
       <div class="rag-toolbar">
         <label class="rag-visually-hidden" for="rag-question" data-text="question_label_text">Question</label>
         <input type="text" id="rag-question" class="rag-question" maxlength="500" autocomplete="off" />
+        <!-- V1.2 story 4 (CAP-2): a prepared question of the corpus, with its type's badge. -->
+        <span class="rag-prepared" id="rag-prepared-box" hidden>
+          <label class="rag-visually-hidden" for="rag-prepared" data-text="prepared.label_text">Question préparée</label>
+          <select id="rag-prepared" autocomplete="off"></select>
+          <span class="rag-badge" id="rag-question-type" hidden></span>
+        </span>
         <button type="button" id="rag-run" class="rag-button-primary" data-text="run_text">Lancer la chaîne</button>
         <button type="button" id="rag-stop" class="rag-button-secondary" data-text="stop_text" disabled>Arrêter</button>
+        <button type="button" id="rag-pin" class="rag-button-secondary" data-text="compare.pin_text" disabled>Épingler cette exécution</button>
         <span class="rag-status" id="rag-status" role="status" aria-live="polite"></span>
+        <span class="rag-note" id="rag-pin-status" role="status"></span>
       </div>
       <div class="rag-toolbar">
         <div class="rag-modes" id="rag-modes" role="group" aria-label="Mode">
@@ -193,6 +212,28 @@
         <div class="rag-results" id="rag-results"></div>
       </details>
     </section>
+    </div>
+
+    <!-- V1.2 story 4 (CAP-9): the pinned run beside the current one. -->
+    <div id="rag-panel-compare" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-compare" hidden>
+      <section class="rag-section" aria-labelledby="rag-cmp-title">
+        <h2 class="rag-section-title" id="rag-cmp-title" data-text="compare.title_text">Comparer deux exécutions</h2>
+        <p class="rag-note" data-text="compare.hint_text"></p>
+        <div class="rag-toolbar">
+          <button type="button" id="rag-unpin" class="rag-button-secondary" data-text="compare.unpin_text" hidden>Désépingler</button>
+        </div>
+        <div class="rag-cmp" id="rag-cmp"></div>
+      </section>
+    </div>
+    <div id="rag-panel-evaluate" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-evaluate" hidden>
+      <p class="rag-note rag-soon"></p>
+    </div>
+    <div id="rag-panel-attack" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-attack" hidden>
+      <p class="rag-note rag-soon"></p>
+    </div>
+    <div id="rag-panel-sheets" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-sheets" hidden>
+      <p class="rag-note rag-soon"></p>
+    </div>
   </main>
 
   <script type="module" src="/static/rag.js"></script>
