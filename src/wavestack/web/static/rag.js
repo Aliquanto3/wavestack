@@ -27,6 +27,7 @@ import { feedBar } from "./bar.js";
 const $ = (id) => document.getElementById(id);
 const quote = (value) => t("common.format.quote", { text: value });
 
+// What the tabs' files (`rag-<tab>.js`) read of the common code: see `registerTab`.
 const store = {
   content: null,
   catalog: null,
@@ -53,7 +54,7 @@ const store = {
   copyOp: null, // the operation whose form is open: add, modify or delete
   tab: "build", // V1.2 story 4: the view tab shown
   questions: [], // V1.2 story 4: the prepared questions (CAP-2), from `GET /api/rag_lab`
-  pin: null, // V1.2 story 4: the pinned run's snapshot (CAP-9), kept in the browser
+  mounted: false, // V1.2 story 4: the page is ready, the tabs' `mount` hooks ran
 };
 
 // ---------- small helpers ----------
@@ -1388,8 +1389,7 @@ function applyEnvelope(envelope) {
   renderRun();
   renderCosts();
   renderBusy();
-  renderPin();
-  if (store.tab === "compare") renderCompare();
+  everyTab("render");
 }
 
 // A run whose end never came (WaveStack failed between two events) while the session is
@@ -1740,11 +1740,25 @@ function renderBusy() {
   renderCopyControls();
 }
 
-// ---------- V1.2 story 4: the view tabs, the prepared questions, the pinned run (CAP-9) ----------
+// ---------- V1.2 story 4: the view tabs (vues.md) ----------
+// The shell is common; each tab's code lives in its own file (`rag-<tab>.js`), which registers
+// its hooks here: `mount` (once, the page ready), `render` (the data or the texts changed),
+// `show` (its tab opened), `envelope` (a journal event, `replaying` while the last run is read).
+
+const tabModules = {};
+const tabHook = (id, hook, ...args) => tabModules[id]?.[hook]?.(...args);
+const everyTab = (hook, ...args) => Object.keys(tabModules).forEach((id) => tabHook(id, hook, ...args));
+
+// A tab's file registers itself once; a tab arriving after the page is ready is mounted at once.
+export function registerTab(id, hooks) {
+  tabModules[id] = hooks;
+  if (store.mounted) {
+    hooks.mount?.();
+    hooks.render?.();
+  }
+}
 
 const TAB_IDS = ["build", "compare", "evaluate", "attack", "sheets"];
-const PIN_KEY = "wavestack.ragLab.pin"; // the pinned run's snapshot (a browser setting: it survives a reload)
-const RETRIEVAL_KINDS = ["vector_search", "lexical_search", "fusion", "rerank"];
 
 function tabFromHash() {
   const id = location.hash.replace(/^#/, "");
@@ -1766,7 +1780,7 @@ function setTab(tab, { focus = false } = {}) {
   }
   history.replaceState(null, "", tab === "build" ? location.pathname + location.search : `#${tab}`);
   if (tab === "build") redraw(); // the views were hidden: drawn again
-  if (tab === "compare") renderCompare();
+  tabHook(tab, "show");
 }
 
 function renderTabs() {
@@ -1794,243 +1808,6 @@ function wireTabs() {
   window.addEventListener("hashchange", () => setTab(tabFromHash()));
 }
 
-// The prepared questions (CAP-2): a selector next to the free question, with its type's badge.
-function renderPrepared() {
-  const select = $("rag-prepared");
-  const questions = store.questions;
-  $("rag-prepared-box").hidden = !questions.length;
-  if (!questions.length) return;
-  const current = questions.find((q) => q.question_text === $("rag-question").value);
-  select.replaceChildren(new Option(text("prepared.free_text"), ""));
-  const groups = new Map();
-  for (const q of questions) {
-    if (!groups.has(q.type)) {
-      const group = el("optgroup");
-      group.label = text(`prepared.types.${q.type}_text`) || q.type;
-      groups.set(q.type, group);
-    }
-    groups.get(q.type).append(new Option(q.question_text, q.id));
-  }
-  select.append(...groups.values());
-  select.value = current?.id ?? "";
-  const badge = $("rag-question-type");
-  badge.hidden = !current;
-  badge.textContent = current ? text(`prepared.types.${current.type}_text`) || current.type : "";
-  badge.dataset.type = current?.type ?? "";
-}
-
-function pickPrepared() {
-  const q = store.questions.find((x) => x.id === $("rag-prepared").value);
-  const input = $("rag-question");
-  if (q) {
-    input.value = q.question_text;
-    keep(QUESTION_KEY, input.value);
-  }
-  renderPrepared();
-}
-
-// ----- the pin: a run kept as a small snapshot, drawn beside the current one -----
-
-function loadPin() {
-  try {
-    const pin = JSON.parse(stored(PIN_KEY) ?? "null");
-    return pin && typeof pin === "object" && Array.isArray(pin.stages) ? pin : null;
-  } catch {
-    return null;
-  }
-}
-
-// A finished run as the comparison reads it: the question, the chain's names, each stage's
-// passages (rank, title: no text), the prompt and the answer, the costs by time. Strings and
-// figures of the session's events, none computed here (AD-1).
-function snapshotOf(run, costs, update) {
-  const stages = run.stages.map((s) => ({
-    kind: s.kind,
-    option: s.option,
-    label_text: s.label_text,
-    option_label_text: s.option_label_text,
-    status: s.status,
-    items: (s.ended?.items ?? []).map((i) => ({ key: `${i.doc_id}:${i.chunk_id}`, rank: i.rank, title_text: i.title_text })),
-    prompt_text: s.ended?.prompt_text ?? null,
-    output_text: s.kind === "generation" ? (s.ended?.output_text ?? "") : "",
-  }));
-  return {
-    question: run.question,
-    at: run.startedAt,
-    stages,
-    costs: { build: costs.build ?? null, update: update?.summary ?? null, query: costs.query ?? null },
-  };
-}
-
-const runEndedWell = () => Boolean(store.run?.ended && store.run.ended.status === "ok");
-
-function pinRun() {
-  if (!runEndedWell()) return;
-  store.pin = snapshotOf(store.run, store.costs, store.update);
-  keep(PIN_KEY, JSON.stringify(store.pin));
-  renderPin();
-  renderCompare();
-}
-
-function unpinRun() {
-  store.pin = null;
-  try {
-    localStorage.removeItem(PIN_KEY);
-  } catch {
-    // no storage: the pin lived with the page
-  }
-  renderPin();
-  renderCompare();
-}
-
-function renderPin() {
-  const ready = runEndedWell();
-  const button = $("rag-pin");
-  button.disabled = !ready;
-  button.title = ready ? "" : text("compare.pin_wait_text");
-  $("rag-pin-status").textContent = store.pin ? text("compare.pinned_status_text", { question: quote(store.pin.question) }) : "";
-}
-
-// The roles the comparison aligns the stages on, whatever the chains: the search (the last
-// retrieval stage's list), the context (what the prompt receives), the answer.
-function roleOf(snap, role) {
-  if (role === "search") {
-    const found = snap.stages.filter((s) => RETRIEVAL_KINDS.includes(s.kind) && s.items.length);
-    return { items: found[found.length - 1]?.items ?? [] };
-  }
-  if (role === "context") return { items: snap.stages.find((s) => s.kind === "context")?.items ?? [] };
-  const stage = snap.stages.find((s) => s.kind === "generation");
-  return { items: [], answer: stage?.output_text ?? "", prompt: stage?.prompt_text ?? null };
-}
-
-function passageList(items, others, side) {
-  const list = el("ol", "rag-cmp-passages");
-  const known = new Set(others.map((i) => i.key));
-  for (const item of items) {
-    // What the other column lacks: lost (pinned side), added (current side).
-    const apart = !known.has(item.key);
-    const li = el("li", apart ? "is-apart" : "");
-    li.dataset.key = item.key;
-    li.append(el("span", "rag-num", fmtInt(item.rank)), el("span", "rag-doc-title", item.title_text));
-    if (apart) li.append(el("span", `rag-cmp-mark is-${side}`, text(side === "pinned" ? "compare.lost_text" : "compare.added_text")));
-    list.append(li);
-  }
-  if (!items.length) list.append(el("li", "rag-note", text("compare.none_text")));
-  return list;
-}
-
-const COST_KEYS = ["tokens", "duration_ms", "usd", "energy_wh_min", "gco2e_min"];
-const costDiffers = (a, b) => COST_KEYS.some((k) => (a?.[k] ?? null) !== (b?.[k] ?? null));
-
-function cmpRow(role, title) {
-  const row = el("section", "rag-cmp-row");
-  row.dataset.role = role;
-  const cells = el("div", "rag-cmp-cells");
-  row.append(el("h4", "rag-cmp-row-title", title), cells);
-  return { row, cells };
-}
-
-function cmpCell(side) {
-  const cell = el("div", "rag-cmp-cell");
-  cell.dataset.side = side;
-  return cell;
-}
-
-function compareHead(side, snap) {
-  const head = el("div", "rag-cmp-head");
-  head.dataset.side = side;
-  head.append(el("h3", "rag-cmp-side", text(side === "pinned" ? "compare.pinned_text" : "compare.current_text")));
-  if (!snap) {
-    head.append(el("p", "rag-note", text(side === "pinned" ? "compare.empty_pin_text" : "compare.empty_current_text")));
-    return head;
-  }
-  const when = snap.at ? new Date(snap.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
-  head.append(
-    el("p", "rag-cmp-arch", snap.stages.map((s) => s.option_label_text).join(" → ")),
-    el("p", "rag-cmp-question", quote(snap.question)),
-    el("p", "rag-note", text("compare.at_text", { time: when })),
-  );
-  return head;
-}
-
-function passageRow(role, pinned, current) {
-  const [a, b] = [roleOf(pinned, role), roleOf(current, role)];
-  const { row, cells } = cmpRow(role, text(`compare.${role}_text`));
-  const same = a.items.length === b.items.length && a.items.every((item, n) => item.key === b.items[n]?.key);
-  row.classList.toggle("is-diff", !same);
-  const left = cmpCell("pinned");
-  const right = cmpCell("current");
-  left.append(passageList(a.items, b.items, "pinned"));
-  right.append(passageList(b.items, a.items, "current"));
-  cells.append(left, right);
-  row.append(el("p", "rag-note rag-cmp-verdict", text(same ? "compare.same_text" : "compare.differs_text")));
-  return row;
-}
-
-function answerRow(pinned, current) {
-  const parts = [roleOf(pinned, "answer"), roleOf(current, "answer")];
-  const { row, cells } = cmpRow("answer", text("compare.answer_text"));
-  row.classList.toggle("is-diff", parts[0].answer !== parts[1].answer);
-  for (const [side, part] of [
-    ["pinned", parts[0]],
-    ["current", parts[1]],
-  ]) {
-    const cell = cmpCell(side);
-    cell.append(el("p", "rag-cmp-answer", part.answer || text("compare.no_answer_text")));
-    if (part.prompt) {
-      const details = el("details", "rag-cmp-prompt");
-      details.append(el("summary", "", text("compare.prompt_text")), el("pre", "rag-prompt", part.prompt));
-      cell.append(details);
-    }
-    cells.append(cell);
-  }
-  return row;
-}
-
-function costsRow(pinned, current) {
-  const { row, cells } = cmpRow("costs", text("compare.costs_text"));
-  const left = cmpCell("pinned");
-  const right = cmpCell("current");
-  let anyDiff = false;
-  for (const phase of ["build", "update", "query"]) {
-    const a = pinned.costs?.[phase] ?? null;
-    const b = current.costs?.[phase] ?? null;
-    const diff = costDiffers(a, b);
-    anyDiff = anyDiff || diff;
-    for (const [cell, summary] of [
-      [left, a],
-      [right, b],
-    ]) {
-      const block = el("div", `rag-cmp-cost${diff ? " is-diff" : ""}`);
-      block.dataset.phase = phase;
-      block.append(el("h5", "rag-cost-title", text(`costs.${phase}_text`)));
-      block.append(summary ? costFigures(summary) : el("p", "rag-note", text("costs.not_measured_text")));
-      cell.append(block);
-    }
-  }
-  row.classList.toggle("is-diff", anyDiff);
-  cells.append(left, right);
-  return row;
-}
-
-function renderCompare() {
-  const box = $("rag-cmp");
-  if (!box || !store.content) return;
-  const pinned = store.pin;
-  const current = runEndedWell() ? snapshotOf(store.run, store.costs, store.update) : null;
-  $("rag-unpin").hidden = !pinned;
-  const heads = el("div", "rag-cmp-heads");
-  heads.append(compareHead("pinned", pinned), compareHead("current", current));
-  const parts = [heads];
-  if (pinned && current) {
-    if (pinned.question !== current.question) parts.push(el("p", "rag-note rag-cmp-warning", text("compare.other_question_text")));
-    parts.push(passageRow("search", pinned, current), passageRow("context", pinned, current), answerRow(pinned, current), costsRow(pinned, current));
-  } else if (pinned || current) {
-    parts.push(el("p", "rag-note", text(pinned ? "compare.need_current_text" : "compare.need_pin_text")));
-  }
-  box.replaceChildren(...parts);
-}
-
 function renderContent() {
   for (const node of document.querySelectorAll("[data-text]")) {
     const value = text(node.dataset.text);
@@ -2042,8 +1819,7 @@ function renderContent() {
     $("rag-question").placeholder = store.content.question_placeholder_text;
     $("rag-modes").setAttribute("aria-label", store.content.modes_label_text);
     renderTabs();
-    renderPrepared();
-    renderPin();
+    everyTab("render");
   }
 }
 
@@ -2181,8 +1957,7 @@ async function refresh() {
   renderResults();
   renderCosts();
   renderCopy();
-  renderPin();
-  renderCompare();
+  everyTab("render");
   if (store.catalog) validateChains();
   renderBusy();
   return body;
@@ -2228,18 +2003,11 @@ async function main() {
   }
   const question = $("rag-question");
   question.value = stored(QUESTION_KEY) ?? (text("default_question_text") || "");
-  question.addEventListener("input", () => {
-    keep(QUESTION_KEY, question.value);
-    renderPrepared();
-  });
-  $("rag-prepared").addEventListener("change", pickPrepared);
-  $("rag-pin").addEventListener("click", pinRun);
-  $("rag-unpin").addEventListener("click", unpinRun);
+  question.addEventListener("input", () => keep(QUESTION_KEY, question.value));
   wireTabs();
-  store.pin = loadPin();
-  renderPrepared();
-  renderPin();
-  renderCompare();
+  store.mounted = true;
+  everyTab("mount");
+  everyTab("render");
   setTab(tabFromHash());
   question.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !$("rag-run").disabled) runChain();
@@ -2263,3 +2031,5 @@ async function main() {
 }
 
 main();
+
+export { $, el, text, quote, fmtInt, keep, stored, store, costFigures, QUESTION_KEY };

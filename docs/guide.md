@@ -364,6 +364,7 @@ Le lien **« RAG »** de la barre de navigation ouvre l'Atelier RAG (page `/rag`
 RAG, dessinée pièce par pièce, puis exécutée sur une question, étape par étape. C'est un bac à
 sable : la brique RAG de l'atelier (ses réglages, son index, ses modèles) ne change pas.
 
+- **Atelier recherche documentaire, onglets et comparaison.** La page `/rag` porte désormais ce titre (le lien de la barre reste « RAG »). Cinq onglets : **Construire** (la page décrite ci-dessous), **Comparer**, et **Évaluer**, **Attaquer**, **Fiches** (« à venir »). Un sélecteur de **question préparée** (jeu de questions du corpus Exemplia, avec le badge de son type) remplit la question. **« Épingler cette exécution »** garde l'exécution terminée (elle survit au rechargement) ; l'onglet Comparer la pose à côté de l'exécution courante : recherche, contexte, réponse, coûts de construction, de mise à jour et de requête, les passages perdus ou ajoutés et les chiffres qui diffèrent marqués, sans synthèse rédigée. Deux exécutions successives, pas de voie B.
 - **Trois vues.** À gauche la **séquence** des étapes, en deux temps : « BUILD · Indexing »
   (Documents, Chunking, Embedding des chunks, Indexing dans le vector store, puis Lexical
   indexing quand la chaîne a BM25), fait une fois pour

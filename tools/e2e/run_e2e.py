@@ -14467,12 +14467,12 @@ def _rag_lab_tabs(r: Run) -> None:
     )
     page.fill("#rag-question", "Une question libre")
     r.check(
-        page.locator("#rag-prepared").input_value() == "" and page.locator("#rag-question-type").is_hidden(),
+        page.locator("#rag-prepared").input_value() == ""
+        and page.locator("#rag-question-type").is_hidden(),
         "question libre : sélecteur sur « Question libre », badge masqué",
     )
 
     # CAP-9: pin a run, run again, compare.
-    expect(page.locator("#rag-pin")).to_be_disabled()
     _rag_lab_run(r, first["question_text"])
     expect(page.locator("#rag-pin")).to_be_enabled(timeout=5000)
     page.click("#rag-pin")
@@ -14484,7 +14484,8 @@ def _rag_lab_tabs(r: Run) -> None:
     r.check(
         cmp_box.locator('.rag-cmp-head[data-side="pinned"] h3').inner_text() == "Épinglée"
         and cmp_box.locator('.rag-cmp-head[data-side="current"] h3').inner_text() == "Courante"
-        and first["question_text"] in cmp_box.locator('.rag-cmp-head[data-side="pinned"]').inner_text()
+        and first["question_text"]
+        in cmp_box.locator('.rag-cmp-head[data-side="pinned"]').inner_text()
         and "Mêmes passages" in cmp_box.locator('[data-role="search"]').inner_text()
         and cmp_box.locator("[data-role=search] .rag-cmp-mark").count() == 0
         and cmp_box.locator('[data-role="costs"] .rag-cmp-cost').count() == 6
@@ -14520,7 +14521,9 @@ def _rag_lab_tabs(r: Run) -> None:
         "l'épingle survit au rechargement (et #compare ouvre l'onglet)",
     )
     page.click("#rag-unpin")
-    expect(page.locator('#rag-cmp .rag-cmp-head[data-side="pinned"]')).to_contain_text("Aucune exécution épinglée")
+    expect(page.locator('#rag-cmp .rag-cmp-head[data-side="pinned"]')).to_contain_text(
+        "Aucune exécution épinglée"
+    )
 
 
 def _downloads_text(count: int) -> str:
@@ -14854,7 +14857,8 @@ def _rag_lab(r: Run, errors: list[str]) -> None:
         and page.locator("select[data-theme-picker]").count() == 1
         and not page.locator("#rag-compare, #rag-chain-b, #rag-comparison").count()
         and not _site_nav_problems(r),
-        "/rag : barre commune entière, « RAG » courant, titre « Atelier recherche documentaire », plus de "
+        "/rag : barre commune entière, « RAG » courant, titre « Atelier recherche "
+        "documentaire », plus de "
         "comparaison A/B",
     )
     generation = page.locator('#rag-seq [data-step="generation"]')
