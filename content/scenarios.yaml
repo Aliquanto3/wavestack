@@ -514,7 +514,7 @@ scenarios:
       Facultatif, il demande une clé API Claude et envoie de vrais appels payants (quelques
       centimes) : sans clé, lisez cette consigne pour le formateur et passez au scénario
       suivant. Le prompt suggéré tourne ici sur le modèle local, sans réseau, et prépare la
-      conversation. Avec une clé saisie sur la page Diagnostic, choisissez un modèle Claude,
+      conversation. Avec une clé saisie sur la page Modèles, choisissez un modèle Claude,
       ouvrez « Fenêtre » et réglez « Cache de prompt de Claude » sur « 5 minutes » : l'écriture
       du cache coûte alors 1,25 fois le prix d'entrée. Collez dans le message un texte long,
       une page de la documentation par exemple, car sous un seuil de tokens propre au modèle

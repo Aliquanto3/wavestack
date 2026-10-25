@@ -71,15 +71,15 @@ session:
     rag_lab: "Atelier RAG : exécution en cours ; attendez sa fin ou arrêtez-la."
     mcp_lab: "Atelier MCP : échange en cours ; attendez sa fin ou arrêtez-le."
     awaiting: "En attente de votre validation : autorisez ou refusez l'appel réseau."
-    no_model: "Envoi indisponible : aucun modèle n'est choisi. Choisissez-en un sur la page de diagnostic."
-    load_failed: "Envoi indisponible : le modèle n'a pas pu être chargé. Choisissez un autre fichier GGUF sur la page de diagnostic."
-    cloud_failed: "Envoi indisponible : le modèle cloud n'a pas pu être préparé. Choisissez un modèle sur la page de diagnostic."
+    no_model: "Envoi indisponible : aucun modèle n'est choisi. Choisissez-en un sur la page Modèles."
+    load_failed: "Envoi indisponible : le modèle n'a pas pu être chargé. Choisissez un autre fichier GGUF sur la page Modèles."
+    cloud_failed: "Envoi indisponible : le modèle cloud n'a pas pu être préparé. Choisissez un modèle sur la page Modèles."
     no_turn: Aucun tour possible.
-    load_stopped: "Envoi indisponible : le chargement du modèle a été arrêté et aucun modèle n'est chargé. Choisissez un modèle sur la page de diagnostic."
+    load_stopped: "Envoi indisponible : le chargement du modèle a été arrêté et aucun modèle n'est chargé. Choisissez un modèle sur la page Modèles."
   # Story 26 (AD-9): the window panel, when the cache and the read time are not WaveStack's to measure.
   # V1.3 story 5 : le cache de prompt de Claude, réglé dans le panneau de la fenêtre.
   claude_cache:
-    no_key: "Désactivé : saisissez d'abord la clé API d'un modèle Claude (page de diagnostic)."
+    no_key: "Désactivé : saisissez d'abord la clé API d'un modèle Claude (page Modèles)."
     unknown: "Réglage inconnu : choisissez off, 5 min ou 1 h."
     not_saved: "Cache de Claude réglé pour cette séance, mais le réglage n'a pas pu être enregistré dans settings.json."
     note: "S'applique aux modèles Claude. Sous un seuil de tokens propre à chaque modèle, le fournisseur ne met rien en cache : tout reste alors en « Non caché ». Prise en compte à l'appel suivant."
@@ -705,9 +705,9 @@ session:
     missing_argument: "Le prompt « {prompt} » demande l'argument « {argument} »."
     blob_content: "[contenu {mime} de {n} octets, non inclus]"
     ask:
-      no_model: "Aucun modèle n'est chargé : choisissez-en un dans le diagnostic."
-      no_tools: "Le modèle actif n'appelle pas d'outils : choisissez-en un autre dans le diagnostic."
-      cloud_no_tools: "Le modèle actif ({model}) ne déclare pas l'appel d'outils : choisissez-en un autre dans le diagnostic."
+      no_model: "Aucun modèle n'est chargé : choisissez-en un sur la page Modèles."
+      no_tools: "Le modèle actif n'appelle pas d'outils : choisissez-en un autre sur la page Modèles."
+      cloud_no_tools: "Le modèle actif ({model}) ne déclare pas l'appel d'outils : choisissez-en un autre sur la page Modèles."
       of_unknown: "Rien à envoyer : lisez d'abord une ressource ou obtenez un prompt sur cette connexion."
       question_with_prompt: "Un prompt part sans question : ses messages tiennent lieu de demande."
       question_required: "Écrivez d'abord une question."
@@ -1014,6 +1014,14 @@ greenops:
 rag_lab:
   quoted: "« {text} »"
   list_separator: " ; "
+  # V1.2 story 16 (CAP-12): the OTLP export of the run's tree.
+  otel:
+    missing: "Export OTLP indisponible : l'extra otel n'est pas installé (uv sync --extra otel)."
+    unset: "Export OTLP non réglé : renseignez [otel] endpoint dans wavestack.toml ou settings.json, puis redémarrez. Rien ne sort du poste."
+    no_run: "Aucune exécution terminée à exporter."
+    blocked: "Export OTLP refusé par la garde réseau : {cause}"
+    unreachable: "Collecteur OTLP injoignable ({cause})."
+    refused: "Le collecteur OTLP a refusé l'export (statut {status})."
   # Nouns after a count: « 1 extrait », « 0 extraits » (the workshop agrees 0 as plural).
   noun:
     element:
@@ -2019,7 +2027,7 @@ models:
     too_large: La requête dépasse à elle seule le quota par minute du fournisseur.
     context_exceeded: "Contexte dépassé : {provider} refuse un contexte plus long que sa fenêtre."
     bad_request: "Requête refusée par {provider} ({status}) : défaut du harnais ou du préréglage."
-    key_refused: "Clé refusée par {provider} ({status}). Vérifiez-la dans le diagnostic."
+    key_refused: "Clé refusée par {provider} ({status}). Vérifiez-la sur la page Modèles."
     not_found: "Modèle introuvable chez {provider} (404) : « {model} » a peut-être été retiré."
     unavailable: "{provider} est indisponible ({status})."
     unexpected: "Réponse inattendue de {provider} ({status})."
@@ -2038,7 +2046,7 @@ models:
     session_cap: "Plafond de dépense de la séance atteint : {total} dépensés pour un plafond de {cap}. L'appel n'est pas parti et ne coûte rien. Pour relever le plafond, modifiez [finops] max_session_usd dans settings.json, WaveStack arrêté, puis relancez-le (le total de la séance ne revient à zéro qu'au relancement)."
     hint:
       slow_provider: "Relancez le tour : un fournisseur chargé répond parfois lentement."
-      test_network: "Vérifiez le réseau du poste avec « Tester » au diagnostic."
+      test_network: "Vérifiez le réseau du poste avec « Tester » sur la page Modèles."
       check_connection: "Vérifiez la connexion du poste, ou le proxy."
       allow_host: "L'hôte {host} doit être autorisé par le réseau de l'entreprise."
       check_base_url: Vérifiez base_url dans la déclaration du modèle.
@@ -2049,7 +2057,7 @@ models:
       reduce_window: "Réduisez la fenêtre de contexte : attendre ne sert à rien."
       clear_conversation: Videz la conversation, ou passez la brique MCP en lazy loading.
       check_declaration: Vérifiez la déclaration du modèle (wavestack.toml ou settings.json).
-      reenter_key: "Ressaisissez la clé au diagnostic, puis « Tester »."
+      reenter_key: "Ressaisissez la clé sur la page Modèles, puis « Tester »."
       check_model_name: Vérifiez le nom du modèle dans la console du fournisseur.
       retry_later: Réessayez dans quelques minutes.
       retry_turn: Relancez le tour.

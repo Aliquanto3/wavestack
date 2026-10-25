@@ -20,8 +20,8 @@ validation) :
 - **Barre du bas** : le sélecteur « Changer de modèle… », à droite de l'indicateur de modèle,
   liste les fichiers GGUF du poste, les modèles d'un serveur local déjà lancé et les modèles
   cloud déclarés (grisés sans clé). Un modèle cloud affiche d'abord son avertissement. « Autre
-  fichier ou clé API… » ouvre le diagnostic.
-- **Diagnostic** : « Choisir ce modèle » dans la carte d'un fichier ou d'un modèle servi,
+  fichier ou clé API… » ouvre la page Modèles.
+- **Page Modèles** : « Choisir ce modèle » dans la carte d'un fichier ou d'un modèle servi,
   « Choisir ce modèle… » dans celle d'un modèle cloud (qui ouvre d'abord l'avertissement), ou
   « Choisir ce fichier » après un chemin saisi.
 
@@ -62,7 +62,7 @@ détails d'Ollama ou dans le nom. L'éditeur est reconnu par `content/models/pub
 (architecture, puis nom) ; un modèle inconnu va dans « Autres éditeurs ».
 
 **Tableau des modèles.** L'avant-dernière entrée du sélecteur, « Tableau des modèles et de leurs
-capacités… » (bouton « Ouvrir le tableau »), ouvre la page « Diagnostic et modèles »
+capacités… » (bouton « Ouvrir le tableau »), ouvre la page « Modèles »
 (`/diagnostic` ; l'ancienne adresse `/models` y redirige). Une carte par modèle, groupée par
 éditeur : un même modèle trouvé sous plusieurs sources (le fichier d'Ollama et le modèle
 qu'Ollama sert, une copie dans le cache Hugging Face et dans LM Studio…) n'a qu'une carte,
@@ -377,7 +377,7 @@ NVIDIA et OpenRouter y figurent en exemples commentés, avec leur avertissement.
 
    `setx` n'agit que sur les **nouveaux** terminaux : fermez celui-ci, ouvrez-en un autre, puis
    `uv run wavestack`. La ligne du modèle indique alors « Clé fournie par la variable
-   GROQ_API_KEY » (le nom seul, jamais la valeur). Une clé saisie au diagnostic passe avant la
+   GROQ_API_KEY » (le nom seul, jamais la valeur). Une clé saisie sur la page Modèles passe avant la
    variable ; une variable vide compte comme absente.
 
    `setx` enregistre la clé **en clair** dans l'environnement de l'utilisateur
@@ -433,7 +433,7 @@ corps éteint) ; éteinte, `reasoning_effort` « minimal » supprime la réflexi
 et `thinking_budget` sont refusés. Les appels d'outils portent la même signature de pensée que
 Gemini, rejouée de la même façon. Un 429 vient du quota gratuit, non publié : s'il survient
 « par seconde », posez `min_interval_s` dans `settings.json` ; au premier appel de « Tester »,
-c'est le quota du compte. Une clé saisie au diagnostic est propre à sa ligne : saisissez-la aussi
+c'est le quota du compte. Une clé saisie sur la page Modèles est propre à sa ligne : saisissez-la aussi
 sur la ligne Gemma, ou posez `GEMINI_API_KEY`, qui sert aux deux préréglages. Secours :
 `gemma-4-31b-it` (dense, plus lent), avec son empreinte, dans `settings.json` :
 `{"id": "gemma", "model": "gemma-4-31b-it", "impacts": {"provider": "google_genai", "model":
@@ -443,7 +443,7 @@ sur la ligne Gemma, ou posez `GEMINI_API_KEY`, qui sert aux deux préréglages. 
 1 $ / 5 $ par million de tokens) et `claude_sonnet` (`claude-sonnet-5`, 1 000 000 tokens,
 2 $ / 10 $) passent par l'API native d'Anthropic (`api = "anthropic_messages"`), pas par une
 couche compatible OpenAI : elle seule renvoie le raisonnement et accepte les outils avec lui.
-Clé : `ANTHROPIC_API_KEY` ou saisie au diagnostic (envoyée dans l'en-tête `x-api-key`).
+Clé : `ANTHROPIC_API_KEY` ou saisie sur la page Modèles (envoyée dans l'en-tête `x-api-key`).
 Conditions relevées le 2026-10-03 : les données de l'API ne servent pas à l'entraînement sans
 permission expresse et sont supprimées sous 30 jours ; inférence « global » par défaut (ou
 « us »), stockage aux États-Unis, pas de résidence dans l'UE. Brique Raisonnement allumée :
@@ -468,7 +468,7 @@ d'Anthropic, non mesurée).
 (`api = "openai_responses"`) : par Chat Completions, GPT-6 n'appelle d'outils que raisonnement
 éteint et ne renvoie jamais son raisonnement. WaveStack l'utilise sans état (`store: false`,
 jamais `previous_response_id`) : tout l'historique part à chaque appel, comme pour les autres
-fournisseurs. Clé : `OPENAI_API_KEY` ou saisie au diagnostic (en-tête `Authorization: Bearer`).
+fournisseurs. Clé : `OPENAI_API_KEY` ou saisie sur la page Modèles (en-tête `Authorization: Bearer`).
 Conditions relevées le 2026-10-03 : les données de l'API ne servent pas à l'entraînement par
 défaut ; OpenAI garde des journaux de lutte contre les abus jusqu'à 30 jours, même sans
 stockage des réponses, et le cache de prompt 24 heures par défaut (`prompt_cache_retention`
@@ -486,7 +486,7 @@ GPT-6.1 Sol figure en commentaire dans `wavestack.toml` (il raisonne toujours).
 ### Revenir au modèle local
 
 Choisissez un fichier GGUF dans le sélecteur de la barre du bas, ou
-cliquez sur « Choisir ce modèle » dans la carte d'un fichier, page Diagnostic : le modèle local est
+cliquez sur « Choisir ce modèle » dans la carte d'un fichier, page Modèles : le modèle local est
 rechargé sans relance, conversation gardée.
 
 ### Hôtes à autoriser
