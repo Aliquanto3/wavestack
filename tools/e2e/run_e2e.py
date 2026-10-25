@@ -16442,6 +16442,116 @@ def s_claude_cache(r: Run) -> None:
             _pick_model(r, a_label)
 
 
+def s_cache_module(r: Run) -> None:
+    """V1.3 story 6 (CAP-6): the « Cache » module, 45 minutes, five scenarios; the gestures are
+    in the instructions, nothing is scripted. On the fake local engine: two prompts of
+    « Lire le cache » give a read part; « Casser le préfixe » (the system prompt switched off)
+    gives the cause « message système modifié »; « Vider le cache » gives « cache vidé »."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    content = _scenarios_yaml()
+    module = content["program"][-1]
+    r.check(
+        module["title_text"] == "Cache"
+        and module["duration_min"] == 45
+        and module["scenarios"]
+        == ["cache_read", "cache_prefix", "cache_expiry", "cache_claude", "cache_bilan"],
+        "module « Cache » : 45 min, cinq scénarios",
+        str(module),
+    )
+    # The cache gauge reads the fake llama-server (local): switch to it, back to the cloud fake
+    # model at the end (`relaunch` expects it saved).
+    cloud = "☁️ RÉSEAU · Faux fournisseur (e2e) · wavestack-fake"
+    page.locator("#model-picker").blur()
+    seq = r.ev.mark()
+    page.select_option("#model-picker", label=LLAMA_OPTION)
+    page.click("#model-picker-apply")
+    r.ev.wait("model_load_ended", seq, timeout=30)
+    expect(page.locator("#model-indicator")).to_contain_text("Local · llama-server", timeout=10_000)
+    r.wait_idle()
+    try:
+        _cache_module_steps(r)
+    finally:
+        seq = r.ev.mark()
+        page.select_option("#model-picker", label=cloud)
+        page.click("#model-picker-apply")
+        page.click("#cloud-warning-confirm")
+        r.ev.wait("model_load_ended", seq, timeout=30)
+        r.wait_idle()
+
+
+def _cache_lean(r: Run) -> None:
+    """The fake llama-server's window is small and counts coarsely: with every brick of the
+    module on, the first prompt overflows. The gestures under test (the cache gauge, the cause,
+    the button) need only the system prompt and the global memory (the cause « system » needs a system
+    message left), so the heavy bricks are switched off here."""
+    for name in ("Outils", "MCP", "Skills", "Hooks", "Compression"):
+        r.set_brick(name, False)
+
+
+def _cache_module_steps(r: Run) -> None:
+    page = r.page
+    r.launch("cache_read")
+    guide = page.locator("#scenario-info-popover").text_content() or ""
+    r.check(
+        "sans le raisonnement ni le RAG" in guide and "Cache du dernier appel" in guide,
+        "« Lire le cache » : la consigne rappelle les exceptions et nomme la jauge",
+    )
+    first, second, _ = _prompts("cache_read")
+    _cache_lean(r)
+    r.send(first)
+    seq = r.ev.mark()
+    r.send(second)
+    call = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    expect(page.locator("#cache-gauge .cache-seg-read")).to_have_count(1, timeout=5000)
+    r.check(
+        call["cache_origin"] == "local" and call["cache_read_tokens"] > 0,
+        "« Lire le cache » : le second prompt lit le cache",
+        str(call.get("cache_read_tokens")),
+    )
+    r.launch("cache_prefix")
+    _cache_lean(r)
+    p1, p2, p3, _ = _prompts("cache_prefix")
+    r.send(p1)
+    r.send(p2)
+    r.set_brick("Prompt système", False)
+    try:
+        seq = r.ev.mark()
+        r.send(p3)
+        causes = [e["payload"]["cause"] for e in r.ev.since(seq, "prefix_not_reused")]
+        r.check(causes == ["system"], "« Casser le préfixe » : cause « system »", str(causes))
+    finally:
+        r.set_brick("Prompt système", True)
+    r.launch("cache_expiry")
+    _cache_lean(r)
+    q1, q2, q3, _ = _prompts("cache_expiry")
+    r.send(q1)
+    r.send(q2)
+    seq = r.ev.mark()
+    page.locator("#clear-cache").click()
+    r.wait_idle()
+    r.send(q3)
+    cleared = [e["payload"]["cause"] for e in r.ev.since(seq, "prefix_not_reused")]
+    r.check(
+        cleared == ["cache_cleared"],
+        "« Faire expirer le cache » : cause « cache vidé »",
+        str(cleared),
+    )
+    # The optional Claude scenario is read, not run: no key, no paid call.
+    r.launch("cache_claude")
+    text = page.locator("#scenario-info-popover").text_content() or ""
+    r.check(
+        "Cache de prompt de Claude" in text and "Facultatif" in text,
+        "« Le cache de Claude » : consigne facultative, réglage nommé",
+    )
+    r.launch("cache_bilan")
+    text = page.locator("#scenario-info-popover").text_content() or ""
+    r.check(
+        all(w in text for w in ("Lecture cache", "Écriture cache", "Non caché")),
+        "« Lire un bilan » : le vocabulaire d'agent-cost-kit",
+    )
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -16505,6 +16615,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("cache_bilan", s_cache_bilan),  # V1.3 story 4 (CAP-3): the bilan's two columns
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
     ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
+    ("cache_module", s_cache_module),  # V1.3 story 6: le module « Cache »
 ]
 
 

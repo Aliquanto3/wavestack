@@ -25,6 +25,9 @@ program:
   - title_text: Long context and map
     duration_min: 45
     scenarios: [compression, harness_map]
+  - title_text: Cache
+    duration_min: 45
+    scenarios: [cache_read, cache_prefix, cache_expiry, cache_claude, cache_bilan]
 
 transverse: [data_flows, soc, iam, sovereignty]
 
@@ -354,6 +357,123 @@ scenarios:
     hooks: [h1, h2]
     prompts:
       - In one sentence, what is an agent harness?
+
+  cache_read:
+    title_text: Reading the cache
+    description_text: >-
+      The bricks of the previous modules stay on (MCP in lazy loading), without the
+      sub-agent, without context injection (H3), and without the reasoning or the RAG.
+      No tool here: only the cache counts. Send the first prompt: beside the context gauge,
+      the “Cache of the last call” gauge shows mostly “written”, because the model reads the
+      context for the first time. Send the second: the start of the context is identical,
+      and the gauge turns to “read”. Unfold the call in Orchestration and compare the tokens
+      read, written and those of the prompt. A small part stays written, the message you
+      have just added. At the third prompt the read part grows again: the cache follows the
+      conversation. Locally, the engine keeps everything it has evaluated: there is no
+      “uncached” and no lifetime, and the gauge says so. These three boxes, read, written
+      and uncached, are those of the agent-cost-kit token summary (see the sheet
+      docs/cache-de-prompt.md, in French).
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    restore_memory: true
+    hooks: [h1, h2]
+    prompts:
+      - Explain in one sentence what a prompt cache is for.
+      - And why is the second question cheaper than the first?
+      - Give a worked example in two lines.
+
+  cache_prefix:
+    title_text: Breaking the prefix
+    description_text: >-
+      The bricks of the previous scenario stay on. A cache only reuses the start of the
+      context, as long as it stays identical byte for byte. Send the first two prompts: the
+      “Cache of the last call” gauge is mostly “read”. Then turn off the System prompt brick
+      in the bricks panel and send the third: the system message has changed, and it opens
+      the context, so everything after it is read again. The gauge turns to “written”, with
+      the cause “system message changed”, and Orchestration adds the step “Cache not reused”
+      with the tokens read again. Turn the brick back on and send the fourth prompt: the
+      cause is the same, the system message is back to what it was. The rule to remember:
+      stable first, variable last. One word changed at the start of a system prompt costs
+      the whole cache of the conversation.
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Remind me in one sentence what an agent harness is.
+      - And what is its short-term memory for?
+      - Roughly what time is it?
+      - Summarise our exchange in one sentence.
+
+  cache_expiry:
+    title_text: Letting the cache expire
+    description_text: >-
+      The bricks of the previous scenario stay on. A cache does not last: with a provider
+      it expires after 5 minutes or an hour without a read. Locally, you trigger it by
+      hand. Send the first two prompts: the “Cache of the last call” gauge is mostly
+      “read”. Click “Clear the cache” (under the conversation, beside “Clear the
+      conversation”), then send the third: the engine has to read everything again, the
+      gauge is entirely “written” and the cause is “cache cleared”. The conversation is
+      intact, only the cache is lost: that is what expiry does. The button is greyed out
+      with a cloud model, whose cache cannot be purged and expires on its side. The fourth
+      prompt starts the reads again: an expired cache is rebuilt at the next call, at the
+      price of a write.
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Give three good practices for a system prompt, one line each.
+      - Expand on the second in one sentence.
+      - And the third, in one sentence too?
+      - Back to the first, in ten words.
+
+  cache_claude:
+    title_text: Claude cache (optional)
+    description_text: >-
+      Optional: it needs a Claude API key and sends real paid calls (a few cents). Without a
+      key, read this instruction as the trainer and go on to the next scenario. The suggested
+      prompt runs here on the local model, with no network, and prepares the conversation.
+      With a key entered on the Diagnostic page, choose a Claude model, open “Window” and
+      set “Claude prompt cache” to “5 minutes”: writing the cache then costs 1.25 times the
+      input price. Paste a long text into the message, a documentation page for example,
+      because below a token threshold specific to the model the provider caches nothing and
+      everything stays “uncached”. The first call writes, the next one, within 5 minutes,
+      reads: see “Cache read” and “Cache write 5 min” in the “Spend” summary. Try again at
+      “1 hour” (write at 2 times the input price): the line “Cache write 1 h” appears, the
+      cache survives a longer pause for a dearer write. Set it back to “Off” afterwards. A
+      cache is only worth it if it is read again: a single read does not always pay for the
+      write, and the summary says so (“cache surcharge”).
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Summarise in two sentences the difference between a 5-minute and a 1-hour cache.
+
+  cache_bilan:
+    title_text: Reading an agent-cost-kit summary
+    description_text: >-
+      The bricks of the previous scenario stay on. The token summary of a coding agent has
+      the same columns as WaveStack: “Cache read”, “Cache write 5 min” or “1 h”, “Uncached”
+      and “Output”. Send the three prompts, then open “Spend” in the top bar. The “This
+      conversation” column counts since the last “Clear the conversation”, “Since launch”
+      since WaveStack started. Read it box by box: the read is the biggest, which is normal,
+      every call reads the whole context already seen again and a read costs a tenth of the
+      input. A write that exceeds the read signals a lost cache, broken prefix or expired
+      cache: click “Clear the cache”, send a prompt, and the write climbs. “Uncached” is the
+      part paid at full price, not applicable locally. The dollars follow the same split in
+      the “where the money goes” ring as soon as a cloud model with a price has answered.
+      Compare with a real agent-cost-kit summary (`/agent-cost-kit:mesurer-couts`).
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Explain in one sentence what a prompt cache is.
+      - Why does an agent read its whole context again at each call?
+      - Give one example of what can break a cache, in one sentence.
 
   data_flows:
     title_text: Where does my data go?

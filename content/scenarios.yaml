@@ -62,6 +62,9 @@ program:
   - title_text: Contexte long et carte
     duration_min: 45
     scenarios: [compression, harness_map]
+  - title_text: Cache
+    duration_min: 45
+    scenarios: [cache_read, cache_prefix, cache_expiry, cache_claude, cache_bilan]
 
 transverse: [data_flows, soc, iam, sovereignty]
 
@@ -401,6 +404,125 @@ scenarios:
     hooks: [h1, h2]
     prompts:
       - En une phrase, qu'est-ce qu'un harnais d'agent ?
+
+  cache_read:
+    title_text: Lire le cache
+    description_text: >-
+      Les briques des modules précédents restent actives (MCP en lazy loading), sans le
+      sous-agent, sans l'injection de contexte (H3), et sans le raisonnement ni le RAG.
+      Aucun outil ici : seul le cache compte. Envoyez le premier prompt : à côté de la jauge
+      de contexte, la jauge « Cache du dernier appel » montre surtout de l'« écrit », car
+      le modèle lit le contexte pour la première fois. Envoyez le deuxième : le début du
+      contexte est identique, la jauge passe en « lu ». Dépliez l'appel dans Orchestration et
+      comparez les tokens lus, écrits et ceux du prompt. Une petite part reste écrite, le
+      message que vous venez d'ajouter. Au troisième prompt, la part lue grandit encore :
+      le cache suit la conversation. En local, le moteur garde tout ce qu'il a évalué : il
+      n'y a ni « non caché » ni durée de vie, la jauge le dit. Ces trois cases, lu, écrit et
+      non caché, sont celles du bilan tokens d'agent-cost-kit (voir la fiche
+      docs/cache-de-prompt.md).
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    restore_memory: true
+    hooks: [h1, h2]
+    prompts:
+      - Explique en une phrase à quoi sert un cache de prompt.
+      - Et pourquoi la deuxième question est-elle moins chère que la première ?
+      - Donne un exemple chiffré en deux lignes.
+
+  cache_prefix:
+    title_text: Casser le préfixe
+    description_text: >-
+      Les briques du scénario précédent restent actives. Un cache ne réutilise que le début
+      du contexte, tant qu'il reste identique octet pour octet. Envoyez les deux premiers
+      prompts : la jauge « Cache du dernier appel » est surtout en « lu ». Éteignez ensuite
+      la brique Prompt système dans le panneau des briques et envoyez le troisième : le
+      message système a changé, or il ouvre le contexte, donc tout ce qui suit est relu.
+      La jauge passe en « écrit », avec la cause « message système modifié », et
+      Orchestration ajoute l'étape « Cache non réutilisé » avec les tokens relus. Rallumez la
+      brique, envoyez le quatrième prompt : la cause est la même, le message système revient
+      à son état d'avant. La règle à retenir : le stable d'abord, le variable en dernier. Un
+      mot changé au début d'un prompt système coûte tout le cache de la conversation.
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Rappelle en une phrase ce qu'est un harnais d'agent.
+      - Et à quoi sert sa mémoire courte ?
+      - Quelle heure est-il, à peu près ?
+      - Résume notre échange en une phrase.
+
+  cache_expiry:
+    title_text: Faire expirer le cache
+    description_text: >-
+      Les briques du scénario précédent restent actives. Un cache ne dure pas : chez un
+      fournisseur, il expire au bout de 5 minutes ou d'une heure sans lecture. En local, vous
+      le provoquez à la main. Envoyez les deux premiers prompts : la jauge « Cache du dernier
+      appel » est surtout en « lu ». Cliquez « Vider le cache » (sous la conversation, à côté
+      de « Vider la conversation »), puis envoyez le troisième : le moteur doit tout relire,
+      la jauge est entièrement en « écrit » et la cause est « cache vidé ». La conversation
+      est intacte, seul le cache est perdu : c'est ce que fait l'expiration. Le bouton est
+      grisé avec un modèle cloud, dont le cache ne se purge pas et expire de son côté. Le
+      quatrième prompt remet la lecture en route : un cache expiré se reconstruit au prochain
+      appel, au prix d'une écriture.
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Donne trois bonnes pratiques pour un prompt système, en une ligne chacune.
+      - Développe la deuxième en une phrase.
+      - Et la troisième, en une phrase aussi ?
+      - Reprenons la première, en dix mots.
+
+  cache_claude:
+    title_text: Le cache de Claude (facultatif)
+    description_text: >-
+      Facultatif, il demande une clé API Claude et envoie de vrais appels payants (quelques
+      centimes) : sans clé, lisez cette consigne pour le formateur et passez au scénario
+      suivant. Le prompt suggéré tourne ici sur le modèle local, sans réseau, et prépare la
+      conversation. Avec une clé saisie sur la page Diagnostic, choisissez un modèle Claude,
+      ouvrez « Fenêtre » et réglez « Cache de prompt de Claude » sur « 5 minutes » : l'écriture
+      du cache coûte alors 1,25 fois le prix d'entrée. Collez dans le message un texte long,
+      une page de la documentation par exemple, car sous un seuil de tokens propre au modèle
+      le fournisseur ne met rien en cache et tout reste en « non caché ». Le premier appel
+      écrit, le suivant, dans les 5 minutes, lit : voyez « Lecture cache » et « Écriture
+      cache 5 min » dans le bilan « Dépense ». Refaites l'essai à « 1 heure » (écriture à 2
+      fois le prix d'entrée) : la ligne « Écriture cache 1 h » apparaît, le cache survit à une
+      pause plus longue pour une écriture plus chère. Remettez le réglage sur « Désactivé »
+      ensuite. Un cache ne vaut que s'il est relu : une seule lecture ne paie pas toujours
+      l'écriture, le bilan l'indique (« surcoût du cache »).
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Résume en deux phrases la différence entre un cache de 5 minutes et d'une heure.
+
+  cache_bilan:
+    title_text: Lire un bilan d'agent-cost-kit
+    description_text: >-
+      Les briques du scénario précédent restent actives. Le bilan tokens d'un agent de code
+      a les mêmes colonnes que WaveStack : « Lecture cache », « Écriture cache 5 min » ou
+      « 1 h », « Non caché » et « Sortie ». Envoyez les trois prompts, puis ouvrez
+      « Dépense » dans la barre du haut. La colonne « Cette conversation » compte depuis le
+      dernier « Vider la conversation », « Depuis le lancement » depuis le démarrage de
+      WaveStack. Lisez case par case : la lecture est la plus grosse, c'est normal, chaque
+      appel relit tout le contexte déjà vu et la lecture coûte le dixième de l'entrée. Une
+      écriture qui dépasse la lecture signale un cache perdu, préfixe cassé ou cache expiré :
+      cliquez « Vider le cache », envoyez un prompt, et l'écriture grimpe. « Non caché »
+      est la part payée au plein tarif, sans objet en local. Les dollars suivent la même
+      répartition dans l'anneau « où part l'argent » dès qu'un modèle cloud avec prix a
+      répondu. Mettez en regard un vrai bilan d'agent-cost-kit (`/agent-cost-kit:mesurer-couts`).
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Explique en une phrase ce qu'est un cache de prompt.
+      - Pourquoi un agent relit-il tout son contexte à chaque appel ?
+      - Donne un exemple de ce qui peut casser un cache, en une phrase.
 
   data_flows:
     title_text: Où vont mes données ?
