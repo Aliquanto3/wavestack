@@ -288,3 +288,9 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:38 · 12.9 · review · passe 1 : 5 medium corrigés (liste de l'exécution prioritaire sur le découpage livré, context:missing sans étape classante, paramètres du run, top_k ≤ 20, CAP-2 à 4 partiels), low 7 et 9 corrigés ; E2E rag rag_rerank rag_lab_diagnosis 81/81 · 50751a6
 - 2026-10-25 07:38 · 12.9 · décision · à revoir : copie de travail éditée ignorée si le passage n'est dans aucune liste (Reports de la story) ; E2E rag_lab_diagnosis dépend de rag et rag_rerank · —
 - 2026-10-25 07:38 · 12.9 · PR · #103 ouverte · 50751a6
+- 2026-10-25 07:44 · 14.4 · dev · fini ; critères 1 à 11, test_compaction 26 verts, E2E compaction, sliding_window, compact_button, programme 41/41, local_server 55/55 ; totaux du programme à refaire avec le module 8 · c0ba396
+- 2026-10-25 07:44 · 14.4 · décision · à revoir : champ kept dans CompactionChoice ; débordement du sous-agent ou du résumé ne périme pas la carte du chat ; prompt 2 de compaction lit alertes_siem.log ; menu à la largeur du volet ; captures 80 à 83 · c0ba396
+- 2026-10-25 07:44 · 14.4 · second-avis · lancé · c0ba396
+- 2026-10-25 07:44 · 12.9 · CI · verte · 50751a6
+- 2026-10-25 07:44 · 12.9 · fusion · #103 MERGED via file_prs.py · 7a6dde0
+- 2026-10-25 07:44 · 12.15 · dev · lancé (phase spec, worktree ../wavestack-v12-s15) · 50751a6
