@@ -36,7 +36,8 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 
 ## Contrats
 
-- (à remplir après 15.1 et 15.6)
+- 15.1 (214f9289) : `wavestack.agent_eval` — `cases.AgentCase` (champs de contrat-des-cas.md ; `system_prompt` interdit et `brick` obligatoire dans un cas fourni), `Provenance{source: fourni|séance|recette, date, model, turn_id, system_prompt_text, fixed_in}` (pas de champ `reference` : la recette d'origine va dans `fixed_in`), `Check` discriminé par `kind` (tool_called{tool, before?}, tool_not_called, argument_never{tool, argument, contains}, answer_contains{text}, hook_decided{hook, decision: block|ask_human}, subagent_called, turn_completed ; `model_calls_max` vient de `max_model_calls`, ajouté en dernier par verify). `RunStatus = passed|failed|not_run`, `NotRunReason = window|cancelled|budget`. `load_provided_cases(lang, known)` lit `content/agent_cases.yaml` (`cases: [...]`). `checks.verify(case, envelopes, lang) -> CaseVerdict{case_id, passed, checks: [CheckVerdict{kind, params, passed, reason_text, seq}], model_calls}` ; l'appelant filtre les enveloppes sur les tours du cas. `store` : `config.agent_cases_path()` = `data_dir()/agent_cases.json` `{version: 1, cases: [...]}` ; `read_session_cases`, `add_session_case(case, provided)`, `delete_session_case(id)`, `clear_session_cases()` ; id de séance `u` + 8 hex ; `SessionCasesUnreadable`.
+- 15.6 (de484e94) : citation `[[g:clé]]` ou `[[g:clé|texte]]` (préfixe `g:` obligatoire, `[[page]]` = lien de wiki) ; `content/glossary.yaml` `terms: {clé: {term, definition}}` + surcouches en, de, 58 termes, clés en anglais ; test `tests/test_glossary.py::test_every_term_cited_by_a_content_text_exists_in_every_language`. Clés utiles au module 9 : agent_case, check, verdict, call_ceiling, budget_ceiling, pass_at_k, pass_hat_k, benchmark, regression, llm_judge, replay, witness_replay, determinism, journal, provenance, demo, harness.
 
 ## Décisions
 
@@ -61,3 +62,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:03 · 15.2 · dev · lancé (Sonnet, phase spec, ../wavestack-v15-s2) · —
 - 2026-10-25 21:07 · 15.2 · dev · fini (phase spec, 8 cas, 9 points ouverts) · 87c373ec
 - 2026-10-25 21:07 · 15.2 · review · lancé (spec_checkpoint, Opus) · —
+- 2026-10-25 21:09 · 15.6 · dev · fini (58 termes, E2E glossary vert) · de484e94
+- 2026-10-25 21:09 · 15.6 · second-avis · lancé · —
+- 2026-10-25 21:09 · 15.1 · dev · fini (60 tests) · 214f9289
+- 2026-10-25 21:09 · 15.1 · second-avis · lancé · —
