@@ -300,3 +300,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:48 · 12.5 · décision · à revoir : suivi lu sur les 3 dernières questions, étape query à part, fusion par rangs réciproques, consigne dans messages.yaml ; sources des fiches citées sans accès réseau · —
 - 2026-10-25 07:48 · 12.5 · second-avis · lancé (priorité : échec E2E « Modifier ») · 9573146
 - 2026-10-25 07:48 · 12.6 · dev · lancé (phase spec, empilé sur 12.5, worktree ../wavestack-v12-s6) · 9573146
+- 2026-10-25 07:50 · 14.4 · second-avis · 0 high, 4 medium (échanges retirés non résumés si transcription tronquée, boutons de la carte bloqués après échec, renvoi qui rejoue des outils à effet, conflits et totaux avec le module 8), 5 low · c0ba396
+- 2026-10-25 07:50 · 14.4 · review · lancé (Opus, fusion de main et totaux du programme d'abord) · c0ba396
