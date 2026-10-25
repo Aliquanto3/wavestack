@@ -620,7 +620,7 @@ sheets:
         url: "https://arxiv.org/abs/2004.04906"
   embedding.fastembed:
     purpose_text: "Vectoriser avec un second modèle d'embedding, exécuté par fastembed (format ONNX, sans PyTorch ni GPU, fichiers du modèle copiés à la main sur le poste), pour comparer son effet à celui du modèle de la brique RAG."
-    when_text: "À utiliser pour comparer deux modèles d'embedding sur le même corpus. À éviter sans le modèle : WaveStack ne le télécharge jamais, l'option reste alors indisponible et dit pourquoi. Les vecteurs de deux modèles n'ont pas la même dimension et ne se mélangent pas : changer de modèle refait l'index."
+    when_text: "À utiliser pour comparer deux modèles d'embedding sur le même corpus. À éviter sans fastembed ni le modèle : ni l'un ni l'autre n'est livré ou téléchargé par WaveStack (le guide, docs/guide.md, donne la commande d'installation), l'option reste alors indisponible et dit pourquoi. Les vecteurs de deux modèles n'ont pas la même dimension et ne se mélangent pas : changer de modèle refait l'index."
     cost_text: "Charger fastembed et onnxruntime ajoute de la mémoire pour toute la vie de WaveStack (150 Mo attendus par défaut, réglable), en plus du modèle ; ensuite un passage par chunk à l'indexation et un par question, sur processeur."
     literature_text: "Les mêmes sources primaires que pour le modèle de la brique : Reimers et Gurevych (comparer des phrases par cosinus) et Karpukhin et al. (un retriever dense contre BM25). Elles ne disent rien du modèle choisi ni d'ONNX : la bibliothèque est présentée par son dépôt, sans mesure de qualité sur ce corpus. Les hypothèses du cadrage ne couvrent pas les embeddings."
     bench_text: ""
@@ -635,7 +635,7 @@ sheets:
     purpose_text: "Ranger les vecteurs des chunks dans une base SQLite avec l'extension sqlite-vec, un seul fichier sur disque, et retrouver les plus proches d'un autre. C'est le vector store de la brique RAG."
     when_text: "À utiliser comme point de départ : rien à installer en plus, l'index persiste dans un fichier. À éviter si l'extension ne se charge pas dans ce Python : le RAG le dit. Une recherche exhaustive devient lente quand le corpus grossit beaucoup, ce qui n'est pas le cas ici."
     cost_text: "Écriture de tous les vecteurs à l'indexation, puis une lecture des vecteurs à chaque question ; la taille du fichier croît avec le nombre de chunks et la dimension du modèle. Pas de service à lancer."
-    literature_text: "Le cadrage (H14) pose que la base vectorielle change surtout la latence, la mémoire et le coût, peu la qualité : partiellement soutenue. Les mesures citées portent sur des index approchés (rappel ANN, filtrage, suppressions dans HNSW) ; les quatre vector stores de l'atelier cherchent de façon exhaustive et classent les chunks de la même manière, donc ces écarts de rappel ne s'y observent pas."
+    literature_text: "Le cadrage (H14) pose que la base vectorielle change surtout la latence, la mémoire et le coût, peu la qualité : partiellement soutenue. Les mesures citées portent sur des index approchés (rappel ANN, filtrage, suppressions dans HNSW) ; les quatre vector stores de l'atelier cherchent de façon exhaustive et classent les chunks de la même manière, aux égalités de score et aux arrondis près, donc ces écarts de rappel ne s'y observent pas."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"
@@ -648,7 +648,7 @@ sheets:
     purpose_text: "Garder les vecteurs en mémoire et comparer la question à chacun, un par un, en Python pur, sans index ni fichier : la référence la plus simple, celle dont les autres doivent retrouver le classement."
     when_text: "À utiliser pour comprendre ce qu'un vector store fait, ou comme témoin des autres. À éviter sur un gros corpus : chaque question relit tous les vecteurs, et rien n'est gardé entre deux lancements."
     cost_text: "Aucune dépendance et aucune écriture sur disque ; la mémoire croît avec le nombre de chunks et la dimension, et le temps d'une question croît avec le nombre de chunks."
-    literature_text: "Le cadrage (H14) pose que la base vectorielle change surtout la latence, la mémoire et le coût, peu la qualité : partiellement soutenue. Cette option est la recherche exacte à laquelle les index approchés de ces études se comparent ; ici les quatre options classent de la même façon, les écarts mesurables sont le temps et la mémoire."
+    literature_text: "Le cadrage (H14) pose que la base vectorielle change surtout la latence, la mémoire et le coût, peu la qualité : partiellement soutenue. Cette option est la recherche exacte à laquelle les index approchés de ces études se comparent ; ici les quatre options classent de la même façon (aux égalités de score et aux arrondis près), les écarts mesurables sont le temps et la mémoire."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"
@@ -674,7 +674,7 @@ sheets:
     purpose_text: "Ranger les vecteurs dans une table LanceDB, une base vectorielle embarquée, créée sur disque puis interrogée avec la distance cosinus."
     when_text: "À utiliser pour voir une base vectorielle complète (table, colonnes) plutôt qu'une simple bibliothèque. À éviter sans l'extra « rag-alt » : LanceDB n'est pas installé par défaut, l'étape donne la commande à lancer."
     cost_text: "Une dépendance de plus, importée une fois et gardée en mémoire (WaveStack en annonce le coût) ; un dossier de table écrit à l'indexation. La recherche reste exacte ici : aucun index approché n'est construit."
-    literature_text: "Le cadrage (H14) pose que la base vectorielle change surtout la latence, la mémoire et le coût, peu la qualité : partiellement soutenue. Les études citées portent sur des index approchés (rappel ANN, filtrage, suppressions) ; ici la recherche est exacte et l'ordre est celui des autres options."
+    literature_text: "Le cadrage (H14) pose que la base vectorielle change surtout la latence, la mémoire et le coût, peu la qualité : partiellement soutenue. Les études citées portent sur des index approchés (rappel ANN, filtrage, suppressions) ; ici la recherche est exacte et l'ordre est celui des autres options, aux égalités de score et aux arrondis près."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"

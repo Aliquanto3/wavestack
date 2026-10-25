@@ -621,7 +621,7 @@ sheets:
         url: "https://arxiv.org/abs/2004.04906"
   embedding.fastembed:
     purpose_text: "Mit einem zweiten Embedding-Modell vektorisieren, das fastembed ausführt (ONNX-Format, ohne PyTorch und GPU, die Modelldateien von Hand auf den Rechner kopiert), um seine Wirkung mit der des Modells des RAG-Bausteins zu vergleichen."
-    when_text: "Einsetzen, um zwei Embedding-Modelle am selben Korpus zu vergleichen. Vermeiden ohne das Modell: WaveStack lädt es nie herunter, die Option bleibt dann nicht verfügbar und sagt warum. Die Vektoren zweier Modelle haben nicht dieselbe Dimension und lassen sich nicht mischen: Ein Modellwechsel baut den Index neu auf."
+    when_text: "Einsetzen, um zwei Embedding-Modelle am selben Korpus zu vergleichen. Vermeiden ohne fastembed und das Modell: WaveStack liefert beides nicht mit und lädt nichts herunter (der Leitfaden, docs/guide.md, nennt den Installationsbefehl), die Option bleibt dann nicht verfügbar und sagt warum. Die Vektoren zweier Modelle haben nicht dieselbe Dimension und lassen sich nicht mischen: Ein Modellwechsel baut den Index neu auf."
     cost_text: "Das Laden von fastembed und onnxruntime belegt zusätzlichen Speicher für die ganze Lebensdauer von WaveStack (standardmäßig 150 MB erwartet, einstellbar), zusätzlich zum Modell; danach ein Durchlauf pro Chunk bei der Indexierung und einer pro Frage, auf dem Prozessor."
     literature_text: "Dieselben Primärquellen wie für das Modell des Bausteins: Reimers und Gurevych (Sätze per Kosinus vergleichen) und Karpukhin et al. (ein dichter Retriever gegen BM25). Sie sagen nichts über das gewählte Modell oder ONNX: Die Bibliothek wird durch ihr Repository vorgestellt, ohne Qualitätsmessung an diesem Korpus. Die Hypothesen der Rahmung decken Embeddings nicht ab."
     bench_text: ""
@@ -636,7 +636,7 @@ sheets:
     purpose_text: "Die Vektoren der Chunks in einer SQLite-Datenbank mit der Erweiterung sqlite-vec ablegen, eine einzige Datei auf der Festplatte, und die nächsten zu einem anderen finden. Das ist der Vector Store des RAG-Bausteins."
     when_text: "Als Ausgangspunkt einsetzen: nichts zusätzlich zu installieren, der Index bleibt in einer Datei erhalten. Vermeiden, wenn sich die Erweiterung in diesem Python nicht laden lässt: Das RAG sagt es. Eine erschöpfende Suche wird langsam, wenn der Korpus stark wächst, was hier nicht der Fall ist."
     cost_text: "Alle Vektoren werden bei der Indexierung geschrieben, bei jeder Frage werden die Vektoren gelesen; die Datei wächst mit der Zahl der Chunks und der Dimension des Modells. Kein Dienst zu starten."
-    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Messungen betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen in HNSW); die vier Vector Stores der Werkstatt suchen erschöpfend und ordnen die Chunks gleich, diese Recall-Unterschiede treten hier also nicht auf."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Messungen betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen in HNSW); die vier Vector Stores der Werkstatt suchen erschöpfend und ordnen die Chunks gleich, bis auf Punktgleichstände und Rundungen, diese Recall-Unterschiede treten hier also nicht auf."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"
@@ -649,7 +649,7 @@ sheets:
     purpose_text: "Die Vektoren im Speicher halten und die Frage mit jedem einzeln vergleichen, in reinem Python, ohne Index und ohne Datei: die einfachste Referenz, deren Rangfolge die anderen wiederfinden müssen."
     when_text: "Einsetzen, um zu verstehen, was ein Vector Store tut, oder als Vergleichsmaßstab für die anderen. Vermeiden bei einem großen Korpus: Jede Frage liest alle Vektoren, und zwischen zwei Starts bleibt nichts erhalten."
     cost_text: "Keine Abhängigkeit und kein Schreiben auf die Festplatte; der Speicher wächst mit der Zahl der Chunks und der Dimension, die Zeit einer Frage wächst mit der Zahl der Chunks."
-    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Diese Option ist die exakte Suche, mit der die näherungsweisen Indizes dieser Studien verglichen werden; hier ordnen die vier Optionen gleich, messbar sind Zeit und Speicher."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Diese Option ist die exakte Suche, mit der die näherungsweisen Indizes dieser Studien verglichen werden; hier ordnen die vier Optionen gleich (bis auf Punktgleichstände und Rundungen), messbar sind Zeit und Speicher."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"
@@ -675,7 +675,7 @@ sheets:
     purpose_text: "Die Vektoren in einer LanceDB-Tabelle ablegen, einer eingebetteten Vektordatenbank, auf der Festplatte angelegt und mit der Kosinus-Distanz abgefragt."
     when_text: "Einsetzen, um eine vollständige Vektordatenbank (Tabelle, Spalten) statt einer bloßen Bibliothek zu sehen. Vermeiden ohne das Extra « rag-alt »: LanceDB ist nicht standardmäßig installiert, der Schritt nennt den auszuführenden Befehl."
     cost_text: "Eine Abhängigkeit mehr, einmal importiert und im Speicher gehalten (WaveStack kündigt die Kosten an); ein Tabellenordner, der bei der Indexierung geschrieben wird. Die Suche bleibt hier exakt: Es wird kein näherungsweiser Index gebaut."
-    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Studien betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen); hier ist die Suche exakt und die Reihenfolge dieselbe wie bei den anderen Optionen."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Studien betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen); hier ist die Suche exakt und die Reihenfolge dieselbe wie bei den anderen Optionen, bis auf Punktgleichstände und Rundungen."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"

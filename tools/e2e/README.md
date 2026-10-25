@@ -829,7 +829,8 @@ d'autres (story 21) :
   la carte « Document piégé » répond encore ; corpus de Construire inchangé ; aucune requête hors de
   `127.0.0.1` ; capture `69-atelier-rag-attaquer-effacement-droits.jpg`.
 - `rag_lab_sheets`, V1.2 story 19 (CAP-16, CAP-17), après `rag` et `rag_rerank` : l'onglet Fiches,
-  sans modèle, sans index, sans clé. Liste (tous les composants, dont les familles de la story 19b, 11 architectures ; le compte est lu de
+  sans modèle, sans index, sans clé. Échec de `/api/rag_lab/sheets` simulé : texte d'erreur, puis
+  la réouverture de l'onglet réessaie. Liste (tous les composants, dont les familles de la story 19b, 11 architectures ; le compte est lu de
   `/api/rag_lab/sheets`, aucune famille en attente), fiche `vector_store.faiss` (sources H14), fiche `chunking.semantic` (cinq blocs, « Pas encore mesuré »), fiche `hybrid`
   (sept axes, six niveaux en mot, axe réglementaire sans niveau, « proposition, à relire »,
   « pas un avis juridique »), lien de l'axe Droits vers la carte de l'onglet Attaquer (à l'écran,

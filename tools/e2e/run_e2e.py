@@ -15332,11 +15332,25 @@ def s_rag_lab_sheets(r: Run) -> None:
         r.goto_app()
         _clear_conversation(r)
     page.on("request", listener)
+    # Story 19b (criterion 5): the listing failing says so, reopening the tab retries.
+    page.route("**/api/rag_lab/sheets", lambda route: route.fulfill(status=500, body="{}"))
     page.goto(f"{r.stack.app_url}/rag#sheets")
     expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
     try:
         entries = page.locator("#rag-sh-list .rag-sh-entry")
+        expect(page.locator("#rag-sh-sheet")).to_contain_text(
+            "Les fiches n'ont pas pu être chargées", timeout=10_000
+        )
+        failed_entries = entries.count()
+        page.unroute("**/api/rag_lab/sheets")
+        page.click("#rag-tab-build")
+        page.click("#rag-tab-sheets")
         sheet_entries = _sheet_entries(page)
+        expect(entries).to_have_count(sheet_entries, timeout=10_000)
+        r.check(
+            failed_entries == 0 and "pas pu être chargées" not in page.inner_text("#rag-sh-sheet"),
+            "Fiches : l'échec de /api/rag_lab/sheets est dit, la réouverture de l'onglet réessaie",
+        )
         expect(entries).to_have_count(sheet_entries, timeout=10_000)
         r.check(
             page.locator("#rag-sh-list .rag-note").count() == 0

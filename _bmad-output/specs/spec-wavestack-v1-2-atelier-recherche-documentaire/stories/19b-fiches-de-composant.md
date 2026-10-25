@@ -73,3 +73,17 @@ context:
 - Ajouter à `litterature.md` une hypothèse « embeddings » avec Sentence-BERT et DPR.
 - Source primaire pour BM25, RRF et le reranking seul : session avec accès aux articles d'origine.
 - Rebaser sur l'intégration après 12.11 : refusion de `rag_lab.yaml` ×3 (ajouts seulement, deux entrées `context.*`), compte E2E déjà dérivé de l'API.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 347db6d)
+
+Base à jour (origin/integration/v1-2-atelier = 30bbfc1, rien à fusionner).
+
+- Nit, low, second avis 1 : `embedding.fastembed` ne disait pas comment obtenir fastembed (ni dépendance ni extra). Corrigé ×3 : renvoi à `docs/guide.md`, qui donne la commande.
+- Important, low, second avis 2 : critère 5 (panne de `/api/rag_lab/sheets`) sans test. Corrigé : `s_rag_lab_sheets` simule un 500, vérifie `rag.sheets_error` puis la reprise à la réouverture de l'onglet ; README E2E mis à jour.
+- Nit, low, second avis 3 : rejeté. Le contrôle au niveau des options existe déjà : le validateur de `RagLabContent` (`lab.py`, `set(sheets) == wanted`) refuse au chargement une option sans fiche ou une fiche orpheline ; `missing_sheets()` ne garde que la partition des familles.
+- Nit, low, second avis 4 : reporté (12.11 pas encore dans l'intégration) ; déjà dans les Reports.
+- Nit, low, second avis 5 : rejeté. Résumés arXiv relus (API export.arxiv.org) : 65 h → environ 5 s pour 10 000 phrases (1908.10084) et 9 à 19 points au top 20 contre BM25 (2004.04906) sont exacts.
+- Nit, low, second avis 6 : corrigé ×3 (sqlite_vec, memory, lancedb) : « aux égalités de score et aux arrondis près ».
+- Complexité : 0 constat (listes de fiches fixes, aucune structure qui grossit).

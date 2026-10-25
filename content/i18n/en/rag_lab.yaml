@@ -610,7 +610,7 @@ sheets:
         url: "https://arxiv.org/abs/2004.04906"
   embedding.fastembed:
     purpose_text: "Vectorize with a second embedding model, run by fastembed (ONNX format, no PyTorch or GPU, the model's files copied by hand onto the machine), to compare its effect with the RAG brick's model."
-    when_text: "Use to compare two embedding models on the same corpus. Avoid without the model: WaveStack never downloads it, so the option stays unavailable and says why. The vectors of two models do not have the same dimension and cannot be mixed: changing the model rebuilds the index."
+    when_text: "Use to compare two embedding models on the same corpus. Avoid without fastembed and the model: WaveStack neither ships nor downloads either (the guide, docs/guide.md, gives the install command), so the option stays unavailable and says why. The vectors of two models do not have the same dimension and cannot be mixed: changing the model rebuilds the index."
     cost_text: "Loading fastembed and onnxruntime adds memory for the whole life of WaveStack (150 MB expected by default, adjustable), besides the model; then one pass per chunk at indexing and one per question, on a processor."
     literature_text: "The same primary sources as for the brick's model: Reimers and Gurevych (comparing sentences by cosine) and Karpukhin et al. (a dense retriever against BM25). They say nothing of the chosen model or of ONNX: the library is presented by its repository, with no quality measure on this corpus. The framing's hypotheses do not cover embeddings."
     bench_text: ""
@@ -625,7 +625,7 @@ sheets:
     purpose_text: "Store the chunk vectors in a SQLite database with the sqlite-vec extension, one file on disk, and find the nearest to another. This is the RAG brick's vector store."
     when_text: "Use as a starting point: nothing more to install, the index persists in a file. Avoid if the extension does not load in this Python: the RAG says so. An exhaustive search gets slow when the corpus grows a lot, which is not the case here."
     cost_text: "All vectors are written at indexing, then the vectors are read at each question; the file grows with the number of chunks and the model's dimension. No service to start."
-    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. The measures cited are about approximate indexes (ANN recall, filtering, deletions in HNSW); the workshop's four vector stores search exhaustively and rank the chunks the same way, so these recall gaps are not seen here."
+    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. The measures cited are about approximate indexes (ANN recall, filtering, deletions in HNSW); the workshop's four vector stores search exhaustively and rank the chunks the same way, up to score ties and rounding, so these recall gaps are not seen here."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"
@@ -638,7 +638,7 @@ sheets:
     purpose_text: "Keep the vectors in memory and compare the question with each one, one by one, in plain Python, with no index or file: the simplest reference, the one whose ranking the others must reproduce."
     when_text: "Use to understand what a vector store does, or as a control for the others. Avoid on a large corpus: each question reads all the vectors, and nothing is kept between two launches."
     cost_text: "No dependency and no write to disk; memory grows with the number of chunks and the dimension, and the time of a question grows with the number of chunks."
-    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. This option is the exact search that the approximate indexes of these studies are compared with; here the four options rank alike, the measurable gaps are time and memory."
+    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. This option is the exact search that the approximate indexes of these studies are compared with; here the four options rank alike (up to score ties and rounding), the measurable gaps are time and memory."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"
@@ -664,7 +664,7 @@ sheets:
     purpose_text: "Store the vectors in a LanceDB table, an embedded vector database, created on disk then queried with the cosine distance."
     when_text: "Use to see a full vector database (table, columns) rather than a bare library. Avoid without the « rag-alt » extra: LanceDB is not installed by default, the step gives the command to run."
     cost_text: "One more dependency, imported once and kept in memory (WaveStack announces its cost); a table folder written at indexing. The search stays exact here: no approximate index is built."
-    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. The studies cited are about approximate indexes (ANN recall, filtering, deletions); here the search is exact and the order is the one of the other options."
+    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. The studies cited are about approximate indexes (ANN recall, filtering, deletions); here the search is exact and the order is the one of the other options, up to score ties and rounding."
     bench_text: ""
     sources:
       - label_text: "arXiv 2411.07396"
