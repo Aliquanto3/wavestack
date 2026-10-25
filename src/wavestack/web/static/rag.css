@@ -1387,7 +1387,7 @@ body.rag-page {
 
 .rag-copy-error {
   margin: 0;
-  color: var(--color-error, #b00020);
+  color: var(--color-danger);
 }
 
 /* V1.2 story 4: the view tabs, the prepared-question selector and the comparison (CAP-9).
