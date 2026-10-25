@@ -172,6 +172,7 @@
               </label>
               <button type="button" id="replay-last" class="pane-text-action" data-i18n="main.chat.replay_last">Rejouer le dernier prompt</button>
               <button type="button" id="clear-conversation" class="pane-text-action" data-i18n="main.chat.clear">Vider la conversation</button>
+              <button type="button" id="clear-cache" class="pane-text-action" data-i18n="main.chat.clear_cache">Vider le cache</button>
               <button type="button" class="pane-focus" data-action="focus" title="Mode focus" data-i18n-title="common.panes.focus" aria-label="Mode focus" data-i18n-aria-label="common.panes.focus">⛶</button>
               <button type="button" class="pane-hide" data-action="hide" title="Masquer le volet" data-i18n-title="common.panes.hide_short" aria-label="Masquer le volet" data-i18n-aria-label="common.panes.hide_short">—</button>
             </div>
@@ -271,6 +272,11 @@
       </div>
       <span class="gauge-figures" id="gauge-figures" data-i18n="main.gauge.waiting">Contexte : en attente du modèle</span>
     </div>
+    <!-- V1.3 story 2 (CAP-2): the last call's cache, read / written / uncached, beside the context bar. -->
+    <div class="cache-gauge" id="cache-gauge" role="group" tabindex="0" hidden>
+      <div class="cache-gauge-bar" id="cache-gauge-bar"></div>
+      <span class="cache-gauge-text" id="cache-gauge-text"></span>
+    </div>
     <div class="window-picker" id="window-picker">
       <button type="button" id="window-toggle" class="window-toggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="window-panel"><span class="window-toggle-long" data-i18n="main.window.toggle">Fenêtre</span> <span id="window-toggle-value">…</span> ▾</button>
       <section id="window-panel" class="window-panel" role="dialog" aria-labelledby="window-panel-title" hidden>
@@ -284,6 +290,13 @@
           <div id="window-choices"></div>
         </fieldset>
         <p class="window-note" id="window-note"></p>
+        <fieldset class="window-choices" id="claude-cache" data-testid="claude-cache">
+          <legend class="window-choices-legend" data-i18n="main.window.claude_cache_legend">Cache de prompt de Claude</legend>
+          <label class="window-choice-label"><input type="radio" name="claude-cache" value="off"> <span data-i18n="main.window.claude_cache_off">Désactivé</span></label>
+          <label class="window-choice-label"><input type="radio" name="claude-cache" value="5m"> <span data-i18n="main.window.claude_cache_5m">5 minutes (écriture ×1,25)</span></label>
+          <label class="window-choice-label"><input type="radio" name="claude-cache" value="1h"> <span data-i18n="main.window.claude_cache_1h">1 heure (écriture ×2)</span></label>
+        </fieldset>
+        <p class="window-note" id="claude-cache-note"></p>
         </div>
         <p class="window-alert" id="window-alert" role="alert" hidden></p>
         <div class="window-actions">

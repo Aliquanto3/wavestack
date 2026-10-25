@@ -87,6 +87,7 @@ def plan(prompt: str) -> str:
 
 def create_app(flavor: str) -> Starlette:
     received: list[dict[str, Any]] = []
+    previous: list[int] = []
 
     async def body_of(request: Request) -> dict[str, Any]:
         body = json.loads(await request.body() or b"{}")
@@ -132,7 +133,16 @@ def create_app(flavor: str) -> Starlette:
 
         # Story 26: as a real llama-server, the prompt's read takes a moment and the last
         # chunk says how many tokens it evaluated (`timings.prompt_n`: all, no cache here).
-        evaluated = len(body.get("prompt", []))
+        # V1.3 story 2: it keeps the previous prompt as a prompt cache would, so the tokens
+        # it evaluates are only those past the common prefix (it sends no `cache_n`).
+        prompt = body.get("prompt", [])
+        common = 0
+        for old, new in zip(previous, prompt, strict=False):
+            if old != new:
+                break
+            common += 1
+        previous[:] = prompt
+        evaluated = len(prompt) - common
 
         async def stream():
             await asyncio.sleep(READ_DELAY_S)
@@ -144,6 +154,17 @@ def create_app(flavor: str) -> Starlette:
             yield f"data: {json.dumps(end)}\n\n"
 
         return StreamingResponse(stream(), media_type="text/event-stream")
+
+    async def slots(request: Request) -> JSONResponse:
+        # V1.3 story 3: `POST /slots/0?action=erase`, as the real llama-server: its prompt
+        # memory is emptied, so the next call evaluates everything.
+        await body_of(request)
+        erased = len(previous)
+        previous.clear()
+        return JSONResponse({"id_slot": 0, "n_erased": erased})
+
+    async def slot_list(_: Request) -> JSONResponse:
+        return JSONResponse([{"id": 0}])  # one slot, as `llama-server -np 1`
 
     async def tags(_: Request) -> JSONResponse:
         # Story 25: `details`, as a real Ollama, for the model table's publisher and size.
@@ -175,6 +196,8 @@ def create_app(flavor: str) -> Starlette:
             Route("/tokenize", tokenize_route, methods=["POST"]),
             Route("/detokenize", detokenize_route, methods=["POST"]),
             Route("/completion", completion, methods=["POST"]),
+            Route("/slots/{slot:int}", slots, methods=["POST"]),
+            Route("/slots", slot_list, methods=["GET"]),
         ]
     return Starlette(routes=[*routes, Route("/_e2e/requests", requests_log)])
 

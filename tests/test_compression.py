@@ -788,7 +788,7 @@ def test_cli_sets_the_offline_variables_before_third_party_imports():
 def test_scenario_compression_closes_the_programme():
     scenarios = (config.content_dir() / "scenarios.yaml").read_text(encoding="utf-8")
     # Story 21: FR-38's last brick, after the sub-agent, in the programme's last module.
-    assert scenarios.index("scenarios: [rag, rag_rerank]") < scenarios.index(
+    assert scenarios.index("scenarios: [rag, rag_rerank, rag_agentic]") < scenarios.index(
         "scenarios: [subagent, compression]\n\ntransverse:"
     )
     lines = LOG.splitlines()

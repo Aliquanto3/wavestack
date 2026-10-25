@@ -281,6 +281,11 @@ def _plan(
         for trigger in ("[lent]", DROP_TRIGGER):  # the sub-agent's call slow, or dropping
             task += f" {trigger}" if trigger in low else ""
         return [("delegate", {"task": task})]
+    if "search_documents" in low:  # V1.4 story 3: search, then read what the search found
+        return [
+            ("search_documents", {"query": "mot de passe"}),
+            ("read_file", {"path": "corpus/mots_de_passe.md"}),
+        ]
     if "journal_serveur" in low:  # story 20: a big log, for the compression
         return [("read_file", {"path": "journal_serveur.log"})]
     if "guide_harnais" in low:  # the sub-agent's task (or a main agent reading it itself)
@@ -353,6 +358,8 @@ def _final_text(user: str, messages: list[dict[str, Any]], results: list[str]) -
             "Le harnais m'a bloqué l'accès à ce fichier confidentiel : je transmets la "
             "vérification à un analyste habilité."
         )
+    if results and "search_documents" in low and "14 caractères" in results[-1]:
+        return "D'après le document lu : au minimum 14 caractères chez Exemplia."
     errors = [line for line in (results[-1] if results else "").splitlines() if " ERROR " in line]
     if errors:  # story 20: the log's error, kept by the compression
         return f"D'après le journal : {errors[0].strip()}"
@@ -689,6 +696,30 @@ def chat_body_of(body: dict[str, Any]) -> dict[str, Any]:
     return {"model": body.get("model"), "messages": messages, "tools": tools, "stream": True}
 
 
+def _cache_usage(usage: dict[str, Any], body: dict[str, Any], written: set[str]) -> None:
+    """V1.3 story 5: a request with `cache_control` points writes its prefix the first time
+    (all of it but one token, for 1 h when a point asks `ttl: 1h`), then reads it; the
+    prefix is the tools and the `system`. No point: `usage` untouched (no cache count)."""
+    if "cache_control" not in json.dumps(body):
+        return
+    prefix = json.dumps([body.get("tools"), body.get("system")], sort_keys=True)
+    cached = max(0, usage["input_tokens"] - 1)
+    usage["input_tokens"] = usage["input_tokens"] - cached
+    if prefix in written:
+        usage |= {"cache_read_input_tokens": cached, "cache_creation_input_tokens": 0}
+        return
+    written.add(prefix)
+    hour = '"ttl": "1h"' in json.dumps(body)
+    usage |= {
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": cached,
+        "cache_creation": {
+            "ephemeral_5m_input_tokens": 0 if hour else cached,
+            "ephemeral_1h_input_tokens": cached if hour else 0,
+        },
+    }
+
+
 def messages_events(reply: Reply, body: dict[str, Any], message_id: str) -> list[dict[str, Any]]:
     """The SSE events of a 200 answer in the Messages shape, `input_transformations` included
     when the turn's user message holds `DROP_TRIGGER`."""
@@ -757,6 +788,7 @@ def messages_events(reply: Reply, body: dict[str, Any], message_id: str) -> list
 def create_app() -> Starlette:
     received: list[dict[str, Any]] = []
     counter = {"n": 0}
+    cached_prefixes: set[str] = set()  # V1.3 story 5: what a `cache_control` already wrote
 
     async def models(_: Request) -> JSONResponse:
         return JSONResponse(
@@ -805,6 +837,7 @@ def create_app() -> Starlette:
             error = {"type": "api_error", "message": str((reply.error or {}).get("message"))}
             return JSONResponse({"type": "error", "error": error}, status_code=reply.status)
         events = messages_events(reply, chat, f"msg_e2e{counter['n']:06d}")
+        _cache_usage(events[0]["message"]["usage"], body, cached_prefixes)
 
         async def stream():
             for event in events:

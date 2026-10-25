@@ -272,6 +272,7 @@ def test_tool_sub_options_are_cards_nodes_and_pending():
         ("get_datetime", True, False),
         ("calculator", True, False),
         ("read_file", True, False),
+        ("search_documents", False, False),  # CAP-4: offered by the RAG comparison scenario
         ("public_holidays", False, True),
         ("wikipedia_summary", False, True),
         ("fetch_page", False, True),

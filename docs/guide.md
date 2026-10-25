@@ -83,7 +83,7 @@ Le sélecteur de scénario de la barre du bas liste sept modules, dans l'ordre d
 |---|---|---|
 | 1. Du LLM nu au harnais | 60 min | LLM nu, raisonnement, mémoire courte, prompt système, mémoire globale |
 | 2. Outils | 45 min | outils natifs, outils réseau |
-| 3. RAG | 45 min | RAG, RAG avec reranking |
+| 3. RAG | 60 min | RAG, RAG avec reranking, RAG injecté ou recherche agentique |
 | 4. MCP | 45 min | documentation complète, lazy loading |
 | 5. Skills et hooks | 60 min | skills, Caveman, hooks |
 | 6. Sous-agent | 45 min | sous-agent |

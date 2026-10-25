@@ -160,6 +160,13 @@ class Engine(Protocol):
         (the rate `None` when it gave none); `None` when the last call did not say."""
         ...
 
+    # V1.3 story 3 (CAP-4): optional too (`getattr`); cloud engines have none.
+
+    def clear_cache(self) -> bool:
+        """Empty the engine's context memory without reloading the model; `False` when it
+        could not."""
+        ...
+
     # Story 29 (« LLM nu »): optional too, the session tolerates an engine without it.
 
     def dimensions(self) -> dict[str, Any] | None:
@@ -364,6 +371,18 @@ class LlamaCppEngine:
             return False
         self._llm.input_ids[:n_tokens] = ids
         self._llm.n_tokens = n_tokens
+        self._llm._requires_eval = True
+        return True
+
+    def clear_cache(self) -> bool:
+        """V1.3 story 3: the llama.cpp memory emptied and the ids forgotten, the model stays
+        loaded (`Llama.reset` alone only forgets the ids)."""
+        try:
+            self._llm._ctx.kv_cache_clear()
+        except Exception:  # noqa: BLE001 - the memory is unknown: never reused
+            self._llm.n_tokens = 0
+            return False
+        self._llm.reset()
         self._llm._requires_eval = True
         return True
 

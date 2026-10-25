@@ -934,6 +934,124 @@ def _braces_stay_text(r: Run, where: str) -> None:
     )
 
 
+def _cache_gauge(r: Run) -> None:
+    """V1.3 story 2 (CAP-2), local text mode (the fake llama-server keeps its previous prompt):
+    after two questions in a row the cache gauge beside the context bar shows a read part; after
+    the system prompt is switched it shows the write part and the cause. The bar never overflows."""
+    page = r.page
+    gauge = page.locator("#cache-gauge")
+    seq = r.ev.mark()
+    page.click("#reset-button")  # a short history: the 4 096-token window is nearly full here
+    r.ev.wait("harness_reset", seq, timeout=10)
+    r.wait_idle()
+    r.send("Première question")
+    seq = r.ev.mark()
+    r.send("Deuxième question")
+    first = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    expect(gauge).to_be_visible(timeout=5000)
+    expect(gauge.locator(".cache-seg-read")).to_have_count(1, timeout=5000)
+    catalogue = _ui_catalogue("fr")
+    title = gauge.get_attribute("title") or ""
+    r.check(
+        first["cache_origin"] == "local"
+        and first["cache_read_tokens"] > 0
+        and gauge.get_attribute("data-read") == str(first["cache_read_tokens"])
+        and catalogue["main.cache_gauge.not_applicable"] in title
+        and catalogue["main.cache_gauge.local_note"] in title
+        and (gauge.get_attribute("data-cause") or "") in ("", "history"),
+        "jauge du cache : au second appel, une part lue non nulle, sans « non caché » ni durée "
+        "de vie en local",
+        f"{first.get('cache_read_tokens')} · {title}",
+    )
+    fits = page.evaluate(
+        "() => { const b = document.querySelector('.top-bar'); "
+        "return b.scrollWidth <= b.clientWidth + 1; }"
+    )
+    r.check(fits, "jauge du cache : la barre du haut ne déborde pas")
+    # DESIGN.md: one line at 1 280 px; the gauge visible, no child of the bar overflows it.
+    for width, height in [(1366, 768), (1280, 720)]:
+        page.set_viewport_size({"width": width, "height": height})
+        time.sleep(0.5)
+        over = page.evaluate(
+            "() => { const bar = document.querySelector('.top-bar').getBoundingClientRect();"
+            " return [...document.querySelectorAll('.top-bar > *')]"
+            ".filter(e => e.offsetParent && getComputedStyle(e).position !== 'absolute')"
+            ".map(e => [e.id || e.className, e.getBoundingClientRect()])"
+            ".filter(([, b]) => b.right > bar.right + 1 || b.bottom > bar.bottom + 1)"
+            ".map(([n, b]) => `${n} (${Math.round(b.right)} > ${Math.round(bar.right)})`); }"
+        )
+        box = page.locator("#cache-gauge-bar").bounding_box() or {}
+        reset = page.locator("#reset-button").bounding_box() or {}
+        r.check(
+            not over
+            and box.get("width", 0) > 0
+            and reset.get("x", 1e9) + reset.get("width", 0) <= width + 1,
+            f"jauge du cache, {width} × {height} : visible, la barre du haut tient sur sa "
+            "largeur et « Réinitialiser » reste dans la fenêtre",
+            f"{over} · {box} · {reset}",
+        )
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    time.sleep(0.3)
+    was = bool(r.bricks()["system_prompt"]["wanted"])
+    r.set_brick("Prompt système", not was)
+    try:
+        seq = r.ev.mark()
+        r.send("Et après le changement ?")
+        changed = r.ev.since(seq, "model_call_ended")[0]["payload"]
+        expect(gauge).to_have_attribute("data-cause", "system", timeout=5000)
+        title = gauge.get_attribute("title") or ""
+        r.check(
+            changed["cache_write_tokens"] > first["cache_write_tokens"]
+            and changed["cache_read_tokens"] < first["cache_read_tokens"]
+            and gauge.locator(".cache-seg-write").count() == 1
+            and catalogue["main.orch.prefix_causes.system"] in title,
+            "jauge du cache : après le changement du prompt système, l'écriture grandit, la "
+            "lecture recule et la cause est citée",
+            f"{changed.get('cache_read_tokens')}/{changed.get('cache_write_tokens')} · {title}",
+        )
+    finally:
+        r.set_brick("Prompt système", was)
+        follow = page.locator("#follow-live")
+        if follow.is_visible():
+            follow.click()
+
+
+def _cache_clear(r: Run) -> None:
+    """V1.3 story 3 (CAP-4), local text mode (the fake llama-server really forgets its prompt
+    when its slot is erased): a second question reads the cache; after « Vider le cache » the
+    next call writes everything, with the cause « cache vidé », and the gauge says so."""
+    page = r.page
+    button = page.locator("#clear-cache")
+    r.send("Avant le vidage")
+    seq = r.ev.mark()
+    r.send("Juste avant le vidage")
+    before = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    expect(button).to_be_enabled(timeout=5000)
+    seq = r.ev.mark()
+    button.click()
+    r.wait_idle()
+    ended = r.send("Après le vidage")
+    call = r.ev.since(seq, "model_call_ended")[0]["payload"]
+    cleared = [e["payload"] for e in r.ev.since(seq, "prefix_not_reused")]
+    gauge = page.locator("#cache-gauge")
+    expect(gauge).to_have_attribute("data-cause", "cache_cleared", timeout=5000)
+    catalogue = _ui_catalogue("fr")
+    r.check(
+        before["cache_read_tokens"] > 0
+        and ended["payload"]["status"] == "completed"
+        and call["cache_read_tokens"] == 0
+        and call["cache_write_tokens"] == call["prompt_tokens"]
+        and len(cleared) == 1
+        and cleared[0]["cause"] == "cache_cleared"
+        and cleared[0]["common_tokens"] == 0
+        and catalogue["main.orch.prefix_causes.cache_cleared"]
+        in (gauge.get_attribute("title") or ""),
+        "vider le cache : l'appel suivant passe tout en écriture, cause « cache vidé », citée par "
+        "la jauge",
+        f"{before.get('cache_read_tokens')} · {call} · {cleared}",
+    )
+
+
 def _cache_not_reused(r: Run) -> None:
     """Lot 1 of 2026-10-04, in local text mode (the ids of the fake llama-server, AD-4): the
     system message changed between two turns (« Prompt système » switched), the next turn's
@@ -10058,6 +10176,8 @@ def s_local_server(r: Run) -> None:
     r.shot("23-serveur-local-llama-server")
     _braces_stay_text(r, "mode local")
     _cache_not_reused(r)
+    _cache_gauge(r)
+    _cache_clear(r)
 
     # Story 32: a reasoning cut by the harness stays one call; the harness's note sits
     # between the reflection and the answer. The LLM nu, so that the reasoning's reserve
@@ -16011,6 +16131,139 @@ def s_harness_map(r: Run) -> None:
     )
 
 
+def s_rag_agentic(r: Run) -> None:
+    """V1.4 story 3 (CAP-4): the RAG module's third scenario, 60 minutes in all; the tool
+    `search_documents` is off at launch, ticked on the Tools card, then a search followed by a
+    reading of the corpus document it found (the same path `read_file` opens), H1 allowing it."""
+    r.launch("rag_agentic")
+    module = next(
+        m for m in r.state()["scenario_changed"]["program"]["modules"] if m["title_text"] == "RAG"
+    )
+    r.check(
+        module["duration_min"] == 60
+        and [s["id"] for s in module["scenarios"]] == ["rag", "rag_rerank", "rag_agentic"],
+        "module RAG : 60 min et le scénario de comparaison en dernier",
+        str((module["duration_min"], [s["id"] for s in module["scenarios"]])),
+    )
+    off = next(o for o in r.bricks()["tools"]["options"] if o["id"] == "search_documents")
+    r.check(not off["enabled"], "search_documents décoché au lancement", str(off))
+    r.set_option("Outils", "Recherche dans les documents", True)
+    prompt = next(s for s in module["scenarios"] if s["id"] == "rag_agentic")["prompts"][1]
+    seq = r.ev.mark()
+    ended = r.send(prompt)
+    tools = [e["payload"]["tool"] for e in r.ev.since(seq, "tool_started")]
+    results = [e["payload"] for e in r.ev.since(seq, "tool_ended")]
+    r.check(tools == ["search_documents", "read_file"], "chercher puis lire", str(tools))
+    r.check(
+        len(results) == 2
+        and all(x["status"] == "ok" for x in results)
+        and "corpus/mots_de_passe.md:" in results[0]["result"]
+        and "Coffrix" in results[1]["result"],
+        "la recherche renvoie fichier:ligne, la lecture ouvre le document trouvé",
+        str(results)[:300],
+    )
+    r.check(
+        ended["payload"]["status"] == "completed" and "14 caractères" in r.last_answer(),
+        "réponse finale d'après le document lu",
+        r.last_answer()[:160],
+    )
+
+
+def s_claude_cache(r: Run) -> None:
+    """V1.3 story 5: the « Cache de prompt de Claude » setting of the « Fenêtre ▾ » panel, on
+    the fake provider in Anthropic's shape. Off by default, no `cache_control` sent; 5 min
+    noted: the next call writes (the fake server counts the write), the one after reads, and
+    the body carries the three points; 1 h: points with `ttl: 1h` and the write detailed;
+    back to off; `settings.json` keeps the choice."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    r.goto_app()
+    r.wait_idle()
+    r.launch("system_prompt")
+    a_label = "☁️ RÉSEAU · Faux fournisseur (e2e) · wavestack-fake"
+    try:
+        _pick_model(r, f"☁️ RÉSEAU · {ANTHROPIC_PROVIDER} · {ANTHROPIC_MODEL}")
+        group = page.locator("#claude-cache")
+
+        def open_panel() -> None:
+            if page.locator("#window-panel").is_hidden():
+                page.click("#window-toggle")
+            expect(page.locator("#window-panel")).to_be_visible(timeout=5000)
+
+        def pick(value: str) -> None:
+            seq = r.ev.mark()
+            open_panel()
+            group.locator(f'input[value="{value}"]').check()
+            r.poll(lambda: bool(r.ev.since(seq, "context_window_state")), 10)
+
+        open_panel()
+        radios = group.locator("input[name='claude-cache']")
+        r.check(
+            radios.count() == 3
+            and group.locator("input[value='off']").is_checked()
+            and not group.locator("input[value='off']").is_disabled(),
+            "cache de Claude : trois choix, « Désactivé » par défaut, réglable avec une clé",
+        )
+        page.keyboard.press("Escape")
+        r.send("Bonjour")
+        r.check(
+            "cache_control" not in json.dumps(r.fake_calls()[-1]),
+            "cache de Claude désactivé : aucun cache_control envoyé",
+        )
+
+        for value, ttl in (("5m", None), ("1h", "1h")):
+            pick(value)
+            r.check(
+                group.locator(f"input[value='{value}']").is_checked(),
+                f"cache de Claude : « {value} » noté dans le panneau",
+            )
+            page.keyboard.press("Escape")
+            seq = r.ev.mark()
+            r.send(f"Premier appel à {value}")
+            first = r.fake_calls()[-1]
+            written = r.ev.since(seq, "model_call_ended")[-1]["payload"]
+            r.check(
+                first["system"][0]["cache_control"]
+                == ({"type": "ephemeral", "ttl": ttl} if ttl else {"type": "ephemeral"})
+                and first["messages"][-1]["content"][-1].get("cache_control") is not None,
+                f"{value} : le system et le dernier message portent le point de cache",
+                json.dumps(first["system"])[:120],
+            )
+            r.check(
+                written["cache_write_tokens"] > 0
+                and (written["cache_write_1h_tokens"] > 0) == bool(ttl),
+                f"{value} : le premier appel écrit ({'1 h' if ttl else '5 min'})",
+                str({k: v for k, v in written.items() if k.startswith("cache_")}),
+            )
+            seq = r.ev.mark()
+            r.send(f"Second appel à {value}")
+            read = r.ev.since(seq, "model_call_ended")[-1]["payload"]
+            r.check(
+                read["cache_read_tokens"] > 0 and read["cache_write_tokens"] == 0,
+                f"{value} : l'appel suivant lit le cache",
+                str({k: v for k, v in read.items() if k.startswith("cache_")}),
+            )
+        saved = json.loads((r.stack.data_dir / "settings.json").read_text(encoding="utf-8"))
+        r.check(
+            saved["cloud"]["claude_cache"] == "1h" and saved["cloud"].get("models"),
+            "settings.json : cloud.claude_cache == « 1h », les modèles gardés",
+        )
+        pick("off")
+        page.keyboard.press("Escape")
+        r.send("Retour à off")
+        r.check(
+            "cache_control" not in json.dumps(r.fake_calls()[-1]),
+            "retour à off : plus de cache_control",
+        )
+        open_panel()
+        r.shot_element("claude-cache-reglage", "#window-panel")
+        page.keyboard.press("Escape")
+    finally:
+        r.goto_app()
+        if (r.state().get("active_model") or {}).get("ref") != MODEL_ENTRY_ID:
+            _pick_model(r, a_label)
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -16042,6 +16295,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("global_memory", s_global_memory),
     ("rag", s_rag),
     ("rag_rerank", s_rag_rerank),
+    ("rag_agentic", s_rag_agentic),
     ("rag_lab", s_rag_lab),
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
@@ -16071,6 +16325,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("relaunch", s_relaunch),
     ("bar_panels", s_bar_panels),  # story 9 (V1.1 vague 2): the barre commune's two flyouts
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
+    ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
 ]
 
 

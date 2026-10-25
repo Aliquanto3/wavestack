@@ -212,7 +212,7 @@ from wavestack.session.effects import (
 from wavestack.skills import SkillsContent, SkillText, load_skills_content
 from wavestack.subagent import SubagentContent, load_subagent_content
 from wavestack.tools.executor import ToolExecutor
-from wavestack.tools.native import NATIVE_TOOLS, get_datetime, read_file
+from wavestack.tools.native import NATIVE_TOOLS, get_datetime, read_file, search_documents
 from wavestack.tools.network import network_tools
 from wavestack.tools.parser import (
     Malformed,
@@ -869,6 +869,9 @@ class AppSession:
         # (`configured_window`), and the active model's effective one is `_window`.
         self._configured_window = self.cfg.context_window
         self._window = self._configured_window
+        # V1.3 story 5: Claude's prompt cache setting (`off`, `5m`, `1h`), read at launch
+        # (`[cloud] claude_cache`, `settings.json` over `wavestack.toml`), changed by the panel.
+        self._claude_cache: str = self.cfg.claude_cache
         # The active model's metadata (its native and server contexts), for the window
         # panel's choices; `None` for a cloud model or none.
         self._meta: EngineMetadata | None = None
@@ -1085,6 +1088,7 @@ class AppSession:
         # (`stateless` or `failed`); and the last turn's status (`abandoned`).
         self._main_cache: list[int] | None = None
         self._cache_cause: str | None = None
+        self._cache_cleared = False  # V1.3 story 3: « Vider le cache » since the last call
         self._cache_evicted: str | None = None
         self._last_status: str | None = None
         self._turn_called = False  # the running turn made a main call (`abandoned`)
@@ -1139,6 +1143,7 @@ class AppSession:
             if not (spec := self._registry.get(n)).network
             and spec.source != "harness"
             and not spec.is_mcp
+            and spec.default_enabled
         }
         # MCP servers (story 6): the local one starts enabled, the public ones disabled.
         self._mcp_enabled = {"local"} & set(self._mcp_servers)
@@ -2556,7 +2561,10 @@ class AppSession:
     def use_api_key(self, model_id: str) -> bool:
         """Correction A (2026-10-05): after `set_api_key`, the active cloud model `model_id`
         sends the key `config.cloud_key` reads now, from its next request on, without being
-        reloaded (re-choosing it stays `already_active`). Returns whether it took one."""
+        reloaded (re-choosing it stays `already_active`). Returns whether it took one.
+        V1.3 story 5: the window panel's state is sent again first, a Claude key typed now
+        enabling the prompt cache setting (`/api/state` gives the last state sent)."""
+        self._emit_window_state()
         with self._lock:
             entry, engine = self._cloud, self._engine
         if entry is None or entry.id != model_id or not hasattr(engine, "use_key"):
@@ -2722,6 +2730,53 @@ class AppSession:
             return notice
         return None
 
+    def _claude_cache_locked(self) -> Message | None:
+        """V1.3 story 5: why Claude's cache setting is greyed, else `None`: no Claude entry
+        (`anthropic_messages`) has a key, the test that greys an entry of the cloud panel
+        (`config.cloud_key`), read again at each state so that a key typed during the session
+        enables the setting."""
+        has_key = any(
+            entry.api == "anthropic_messages" and config.cloud_key(entry) is not None
+            for entry in self.cfg.cloud_models[0]
+        )
+        return None if has_key else Message("session.claude_cache.no_key")
+
+    def _claude_cache_ttl(self, entry: CloudModel) -> str | None:
+        """V1.3 story 5: the cache duration given to the request body of `entry`: `5m` or
+        `1h` for a Claude model (`anthropic_messages`) when the setting is on, else `None`
+        (no `cache_control`: the other APIs never get one, the setting off sends the body
+        as before)."""
+        if entry.api != "anthropic_messages" or self._claude_cache == "off":
+            return None
+        return self._claude_cache
+
+    def set_claude_cache(self, value: str) -> Message:
+        """Intention `claude_cache` (class b): `off`, `5m` or `1h`, accepted in `idle` only
+        (else `SendRefused` with the reason) and with a Claude key (else `SendRefused` with
+        the panel's reason). Saved in `settings.json` (`cloud.claude_cache`); taken into
+        account at the next call, nothing reloads."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            if (locked := self._claude_cache_locked()) is not None:
+                raise SendRefused(locked)
+            if value not in ("off", "5m", "1h"):
+                raise SendRefused(Message("session.claude_cache.unknown"))
+            self._claude_cache = value
+        try:
+            saved = config.read_settings().get("cloud")
+            apply_setting(
+                SettingWrite(
+                    key="cloud",
+                    value={**(saved if isinstance(saved, dict) else {}), "claude_cache": value},
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - AD-16: the setting applied stays applied
+            notice = Message("session.claude_cache.not_saved")
+            self._error(Message("session.settings.unwritable"), exc, notice)
+        self._emit_window_state()
+        return Message(f"session.claude_cache.applied_{value}")
+
     def _note_read_rate(self, evaluated: int | None, prompt_ms: int) -> None:
         """Story 26: the active local or served model's read rate, from a call that
         evaluated at least `READ_MIN_TOKENS` tokens (not a cache hit, lot A). Never the
@@ -2850,6 +2905,9 @@ class AppSession:
             "read_tps": round(tps, 1) if tps else None,
             "read_note_text": note,
             "locked_text": self._locked_fr(active.entry if active else None),
+            "claude_cache": self._claude_cache,
+            "claude_cache_locked_text": self._claude_cache_locked(),
+            "claude_cache_note_text": self._t("session.claude_cache.note"),
             "choices": [
                 self._window_choice(n, active, meta, configured, tps, kv_per_token, effective)
                 for n in WINDOW_CHOICES
@@ -4708,6 +4766,7 @@ class AppSession:
             provider_label_text=content.provider_segment_text,
             lang=self._language,
             api=entry.api,
+            cache_ttl=self._claude_cache_ttl(entry),
         )
         rendered.seen = seen_prefix(read_before, rendered.segments)
         payload = self._chat_gauge(
@@ -5222,11 +5281,18 @@ class AppSession:
     def _native_tools(self) -> list[ToolSpec]:
         """The native tools, `read_file` bound to the session's language (languages 3/5): it
         reads the demonstration file of the language current at each call."""
-        bound = {"read_file": self._read_file, "get_datetime": self._get_datetime}
+        bound = {
+            "read_file": self._read_file,
+            "get_datetime": self._get_datetime,
+            "search_documents": self._search_documents,
+        }
         return [replace(s, run=bound[s.name]) if s.name in bound else s for s in NATIVE_TOOLS]
 
     def _read_file(self, path: str) -> str:
         return read_file(path, self._language)
+
+    def _search_documents(self, query: str) -> str:
+        return search_documents(query, self._language)
 
     def _get_datetime(self) -> str:
         return get_datetime(self._language)  # languages (5/5): the day in the session's
@@ -6288,6 +6354,40 @@ class AppSession:
         self._journal().emit("conversation_cleared", {})
         self._emit_architecture()
         self._refresh_preview()
+
+    def clear_cache(self) -> None:
+        """V1.3 story 3 (CAP-4), class (b): the local engine's context memory emptied, the
+        model and the conversation kept. The next call writes everything, cause
+        `cache_cleared` (`_check_reuse`). Refused outside `idle` and in cloud (a provider's
+        cache does not purge). The clear runs on the worker, queued under the locks `_start`
+        takes: after a prefill or a workshop call still running, before any turn sent from
+        now (never while the engine generates)."""
+        with self._memory_lock, self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            if self._cloud is not None:
+                raise SendRefused(Message("session.refused.cache_cloud"))
+            clear = getattr(self._engine, "clear_cache", None)
+            if clear is None:
+                raise SendRefused(Message("session.refused.cache_unsupported"))
+            done = self._executor.submit(self._run_clear_cache, clear)
+        self._abandon_prefill()  # a prefill running stops at its next batch, then the clear
+        done.result()
+
+    def _run_clear_cache(self, clear: Callable[[], bool]) -> None:
+        """On the worker: `clear_cache` of the engine, then the main context's ids it holds
+        (none). Raises `SendRefused` with the reason when it could not."""
+        try:
+            cleared = clear()
+        except Exception as exc:  # noqa: BLE001 - AD-16: a server without the slots API
+            raise SendRefused(Message("session.refused.cache_failed", cause=str(exc))) from exc
+        with self._lock:
+            self._cache_evicted = None
+            # Refused: the engine's memory is unknown (its ids forgotten), never compared.
+            self._main_cache = [] if cleared else None
+            self._cache_cleared = cleared
+        if not cleared:
+            raise SendRefused(Message("session.refused.cache_unsupported"))
 
     # ---------- languages (1/5, AD-19) ----------
 
@@ -8300,8 +8400,10 @@ class AppSession:
             self._check_prefix(*previous, ids)
             return
         cause = None
+        cleared = False
         if previous is None:  # the turn's first call: what happened since the last one
             cause, self._cache_cause = self._cache_cause, None
+            cleared, self._cache_cleared = self._cache_cleared, False
             if cause is None and self._last_status not in (None, "completed"):
                 cause = "abandoned"
         if evicted is not None:  # the engine holds the sub-agent's context, not the main one
@@ -8309,7 +8411,9 @@ class AppSession:
             cause = cause or "subagent"
         else:
             cached = self._main_cache
-            if cached is None or ids[: len(cached)] == cached:
+            if cleared and cached == []:  # V1.3 story 3: emptied since, refilled by nothing
+                cause = "cache_cleared"  # over a pending cause: why nothing at all is reused
+            elif cached is None or ids[: len(cached)] == cached:
                 return
         common = _common_prefix(cached, ids)
         cause = cause or self._diverging_cause(rendered, common)

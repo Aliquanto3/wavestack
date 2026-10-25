@@ -20,7 +20,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from functools import cache
+from functools import cache, partial
 from itertools import accumulate
 from typing import Any
 
@@ -466,8 +466,18 @@ def _text_of(content: Any) -> str:
     return content if isinstance(content, str) else ""
 
 
+def cache_control(ttl: str) -> dict[str, str]:
+    """V1.3 story 5: the `cache_control` of a cache point; `5m` is the provider's default
+    (no `ttl`), `1h` asks for the longer life."""
+    return {"type": "ephemeral", **({"ttl": "1h"} if ttl == "1h" else {})}
+
+
 def _anthropic_messages(
-    model: dict[str, Any], messages: list[dict[str, Any]], tools: Any, tail: dict[str, Any]
+    model: dict[str, Any],
+    messages: list[dict[str, Any]],
+    tools: Any,
+    tail: dict[str, Any],
+    cache_ttl: str | None = None,
 ) -> dict[str, Any]:
     """`anthropic_messages` (native providers 3/5): the system messages joined in `system`;
     an assistant message as blocks, its reasoning blocks first (`thinking_blocks`, verbatim,
@@ -475,7 +485,12 @@ def _anthropic_messages(
     call (`input`: the object of `arguments`); consecutive `tool` messages as one `user`
     message of `tool_result` blocks; `tools` as `{name, input_schema, description}`. An
     assistant message left with no text nor call is left out (the provider refuses it;
-    two `user` messages in a row are one turn for it)."""
+    two `user` messages in a row are one turn for it). `cache_ttl` (V1.3 story 5, `5m` or
+    `1h`; `None`: no cache point, the body as before): three cache points at most, on the
+    last tool, on the `system` (one text block) and on the last block of the last message
+    (a text, `tool_result` or `tool_use` one); every message whose text is a non-empty
+    string then goes as one text block, so that its shape does not change when it stops
+    being the last one and the prefix stays the same bytes from one call to the next."""
     system = [_text_of(m.get("content")) for m in messages if m["role"] == "system"]
     sent: list[dict[str, Any]] = []
     results: list[dict[str, Any]] | None = None  # the `tool_result` blocks being gathered
@@ -497,7 +512,13 @@ def _anthropic_messages(
             continue
         results = None
         if role != "assistant":
-            sent.append({"role": role, "content": _text_of(message.get("content"))})
+            text = _text_of(message.get("content"))
+            sent.append(
+                {
+                    "role": role,
+                    "content": [{"type": "text", "text": text}] if cache_ttl and text else text,
+                }
+            )
             continue
         blocks = list(message.get("thinking_blocks") or [])
         thought = len(blocks)
@@ -516,8 +537,15 @@ def _anthropic_messages(
         if len(blocks) > thought:
             sent.append({"role": "assistant", "content": blocks})
     body: dict[str, Any] = {**model}
+    point = cache_control(cache_ttl) if cache_ttl else None
     if joined := "\n\n".join(text for text in system if text):
-        body["system"] = joined
+        body["system"] = (
+            [{"type": "text", "text": joined, "cache_control": point}] if point else joined
+        )
+    if point and sent and isinstance(blocks := sent[-1]["content"], list) and blocks:
+        # A reasoning block cannot carry the point: no history point for this call.
+        if blocks[-1].get("type") in ("text", "tool_result", "tool_use"):
+            blocks[-1] = {**blocks[-1], "cache_control": point}
     body["messages"] = sent
     if tools:
         body["tools"] = [
@@ -527,6 +555,8 @@ def _anthropic_messages(
             }
             for tool in tools
         ]
+        if point:
+            body["tools"][-1]["cache_control"] = point
     return body | tail
 
 
@@ -652,16 +682,21 @@ def render_chat_body(
     provider_label_text: str,
     lang: str = "fr",
     api: str = "openai_chat",
+    cache_ttl: str | None = None,
 ) -> RenderedChat:
     """AD-4, chat mode: `context` alone writes the whole body, serialized once, cut into
     segments by the sentinel method (the JSON syntax is `template`, 0 token). `fields`:
     `model`, then what follows `messages` and `tools` (`stream`, output limit,
     `stream_options`, reasoning parameters). A last `template` segment without text,
     « chez le fournisseur », carries the gap once a total is known (`with_total`). `api`
-    (AD-26): the entry's, which picks the translator of the pivot into its native body."""
+    (AD-26): the entry's, which picks the translator of the pivot into its native body.
+    `cache_ttl` (V1.3 story 5): `5m` or `1h`, given to the `anthropic_messages` translator
+    only (the others never get a `cache_control`); `None`: no cache point."""
     model = {"model": fields["model"]}
     tail = {key: value for key, value in fields.items() if key != "model"}
     translate = TRANSLATORS[api]
+    if cache_ttl and api == "anthropic_messages":
+        translate = partial(_anthropic_messages, cache_ttl=cache_ttl)
 
     def render(plain: list[dict[str, Any]], plain_tools: Any) -> str:
         body = translate(model, plain, plain_tools, tail)

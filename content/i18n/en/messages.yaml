@@ -73,6 +73,15 @@ session:
     no_turn: No turn possible.
     load_stopped: "Sending unavailable: the model loading was stopped and no model is loaded. Choose a model on the diagnostics page."
   # Story 26 (AD-9): the window panel, when the cache and the read time are not WaveStack's to measure.
+  # V1.3 story 5: Claude's prompt cache, set in the window panel.
+  claude_cache:
+    no_key: "Disabled: first enter the API key of a Claude model (diagnostic page)."
+    unknown: "Unknown setting: choose off, 5 min or 1 h."
+    not_saved: "Claude's cache is set for this session, but the setting could not be saved in settings.json."
+    note: "Applies to Claude models. Below a token threshold specific to each model, the provider caches nothing: everything then stays in “Uncached”. Taken into account at the next call."
+    applied_off: "Claude prompt cache: off."
+    applied_5m: "Claude prompt cache: 5 minutes (write at 1.25 times the input price)."
+    applied_1h: "Claude prompt cache: 1 hour (write at 2 times the input price)."
   window:
     kv_cloud: "Context cache: at the provider, no memory on this workstation"
     kv_no_model: "Context cache: computed when a model is loaded"
@@ -111,6 +120,7 @@ session:
       llm: "The LLM workshop occupied the engine's cache{why}."
       mcp_lab: "The MCP workshop occupied the engine's cache{why}."
       rag_lab: "The RAG workshop occupied the engine's cache for its generation{why}."
+      cache_cleared: "The engine's cache was cleared on request (« Clear the cache » button): the whole context is read again."
     evicted:
       stateless: ": this engine cannot save the state of the main context"
       failed: ": saving or restoring the state of the main context failed"
@@ -216,6 +226,9 @@ session:
     turn: "A turn is already in progress: wait for it to end or click “Stop”."
     no_model: "No model is loaded: finish the start-up diagnostics."
     nothing_to_replay: "No prompt to replay: send a message first."
+    cache_cloud: "A cloud provider's cache cannot be cleared: it expires on its side."
+    cache_unsupported: "This engine cannot clear its cache."
+    cache_failed: "The engine's cache could not be cleared: {cause}"
   # AD-19: a content file that cannot be read makes its brick unavailable.
   content:
     file_invalid: "The file {file} is missing or invalid: fix it, then restart WaveStack."
@@ -685,8 +698,12 @@ tools:
     unreadable: "Unreadable expression: “{expression}”. Use {allowed}."
   read_file:
     outside: "Access refused: “{path}” goes outside the demonstration folder. Only the files in content/demo_files/ can be read, through a relative path."
-    listing: "Available files:\n{files}"
+    listing: "Available files (the corpus documents open under corpus/):\n{files}"
     missing: "File not found: “{path}”. Available files: {files}."
+  search_documents:
+    header: "{count} line(s) shown out of {total}, as file:line: text. Then read the file with read_file."
+    empty: "Empty query: give at least one word of {min} letters or more."
+    none: "No result for “{query}” in the corpus. Try other words, or a single keyword."
   network:
     blocked: "Connection refused by the harness ({cause})."
     unreachable: "Service unreachable ({kind}): the workstation has no access to {host}."

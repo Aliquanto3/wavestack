@@ -355,6 +355,11 @@ class ContextWindowStatePayload(BaseModel):
     read_tps: float | None = None
     read_note_text: str
     locked_text: str | None = None
+    # V1.3 story 5: Claude's prompt cache setting (`off`, `5m`, `1h`), why it is greyed
+    # (no Claude key), and its one-line note.
+    claude_cache: Literal["off", "5m", "1h"] = "off"
+    claude_cache_locked_text: str | None = None
+    claude_cache_note_text: str | None = None
     choices: list[WindowChoicePayload]
 
 
@@ -749,6 +754,7 @@ PrefixCause = Literal[
     "llm",  # story 29: the « LLM nu » screen took the engine's cache
     "mcp_lab",  # lot 4 of 2026-10-04: the MCP workshop's model took the engine's cache
     "rag_lab",  # lot 5c-3: the RAG workshop's generation took the engine's cache
+    "cache_cleared",  # V1.3 story 3: « Vider le cache » emptied the engine's memory
 ]
 
 

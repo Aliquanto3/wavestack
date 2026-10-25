@@ -12,8 +12,8 @@ program:
     duration_min: 45
     scenarios: [native_tools, network_tools]
   - title_text: RAG
-    duration_min: 45
-    scenarios: [rag, rag_rerank]
+    duration_min: 60
+    scenarios: [rag, rag_rerank, rag_agentic]
   - title_text: MCP
     duration_min: 45
     scenarios: [mcp_full, mcp_lazy]
@@ -167,6 +167,25 @@ scenarios:
     prompts:
       - Welche Erstattungsobergrenze gilt bei Exemplia für eine Hotelübernachtung in Paris?
       - Was ist bei Exemplia als Erstes zu tun, wenn man seinen Laptop verliert?
+
+  rag_agentic:
+    title_text: Eingespeistes RAG oder agentische Suche
+    description_text: >-
+      Dieselben Bausteine wie im Szenario RAG, mit dem Werkzeug „Dokumentensuche“
+      (search_documents), das Sie auf der Karte Werkzeuge ankreuzen. Senden Sie zuerst den
+      ersten Prompt, mit eingeschaltetem Baustein RAG und abgewähltem Werkzeug: Der Harness
+      speist Auszüge in Ihre Nachricht ein. Öffnen Sie „Vergleichen“ und sehen Sie sich den
+      Kontext an. Klicken Sie dann auf „Unterhaltung leeren“, schalten Sie den Baustein RAG
+      aus, kreuzen Sie „Dokumentensuche“ an und senden Sie den zweiten Prompt, der dieselbe
+      Frage stellt und das Werkzeug nennt (ein kleines Modell stellt die Verbindung nicht
+      allein her): Das Modell sucht Wörter (search_documents) und liest dann das gefundene
+      Dokument (read_file, Pfad corpus/…). Vergleichen Sie den Kontext: Das RAG legt bei jedem
+      Durchlauf Auszüge hinein, die agentische Suche fügt Durchläufe für Werkzeugaufrufe und eine
+      ganz gelesene Datei hinzu. Klappen Sie die Werkzeugschritte im Bereich Orchestrierung auf.
+    bricks: [short_memory, system_prompt, global_memory, tools, rag]
+    prompts:
+      - Wie viele Zeichen muss ein Passwort bei Exemplia mindestens haben?
+      - Nutze das Werkzeug search_documents, um in den Dokumenten nach „Passwort“ zu suchen, und lies dann das gefundene Dokument mit read_file. Wie viele Zeichen muss ein Passwort bei Exemplia mindestens haben?
 
   mcp_full:
     title_text: MCP mit vollständiger Dokumentation

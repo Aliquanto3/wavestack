@@ -11,8 +11,8 @@ program:
     duration_min: 45
     scenarios: [native_tools, network_tools]
   - title_text: RAG
-    duration_min: 45
-    scenarios: [rag, rag_rerank]
+    duration_min: 60
+    scenarios: [rag, rag_rerank, rag_agentic]
   - title_text: MCP
     duration_min: 45
     scenarios: [mcp_full, mcp_lazy]
@@ -159,6 +159,23 @@ scenarios:
     prompts:
       - What reimbursement cap applies to a hotel night in Paris at Exemplia?
       - What should you do first when you lose your laptop at Exemplia?
+
+  rag_agentic:
+    title_text: Injected RAG or agentic search
+    description_text: >-
+      The same bricks as the RAG scenario, with the “Document search” tool (search_documents)
+      to tick on the Tools card. First send the first prompt with the RAG brick on and the tool
+      unticked: the harness injects excerpts into your message. Open “Compare” and look at the
+      context. Then click “Clear the conversation”, turn the RAG brick off, tick “Document search”
+      and send the second prompt, which asks the same question and names the tool (a small
+      model does not make the link on its own): the model searches for words
+      (search_documents), then reads the document it found (read_file, path corpus/…).
+      Compare the context: RAG puts excerpts in at every turn, agentic search adds tool-call
+      turns and a whole file read. Unfold the tool steps in Orchestration.
+    bricks: [short_memory, system_prompt, global_memory, tools, rag]
+    prompts:
+      - What is the minimum number of characters for a password at Exemplia?
+      - Use the search_documents tool to search for "password" in the documents, then read the document you found with read_file. What is the minimum number of characters for a password at Exemplia?
 
   mcp_full:
     title_text: MCP with full documentation

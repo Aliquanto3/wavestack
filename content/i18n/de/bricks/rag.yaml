@@ -49,3 +49,14 @@ explanation_text:
     Erstinstallation: „Embedding-Modell herunterladen“ holt das Embedding-Modell, dann
     zerlegt „Index erstellen“ den Korpus und indexiert ihn auf dem Arbeitsplatz, ohne
     Kommandozeile.
+  - >-
+    Eingespeistes RAG oder agentische Suche: Das RAG entscheidet bei jedem Durchlauf für Sie,
+    was das Modell liest; bei der agentischen Suche sucht das Modell selbst, mit dem Werkzeug
+    search_documents (die Wörter seiner Anfrage, in den aktiven Dokumenten des Korpus), und
+    liest dann die gefundene Stelle mit read_file („suchen, dann lesen“). Das RAG fügt bei
+    jedem Durchlauf ein Embedding-Modell und Auszüge hinzu, nützlich oder nicht; die agentische
+    Suche fügt nur die Durchläufe der Werkzeugaufrufe hinzu, doch ein kleines Modell wählt
+    schlechte Wörter oder vergisst das Lesen. Das RAG passt zu einem Korpus, den das Modell
+    nicht durchsuchen kann; die Suche passt zu Dateien, bei denen genaue Wörter zählen.
+    Coding-Harnesse (Claude Code, Codex, Cursor) treffen diese zweite Wahl: Sie suchen mit grep
+    und öffnen die Dateien, statt den Code mit Embeddings zu indexieren.

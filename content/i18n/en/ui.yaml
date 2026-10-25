@@ -315,6 +315,9 @@ main:
     show_reasoning_title: "Shows or hides the model's reasoning in this view; LLM context always shows it."
     replay_last: "Replay the last prompt"
     clear: "Clear the conversation"
+    clear_cache: "Clear the cache"
+    clear_cache_cloud: "A cloud provider's cache cannot be purged: it expires on its side."
+    clear_cache_no_answer: "WaveStack does not answer: the cache was not cleared."
     tools_used: "Tools consulted during this turn:"
     tools_used_title: "See the “{tool}” step in Orchestration"
   composer:
@@ -387,6 +390,12 @@ main:
     saved_help: "The applied choice is stored in settings.json, which overrides [context] window in wavestack.toml at the next launch."
     size_legend: "Window size"
     apply: "Apply"
+    claude_cache_legend: "Claude prompt cache"
+    claude_cache_off: "Off"
+    claude_cache_5m: "5 minutes (write ×1.25)"
+    claude_cache_1h: "1 hour (write ×2)"
+    claude_cache_pending: "Setting the cache…"
+    claude_cache_refused: "Cache setting refused."
   ctx:
     modes:
       grouped: "Grouped reading"
@@ -561,6 +570,7 @@ main:
       llm: "LLM workshop"
       mcp_lab: "MCP workshop"
       rag_lab: "RAG workshop"
+      cache_cleared: "cache cleared"
     hook_decisions:
       allow: "let through"
       modify: "modified"
@@ -738,6 +748,22 @@ main:
     title: "{window}-token window, of which {reserve} reserved for the answer: {usable} usable."
     label: "Context gauge"
     legend_label: "Disciplines present in the context"
+  cache_gauge:
+    label: "Cache of the last call"
+    read: "read {tokens}"
+    write: "written {tokens}"
+    write_1h: "written {tokens}, of which {tokens_1h} for 1 h"
+    uncached: "uncached {tokens}"
+    not_declared: "not declared by the provider"
+    not_applicable: "not applicable locally"
+    not_measured: "not measured"
+    local_note: "Locally there is no \"uncached\" part and no lifetime: the engine keeps everything it evaluates."
+    cause: "Cause: {cause}"
+    cause_unknown: "{cause}"
+    short: "Cache: {percent} % read"
+    short_none: "Cache: not declared"
+    short_not_measured: "Cache: not measured"
+    pair: "{name}: {value}"
   cost:
     call_label: "Estimated cost: "
     text: "{label}input {input} · output {output}"
