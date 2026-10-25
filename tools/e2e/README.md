@@ -786,6 +786,11 @@ d'autres (story 21) :
   une question libre et une question sans passage le disent ; les trois cas « Où naît l'erreur »
   (`not_indexed`, `ranked_low`, `cut_by_budget`) se rejouent en un clic, chacun avec son étape
   fautive, sans aucun événement de l'atelier ; capture `63-atelier-rag-diagnostic.jpg`.
+- `rag_lab_tree`, V1.2 story 16 (CAP-12), après `rag` et `rag_rerank` : l'arbre des étapes de
+  la dernière exécution dans son volet repliable (la course, ses étapes avec leur durée, l'appel
+  de modèle sous l'étape qui l'a fait), autant de nœuds que `steps` de `rag_lab_run_ended` ; sans
+  `[otel] endpoint`, pas de bouton d'export, la note dit que rien ne sort et aucun
+  `outbound_request` ; capture `92-atelier-rag-arbre.jpg`.
 - `rag_lab_chunking`, V1.2 story 6 (CAP-4), après `rag` et `rag_rerank` : les quatre options du
   découpage ; « Parent-enfant » (les enfants listés dans le focus, chacun avec son parent) puis
   « Avec contexte » (chaque contexte marqué « précalculé · heuristique, sans LLM ») ;

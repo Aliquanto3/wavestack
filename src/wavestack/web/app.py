@@ -59,6 +59,7 @@ from wavestack.session.app_session import (
     SendRefused,
 )
 from wavestack.session.diagnostic import DiagnosticSession, Refused
+from wavestack.trace import otel as trace_otel
 from wavestack.trace.envelope import Envelope
 from wavestack.trace.journal import get_journal
 
@@ -412,6 +413,12 @@ class McpLabAskIntention(BaseModel):
     question: str | None = Field(default=None, max_length=4000)
     of: str | None = None
     doc_mode: Literal["full", "lazy"] = "full"
+
+
+class RagLabOtelIntention(BaseModel):
+    """V1.2 story 16 (CAP-12): the finished run whose tree goes to the OTLP collector."""
+
+    run_id: str = Field(min_length=1, max_length=64)
 
 
 class SystemPromptIntention(BaseModel):
@@ -813,6 +820,26 @@ def create_app(
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.get("/api/rag_lab/otel")
+    def rag_lab_otel() -> dict[str, object]:
+        """V1.2 story 16 (CAP-12): whether the OTLP export can run (the extra, the URL)."""
+        return shown(app_session.rag_lab_otel())
+
+    @app.post("/api/rag_lab/otel/export")
+    def rag_lab_otel_export(intention: RagLabOtelIntention) -> dict[str, object]:
+        """V1.2 story 16 (CAP-12): a finished run's tree sent as OTLP spans; 409 without the
+        extra, the URL or the run, 502 when the collector cannot be reached or refuses."""
+        try:
+            return shown(app_session.export_rag_lab_otel(intention.run_id))
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+        except trace_otel.ExportFailed as failed:
+            raise HTTPException(
+                status_code=502, detail=render(failed.reason_text, app_session.language)
             ) from None
 
     @app.get("/api/rag_lab/diagnosis")

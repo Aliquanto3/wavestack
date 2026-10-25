@@ -295,3 +295,38 @@ def test_the_sheets_and_texts_in_each_language(lang):
     assert content.presets["crag"].explain_text and content.stages["fallback"].explain_text
     if lang != "fr":
         assert "«" not in content.options["fallback"]["retry"].label_text
+
+
+def test_the_fallback_parts_hang_under_the_fallback_stage_in_the_tree(index):
+    """V1.2 story 16 x 12: the parts of the CRAG fallback (rewrite, second attempt, abstention)
+    are children of the fallback stage, with their own costs and no double count."""
+    session, _ = ready(index, judge="télétravail jours semaine")
+    scripted(session, 0.0)
+    events = run(session, QUESTION, crag(session))
+    done = parts(events)
+    assert done and all(e.payload["part"] == e.step_id.rsplit(".", 1)[1] for e in done)
+    assert all(rag_lab.parent_step(e.step_id) == e.step_id.rsplit(".", 1)[0] for e in done)
+    tree = next(e.payload for e in events if e.kind == "rag_lab_run_ended")["steps"]
+    fallback_stage = next(
+        c for c in tree["children"] if c["kind"] == "stage" and c["stage_kind"] == "fallback"
+    )
+    suffixes = [c["id"].rsplit(".", 1)[1] for c in fallback_stage["children"]]
+    assert suffixes == [e.step_id.rsplit(".", 1)[1] for e in done]
+    assert {"rewrite", "retry_passage_filter", "abstain"} <= set(suffixes)
+    assert all(c["kind"] == "part" for c in fallback_stage["children"])
+    assert all(c["parent"] == fallback_stage["id"] for c in fallback_stage["children"])
+    # The rewrite part holds the model call and its cost; the stage itself none (no double count).
+    rewrite = next(c for c in fallback_stage["children"] if c["id"].endswith(".rewrite"))
+    assert [c["kind"] for c in rewrite["children"]] == ["model_call"]
+    assert rewrite["tokens"] and not fallback_stage["tokens"]
+    assert fallback_stage["input_tokens"] is None
+    flat: list[dict] = []
+
+    def walk(node: dict) -> None:
+        flat.append(node)
+        for child in node["children"]:
+            walk(child)
+
+    walk(tree)
+    assert len({n["id"] for n in flat}) == len(flat)
+    session.close()

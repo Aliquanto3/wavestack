@@ -205,6 +205,17 @@
           </div>
         </div>
       </section>
+      <!-- V1.2 story 16 (CAP-12): the run's tree of steps and its OTLP export (rag-tree.js). -->
+      <details class="rag-tree" id="rag-tree">
+        <summary data-text="tree.title_text">Arbre des étapes de l'exécution</summary>
+        <p class="rag-note" data-text="tree.hint_text"></p>
+        <div class="rag-tree-body" id="rag-tree-body"></div>
+        <div class="rag-tree-otel">
+          <p class="rag-note" id="rag-otel-note"></p>
+          <button type="button" class="rag-button-secondary" id="rag-otel-export" data-text="tree.export_text" hidden>Exporter cette exécution</button>
+          <p class="rag-note" id="rag-otel-result" role="status"></p>
+        </div>
+      </details>
       <details class="rag-details" id="rag-details">
         <summary data-text="details_text">Toutes les étapes en détail</summary>
         <p class="rag-note" id="rag-results-empty" data-text="results_empty_text"></p>
@@ -432,5 +443,6 @@
   <script type="module" src="/static/rag-graph.js"></script>
   <script type="module" src="/static/rag-raptor.js"></script>
   <script type="module" src="/static/rag-wiki.js"></script>
+  <script type="module" src="/static/rag-tree.js"></script>
 </body>
 </html>

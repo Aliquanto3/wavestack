@@ -996,6 +996,14 @@ greenops:
 rag_lab:
   quoted: "“{text}”"
   list_separator: "; "
+  # V1.2 story 16 (CAP-12): the OTLP export of the run's tree.
+  otel:
+    missing: "OTLP export unavailable: the otel extra is not installed (uv sync --extra otel)."
+    unset: "OTLP export not set: fill in [otel] endpoint in wavestack.toml or settings.json, then restart. Nothing leaves the workstation."
+    no_run: "No finished run to export."
+    blocked: "OTLP export refused by the network guard: {cause}"
+    unreachable: "OTLP collector unreachable ({cause})."
+    refused: "The OTLP collector refused the export (status {status})."
   # Nouns after a count: « 1 extrait », « 0 extraits » (the workshop agrees 0 as plural).
   noun:
     element:
