@@ -437,3 +437,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:34 · 12.11 · dev · lancé (phase spec, empilé sur 12.10, worktree ../wavestack-v12-s11) · 598f633
 - 2026-10-25 10:38 · 12.11 · dev · spec prête (21 critères, 9 points ouverts : boucle agentique dans l'étape Contexte, outils sur la copie de travail, arbre à deux niveaux heuristique, famille Structure) · d9f6a59
 - 2026-10-25 10:38 · 12.11 · review · relecture de la spec lancée · d9f6a59
+- 2026-10-25 10:39 · 12.10 · second-avis · 0 high, 1 medium (état CAG jamais enregistré au registre de mémoire), 6 low ; restauration du moteur du chat sur tous les chemins et jauge du chat vérifiées · 598f633
+- 2026-10-25 10:39 · 12.10 · review · lancé (Opus) · 598f633
