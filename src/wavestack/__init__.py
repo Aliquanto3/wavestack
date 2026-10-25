@@ -1,3 +1,3 @@
 """WaveStack: a local, CPU-only agentic harness training demo."""
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
