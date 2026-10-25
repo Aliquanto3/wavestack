@@ -82,13 +82,12 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - (Avancée dans le run le 2026-10-25, décision d'Anaël.) Story d'outillage : accélérer les tests lents propres à Windows de `tests/test_model_servers.py` et `tests/test_context_window_setting.py` (11 à 33 s chacun sous Windows, absents du haut de la liste sous Ubuntu ; piste : connexion à un port fermé qui met ~2 s à échouer sous Windows). Gain mesuré attendu : ~2 min 30 de tests Windows. Décision d'Anaël du 2026-10-25.
 - Rafraîchir `test-durations-windows-latest.json` et `test-durations-ubuntu-latest.json` depuis les artefacts `test-durations-<os>-<groupe>` d'une CI récente (fusion des 4 fichiers par système), quand l'écart entre groupes dépasse ~2 min.
 
-## Prochaines étapes (reprise du 2026-10-25 après /clear)
+## Prochaines étapes (mise à jour du 2026-10-25 13:35)
 
-1. 12.19 : `reviewer` (Opus) sur a6b5584, avec la liste du second avis : 1 medium rag.css:1625, la règle `.rag-badge` de la story 7, réactivée par l'accolade corrigée, écrase la `border-color` primaire de la ligne 1440 par `--color-line` (contraste 1,15:1) sur tous les badges de la page, à trancher ; low : aucun test du JS de rag-sheets.js hors E2E ; PENDING_SHEET_KINDS codé en dur, `missing_sheets()` ne vérifie pas PENDING → OPTIONS ; spec périmée (8 fiches et `context` en attente, contre 12 en réalité) ; `load()` de rag-sheets.js n'affiche rien si l'API échoue ; contrat 12.10 : retirer `story: 10` de long_context et cag dans rag_sheets.yaml ×3 et les passer `available: true` dans rag_erasure.yaml ×3 (12.10 est fusionnée, #113). Fusionner d'abord l'intégration. Puis PR et fusion.
-2. 12.11 : `dev-story` phase 2, Opus, effort high, worktree s11, spec 3f8f1cd (fusionner l'intégration d'abord).
-3. 12.2 : `dev-story` phase spec, puis relecture : banc avec les 6 modèles de décision en ligne choisis par Anaël (journal) et les candidats locaux ; banc lancé seulement quand aucun agent ne tourne.
-4. Après 12.19 : 12.20 (architecture en MCP) et 12.19b (12 fiches de composant). Après 12.11 : 12.13 · 12.14, puis 12.16, puis 12.21. 12.8 et 12.12 après le rapport de 12.2.
-5. (Fait : #112 fusionnée, 42b5e37.)
+1. #118 (12.20) : file_prs.py --methode merge en cours ; à la fusion, prévenir 12.13 et 12.14 de refusionner l'intégration.
+2. Banc 12.2, partie en ligne : en cours dans ../wavestack-v12-s2, résultats dans tools/bench/results/2026-10-25-v12s2 (journal de la commande : scratchpad s2/online.log).
+3. Créneau sans agent réservé (décision d'Anaël) : dès que les dev de 12.13 et 12.14 ont rendu leur rapport et que la partie en ligne est finie, ne lancer aucun agent ; puis dans ../wavestack-v12-s2 : `local --confirm-idle --download --results-dir tools/bench/results/2026-10-25-v12s2` (uv run --with onnxruntime --with tokenizers --with huggingface-hub, ~1 h), `memory --confirm-idle --append-memlog --results-dir …` (~10 min), `dry-run` ; commiter rapport, .memlog.md et recorded/*.jsonl sur une branche de suivi de 12.2, PR vers l'intégration. Ensuite seulement : second avis et revue de 12.13 et 12.14.
+4. Après le rapport de 12.2 : 12.8, puis 12.12. Après 12.13 et 12.14 : 12.16, puis 12.21 (mesure sur poste libre aussi).
 
 ## Journal
 
@@ -554,3 +553,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:29 · 12.20 · review · passe 1 : intégration fusionnée (12.19b) ; 1 medium (arrêt qui annule l'appel en cours, testé) et 2 low corrigés (CancelledError journalisée, échec de démarrage remis à zéro), 2 écartés (langue, compte RH exigé par la spec), 1 figé par test (ligne network) ; 40 tests test_rag_mcp, E2E 98/98 · 914cdcd
 - 2026-10-25 13:29 · 12.20 · décision · à revoir : compte des passages RH retirés dans la réponse au client (le garder au seul journal local ?), outils exposés dans la ligne « réseau » de la matrice en attendant la ligne « exposé » · 914cdcd
 - 2026-10-25 13:29 · 12.20 · PR · #118 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 914cdcd
+- 2026-10-25 13:35 · 12.2 · décision · Anaël : créneau sans agent réservé pour la partie locale et la mémoire du banc, après les dev de 12.13 et 12.14 et la fin de la partie en ligne ; revues de 12.13 et 12.14 ensuite · —
