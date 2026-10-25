@@ -1,0 +1,22 @@
+{
+  "candidates": [
+    "typesafe/jev-1.14",
+    "liquid/d1",
+    "deberta_xsmall",
+    "reranker_livre"
+  ],
+  "commit": "fixture",
+  "item_ids": [
+    "filter.fr.q_fact_badge.pos1",
+    "filter.fr.q_fact_pwd.hard",
+    "filter.fr.q_fact_pwd.pos1",
+    "filter.fr.q_fact_pwd.random",
+    "filter.fr.q_fact_pwd.same_doc",
+    "filter.fr.q_fact_sauvegarde.pos1",
+    "grounding.fr.q_fact_pwd.supported",
+    "grounding.fr.q_fact_pwd.unsupported1",
+    "grounding.fr.q_fact_pwd.unsupported2",
+    "grounding.fr.q_fact_sauvegarde.supported"
+  ],
+  "machine": null
+}

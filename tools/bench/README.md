@@ -74,3 +74,29 @@ Les commandes exactes du relevé, le sens des critères et le tableau à remplir
 - Pour un modèle servi (Ollama, llama-server), les processus du serveur sont relus toutes les 0,25 s : une connexion plus brève peut échapper au relevé. Leur RAM est une somme de pics (un majorant), ajoutée au pic de l'enfant de mesure.
 - Une mesure faite ailleurs que sur le PC cible (HP EliteBook i5, 16 Go, Windows 11) reste indicative.
 - Le mini jeu vérifie que le modèle comprend le français, pas qu'il est meilleur qu'un autre en général.
+
+## Banc de la V1.2, story 2 : System One et fenêtre de 16 384 tokens
+
+`v12s2_system_one_bench.py` mesure, sur le corpus fictif Exemplia et le jeu de questions (450 items en fr, en, de), les candidats du filtre de passages et du contrôle d'ancrage (taux H7 d'affirmations non étayées acceptées), puis la mémoire de Qwen3.5-2B à 16 384 tokens. Six modèles en ligne par OpenRouter (`openrouter.ai` seul autorisé), six candidats locaux sans torch. Rapport : `_bmad-output/specs/spec-wavestack-v1-2-atelier-recherche-documentaire/rapport-banc-system-one.md`.
+
+```bash
+uv run python tools/bench/v12s2_system_one_bench.py list      # effectifs du jeu et candidats
+uv run python tools/bench/v12s2_system_one_bench.py dry-run   # rejeu sans réseau ni clé, régénère le rapport
+```
+
+**Lancement réel (ordre d'Anaël, poste libre de tout autre agent).** Chaque commande exige `--confirm-idle` et reprend là où elle s'est arrêtée (`--results-dir tools/bench/results/<date>-v12s2` pour poursuivre une série).
+
+```bash
+# 1. en ligne : ~5 400 appels, ~25 min, plafonds 2 $ / 6 000 appels / 0,33 $ par modèle
+uv run python tools/bench/v12s2_system_one_bench.py online --confirm-idle
+# 2. local : ~1 h (SLM juge ~450 décisions), ONNX téléchargés une fois avec --download
+uv run --with onnxruntime --with tokenizers --with huggingface-hub python tools/bench/v12s2_system_one_bench.py local --confirm-idle --download --results-dir tools/bench/results/<date>-v12s2
+# 3. mémoire : ~10 min ; --append-memlog ajoute le verdict à .memlog.md
+uv run python tools/bench/v12s2_system_one_bench.py memory --confirm-idle --append-memlog --results-dir tools/bench/results/<date>-v12s2
+# 4. rapport
+uv run python tools/bench/v12s2_system_one_bench.py dry-run
+```
+
+À préparer : `OPENROUTER_API_KEY` (variable ou `HKCU\Environment`, jamais affichée ni écrite) avec du crédit ; GGUF Qwen3.5-2B (`Qwen3.5-2B-Q4_K_M.gguf`) et reranker de la brique dans le dossier des modèles de WaveStack ; snapshots ONNX `deberta_xsmall`, `mdeberta` et Strands Decider 2B (port ONNX q8 de hobson v19, ~1,8 Go), chacun à son commit épinglé, dans `~/.cache/wavestack-bench` (`--models-dir` pour un autre dossier ; un snapshot d'un autre commit est refusé). AnyJev s'installe depuis l'archive de son commit relu (construction pur Python) et lit le SLM par défaut, sans second modèle. Les limites quotidiennes du modèle `:free` sont à relire le jour du banc. Une clé refusée ou un crédit épuisé (HTTP 401, 402, 403) arrête tout le banc (code de sortie 3) sans marquer de modèle « refusé ».
+
+Les cas enregistrés (`recorded/*.jsonl`, liste blanche de champs, sha256 de la requête, sans clé) sont à committer avec le rapport. `tests/fixtures/v12s2/` ne contient que de fausses réponses de test.
