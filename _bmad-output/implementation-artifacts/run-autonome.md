@@ -425,3 +425,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:03 · 12.18 · review · passe 1 : 1 medium (statut erased_illustrative « effacé (illustratif, non mesuré) ») et 4 low corrigés (ligne Source, rebuild vide 422, datifs allemands, REQUIRED_TEXTS) ; E2E 99/99 · 6bb832d
 - 2026-10-25 10:03 · 12.18 · décision · à revoir : statut erased_illustrative et critère 6 réécrit · 6bb832d
 - 2026-10-25 10:03 · 12.18 · PR · #111 ouverte vers integration/v1-2-atelier · 6bb832d
+- 2026-10-25 10:04 · 12.7 · CI · verte · c7408d2
+- 2026-10-25 10:04 · 12.7 · fusion · #110 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 3469b9e
