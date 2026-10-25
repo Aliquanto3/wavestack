@@ -11,6 +11,17 @@ function renderPrepared() {
   $("rag-prepared-box").hidden = !questions.length;
   if (!questions.length) return;
   const current = questions.find((q) => q.question_text === $("rag-question").value);
+  // Built once per list (and per language): a journal event must not close an open menu.
+  const built = `${text("prepared.free_text")}|${questions.map((q) => `${q.id}:${q.question_text}`).join(",")}`;
+  if (select.dataset.built !== built) buildOptions(select, questions, built);
+  select.value = current?.id ?? "";
+  const badge = $("rag-question-type");
+  badge.hidden = !current;
+  badge.textContent = current ? text(`prepared.types.${current.type}_text`) || current.type : "";
+  badge.dataset.type = current?.type ?? "";
+}
+
+function buildOptions(select, questions, built) {
   select.replaceChildren(new Option(text("prepared.free_text"), ""));
   const groups = new Map();
   for (const q of questions) {
@@ -22,11 +33,7 @@ function renderPrepared() {
     groups.get(q.type).append(new Option(q.question_text, q.id));
   }
   select.append(...groups.values());
-  select.value = current?.id ?? "";
-  const badge = $("rag-question-type");
-  badge.hidden = !current;
-  badge.textContent = current ? text(`prepared.types.${current.type}_text`) || current.type : "";
-  badge.dataset.type = current?.type ?? "";
+  select.dataset.built = built;
 }
 
 function pickPrepared() {

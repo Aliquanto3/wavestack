@@ -14,7 +14,8 @@ let pin = null; // the pinned run's snapshot
 function loadPin() {
   try {
     const pin = JSON.parse(stored(PIN_KEY) ?? "null");
-    return pin && typeof pin === "object" && Array.isArray(pin.stages) ? pin : null;
+    const ok = pin && typeof pin === "object" && Array.isArray(pin.stages) && pin.stages.every((s) => s && Array.isArray(s.items));
+    return ok ? pin : null;
   } catch {
     return null;
   }

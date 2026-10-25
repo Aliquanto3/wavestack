@@ -56,3 +56,30 @@ def test_the_page_is_the_document_search_workshop_with_five_tabs():
     # The common bar gains no tab; the lot 5 selectors stay (the A/B ids stay gone).
     assert html.count('class="site-nav-brand"') == 1 and 'id="rag-run"' in html
     assert 'id="rag-compare"' not in html and 'id="rag-comparison"' not in html
+
+
+def test_a_broken_questions_file_leaves_the_page_without_questions(index, tmp_path, monkeypatch):
+    # A YAML syntax error is no `ValueError`: without its own catch, `GET /api/rag_lab` failed
+    # and the page waited for it forever (review of story 4).
+    import shutil
+
+    from wavestack import config
+
+    content = tmp_path / "content"
+    shutil.copytree(config.content_dir(), content)
+    (content / "rag_questions.yaml").write_text("questions: [unclosed\n", encoding="utf-8")
+    session, _ = ready(index)
+    monkeypatch.setattr(config, "content_dir", lambda: content)
+    response = _client(session).get("/api/rag_lab")
+    assert response.status_code == 200 and response.json()["questions"] == []
+
+
+def test_the_page_loads_each_tab_file_after_the_shell():
+    # The CI runs no E2E: a tab file left out of the page would go unseen.
+    html = (STATIC / "rag.html").read_text(encoding="utf-8")
+    shell = html.index('src="/static/rag.js"')
+    for tab in ("build", "compare", "evaluate", "attack", "sheets"):
+        script = f'<script type="module" src="/static/rag-{tab}.js"></script>'
+        assert (STATIC / f"rag-{tab}.js").is_file() and html.index(script) > shell
+        source = (STATIC / f"rag-{tab}.js").read_text(encoding="utf-8")
+        assert f'registerTab("{tab}"' in source

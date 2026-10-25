@@ -1798,10 +1798,11 @@ function wireTabs() {
   for (const button of buttons) {
     button.addEventListener("click", () => setTab(button.dataset.tab));
     button.addEventListener("keydown", (event) => {
-      const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-      if (!step) return;
+      const at = buttons.indexOf(button);
+      const to = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: buttons.length - 1 }[event.key];
+      if (to === undefined) return;
       event.preventDefault();
-      const next = buttons[(buttons.indexOf(button) + step + buttons.length) % buttons.length];
+      const next = buttons[(to + buttons.length) % buttons.length];
       setTab(next.dataset.tab, { focus: true });
     });
   }

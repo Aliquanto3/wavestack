@@ -33,6 +33,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, NamedTuple
 
 import httpx
+import yaml
 from mcp.shared.exceptions import MCPError
 from pydantic import SecretStr
 
@@ -10408,7 +10409,7 @@ class AppSession:
         follow-up question needs its earlier turns, which the workshop has not: left out."""
         try:
             questions = load_rag_questions(self._language)
-        except (OSError, ValueError):
+        except (OSError, ValueError, yaml.YAMLError):
             return []
         return [
             {"id": q.id, "type": q.type, "question_text": q.question_text}
