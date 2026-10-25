@@ -1547,6 +1547,8 @@ body.rag-page {
 
 #rag-case {
   margin-top: var(--spacing-3);
+}
+
 /* V1.2 story 6 (CAP-4): the chunks the chunking made, and the contexts' buttons, in the focus. */
 .rag-chunks-title {
   margin: var(--spacing-3) 0 var(--spacing-1);
@@ -1931,4 +1933,17 @@ body.rag-page {
   .rag-sh-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* The label of an upcoming architecture and the « élevé » chip keep the ink colour (AA in both themes);
+   the border says the level without the colour alone. */
+.rag-sh-entry .rag-badge,
+.rag-sh-upcoming {
+  color: var(--color-ink);
+  border-color: var(--color-line);
+}
+
+.rag-sh-table .status-chip-high {
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 var(--spacing-stroke-min) var(--color-danger);
 }

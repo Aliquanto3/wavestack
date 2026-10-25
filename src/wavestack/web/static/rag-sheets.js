@@ -214,5 +214,5 @@ function architectureNodes(sheet) {
 }
 
 registerTab("sheets", {
-  show: () => load(),
+  show: () => (sh.body ? undefined : load()), // the page reloads on a language change
 });

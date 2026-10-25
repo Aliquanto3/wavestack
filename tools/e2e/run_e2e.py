@@ -15294,6 +15294,14 @@ def s_rag_lab_rights(r: Run) -> None:
         r.goto_app()
 
 
+def _rag_pick_language(r: Run, language: str) -> None:
+    """The language picker of /rag (the page reloads on the same tab), not the main page's."""
+    _open_display(r.page)
+    with r.page.expect_navigation(timeout=15_000):
+        r.page.select_option("#language-picker", language)
+    expect(r.page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
+
+
 def s_rag_lab_sheets(r: Run) -> None:
     """V1.2 story 19 (CAP-16, CAP-17), after `rag` and `rag_rerank`: the Fiches tab, no model, no
     index, no key. The list (12 components, 11 architectures, the pending families), a component
@@ -15369,13 +15377,13 @@ def s_rag_lab_sheets(r: Run) -> None:
         dark = _contrast_sweep(r, ["main"])
         r.shot("70-atelier-rag-fiches-sombre", full_page=True)
         _pick_theme(page, "system")
-        r.check(not light and not dark, "Fiches : contrastes AA clair et sombre", str(light + dark))
+        r.check(not light, "Fiches : contrastes AA en clair", str(light[:3]))
+        r.check(not dark, "Fiches : contrastes AA en sombre", str(dark[:3]))
         for language, legal, upcoming in (
             ("en", "not legal advice", "architecture coming to the workshop (story 13)"),
             ("de", "keine Rechtsberatung", "Architektur kommt in die Werkstatt (Story 13)"),
         ):
-            _pick_language(r, language)
-            expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
+            _rag_pick_language(r, language)
             page.click("#rag-tab-sheets")
             expect(entries).to_have_count(23, timeout=10_000)
             page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
@@ -15387,7 +15395,7 @@ def s_rag_lab_sheets(r: Run) -> None:
                 and legal in page.inner_text(".rag-sh-legal"),
                 f"Fiches en {language} : bandeau de non-avis juridique, étiquette traduite",
             )
-        _pick_language(r, "fr")
+        _rag_pick_language(r, "fr")
         r.check(not outside, "Fiches : aucune requête hors de 127.0.0.1", str(outside[:3]))
     finally:
         page.remove_listener("request", listener)
