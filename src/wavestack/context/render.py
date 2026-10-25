@@ -358,6 +358,7 @@ def _attribute(
                 component=None if owner is None else parts[owner].component,
                 text=text,
                 compressed_from=None if owner is None else parts[owner].compressed_from,
+                label_text=None if owner is None else parts[owner].label,
             ),
             [parts[i] for i in dict.fromkeys(owners)],  # a part split in pieces counts once
         )

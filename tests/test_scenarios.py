@@ -36,7 +36,7 @@ def test_real_content_loads_and_every_scenario_launches():
     ids = [s["id"] for m in program["modules"] for s in m["scenarios"]]
     ids += [s["id"] for s in program["transverse"]]
     # Story 21: FR-38's order, then the hosting and business scenarios (test_program.py).
-    assert len(ids) == 27 and ids[0] == "bare_llm"
+    assert len(ids) == 28 and ids[0] == "bare_llm"
     assert ids[-4:] == ["data_flows", "soc", "iam", "sovereignty"]
     assert len(program["modules"]) == 8
     assert all(30 <= m["duration_min"] <= 60 for m in program["modules"])

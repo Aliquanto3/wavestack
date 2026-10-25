@@ -124,6 +124,8 @@ session:
       mcp_lab: "L'Atelier MCP a occupé le cache du moteur{why}."
       rag_lab: "L'Atelier RAG a occupé le cache du moteur pour sa génération{why}."
       cache_cleared: "Le cache du moteur a été vidé à la demande (bouton « Vider le cache ») : tout le contexte est relu."
+      compaction: "Les anciens échanges ont été résumés (compaction) : l'historique a changé, le moteur relit le contexte à partir de l'historique."
+      sliding_window: "Les échanges les plus anciens ont été retirés (fenêtre glissante) : l'historique a changé, le moteur relit le contexte à partir de l'historique."
     evicted:
       stateless: " : ce moteur ne sait pas sauvegarder l'état du contexte principal"
       failed: " : la sauvegarde ou la restauration de l'état du contexte principal a échoué"
@@ -152,6 +154,19 @@ session:
       compaction: "Compaction : résumer les anciens échanges en quelques lignes."
       old_tool_results: Retrait des anciens résultats d'outils.
       lazy_loading: "Lazy loading : ne charger la documentation des outils qu'à la demande."
+    # V1.4 story 4 (CAP-5): the clickable strategies of the main chat's overflow.
+    choices:
+      compaction:
+        one: "résumer l'échange le plus ancien en quelques lignes (un appel au modèle{duration})"
+        other: "résumer les {count} anciens échanges en quelques lignes (un appel au modèle{duration})"
+      duration: ", ≈ {seconds} s en local"
+      sliding_window:
+        one: "ne garder que les échanges récents (aucun appel ; le plus ancien est retiré)"
+        other: "ne garder que les échanges récents (aucun appel ; les {count} plus anciens sont retirés)"
+      unavailable:
+        single: "Un seul échange : rien à retirer."
+        too_few: "Pas assez d'échanges : la conversation en garde déjà les plus récents."
+        still_too_long: "Même ainsi, le message et les résultats du tour ne tiendraient pas : raccourcissez le message ou essayez une autre stratégie."
   # AD-6: the name of a model capability a brick requires.
   capabilities:
     tool_call_parser: "l'appel d'outils ({parser})"
@@ -226,7 +241,31 @@ session:
       cloud: "Aucune mémoire sur ce poste : le modèle tourne chez {provider}."
       server: "Chargé par {provider}, dans son propre processus, en RAM de ce poste : environ {cost} comptés par le budget."
       file: "Mémoire vive (RAM) du processeur, pas de carte graphique : WaveStack est passé de {before} à {after} ; le budget compte environ {cost}. Les poids, lus en mmap, montent en RAM au premier appel."
+  # V1.4 story 4 (CAP-5): compaction and sliding window of the short memory.
+  compaction:
+    request: "Résume notre conversation jusqu'ici."
+    label: "Résumé (compaction)"
+    summarized:
+      one: "{count} échange résumé (compaction)"
+      other: "{count} échanges résumés (compaction)"
+    removed:
+      one: "{count} échange retiré (fenêtre glissante)"
+      other: "{count} échanges retirés (fenêtre glissante)"
+    # The oldest exchanges that did not fit in the summary call's transcript.
+    dropped:
+      one: "{count} plus ancien retiré sans résumé (transcription trop longue)"
+      other: "{count} plus anciens retirés sans résumé (transcription trop longue)"
+    failed: "La compaction a échoué."
+    unchanged: "La conversation reste telle qu'elle était ; aucun message n'est renvoyé."
+    transcript:
+      previous: "Résumé précédent :"
+      user: "Utilisateur :"
+      assistant: "Assistant :"
+      tool: "[outil {name} : {chars} caractères]"
   refused:
+    compact_empty: "Aucun échange à compacter : la conversation est vide."
+    compact_short_memory: "La brique Mémoire courte est éteinte : il n'y a pas d'historique à compacter."
+    compact_stale: "Cette carte est périmée : un autre tour, un vidage ou un scénario est passé depuis."
     turn: "Un tour est déjà en cours : attendez sa fin ou cliquez sur « Arrêter »."
     no_model: "Aucun modèle n'est chargé : terminez le diagnostic de démarrage."
     nothing_to_replay: "Aucun prompt à rejouer : envoyez d'abord un message."

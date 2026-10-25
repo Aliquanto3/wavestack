@@ -792,7 +792,7 @@ def test_scenario_compression_opens_the_long_context_module():
     assert (
         scenarios.index("scenarios: [rag, rag_rerank, rag_agentic]")
         < scenarios.index("scenarios: [subagent]\n")
-        < scenarios.index("scenarios: [compression, harness_map]\n")
+        < scenarios.index("scenarios: [compression, compaction, harness_map]\n")
         < scenarios.index("scenarios: [cache_read,")
         < scenarios.index("\ntransverse:")
     )

@@ -10,7 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from wavestack import config
 from wavestack.config import localized_path
@@ -34,7 +34,20 @@ class Scenario(BaseModel):
     restore_memory: bool = False
     # AD-9: the first call of the scenario overflows the window on purpose.
     expects_overflow: bool = False
+    # V1.4 story 4 (CAP-5): the prompt (from 1) whose turn overflows because of the history,
+    # on purpose (AD-9), for the compaction; never the first one, nor with `expects_overflow`.
+    overflow_prompt: int | None = None
     prompts: list[str] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _overflow_prompt_after_an_exchange(self) -> Scenario:
+        if self.overflow_prompt is None:
+            return self
+        if self.expects_overflow:
+            raise ValueError("`overflow_prompt` and `expects_overflow` exclude each other.")
+        if not 2 <= self.overflow_prompt <= len(self.prompts):
+            raise ValueError("`overflow_prompt` is a prompt number, after the first one.")
+        return self
 
 
 class Module(BaseModel):
