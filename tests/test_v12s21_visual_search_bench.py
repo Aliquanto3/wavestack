@@ -254,7 +254,14 @@ def _record(results: Path, tmp_path: Path) -> None:
     b.write_json(results / "colsmol_256m_onnx.json", raw)
     b.write_json(
         results / "colpali_v13_fp16.json",
-        {"status": "failed", "error": "arrêté au plafond de sécurité (16400 Mo)", "peak_mb": 16400},
+        {
+            "status": "failed",
+            "error": "arrêté au plafond de sécurité de 16384 Mo (RSS à l'arrêt 16400 Mo)",
+            "stopped_at_ceiling": True,
+            "ceiling_mb": 16384,
+            "rss_at_stop_mb": 16400,
+            "peak_mb": None,
+        },
     )
     b.write_json(
         results / "run.json",
@@ -277,8 +284,9 @@ def test_replay_gives_the_same_report_and_conclusion(tmp_path):
     first = b.render_report(b.aggregate(results))
     assert first == b.render_report(b.aggregate(results))
     assert "**Conclusion : tient.**" in first
-    assert "mesuré : tient" in first and "non exécutable" in first
-    assert "1234" in first and "arrêté au plafond" in first
+    assert "mesuré : tient" in first and "mesuré : ne tient pas" in first
+    assert "1234" in first and "> 16384 (arrêté au plafond de sécurité" in first
+    assert "extrapolé" in first and "à revoir" in first
     assert "Pas encore mesuré" not in first.split("## 2.")[0]
 
 
@@ -291,11 +299,48 @@ def test_an_all_failed_run_concludes_no(tmp_path):
     assert "deferred-work.md" in b.render_report(agg)
 
 
-def test_template_report_is_the_committed_one():
+def test_template_without_results_is_not_yet_measured():
     text = b.render_report(b.aggregate(None))
     assert "Pas encore mesuré" in text and "pas encore mesuré" in text
+
+
+def test_committed_report_is_the_replay_of_the_latest_results():
+    text = b.render_report(b.aggregate(b.latest_results_dir()))
     committed = b.REPORT_PATH.read_text("utf-8")
-    assert committed == text, "regenerate with `report --write` (no results recorded yet)"
+    assert committed == text, "regenerate with `report --write`"
+
+
+def test_memory_peak_follows_the_story_2_rule():
+    mem = {"peak_wset_mb": 4244, "peak_private_mb": 6118, "peak_pagefile_mb": 6130}
+    assert b.memory_peak(mem) == 6118  # the commit (pagefile) is not retained
+    assert b.memory_peak({"peak_wset_mb": 900, "peak_private_mb": None}) == 900
+    assert b.memory_peak({}) is None
+    m = b.candidate_metrics(
+        {
+            "status": "measured",
+            "pages": [],
+            "queries": [],
+            "scores": [],
+            "page_ids": [],
+            "gold": [],
+            "peak_mb": 6130,
+            "memory": mem,
+        }
+    )
+    assert m["peak_mb"] == 6118 and m["peak_commit_mb"] == 6130
+
+
+def test_a_child_stopped_at_the_ceiling_does_not_fit():
+    raw = {
+        "status": "failed",
+        "error": "x",
+        "stopped_at_ceiling": True,
+        "ceiling_mb": 16384,
+        "rss_at_stop_mb": 18750,
+    }
+    v = b.verdict(b.candidate_metrics(raw))
+    assert v["label"] == "ne tient pas"
+    assert "16384" in v["reasons"][0] and "18750" in v["reasons"][0]
 
 
 # ---------- candidates, adapters' pure parts ----------
@@ -315,6 +360,19 @@ def test_idefics3_prompt_and_tiles():
     assert text.count(b.IMAGE_TOKEN) == 13 * b.TILE_TOKENS
     assert "<row_4_col_3>" in text and "<global-img>" in text
     assert b.colsmol_query_text("q").startswith("Query: q<end_of_utterance>")
+
+
+def test_colsmol_query_feeds_have_a_non_zero_placeholder_image():
+    """Idefics3 drops all-zero images as padding (vision Split on 0 images, run of
+    2026-10-25): the query placeholder must be non-zero on every tile, at the graph's 13."""
+    feeds = b.colsmol_query_feeds([5, 6, 7])
+    assert feeds["input_ids"].shape == (1, 3) and feeds["attention_mask"].shape == (1, 3)
+    px = feeds["pixel_values"]
+    assert px.shape == (1, b.GRAPH_TILES, 3, b.TILE, b.TILE) and px.dtype == np.float32
+    assert ((px != 0).reshape(b.GRAPH_TILES, -1).all(axis=1)).all()
+    mask = feeds["pixel_attention_mask"]
+    assert mask.shape == (1, b.GRAPH_TILES, b.TILE, b.TILE) and mask.all()
+    assert set(feeds) == {"input_ids", "attention_mask", "pixel_values", "pixel_attention_mask"}
 
 
 def test_numpy_dtype_name():

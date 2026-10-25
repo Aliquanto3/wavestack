@@ -140,3 +140,21 @@ Conclusion du lot : « tient » si au moins un candidat tient (avec les réserve
 - Décisions prises sans Anaël, à revoir : seuils d'indexation (15 s par page), de requête (3 s) et de qualité (rappel@3 ≥ 0,75 sur ≥ 6 requêtes) ; corpus `fr` seul (le français est la langue par défaut ; des modèles anglais y sont jugés sur du français) ; 12 pages et 8 requêtes ; plafond de sécurité de 16 384 Mo ; ColPali v1.3 retenu malgré les conditions d'utilisation de Gemma (à faire valider avant toute intégration) ; les entrées ColSmol sont construites sans pouvoir être validées avant le téléchargement (échec enregistré, non masqué) ; ColQwen2.5, le plus multilingue, écarté faute de voie sans torch.
 - Si ColSmol est « non exécutable » : essayer le port à tuiles dynamiques (`guyettinger/...`) ou une conversion ONNX dédiée, dans une story ultérieure.
 - Intégration à l'application (catalogue, `lab.py`, interface) : hors lot, à décider après la note.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 56c95cfe)
+
+Base : fusion de `origin/integration/v1-2-atelier` (12.12, 12.14) dans la branche, sans conflit. La mesure n'a pas été relancée. Un seul appel de requête ColSmol réel a été fait, sur le modèle en cache, pour prouver le correctif.
+
+- Important, high, second avis 1 : `test_template_report_is_the_committed_one` comparait le rapport versionné au gabarit et échouait depuis 78ca191c. Corrigé : un test compare le rapport au rejeu des derniers résultats, un autre vérifie le gabarit sans résultat.
+- Important, medium, second avis 4 : la requête ColSmol passait une image factice nulle, qu'Idefics3 retire comme remplissage, d'où l'échec `Split` sur 0 image. Corrigé avec `colsmol_query_feeds` : image factice non nulle (1,0) sur 13 tuiles, aucun jeton `<image>` dans la requête (colpali-engine n'en met pas). Preuve par un appel réel (31 jetons) : sortie (1, 31, 128), normes de 1, ~8,3 s. Test de la forme des entrées sans modèle. Rappel et latence : remesure reportée.
+- Important, medium, second avis 3 : le pic retenu était le pic de mémoire validée (6 130 Mo). Corrigé : `memory_peak` prend le plus grand de l'ensemble de travail et de la mémoire privée, comme `v12s2.memory_peak`. Résultat : 6 118 Mo, marge de -2 022 Mo. Le rapport affiche aussi l'ensemble de travail (4 244 Mo) et la mémoire validée. Le verdict ne change pas : ne tient pas.
+- Important, medium, revue : un candidat arrêté au plafond de sécurité sortait « non exécutable » et « pas encore mesuré », contrairement à la matrice de la spec (« ne tient pas »). Corrigé : enregistrement `stopped_at_ceiling`, `ceiling_mb` et `rss_at_stop_mb`, et verdict « ne tient pas ». `colpali_v13_fp16.json` a été réécrit au nouveau format, avec les mêmes faits (plafond de 16 384 Mo confirmé par le watchdog de ColSmol dans la même mesure).
+- Important, medium, second avis 2 : l'entrée de `deferred-work.md` affichait « pas encore mesuré ». Corrigé : verdict mesuré, défaut du banc, commande de remesure et pistes (également au §6 et dans le bloc « Écart »).
+- Nit, medium, second avis 5 : l'index et la durée du corpus entier sont désormais marqués « extrapolé », avec la formule. Corrigé.
+- Nit, low, second avis 6 : le libellé du plafond était faux. Il donne maintenant le plafond (16 384 Mo) et le RSS à l'arrêt (18 750 Mo). Corrigé.
+- Nit, low, second avis 7 : le §6 liste désormais les décisions « à revoir par Anaël ». Corrigé.
+- Nit, low, second avis 8 : la fermeture était déjà complète (27 paquets, 146 Mo) ; le rapport la nomme désormais et détaille les paquets de 1 Mo ou plus. La phrase sur onnxruntime a été corrigée (déjà dans les extras `decision` et `guardrails`). Corrigé.
+- Reporté : remesure de ColSmol seul sur poste libre, `uv run --with fastembed==0.9.1 python tools/bench/v12s21_visual_search_bench.py measure --confirm-idle --only colsmol_256m_onnx --results-dir tools/bench/results/2026-10-25-v12s21`, puis `report --write`. À vérifier : 8 requêtes exécutées, rappel@3 et latence de requête (au-delà de 3 s attendu, d'après l'appel unique).
+- Complexité : 0 constat (listes bornées par 12 pages et 8 requêtes).

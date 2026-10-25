@@ -527,6 +527,7 @@ def numpy_dtype_name(ort_type: str) -> str:
 IMAGE_TOKEN = "<image>"
 TILE = 512
 TILE_TOKENS = 64
+GRAPH_TILES = 13  # onnx-community/colSmol-256M-ONNX: traced at 12 tiles + the global image
 PAGE_PREFIX = "<|im_start|>user\n"
 PAGE_SUFFIX = "Describe the image.<end_of_utterance>"
 QUERY_PREFIX = "Query: "
@@ -550,6 +551,33 @@ def colsmol_page_text(rows: int, cols: int) -> str:
 
 def colsmol_query_text(query: str) -> str:
     return QUERY_PREFIX + query + QUERY_AUGMENTATION * 10 + "\n"
+
+
+def colsmol_feeds(ids: Sequence[int], pixel_values) -> dict:
+    """Batch of one for the ColSmol graph: (1, seq) ids and mask, (1, tiles, 3, 512, 512)
+    pixels, (1, tiles, 512, 512) pixel mask (cast to the graph's types by the adapter)."""
+    import numpy as np
+
+    tiles = pixel_values.shape[0]
+    return {
+        "input_ids": np.asarray([list(ids)], dtype=np.int64),
+        "attention_mask": np.ones((1, len(ids)), dtype=np.int64),
+        "pixel_values": np.asarray(pixel_values, dtype=np.float32)[None],
+        "pixel_attention_mask": np.ones((1, tiles, TILE, TILE), dtype=np.int64),
+    }
+
+
+def colsmol_query_feeds(ids: Sequence[int], tiles: int = GRAPH_TILES) -> dict:
+    """A text query has no image (colpali-engine `process_queries`: text only), but the
+    exported graph always takes `pixel_values`, traced at 13 tiles. Idefics3 drops the
+    "padding" images that are all 0 (in normalised values, 0 is mid-grey): an all-zero
+    placeholder leaves no image and the vision Split fails (run of 2026-10-25). The
+    placeholder is therefore non-zero (1.0, white); with no `<image>` token in the query the
+    merger inserts none of its features, and the output has one vector per query token. The
+    query still pays a full vision pass over the 13 placeholder tiles."""
+    import numpy as np
+
+    return colsmol_feeds(ids, np.ones((tiles, 3, TILE, TILE), dtype=np.float32))
 
 
 def tile_grid(width: int, height: int, longest: int = 4 * TILE) -> tuple[int, int, int, int]:
@@ -610,15 +638,7 @@ class OnnxColSmol:  # pragma: no cover - needs the model
                 f"entrées ONNX inattendues : {sorted(set(self.input_types) - known)}"
             )
 
-    def _run(self, ids, pixel_values, pixel_mask):
-        import numpy as np
-
-        arrays = {
-            "input_ids": np.asarray([ids], dtype=np.int64),
-            "attention_mask": np.ones((1, len(ids)), dtype=np.int64),
-            "pixel_values": pixel_values[None].astype(np.float32),
-            "pixel_attention_mask": pixel_mask[None],
-        }
+    def _run(self, arrays: dict):
         feeds = {
             name: arrays[name].astype(numpy_dtype_name(typ))
             for name, typ in self.input_types.items()
@@ -651,14 +671,13 @@ class OnnxColSmol:  # pragma: no cover - needs the model
         image_id = self.tok.token_to_id(IMAGE_TOKEN)
         if sum(i == image_id for i in ids) != 13 * TILE_TOKENS:
             raise AdapterError("le nombre de jetons <image> n'est pas 13 x 64")
-        return self._run(ids, pixels, np.ones((13, TILE, TILE), dtype=bool))
+        return self._run(colsmol_feeds(ids, pixels))
 
     def embed_query(self, text: str):
-        import numpy as np
-
         ids = self.tok.encode(colsmol_query_text(text), add_special_tokens=False).ids
-        zeros = np.zeros((13, 3, TILE, TILE), dtype=np.float32)
-        return self._run(ids, zeros, np.ones((13, TILE, TILE), dtype=bool))
+        if self.tok.token_to_id(IMAGE_TOKEN) in ids:
+            raise AdapterError("la requête contient un jeton <image>")
+        return self._run(colsmol_query_feeds(ids))
 
 
 def make_embedder(c: Candidate, models_dir: Path):  # pragma: no cover - needs the model
@@ -778,9 +797,7 @@ def child_measure(
     stop_watch.set()
     final = probe("end")
     out["memory"] = final
-    out["peak_mb"] = max(
-        final["peak_wset_mb"] or 0, final["peak_private_mb"], final["peak_pagefile_mb"]
-    )
+    out["peak_mb"] = memory_peak(final)
     out["watchdog"] = watch_state
     out["attempts"] = s12.summarize_attempts(attempts)
     out["deps"] = install_size_mb(c.roots)
@@ -803,9 +820,28 @@ def write_json(path: Path, data: object) -> None:
     )
 
 
+def memory_peak(mem: dict | None) -> int | None:
+    """Peak retained for the verdict, as in the story 2 bench (`v12s2.memory_peak`): the larger
+    of the peak working set and the peak private memory. The peak commit (`peak_pagefile_mb`)
+    is recorded but not retained: it counts reserved pages that need not be resident."""
+    if not mem:
+        return None
+    values = [mem.get(k) for k in ("peak_wset_mb", "peak_private_mb")]
+    values = [v for v in values if v is not None]
+    return max(values) if values else None
+
+
+def ceiling_stop(raw: dict) -> dict | None:
+    """The child was killed by the safety ceiling: {ceiling_mb, rss_at_stop_mb}, else None."""
+    if not raw.get("stopped_at_ceiling"):
+        return None
+    return {"ceiling_mb": raw.get("ceiling_mb"), "rss_at_stop_mb": raw.get("rss_at_stop_mb")}
+
+
 def candidate_metrics(raw: dict, run: dict | None = None) -> dict:
     """Everything the report prints about one candidate, recomputed from the recording."""
     out: dict = {"status": raw.get("status", "failed"), "error": raw.get("error")}
+    out["ceiling"] = ceiling_stop(raw)
     if raw.get("status") != "measured":
         out["peak_mb"] = raw.get("peak_mb")
         return out
@@ -815,8 +851,14 @@ def candidate_metrics(raw: dict, run: dict | None = None) -> dict:
     mean_vec = statistics.mean(p["vectors"] for p in pages) if pages else 0
     retr = retrieval_metrics(raw["scores"], raw["page_ids"], raw["gold"])
     total = (run or {}).get("corpus_pages") or len(pages)
+    mem = raw.get("memory") or {}
+    deps = raw.get("deps") or {}
     out.update(
-        peak_mb=raw.get("peak_mb"),
+        peak_mb=memory_peak(mem) if mem else raw.get("peak_mb"),
+        peak_wset_mb=mem.get("peak_wset_mb"),
+        peak_private_mb=mem.get("peak_private_mb"),
+        peak_commit_mb=mem.get("peak_pagefile_mb"),
+        rss_index_mb=((raw.get("memory_phases") or {}).get("index") or {}).get("rss_mb"),
         memory=raw.get("memory"),
         load_s=raw.get("load_s"),
         index_s=idx,
@@ -829,7 +871,8 @@ def candidate_metrics(raw: dict, run: dict | None = None) -> dict:
         n_pages=len(pages),
         partial=bool(raw.get("partial")),
         query_error=raw.get("query_error"),
-        deps_mb=(raw.get("deps") or {}).get("total_mb"),
+        deps_mb=deps.get("total_mb"),
+        deps_packages=deps.get("packages") or [],
         torch=raw.get("torch"),
         network=raw.get("attempts"),
     )
@@ -838,6 +881,16 @@ def candidate_metrics(raw: dict, run: dict | None = None) -> dict:
 
 def verdict(m: dict) -> dict:
     """Thresholds of the spec: memory, indexing, query, quality, no torch."""
+    stop = m.get("ceiling")
+    if stop:  # spec matrix: the child stopped at the safety ceiling does not fit
+        return {
+            "label": "ne tient pas",
+            "reasons": [
+                f"mémoire : arrêté au plafond de sécurité de {stop['ceiling_mb']} Mo (RSS à "
+                f"l'arrêt {stop['rss_at_stop_mb']} Mo), bien au-delà du budget de "
+                f"{RAM_BUDGET_MB} Mo"
+            ],
+        }
     if m.get("status") != "measured":
         return {"label": "non exécutable", "reasons": [m.get("error") or "mesure en échec"]}
     reasons = []
@@ -903,6 +956,37 @@ def fr(x: float | None, nd: int = 1) -> str:
     return "n/d" if x is None else f"{x:.{nd}f}".replace(".", ",")
 
 
+def deps_cell(m: dict, c: Candidate) -> str:
+    """Total size of the whole closure, its count and the packages of 1 MB or more."""
+    pkgs = sorted(m.get("deps_packages") or [], key=lambda p: (-p["mb"], p["name"].lower()))
+    big = ", ".join(f"{p['name']} {p['mb']}" for p in pkgs if p["mb"] >= 1)
+    head = f"{m['deps_mb']} Mo, {len(pkgs)} paquets (fermeture de {', '.join(c.roots)})"
+    return f"{head} ; dont {big}" if big else head
+
+
+DECISIONS_TO_REVIEW = (
+    "seuils d'indexation (15 s par page), de requête (3 s) et de qualité (rappel@3 >= 0,75 sur "
+    "au moins 6 requêtes) : propositions du développement, sans source",
+    "corpus `fr` seul : des modèles entraînés en anglais y sont jugés sur du français",
+    "12 pages et 8 requêtes par défaut",
+    "plafond de sécurité de 16 384 Mo (arrêt de l'enfant, pas le verdict)",
+    "ColPali v1.3 retenu malgré les conditions d'utilisation de Gemma (à valider avant toute "
+    "intégration)",
+    "entrées de ColSmol construites à la main (invite Idefics3, image factice non nulle pour "
+    "une requête)",
+    "ColQwen2.5, le plus multilingue, écarté faute de voie sans torch",
+)
+
+NEXT_LEADS = (
+    "quantification de ColSmol (int8 ou fp16 d'onnxruntime) pour baisser le pic de mémoire",
+    "autre port ONNX : `guyettinger/colSmol-256M-dynamic-onnx` (tuiles dynamiques), ou un "
+    "export dont l'encodeur de texte est séparé, pour qu'une requête ne paie pas le passage "
+    "de vision",
+    "ColQwen2.5 avec torch hors de l'application (service séparé) : contraire au budget et à "
+    "« pas de torch », à décider par Anaël",
+)
+
+
 def render_report(agg: dict) -> str:
     run = agg["run"] or {}
     label, sentence = conclusion(agg)
@@ -957,33 +1041,55 @@ def render_report(agg: dict) -> str:
     L += [f"- {e['label']} (`{e['repo']}`) : {e['reason']}." for e in EXCLUDED.values()]
     L += ["", "## 3. Mémoire et latence", ""]
     L += [
-        "| Candidat | Pic (Mo) | Budget 4 096 Mo | Chargement (s) | Indexation médiane / max (s par page) | "  # noqa: E501
+        "Pic retenu = le plus grand du pic de l'ensemble de travail et du pic de mémoire privée "
+        "(même règle que le banc de la story 2) ; le pic de mémoire validée (commit) est donné "
+        "à titre d'information, il compte des pages réservées qui ne sont pas forcément en RAM.",
+        "",
+        "| Candidat | Pic retenu (Mo) | Ensemble de travail / mémoire privée / validée (Mo) | "
+        "Budget 4 096 Mo (marge) | Chargement (s) | Indexation médiane / max (s par page) | "
         "Requête médiane / max (ms) | Pages indexées | Vecteurs par page |",
-        "|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for cid, c in CANDIDATES.items():
         m = agg["candidates"].get(cid)
-        if m is None or m["status"] != "measured":
-            err = "" if m is None else f" ({m.get('error')})"
-            L.append(f"| {c.label} | pas encore mesuré{err} | | | | | | |")
+        if m is None:
+            L.append(f"| {c.label} | pas encore mesuré | | | | | | | |")
             continue
-        fit = "oui" if m["peak_mb"] is not None and m["peak_mb"] <= RAM_BUDGET_MB else "non"
+        if m.get("ceiling"):
+            stop = m["ceiling"]
+            L.append(
+                f"| {c.label} | > {stop['ceiling_mb']} (arrêté au plafond de sécurité ; RSS à "
+                f"l'arrêt {stop['rss_at_stop_mb']}) | n/d | non | | | | | |"
+            )
+            continue
+        if m["status"] != "measured":
+            L.append(f"| {c.label} | non exécutable ({m.get('error')}) | | | | | | | |")
+            continue
+        peak = m["peak_mb"]
+        fit = "n/d"
+        if peak is not None:
+            fit = f"{'oui' if peak <= RAM_BUDGET_MB else 'non'} ({RAM_BUDGET_MB - peak:+d} Mo)"
+        parts = " / ".join(
+            "n/d" if m.get(k) is None else str(m[k])
+            for k in ("peak_wset_mb", "peak_private_mb", "peak_commit_mb")
+        )
         L.append(
-            f"| {c.label} | {m['peak_mb']} | {fit} | {fr(m['load_s'])} | "
+            f"| {c.label} | {peak} | {parts} | {fit} | {fr(m['load_s'])} | "
             f"{fr(m['index_s']['median'])} / {fr(m['index_s']['max'])} | "
             f"{fr(m['query_ms']['median'], 0)} / {fr(m['query_ms']['max'], 0)} | "
             f"{m['n_pages']}{' (partiel)' if m['partial'] else ''} | {fr(m['vectors_per_page'], 0)} |"  # noqa: E501
         )
     L += ["", "## 4. Qualité de la recherche et taille de l'index", ""]
     L += [
-        "| Candidat | Requêtes | Rappel@1 | Rappel@3 | MRR | Index du corpus entier (Mo, fp16) | "
-        "Indexation du corpus entier (min) |",
+        "| Candidat | Requêtes | Rappel@1 | Rappel@3 | MRR | Index du corpus entier "
+        "(Mo, fp16, extrapolé) | Indexation du corpus entier (min, extrapolé) |",
         "|---|---|---|---|---|---|---|",
     ]
     for cid, c in CANDIDATES.items():
         m = agg["candidates"].get(cid)
         if m is None or m["status"] != "measured":
-            L.append(f"| {c.label} | pas encore mesuré | | | | | |")
+            state = "pas encore mesuré" if m is None else "non mesuré (voir section 3)"
+            L.append(f"| {c.label} | {state} | | | | | |")
             continue
         r = m["retrieval"]
         L.append(
@@ -991,6 +1097,11 @@ def render_report(agg: dict) -> str:
             f"{fr(r['mrr'], 2)} | {fr(m['index_mb_corpus'])} ({m['corpus_pages']} pages) | "
             f"{fr(m['corpus_minutes'])} |"
         )
+    L += [
+        "",
+        "Colonnes « extrapolé » : calculées, non mesurées (vecteurs moyens par page x pages du "
+        "corpus x 128 x 2 octets ; médiane d'indexation par page x pages du corpus).",
+    ]
     L += ["", "## 5. Dépendances", ""]
     L += [
         "| Candidat | Paquets à installer (Mo sur disque) | Torch | Réseau pendant la mesure |",
@@ -999,18 +1110,20 @@ def render_report(agg: dict) -> str:
     for cid, c in CANDIDATES.items():
         m = agg["candidates"].get(cid)
         if m is None or m["status"] != "measured":
-            L.append(f"| {c.label} | pas encore mesuré | | |")
+            state = "pas encore mesuré" if m is None else "non mesuré (voir section 3)"
+            L.append(f"| {c.label} | {state} | | |")
             continue
         L.append(
-            f"| {c.label} | {m['deps_mb']} Mo ({', '.join(c.roots)}) | "
+            f"| {c.label} | {deps_cell(m, c)} | "
             f"{'présent' if m['torch'] else 'absent'} | {m['network'] or 'aucune tentative'} |"
         )
     L += [
         "",
         "Aucune dépendance n'est ajoutée au projet : `pyproject.toml` et `uv.lock` ne changent "
         f"pas ; la mesure vient de `uv run --with {FASTEMBED_PIN}`. Une fonction de l'application "
-        "ajouterait onnxruntime (déjà employé par le banc des modèles de décision), numpy, "
-        "pillow et fastembed, plus un modèle de 0,96 à 5,9 Go à télécharger.",
+        "ajouterait cette fermeture (onnxruntime et tokenizers sont déjà dans les extras "
+        "`decision` et `guardrails`), plus fastembed pour ColPali et un modèle de 0,96 à 5,9 Go "
+        "à télécharger.",
         "",
         "## 6. Seuils, réserves et décisions",
         "",
@@ -1026,11 +1139,23 @@ def render_report(agg: dict) -> str:
         "leur latence est celle d'un passage complet du modèle, pas d'un encodeur de texte seul.",
         "- Les entrées du graphe ColSmol sont construites à la main d'après la carte d'Idefics3 / "
         "ColIdefics3 ; si le graphe les refuse, la mesure l'enregistre (« non exécutable ») sans "
-        "chiffre inventé.",
+        "chiffre inventé. Le graphe exporté exige `pixel_values` (13 tuiles) même pour une "
+        "requête de texte : la requête passe une image factice non nulle (une image nulle est "
+        "retirée comme remplissage par Idefics3 et le graphe échoue), sans jeton `<image>` ; elle "
+        "paie donc un passage de vision complet.",
         "- Pages de test : rendu de texte sur fond blanc, sans mise en page riche : une borne "
         "optimiste pour la lecture, pessimiste pour l'intérêt du visuel (pas de schémas ni de scans).",  # noqa: E501
+        "- Le plafond de sécurité (16 384 Mo par défaut) arrête l'enfant pour protéger le poste ; "
+        "le RSS à l'arrêt peut le dépasser (relevé toutes les 0,5 s). Un candidat arrêté « ne "
+        "tient pas ».",
+        "",
+        "Décisions prises sans Anaël, à revoir :",
         "",
     ]
+    L += [f"- {d}." for d in DECISIONS_TO_REVIEW]
+    L += ["", "Pistes si rien ne tient :", ""]
+    L += [f"- {d}." for d in NEXT_LEADS]
+    L += [""]
     L += deferred_block(agg)
     L += ["## 7. Commandes", ""]
     L += command_lines()
@@ -1050,7 +1175,8 @@ def deferred_block(agg: dict) -> list[str]:
         "```yaml",
         "- source_spec: `_bmad-output/specs/spec-wavestack-v1-2-atelier-recherche-documentaire/stories/21-recherche-visuelle-sans-ocr.md`",  # noqa: E501
         f"  summary: CAP-19, recherche visuelle sans OCR : {label}. {sentence}",
-        "  evidence: rapport-recherche-visuelle.md ; décision d'intégration (ou non) à prendre par Anaël.",  # noqa: E501
+        "  evidence: rapport-recherche-visuelle.md ; décision d'intégration (ou non) à prendre par Anaël."  # noqa: E501
+        + ("" if label == "tient" else " Pistes : " + " ; ".join(NEXT_LEADS) + "."),
         "```",
         "",
     ]
@@ -1232,8 +1358,14 @@ def cmd_measure(args) -> int:  # pragma: no cover - real run
         if out.get("error") == "ram_ceiling":
             out = {
                 "status": "failed",
-                "error": f"arrêté au plafond de sécurité ({out['rss_at_stop_mb']} Mo)",
-                "peak_mb": out["rss_at_stop_mb"],
+                "error": (
+                    f"arrêté au plafond de sécurité de {args.ceiling_mb} Mo "
+                    f"(RSS à l'arrêt {out['rss_at_stop_mb']} Mo)"
+                ),
+                "stopped_at_ceiling": True,
+                "ceiling_mb": args.ceiling_mb,
+                "rss_at_stop_mb": out["rss_at_stop_mb"],
+                "peak_mb": None,
             }
         elif "fatal" in out:
             out = {"status": "failed", "error": out["fatal"]}
