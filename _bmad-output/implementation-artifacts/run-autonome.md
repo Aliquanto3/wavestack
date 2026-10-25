@@ -651,3 +651,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:31 · 12.21 · second-avis · lancé (lecture seule) · 78ca191c
 - 2026-10-25 17:31 · 12.16 · dev · refusion de l'intégration (avec 12.12) lancée, test des parties du repli CRAG dans l'arbre · 7e97f4c9
 - 2026-10-25 17:31 · 13 · dev · correctif de _update_graph lancé (schéma de _update_raptor : StageFailed, écriture après la copie gardée), branche fix/v1-2-mise-a-jour-du-graphe · 8a611a8
+- 2026-10-25 17:32 · run · CI · #124 en conflit après #123 (captures 01 et 01b) ; intégration fusionnée, captures de la page Modèles gardées ; test_web_app rouge en local seulement (rag.html réécrit en CRLF par la fusion dans la copie de travail, index en LF), tests verts après normalisation ; file_prs.py relancé · d392e25a
