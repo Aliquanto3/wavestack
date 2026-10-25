@@ -183,6 +183,9 @@ stages:
   grounding_check:
     label_text: "Grounding check"
     explain_text: "Après la génération, chaque phrase de la réponse est confrontée aux passages du contexte : ancrée ou non. Le contrôle signale une affirmation non étayée, il ne réécrit pas la réponse. Sous le seuil, la phrase est dite non ancrée, ou la cascade demande au SLM juge."
+  fallback:  # V1.2 story 12 (CAP-7)
+    label_text: "Corrective fallback"
+    explain_text: "Après le filtre de passages : s'il a gardé au moins un passage, rien à corriger. S'il n'en a gardé aucun, le modèle actif réécrit la question, la recherche et le filtre repassent une fois ; s'il ne reste toujours rien, l'atelier répond « je ne sais pas » sans appeler le modèle. Le Corrective RAG de l'article étend la recherche au web : l'atelier est hors ligne, son repli cherche de nouveau dans le même corpus."
 
 # Le nom de chaque option ; celles qui nomment un modèle déclaré prennent son libellé.
 options:
@@ -240,6 +243,8 @@ options:
       label_text: "Arbre de sections (PageIndex)"
     graph_search:
       label_text: "Graphe de connaissances (GraphRAG)"
+    raptor_search:  # V1.2 story 12
+      label_text: "Arbre de résumés (RAPTOR)"
     wiki_pages:
       label_text: "Pages du LLM Wiki (index lu par le modèle)"
   generation:
@@ -272,6 +277,11 @@ options:
       label_text: "Classifieur local (deberta_xsmall)"
     cloud:
       label_text: "API de décision (cloud)"
+  fallback:  # V1.2 story 12
+    retry:
+      label_text: "Réécrire et chercher de nouveau, puis « je ne sais pas »"
+    abstain:
+      label_text: "Répondre « je ne sais pas »"
 
 # Les réglages : leur nom et leur unité.
 params:
@@ -411,6 +421,19 @@ steps:
     label_text: "Graph query"
     action_text: "Le modèle nomme les entités de la question, ou lit les communautés proches"
     explain_text: "En mode local, un appel donne les entités de la question (ENTITIES: a, b) ; le graphe les relie à leurs voisins à un saut, et les passages-preuves de ces relations deviennent le contexte. En mode global, les trois communautés les plus proches de la question passent chacune par un appel « map » (POINTS: … ou POINTS: NONE) ; la génération fait le « reduce ». Aucune audience n'est filtrée : chaque élément dit la sienne."
+  # V1.2 story 12: RAPTOR's tree built once, then searched on every level;
+  # Corrective RAG's fallback.
+  raptor_build:
+    label_text: "Summary tree building"
+    action_text: "Regrouper les passages et résumer chaque groupe, niveau par niveau"
+    explain_text: "RAPTOR construit une fois un arbre : les passages du corpus sont regroupés par la proximité de leurs mots, chaque groupe est résumé, puis les résumés sont regroupés et résumés à leur tour, jusqu'à trois niveaux. L'arbre livré est calculé par une règle, sans modèle (résumés extractifs : la phrase de chaque enfant la plus proche du groupe) ; « Reconstruire » fait écrire chaque résumé par le modèle actif, un appel par nœud. Mettre à jour un document place ses passages dans l'arbre et refait les seuls résumés touchés."
+  raptor_query:
+    label_text: "Summary tree search"
+    action_text: "Chercher sur tous les niveaux de l'arbre à la fois"
+    explain_text: "L'arbre est aplati : passages et résumés de tous les niveaux sont notés ensemble par BM25, et les cinq meilleurs nœuds deviennent le contexte, sans appel au modèle. Une question de vue d'ensemble trouve un résumé, une question factuelle un passage. Aucune audience n'est filtrée : chaque élément dit la sienne."
+  fallback:
+    label_text: "Corrective fallback"
+    action_text: "Réécrire la question et chercher de nouveau si le filtre n'a rien gardé"
   # V1.2 story 14: the LLM Wiki compiled once, linted, its index read at each question.
   wiki_build:
     label_text: "Wiki compilation"
@@ -473,6 +496,9 @@ components:
   knowledge_graph:
     label_text: "Graphe de connaissances"
     note_text: "Entités, relations, communautés résumées"
+  summary_tree:  # V1.2 story 12
+    label_text: "Arbre de résumés"
+    note_text: "Passages, résumés de groupes, résumés de résumés"
   wiki:
     label_text: "Wiki"
     note_text: "Pages Markdown compilées depuis les sources, et leur index"
@@ -555,6 +581,12 @@ presets:
       par document, une par concept partagé, un index), vérifié par une passe de lint ; à
       chaque question, le modèle choisit dans l'index les pages à lire. Des pages à compiler
       et à recompiler à chaque mise à jour, un appel à la requête.
+  raptor:  # V1.2 story 12
+    label_text: "RAPTOR"
+    explain_text: "Aucun vecteur : un arbre de résumés construit une fois, les passages regroupés et résumés, puis les résumés regroupés et résumés. La requête cherche sur tous les niveaux à la fois, sans appel au modèle. Coûteux à construire avec un modèle, des résumés à refaire à chaque mise à jour."
+  crag:  # V1.2 story 12
+    label_text: "Corrective RAG"
+    explain_text: "Le RAG hybride, puis le filtre de passages de System One ; si le filtre ne garde rien, le modèle réécrit la question et la recherche repasse une fois, puis l'atelier répond « je ne sais pas ». Sans recherche web : l'atelier est hors ligne."
 # V1.2 story 10 (vues.md) : les familles d'architectures, dans l'ordre de PRESET_FAMILIES.
 preset_families:
   search:
@@ -1058,6 +1090,42 @@ sheets:
         url: "https://arxiv.org/pdf/2506.20963v1.pdf"
       - label_text: "LightRAG (Guo et al., 2024), graphe d'entités et requête locale ou globale : l'inspiration du constructeur"
         url: "https://arxiv.org/abs/2410.05779"
+  # V1.2 story 12 (CAP-7): RAPTOR, Corrective RAG's fallback.
+  context.raptor_search:
+    purpose_text: "Chercher dans un arbre de résumés construit une fois : les passages regroupés par proximité et résumés, puis les résumés regroupés et résumés à leur tour. La requête note ensemble tous les nœuds de l'arbre (l'« arbre aplati » de l'article) et garde les plus proches."
+    when_text: "À utiliser pour les questions de vue d'ensemble, qu'un seul passage ne couvre pas : un résumé de groupe réunit plusieurs documents. À éviter sur un corpus qui change souvent : chaque modification refait les résumés de sa branche, jusqu'à la racine."
+    cost_text: "La construction est le coût Construction : par la règle (arbre livré), quelques millisecondes et aucun token ; par le modèle (« Reconstruire »), un appel par résumé, de bas en haut. Une mise à jour découpe le document touché, place ses passages et refait les résumés de sa branche. La requête ne fait aucun appel avant la génération, mais le contexte peut porter des résumés."
+    literature_text: "RAPTOR (Sarthi et al., 2024) regroupe récursivement les passages et les résume, puis cherche sur tous les niveaux de l'arbre ; avec GPT-4, il améliore de 20 points d'exactitude le meilleur résultat sur le banc QuALITY. L'article embarque les passages (SBERT) et les regroupe par mélange de gaussiennes ; l'atelier les regroupe par leurs mots, pour un arbre livré reproductible sans modèle d'embedding. H12 s'applique : chaque résumé est une copie dérivée qui mêle plusieurs documents."
+    bench_text: ""
+    sources:
+      - label_text: "RAPTOR (Sarthi et al., 2024) : résumés récursifs et recherche sur tous les niveaux de l'arbre"
+        url: "https://arxiv.org/abs/2401.18059"
+      - label_text: "arXiv 2508.04276 : le contenu dérivé élargit la surface d'attaque (H12)"
+        url: "https://arxiv.org/abs/2508.04276"
+  fallback.retry:
+    purpose_text: "Corriger une recherche qui n'a rien donné : si le filtre de passages n'a gardé aucun passage, le modèle actif réécrit la question, la recherche et le filtre repassent une fois ; s'il ne reste rien, l'atelier répond « je ne sais pas »."
+    when_text: "À utiliser quand une mauvaise réponse coûte plus qu'un refus et que la question peut être mal formulée. À éviter si le filtre rejette à tort : la seconde recherche soumet de nouveau la question d'origine au filtre, et le refus masque alors une réponse présente dans le corpus."
+    cost_text: "Rien à la construction ni à la mise à jour (celles du RAG hybride). À la requête, seulement quand le filtre n'a rien gardé : un appel de réécriture, une seconde recherche, un second passage du filtre. Un « je ne sais pas » ne coûte aucune génération."
+    literature_text: "CRAG (Yan et al., 2024) juge la qualité des passages trouvés par un évaluateur léger et, selon sa confiance, garde les passages, les complète par une recherche web, ou fait les deux. L'atelier garde le jugement (le filtre de passages de System One) et remplace la recherche web, absente hors ligne, par une réécriture et une seconde recherche dans le même corpus. Hypothèse H7, non démontrée : un modèle de décision remplacerait les juges LLM intermédiaires sans perte de qualité."
+    bench_text: ""
+    sources:
+      - label_text: "CRAG (Yan et al., 2024) : évaluateur de la recherche, puis correction ou recherche web"
+        url: "https://arxiv.org/abs/2401.15884"
+      - label_text: "Towards AI : Jev comme juge de vérification d'affirmations (23 % contre 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "jev-corrective-rag : un Corrective RAG avec un modèle de décision"
+        url: "https://github.com/sudeshkar/jev-corrective-rag"
+  fallback.abstain:
+    purpose_text: "Répondre « je ne sais pas » quand le filtre de passages n'a gardé aucun passage, sans second essai et sans appeler le modèle."
+    when_text: "À utiliser pour un refus net et sans coût quand rien d'utile n'a été trouvé (une question hors du corpus). À éviter quand la question peut être reformulée : l'option de réécriture tente une seconde recherche avant de refuser."
+    cost_text: "Aucun : ni construction, ni mise à jour ; à la requête, un « je ne sais pas » remplace la génération, zéro token."
+    literature_text: "CRAG (Yan et al., 2024) déclenche une action corrective quand ses passages sont jugés faux ; l'abstention est l'action la plus simple, sans recherche de plus. Hypothèse H7, non démontrée : un modèle de décision remplacerait les juges LLM intermédiaires sans perte de qualité."
+    bench_text: ""
+    sources:
+      - label_text: "CRAG (Yan et al., 2024) : évaluateur de la recherche, puis correction ou recherche web"
+        url: "https://arxiv.org/abs/2401.15884"
+      - label_text: "Towards AI : Jev comme juge de vérification d'affirmations (23 % contre 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
   context.wiki_pages:
     purpose_text: "Compiler une fois les sources en un wiki de pages Markdown (une page par document, une par concept que plusieurs documents partagent, un index de toutes les pages, reliées par des liens [[page]]), le vérifier par une passe de lint, puis répondre à partir des pages que le modèle choisit dans l'index : le pattern du LLM Wiki d'Andrej Karpathy, implémenté ici à la main."
     when_text: "À utiliser pour une base de connaissances stable, de quelques centaines de documents, relue par des humains : une page de concept rassemble ce que plusieurs sources disent d'un même sujet. À éviter si les sources changent vite (chaque mise à jour recompile des pages) ou si l'ancrage compte : la page est une synthèse, pas la source."

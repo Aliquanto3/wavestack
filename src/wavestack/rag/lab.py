@@ -43,6 +43,7 @@ from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import decision as rag_decision
 from wavestack.rag import graph as rag_graph
 from wavestack.rag import index as rag_index
+from wavestack.rag import raptor as rag_raptor
 from wavestack.rag import wiki as llm_wiki  # V1.2 story 14
 from wavestack.rag.corpus import (
     Chunk,
@@ -68,6 +69,7 @@ KINDS = (
     "fusion",
     "rerank",
     "passage_filter",
+    "fallback",  # V1.2 story 12 (CAP-7): Corrective RAG's fallback, after the filter
     "context",
     "generation",
     "grounding_check",
@@ -79,6 +81,7 @@ RETRIEVAL = ("query", "vector_search", "lexical_search", "fusion", "rerank")
 # V1.2 story 8 (CAP-6): System One's router (before the searches) and passage filter (after a
 # search) join the segment; its grounding check is the one kind after the generation.
 RETRIEVAL = (*RETRIEVAL, "router", "passage_filter")
+RETRIEVAL = (*RETRIEVAL, "fallback")  # V1.2 story 12: Corrective RAG, after the filter
 CHECKS = ("grounding_check",)
 DECISION_KINDS = ("router", "passage_filter", "grounding_check")
 SEARCHES = ("vector_search", "lexical_search")
@@ -120,6 +123,8 @@ OPTIONS: dict[str, tuple[str, ...]] = {
         "graph_search",
         # V1.2 story 14 (CAP-7): the LLM Wiki, its pages compiled from the sources.
         "wiki_pages",
+        # V1.2 story 12 (CAP-7): RAPTOR, every node of a tree of summaries searched at once.
+        "raptor_search",
     ),
     # Lot 5c-3: the workshop's active model generates (the shipped one), or nothing is sent.
     "generation": ("active", "not_run"),
@@ -128,6 +133,9 @@ OPTIONS: dict[str, tuple[str, ...]] = {
     "router": ("local", "cloud"),
     "passage_filter": ("local", "cloud"),
     "grounding_check": ("local", "cloud"),
+    # V1.2 story 12 (CAP-7): Corrective RAG's fallback when the filter kept nothing: the
+    # question rewritten and searched once more, then « je ne sais pas »; or that answer alone.
+    "fallback": ("retry", "abstain"),
 }
 # The settings of an option, by name.
 PARAMS: dict[tuple[str, str], tuple[str, ...]] = {
@@ -196,6 +204,7 @@ SHEETED_KINDS = (
     "router",
     "passage_filter",
     "grounding_check",
+    "fallback",  # V1.2 story 12
 )
 # V1.2 story 6 (CAP-4): constants, not settings. `parent_child`: the characters of a child (the
 # parent is a `paragraphs` chunk); `semantic`: a chunk ends where the distance between two
@@ -218,6 +227,8 @@ NO_INDEX_WINDOW = 16384
 # or read everything), and the bounds of the agentic search and of PageIndex's descent
 # (constants, no setting: the loop's rounds, the tokens a model's action may write).
 SEARCHLESS_OPTIONS = (*CORPUS_OPTIONS, "agent_loop", "section_tree", "graph_search")
+RAPTOR_RESERVE = 256  # V1.2 story 12: the tokens a summary of the tree may write
+RAPTOR_SOURCE_MAX_TOKENS = 1500  # what a summary's call reads of its children
 # V1.2 story 13: GraphRAG's two modes (a choice of the page, `graph_mode` of the request).
 GRAPH_MODES = ("local", "global")
 MAX_AGENT_ROUNDS = 6
@@ -233,6 +244,7 @@ GRAPH_RESERVE = 256  # V1.2 story 13: the tokens a graph's call may write (lines
 # the pages it may pick, what a synthesis's rewrite reads of a page's material, the lint's
 # findings an event keeps, and the two parts of its update (recompile, then lint).
 SEARCHLESS_OPTIONS = (*SEARCHLESS_OPTIONS, "wiki_pages")
+SEARCHLESS_OPTIONS = (*SEARCHLESS_OPTIONS, "raptor_search")  # V1.2 story 12, after the wiki
 WIKI_BREADTH = llm_wiki.WIKI_BREADTH
 WIKI_SOURCE_MAX_TOKENS = 1500
 WIKI_FINDINGS_SHOWN = 20
@@ -274,6 +286,8 @@ COMPONENTS: dict[str, tuple[str, str, str | None]] = {
     "knowledge_graph": ("data", "🕸️", None),
     # V1.2 story 14: the LLM Wiki's pages, compiled from the documents.
     "wiki": ("data", "📚", None),
+    # V1.2 story 12: RAPTOR's tree of summaries (passages, then summaries of summaries).
+    "summary_tree": ("data", "🌲", None),
 }
 
 
@@ -430,6 +444,24 @@ STEPS: dict[str, SequenceStep] = {
         calls=("llm",),
         options=("wiki_pages",),
     ),
+    # V1.2 story 12: RAPTOR's tree, built once from the documents (its cost: `build`), then
+    # searched on every level at each question (no model call); Corrective RAG's fallback.
+    "raptor_build": SequenceStep(
+        "build",
+        "context",
+        own=False,
+        reads=("documents",),
+        writes=("summary_tree",),
+        options=("raptor_search",),
+    ),
+    "raptor_query": SequenceStep(
+        "run",
+        "context",
+        own=False,
+        reads=("summary_tree", "question"),
+        options=("raptor_search",),
+    ),
+    "fallback": SequenceStep("run", "fallback", reads=("question",), calls=("llm",)),
 }
 
 # ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
@@ -449,6 +481,16 @@ PRESETS: dict[str, tuple[tuple[str, str], ...]] = {
     "pageindex": (),
     "graphrag": (),  # V1.2 story 13
     "llm_wiki": (),  # V1.2 story 14: the Context reads the wiki's pages
+    # V1.2 story 12: RAPTOR searches its tree by itself; Corrective RAG is the hybrid chain,
+    # System One's passage filter, then the fallback.
+    "raptor": (),
+    "crag": (
+        ("vector_search", "cosine"),
+        ("lexical_search", "bm25"),
+        ("fusion", "rrf"),
+        ("passage_filter", "local"),
+        ("fallback", "retry"),
+    ),
 }
 # V1.2 story 10: the Context option a preset sets (the others keep the chain's Context).
 PRESET_CONTEXT: dict[str, str] = {
@@ -458,12 +500,14 @@ PRESET_CONTEXT: dict[str, str] = {
     "pageindex": "section_tree",
     "graphrag": "graph_search",  # V1.2 story 13
     "llm_wiki": "wiki_pages",  # V1.2 story 14
+    "raptor": "raptor_search",  # V1.2 story 12
 }
 # V1.2 story 10 (vues.md): the presets' families, drawn in this order; each preset is in one.
 # V1.2 story 11: « Structure » between « Recherche » and « Sans index » (the mock-up's order).
 PRESET_FAMILIES: dict[str, tuple[str, ...]] = {
-    "search": ("dense", "hybrid", "rerank"),
-    "structure": ("pageindex", "graphrag", "llm_wiki"),  # V1.2 stories 13 and 14, after PageIndex
+    "search": ("dense", "hybrid", "rerank", "crag"),  # V1.2 story 12: CRAG last (vues.md)
+    # V1.2 stories 13 and 14 after PageIndex; V1.2 story 12: RAPTOR between it and GraphRAG.
+    "structure": ("pageindex", "raptor", "graphrag", "llm_wiki"),
     "no_index": ("long_context", "cag", "agentic"),
 }
 
@@ -972,8 +1016,14 @@ class Catalog:
             "presets": self._presets(),
             # V1.2 story 10: the families the presets are drawn in, and the Context options
             # that read the whole corpus (a chain with one of them has no search).
+            # V1.2 story 12: and each family's presets in its order (vues.md: RAPTOR between
+            # PageIndex and GraphRAG, while `PRESETS` only grows at its end).
             "preset_families": [
-                {"id": f, "label_text": self.content.preset_families[f].label_text}
+                {
+                    "id": f,
+                    "label_text": self.content.preset_families[f].label_text,
+                    "presets": list(PRESET_FAMILIES[f]),
+                }
                 for f in PRESET_FAMILIES
             ],
             "corpus_options": list(CORPUS_OPTIONS),
@@ -1129,6 +1179,7 @@ def _bounds_fr(
 
 # V1.2 stories 5 and 8: where a stage added from the palette goes (after this kind).
 INSERT_AFTER = {"query": "vector_store", "router": "vector_store", "grounding_check": "generation"}
+INSERT_AFTER["fallback"] = "passage_filter"  # V1.2 story 12: the fallback reads the filter's
 
 
 def check_pipeline(
@@ -1274,6 +1325,13 @@ def _segment_refusal(
     sieve = next((s for s in segment if s.kind == "passage_filter"), None)
     if sieve is not None and position[sieve.id] < position[searches[0].id]:
         return text("filter_after", stage=names["passage_filter"]), sieve.id
+    # V1.2 story 12: Corrective RAG's fallback reads what the filter kept, so it follows one.
+    fallback = next((s for s in segment if s.kind == "fallback"), None)
+    if fallback is not None and (sieve is None or position[fallback.id] < position[sieve.id]):
+        return (
+            text("fallback_after_filter", stage=names["fallback"], filter=names["passage_filter"]),
+            fallback.id,
+        )
     return None
 
 
@@ -2052,6 +2110,9 @@ class LabDeps:
     # built here.
     graph_mode: str = "local"
     graph: Callable[[Sequence[DocText]], tuple[rag_graph.Graph, int]] | None = None
+    # V1.2 story 12: RAPTOR's tree of the chain's documents with the milliseconds its reading
+    # took (the session's cache); `None`: read here.
+    raptor: Callable[[Sequence[DocText]], tuple[rag_raptor.Tree, int]] | None = None
 
 
 @dataclass
@@ -2128,6 +2189,9 @@ class _Result:
     # V1.2 story 8 (CAP-6): System One's decisions (author, probability, threshold).
     decisions: list[dict[str, Any]] = field(default_factory=list)
     graph: dict[str, Any] | None = None  # V1.2 story 13: GraphRAG's query (`graph_search`)
+    # V1.2 story 12: RAPTOR's search on every level, Corrective RAG's fallback.
+    raptor: dict[str, Any] | None = None
+    fallback: dict[str, Any] | None = None
     # V1.2 story 14: the LLM Wiki (its pages, its lint, the pages the model picked).
     wiki: dict[str, Any] | None = None
 
@@ -2186,6 +2250,10 @@ class _Chain:
     # V1.2 story 8 (CAP-6): the stages the router left out (kind -> why), the answer generated.
     routed_out: dict[str, str] = field(default_factory=dict)
     answer: str | None = None
+    # V1.2 story 12 (Corrective RAG): the passage filter ran on this list; the fallback found
+    # nothing, the workshop answers « je ne sais pas » without the model.
+    filtered: bool = False
+    abstained: bool = False
 
     @property
     def ranked(self) -> list[Item] | None:
@@ -2510,6 +2578,8 @@ class LabRun:
                 "tree": result.tree,
                 "decisions": result.decisions,
                 "graph": result.graph,
+                "raptor": result.raptor,  # V1.2 story 12
+                "fallback": result.fallback,
                 "wiki": result.wiki,
             },
             step_id,
@@ -2567,6 +2637,8 @@ class LabRun:
             return self._generation_run(chain, step_id, progress)
         if stage.kind in DECISION_KINDS:  # V1.2 story 8 (CAP-6)
             return self._decision(chain, stage, step_id, progress)
+        if stage.kind == "fallback":  # V1.2 story 12 (CAP-7): Corrective RAG
+            return self._fallback(chain, stage, step_id, progress)
         raise StageFailed(Message("rag_lab.stage.unknown", kind=stage.kind))
 
     def _passed_on(self, chain: _Chain, reason_text: str) -> _Result:
@@ -3597,6 +3669,8 @@ class LabRun:
             return self._context_tree(chain, step_id, tick)
         if stage.option == "graph_search":  # V1.2 story 13
             return self._context_graph(chain, step_id, tick)
+        if stage.option == "raptor_search":  # V1.2 story 12
+            return self._context_raptor(chain)
         if stage.option == "wiki_pages":  # V1.2 story 14
             return self._context_wiki(chain, step_id, tick)
         if stage.option in CORPUS_OPTIONS:
@@ -4778,6 +4852,175 @@ class LabRun:
             progress(start + done, total or len(targets))
         return out
 
+    # -- V1.2 story 12 (CAP-7): RAPTOR's tree of summaries --
+
+    def _raptor_of(self, documents: Sequence[DocText]) -> tuple[rag_raptor.Tree, int]:
+        """The tree of the chain's documents and the milliseconds its reading took (the
+        session's cache keeps both, by language and corpus)."""
+        if self.deps.raptor is not None:
+            return self.deps.raptor(documents)
+        deps = self.deps
+        return raptor_for(
+            deps.content, deps.lang, deps.shipped_chunk_max_chars, documents, deps.lab_dir
+        )
+
+    def _raptor_build_cost(self, tree: rag_raptor.Tree, built_ms: int) -> StageCost:
+        """The tree's construction, in `build`: the rule's, measured (no token); the model's,
+        read from the rebuilt file's header (its tokens, its duration)."""
+        if tree.rebuilt is not None:
+            return StageCost(
+                "build",
+                "raptor_search",
+                tree.rebuilt.tokens,
+                tree.rebuilt.duration_ms,
+                None,
+                None,
+                measured_at_build=True,
+                note_text=Message("rag_lab.costs.raptor_measure", model=tree.rebuilt.model),
+            )
+        return StageCost("build", "raptor_search", 0, built_ms, 0.0, None)
+
+    def _context_raptor(self, chain: _Chain) -> _Result:
+        """`raptor_search` (V1.2 story 12, CAP-7, RAPTOR): every node of the tree of the chain's
+        documents (passages and summaries, the « collapsed tree » of the article) scored at once
+        by the workshop's BM25, the `TOP_NODES` best kept, without any model call; each element
+        says its level, its documents and its audience (shown, never filtered)."""
+        deps, say, count = self.deps, self._text, self._int
+        copy = deps.work_copy if self._reads_work_copy() else None
+        docs = self._corpus_documents(copy)
+        source = say("chunking.source_work_copy" if copy else "chunking.source_corpus")
+        tree, built_ms = self._raptor_of(docs)
+        began = time.perf_counter()
+        picks = rag_raptor.select(tree, self.question, self._lang)
+        searched = _elapsed(began)
+        mark = raptor_mark(tree, self._lang)
+        estimate = raptor_estimate(tree, deps.estimate_tokens, self._lang)
+        result = _Result(
+            input_text=say(
+                "raptor.input",
+                passages=self._count(len(tree.leaves), "passage"),
+                summaries=self._count(len(tree.nodes), "summary"),
+                levels=count(tree.levels),
+                documents=self._count(len(docs), "document"),
+                source=source,
+            ),
+            costs=[
+                self._raptor_build_cost(tree, built_ms),
+                StageCost("query", "raptor_search", 0, searched, 0.0, None),
+            ],
+        )
+        result.facts = [
+            (say("fact.raptor"), mark),
+            (say("fact.raptor_levels"), count(tree.levels)),
+            (say("fact.raptor_summaries"), count(len(tree.nodes))),
+            (say("fact.raptor_stale"), count(tree.stale)),
+            (say("fact.raptor_kept"), count(len(picks))),
+        ]
+        if estimate is not None:
+            result.facts.append((say("fact.raptor_estimate"), estimate["text"]))
+        found = []
+        rows = []
+        for pick in picks:
+            title = pick.title_text or say(
+                "raptor.summary_title", level=count(pick.level), sources=", ".join(pick.sources)
+            )
+            item_source = {
+                "kind": "raptor_search",
+                "label_text": pick.node_id,
+                "rank": pick.level,
+                "score": round(pick.score, 4),
+            }
+            found.append((pick.doc_id, title, pick.text, False, item_source))
+            rows.append(
+                {
+                    "node_id": pick.node_id,
+                    "level": pick.level,
+                    "sources": list(pick.sources),
+                    "audience": pick.audience,
+                    "score": round(pick.score, 4),
+                    "chars": len(pick.text),
+                    "preview": self._preview(pick.text),
+                }
+            )
+        warnings: list[tuple[str, str]] = []
+        if not picks:
+            warnings.append(("raptor_nothing", say("raptor.nothing")))
+        self._searchless_end(chain, result, self._searchless_items(found), warnings)
+        result.raptor = {
+            "author": tree.header.author if tree.header else "shipped",
+            "method": tree.header.method if tree.header else rag_raptor.HEURISTIC,
+            "model": tree.header.model if tree.header else rag_raptor.HEURISTIC,
+            "mark_text": mark,
+            "rule_note_text": None if tree.rebuilt else say("raptor.rule_note"),
+            "passages": len(tree.leaves),
+            "summaries": len(tree.nodes),
+            "levels": tree.levels,
+            "stale": tree.stale,
+            "estimate": estimate,
+            "picked": rows,
+            "warnings": [{"code": c, "text": t} for c, t in warnings],
+        }
+        return result
+
+    def _summarize_tree(
+        self,
+        tree: rag_raptor.Tree,
+        nodes: Sequence[rag_raptor.Node],
+        step_id: str,
+        phase: str,
+        progress: Callable[[int, int], None] = lambda *_: None,
+        kind: str = "raptor_search",
+    ) -> dict[str, Any]:
+        """The summaries of `nodes` (bottom-up) written by the active model, one call each (its
+        cost in `phase`, added to the run's): a node's call reads its children's texts, the
+        model's summaries of the level below included. The first failure stops the calls
+        (`status: error`); an empty answer keeps the rule's summary (counted)."""
+        deps, say = self.deps, self._text
+        out: dict[str, Any] = {
+            "status": "ok",
+            "written": [],
+            "empty": 0,
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "model": "",
+            "trimmed": 0,
+            "error": None,
+        }
+        instruction = say("raptor.summary_instruction", max=rag_raptor.SUMMARY_MAX_CHARS)
+        ordered = sorted(nodes, key=lambda n: n.level)
+        for done, node in enumerate(ordered, start=1):
+            if deps.cancelled():
+                out["status"] = "cancelled"
+                break
+            text, cut = agent_tools.cut_to_tokens(
+                rag_raptor.summary_source(tree, node),
+                RAPTOR_SOURCE_MAX_TOKENS,
+                deps.estimate_tokens,
+            )
+            out["trimmed"] += cut
+            got = self._ask(
+                step_id, instruction, text, say("raptor.summary_user"), reserve=RAPTOR_RESERVE
+            )
+            self.costs.append(self._call_cost(phase, kind, got))
+            out["calls"] += 1
+            out["input"] += got.prompt_tokens
+            out["output"] += got.output_tokens
+            out["model"] = got.model_label or out["model"]
+            stop = self._stopped(got)
+            if stop is not None:
+                out["status"] = "cancelled" if stop == "cancelled" else "error"
+                out["error"] = got.error_text
+                break
+            summary = rag_raptor.clean_summary(got.answer_text)
+            if summary:
+                node.summary_text, node.source, node.stale = summary, "rebuilt", False
+                out["written"].append(node.id)
+            else:
+                out["empty"] += 1
+            progress(done, len(ordered))
+        return out
+
     # -- V1.2 story 14: the LLM Wiki, compiled from the sources, linted, its index read --
 
     def _audiences(self) -> dict[str, str]:
@@ -5256,6 +5499,11 @@ class LabRun:
         would = _Result(
             input_text=self._text("generation.input", context=context, question=self.question)
         )
+        if chain.abstained:  # V1.2 story 12: Corrective RAG's « je ne sais pas », no model
+            would.output_text = self._text("fallback.abstained_answer")
+            would.facts = [(self._text("fact.fallback_answer"), self._text("fallback.by_workshop"))]
+            would.costs = [StageCost("query", "generation", 0, 0, 0.0, None)]
+            return would
         context_stage = chain.pipeline.find("context")
         cached = bool(
             context_stage and context_stage.option == "cached_corpus" and chain.status == "ok"
@@ -5672,6 +5920,7 @@ class LabRun:
                 )
             )
         chain.lists[-1] = kept
+        chain.filtered = True  # V1.2 story 12: what Corrective RAG's fallback reads
         empty = self._text("filter.all_dropped") if not kept else None
         return _Result(
             input_text=self._text(
@@ -5784,6 +6033,220 @@ class LabRun:
             decisions=[self._decision_payload(d, model_label) for d in decisions],
         )
 
+    # -- V1.2 story 12 (CAP-7): Corrective RAG's fallback --
+
+    def _fallback(
+        self, chain: _Chain, stage: Stage, step_id: str, progress: Callable[[int, int], None]
+    ) -> _Result:
+        """`fallback` (V1.2 story 12, Corrective RAG): it reads what the passage filter kept.
+        Something kept: nothing to correct. Nothing kept (the article's « incorrect »): with
+        `retry`, the active model rewrites the question once (the `rewrite` instruction of the
+        query understanding), the searches of the chain and the filter run again on it (the
+        filter judges the question asked); still nothing, or `abstain`, or no model: the
+        workshop answers « je ne sais pas » itself, no generation. Never the web the article
+        adds: the workshop is offline, its corpus fictitious (D6)."""
+        say = self._text
+        if not chain.filtered:
+            raise StageSkipped(Message("rag_lab.fallback.no_filter"))
+        kept = list(chain.ranked or [])
+        payload: dict[str, Any] = {
+            "option": stage.option,
+            "verdict": "correct",
+            "kept_before": len(kept),
+            "rewritten": None,
+            "kept_after": None,
+            "abstained": False,
+            "web": False,
+            "warnings": [],
+        }
+        result = _Result(
+            input_text=say("fallback.input", kept=self._count(len(kept), "extract")),
+            costs=[],
+            fallback=payload,
+        )
+        facts = [(say("fact.fallback_web"), say("fallback.no_web"))]
+        if kept:
+            result.output_text = say("fallback.correct", kept=self._count(len(kept), "extract"))
+            result.facts = [(say("fact.fallback_verdict"), say("fallback.verdict_correct")), *facts]
+            result.items = kept
+            return result
+        payload["verdict"] = "incorrect"
+        facts.insert(0, (say("fact.fallback_verdict"), say("fallback.verdict_incorrect")))
+        warnings: list[tuple[str, str]] = []
+        found: list[Item] = []
+        if stage.option == "retry":
+            try:
+                found = self._retry(chain, stage, step_id, result, payload, warnings)
+            except LabCancelled:  # the parts run said it, their costs with them
+                raise LabCancelled(result) from None
+            payload["kept_after"] = len(found)
+            facts.append((say("fact.fallback_kept_after"), self._int(len(found))))
+        if found:
+            payload["verdict"] = "corrected"
+            result.output_text = say("fallback.corrected", kept=self._count(len(found), "extract"))
+            result.items = found
+        else:
+            chain.abstained, payload["abstained"] = True, True
+            if chain.lists:
+                chain.lists[-1] = []
+            else:
+                chain.lists.append([])
+            result.output_text = say("fallback.abstain")
+            facts.append((say("fact.fallback_answer"), say("fallback.abstained_answer")))
+            # The workshop's own answer, a part of the fallback (no model call, no token).
+            self._fallback_part(
+                stage,
+                step_id,
+                "abstain",
+                "fallback",
+                stage.option,
+                lambda *_: _Result(
+                    input_text=result.input_text,
+                    output_text=say("fallback.abstained_answer"),
+                    costs=[],
+                ),
+            )
+        result.facts = facts
+        payload["warnings"] = [{"code": c, "text": t} for c, t in warnings]
+        result.warning_text = " ".join(t for _, t in warnings) or None
+        return result
+
+    def _fallback_part(
+        self,
+        stage: Stage,
+        step_id: str,
+        part: str,
+        kind: str,
+        option: str,
+        work: Callable[[str, Callable[[int, int], None]], _Result],
+    ) -> _Result:
+        """One part of the fallback (the rewrite, a step of the second attempt, the abstention),
+        run apart as BM25's index is: its own `rag_lab_stage_started` / `rag_lab_stage_ended`
+        under the step id `{step_id}.{part}` (the fallback's stage id, `part`, the `kind` of
+        the step it runs), its model calls under that id, its costs in its own event (in
+        `query`). `work(part_step_id, progress)` gives the part's result; a skip, a failure or
+        « Arrêter » is said in the part's event, then raised to the fallback."""
+        part_id = f"{step_id}.{part}"
+        component = f"rag_lab.{kind}"
+        base = {"stage_id": stage.id, "kind": kind, "option": option, "part": part}
+        label = self.deps.texts.stages[kind].label_text
+        self._emit(
+            "rag_lab_stage_started",
+            base | {"phase_label": self._text("stage.running", stage=label)},
+            part_id,
+            component,
+        )
+        rss_before = self.deps.rss()
+        began = time.monotonic()
+
+        def close(status: str, result: _Result | None, error_text: str | None) -> None:
+            duration = _ms(time.monotonic() - began)
+            result = result or _Result(costs=[])
+            if result.costs is None:
+                result.costs = [StageCost("query", kind, duration_ms=duration)]
+            self._ended(part_id, component, base, status, result, error_text, duration, rss_before)
+
+        try:
+            result = work(part_id, self._progress(part_id, component, base))
+        except LabCancelled as stop:
+            close("cancelled", stop.result, self._text("stage.stopped"))
+            raise
+        except StageSkipped as why:
+            close("skipped", why.result, why.render(self._lang))
+            raise
+        except StageFailed as why:
+            close("error", why.result, why.render(self._lang))
+            raise
+        except Exception as exc:  # noqa: BLE001 - said in the part, then the fallback's
+            close(
+                "error",
+                None,
+                self._text(
+                    "stage.failed", error=type(exc).__name__, cause=exception_text(exc, self._lang)
+                ),
+            )
+            raise
+        close("ok", result, None)
+        return result
+
+    def _retry(
+        self,
+        chain: _Chain,
+        stage: Stage,
+        step_id: str,
+        result: _Result,
+        payload: dict[str, Any],
+        warnings: list[tuple[str, str]],
+    ) -> list[Item]:
+        """The question rewritten by the active model, then the chain's searches, fusion,
+        reranking and filter run once more on it, in the chain's order: what the filter keeps
+        this time (nothing when a step of it cannot run). Each one a part of the fallback
+        (`{step_id}.rewrite`, `{step_id}.retry_{kind}`), its cost in `query`."""
+        say, lang = self._text, self._lang
+        rewrite = Stage(id=stage.id, kind="query", option="rewrite")
+        try:
+            got = self._fallback_part(
+                stage,
+                step_id,
+                "rewrite",
+                "query",
+                "rewrite",
+                lambda part_id, progress: self._query(chain, rewrite, part_id, progress),
+            )
+        except (StageSkipped, StageFailed) as why:
+            warnings.append(
+                ("fallback_no_rewrite", say("fallback.no_rewrite", why=why.render(lang)))
+            )
+            return []
+        if not got.queries:
+            warnings.append(("fallback_no_rewrite", say("fallback.empty_rewrite")))
+            return []
+        chain.queries, chain.as_document = got.queries[:1], False
+        payload["rewritten"] = chain.queries[0]
+        result.queries = list(chain.queries)
+        result.prompt_text = got.prompt_text
+        at = next(i for i, s in enumerate(chain.pipeline.stages) if s.id == stage.id)
+        again = [
+            s
+            for s in chain.pipeline.stages[:at]
+            if s.kind in (*SEARCHES, "fusion", "rerank", "passage_filter")
+            and s.kind not in chain.routed_out
+        ]
+        chain.lists, chain.list_kinds, chain.filtered = [], [], False
+
+        def runner(step: Stage) -> Callable[[str, Callable[[int, int], None]], _Result]:
+            def work(part_id: str, progress: Callable[[int, int], None]) -> _Result:
+                self._check()
+                if step.kind == "vector_search":
+                    return self._vector_search(chain, step)
+                if step.kind == "lexical_search":
+                    return self._lexical_search(chain, step)
+                if step.kind == "fusion":
+                    return self._fusion(chain, step)
+                if step.kind == "rerank":
+                    return self._rerank(chain, step, progress)
+                return self._decision(chain, step, part_id, progress)
+
+            return work
+
+        for step in again:
+            try:
+                self._fallback_part(
+                    stage, step_id, f"retry_{step.kind}", step.kind, step.option, runner(step)
+                )
+            except (StageSkipped, StageFailed) as why:
+                label = self.deps.texts.stages[step.kind].label_text
+                warnings.append(
+                    (
+                        "fallback_step",
+                        say("fallback.step_failed", stage=label, why=why.render(lang)),
+                    )
+                )
+                if isinstance(why, StageFailed) and not why.soft:
+                    return []
+                continue
+        return list(chain.ranked or []) if chain.filtered else []
+
 
 class _PrefixPart:
     """V1.2 story 10: the « Préfixe en cache » line of a `cached_corpus` chain, a part of the
@@ -5889,6 +6352,9 @@ class UpdateRun(LabRun):
         # Called with the copy once measured, before `rag_lab_run_ended`: the page reloads the
         # copy on that event, so it must already be saved (review of V1.2 story 5).
         self.keep: Callable[[workcopy.WorkCopy], None] | None = None
+        # V1.2 story 12: writes into the data folder that wait for the copy kept (RAPTOR's
+        # rebuilt tree): a run in error or a copy not saved leaves the files as they were.
+        self.after_keep: list[Callable[[], None]] = []
 
     def _label_of(self, stage: Stage, kind: str) -> str:
         if kind == "lexical_index":
@@ -5918,6 +6384,8 @@ class UpdateRun(LabRun):
             return [(context, "section_tree", self._update_tree)]
         if context is not None and context.option == "graph_search":  # V1.2 story 13
             return [(context, "graph_search", self._update_graph)]
+        if context is not None and context.option == "raptor_search":  # V1.2 story 12
+            return [(context, "raptor_search", self._update_raptor)]
         if context is not None and context.option == "wiki_pages":  # V1.2 story 14
             return [
                 (context, "wiki_build", self._update_wiki),
@@ -5969,9 +6437,12 @@ class UpdateRun(LabRun):
                 status = self._part(index, stage, kind, fn, status)
         except Exception:  # noqa: BLE001 - the run ends in error, `run_ended` all the same
             status = "error"
-        if status == "ok" and self.keep is not None:
+        if status == "ok" and (self.keep is not None or self.after_keep):
             try:  # kept only when it was measured, and before the page reloads it
-                self.keep(self.after)
+                if self.keep is not None:
+                    self.keep(self.after)
+                for write in self.after_keep:
+                    write()
             except Exception:
                 self.end("error", _ms(time.monotonic() - started))
                 raise  # the session says it (`session.rag_lab.interrupted`)
@@ -6005,8 +6476,9 @@ class UpdateRun(LabRun):
         status, error_text, result = "ok", None, _Result(costs=[])
         try:
             result = fn(stage)
-        except LabCancelled:
+        except LabCancelled as stop:  # what the part had spent stays in its event
             status, error_text = "cancelled", self._text("stage.stopped")
+            result = stop.result or result
         except StageSkipped as skipped:  # V1.2 story 10: estimated, the update goes on
             status, error_text = "skipped", skipped.render(self._lang)
             result = skipped.result or result
@@ -6320,6 +6792,146 @@ class UpdateRun(LabRun):
         return _Result(
             input_text=say(
                 "update.graph_input",
+                documents=self._count(len(touched) + len(removed), "document"),
+            ),
+            output_text=" ".join(
+                render(c.note_text, lang) for c in costs if c.note_text is not None
+            ),
+            facts=facts,
+            costs=costs,
+        )
+
+    def _update_raptor(self, stage: Stage) -> _Result:
+        """V1.2 story 12 (RAPTOR): the three parts of a tree's update. (a) Chunking of the
+        touched documents alone; (b) placement: the tree read again in the structure of its file
+        (a passage gone leaves its node, a new one joins the closest node of the first level);
+        (c) the summaries of the nodes whose children changed only, by the rule (milliseconds,
+        no token) or, the tree rebuilt by a model and a model loaded, one call each, kept in
+        the rebuilt file."""
+        deps, say, count = self.deps, self._text, self._int
+        lang, size = self._lang, deps.shipped_chunk_max_chars
+        before_docs = self._corpus_documents(self.before)
+        after_docs = self._corpus_documents(self.after)
+        if not after_docs:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        before = {d.doc_id: d for d in before_docs}
+        after = {d.doc_id: d for d in after_docs}
+        touched = [i for i, d in after.items() if i not in before or before[i].text != d.text]
+        removed = [i for i in before if i not in after]
+        audiences = graph_audiences(deps.content)
+        shipped, rebuilt, _ = rag_raptor.load_files(lang, deps.lab_dir)
+        # The tree in place before the operation, outside the cost (it was already built).
+        old = rag_raptor.assemble(
+            before_docs, lang, size, audiences=audiences, shipped=shipped, rebuilt=rebuilt
+        )
+        # (a) chunking
+        began = time.perf_counter()
+        redo = rag_graph.passages_of([after[i] for i in touched], size, audiences)
+        costs = [
+            StageCost(
+                "update",
+                "raptor_chunking",
+                0,
+                _elapsed(began),
+                0.0,
+                None,
+                note_text=Message("rag_lab.raptor.part_chunking", passages=count(len(redo))),
+            )
+        ]
+        # (b) placement
+        began = time.perf_counter()
+        tree = rag_raptor.assemble(
+            after_docs, lang, size, audiences=audiences, shipped=shipped, rebuilt=rebuilt
+        )
+        was = {p.id for p in old.leaves}
+        now = {p.id for p in tree.leaves}
+        added, gone = len(now - was), len(was - now)
+        costs.append(
+            StageCost(
+                "update",
+                "raptor_placement",
+                0,
+                _elapsed(began),
+                0.0,
+                None,
+                note_text=Message(
+                    "rag_lab.raptor.part_placement", added=count(added), removed=count(gone)
+                ),
+            )
+        )
+        # (c) summaries, of the nodes whose children changed only
+        known = {(n.id, n.sha256) for n in old.nodes.values()}
+        redone = [n for n in tree.nodes.values() if (n.id, n.sha256) not in known]
+        by_model = rebuilt is not None and deps.generator is not None and bool(redone)
+        out: dict[str, Any] = {"written": [], "calls": 0, "input": 0, "output": 0, "model": ""}
+        began = time.perf_counter()
+        if by_model:
+            mark = len(self.costs)
+            with deps.model_scope():
+                out = self._summarize_tree(
+                    tree, redone, f"{self.run_id}.raptor", "update", kind="raptor_summaries"
+                )
+            part = self.costs[mark:]
+            self.costs = self.costs[:mark]
+            if out["status"] == "cancelled":
+                raise LabCancelled(_Result(costs=costs + part))
+            if out["status"] == "error":
+                # A failing model writes nothing (as « Reconstruire »): the copy is not kept.
+                raise StageFailed(
+                    Message("rag_lab.raptor.update_model_error"),
+                    result=_Result(costs=costs + part),
+                )
+        else:
+            rag_raptor.resummarize(tree, redone, lang)
+            part = [StageCost("update", "raptor_summaries", 0, _elapsed(began), 0.0, None)]
+        if not part:
+            part = [StageCost("update", "raptor_summaries", 0, 0, 0.0, None)]
+        part[0] = replace(
+            part[0],
+            note_text=Message(
+                "rag_lab.raptor.part_summaries",
+                rewritten=count(len(redone)),
+                total=count(len(tree.nodes)),
+            ),
+        )
+        costs += part
+        # A deleted document leaves none of its text in the rebuilt file (story 18). Both
+        # written once the copy is kept only (`after_keep`).
+        writes: list[Callable[[], None]] = [lambda: rag_raptor.forget(lang, removed, deps.lab_dir)]
+        if by_model and out["written"] and rebuilt is not None:
+            models = [m for m in rebuilt.model.split(" + ") if m]
+            if out["model"] and out["model"] not in models:
+                models.append(out["model"])
+            file = rag_raptor.to_file(
+                tree,
+                author="rebuilt",
+                model=" + ".join(models) or "?",
+                only_model=True,
+                measure={
+                    "duration_ms": (rebuilt.duration_ms or 0)
+                    + sum(c.duration_ms or 0 for c in part),
+                    "input_tokens": (rebuilt.input_tokens or 0) + out["input"],
+                    "output_tokens": (rebuilt.output_tokens or 0) + out["output"],
+                    "calls": (rebuilt.calls or 0) + out["calls"],
+                },
+            )
+            writes.append(lambda: rag_raptor.write_rebuilt(lang, file, deps.lab_dir))
+        self.after_keep += writes
+        summaries = say(
+            "raptor.summaries_fact", rewritten=count(len(redone)), total=count(len(tree.nodes))
+        )
+        facts = [
+            (say("fact.raptor_part_chunking"), count(len(redo))),
+            (
+                say("fact.raptor_part_placement"),
+                say("raptor.placement_fact", added=count(added), removed=count(gone)),
+            ),
+            (say("fact.raptor_part_summaries"), summaries),
+            (say("fact.raptor"), say("raptor.by_model") if by_model else say("raptor.by_rule")),
+        ]
+        return _Result(
+            input_text=say(
+                "update.raptor_input",
                 documents=self._count(len(touched) + len(removed), "document"),
             ),
             output_text=" ".join(
@@ -6655,6 +7267,7 @@ class RebuildRun(LabRun):
 
     SUMMARY_PHASES = ("build",)
     TARGETS = ("contexts", "pageindex", "graph", "wiki")  # V1.2 stories 13 (graph) and 14 (wiki)
+    TARGETS = (*TARGETS, "raptor")  # V1.2 story 12: RAPTOR's tree of summaries
 
     def __init__(
         self,
@@ -6670,10 +7283,11 @@ class RebuildRun(LabRun):
 
     def _rebuilt_stage(self) -> tuple[Stage, str]:
         """The chain's stage the rebuild shows, and its kind in the events."""
-        if self.target in ("pageindex", "graph"):
+        if self.target in ("pageindex", "graph", "raptor"):
             context = self.pipeline.find("context")
             assert context is not None  # `check_pipeline` keeps the fixed tail
-            return context, "section_tree" if self.target == "pageindex" else "graph_search"
+            kinds = {"pageindex": "section_tree", "graph": "graph_search"}
+            return context, kinds.get(self.target, "raptor_search")
         if self.target == "wiki":  # V1.2 story 14
             context = self.pipeline.find("context")
             assert context is not None
@@ -6735,6 +7349,8 @@ class RebuildRun(LabRun):
                 status, result = self._rewrite_tree(step_id, component, base)
             elif self.target == "graph":  # V1.2 story 13
                 status, result = self._rebuild_graph(step_id, component, base)
+            elif self.target == "raptor":  # V1.2 story 12
+                status, result = self._rebuild_raptor(step_id, component, base)
             elif self.target == "wiki":  # V1.2 story 14
                 status, result = self._rewrite_wiki(step_id, component, base)
             else:
@@ -6953,6 +7569,73 @@ class RebuildRun(LabRun):
         )
         return status, result
 
+    def _rebuild_raptor(
+        self, step_id: str, component: str, base: dict[str, Any]
+    ) -> tuple[str, _Result]:
+        """V1.2 story 12 (RAPTOR): the tree of the chain's documents clustered again by the
+        rule, then each summary written by the active model, bottom-up (a node's call reads its
+        children: the passages at the first level, the model's summaries above); written into
+        the data folder (`method: llm`) at the end only: « Arrêter » and a failing model keep
+        the earlier state. An empty answer keeps the rule's summary (counted)."""
+        deps, say, count = self.deps, self._text, self._int
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.contexts.no_model"))
+        lang, size = self._lang, deps.shipped_chunk_max_chars
+        copy = deps.work_copy if self._reads_work_copy() else None
+        documents = workcopy.documents(deps.content, deps.lang, copy)
+        tree = rag_raptor.build_tree(documents, lang, size, graph_audiences(deps.content))
+        if not tree.nodes:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        progress = self._progress(step_id, component, base)
+        began = time.monotonic()
+        with deps.model_scope():
+            out = self._summarize_tree(tree, list(tree.nodes.values()), step_id, "build", progress)
+        if out["status"] == "error":
+            # A failing model writes nothing: the tree in place (rebuilt or shipped) is kept.
+            raise StageFailed(Message("rag_lab.raptor.rebuild_model_error"))
+        status = "cancelled" if out["status"] == "cancelled" else "ok"
+        if status == "ok" and not out["written"]:
+            raise StageFailed(Message("rag_lab.raptor.rebuild_nothing"))
+        if status == "ok":
+            file = rag_raptor.to_file(
+                tree,
+                author="rebuilt",
+                model=out["model"] or "?",
+                only_model=True,
+                measure={
+                    "duration_ms": _ms(time.monotonic() - began),
+                    "input_tokens": out["input"],
+                    "output_tokens": out["output"],
+                    "calls": out["calls"],
+                },
+            )
+            rag_raptor.write_rebuilt(lang, file, deps.lab_dir)
+        warnings = []
+        if out["empty"]:
+            warnings.append(say("raptor.summaries_empty", count=count(out["empty"])))
+        if out["trimmed"]:
+            warnings.append(say("raptor.input_trimmed", count=count(out["trimmed"])))
+        result = _Result(
+            costs=[],  # the per-call costs are in the run's sum
+            input_text=say(
+                "raptor.rebuild_input", summaries=self._count(len(tree.nodes), "summary")
+            ),
+            output_text=say(
+                "raptor.rebuild_output",
+                done=count(len(out["written"])),
+                total=count(len(tree.nodes)),
+                empty=count(out["empty"]),
+            ),
+            facts=[
+                (say("fact.model"), out["model"] or "—"),
+                (say("fact.raptor_summarized"), count(len(out["written"]))),
+                (say("fact.raptor_kept_rule"), count(out["empty"])),
+                (say("contexts.fact_tokens"), count(out["input"] + out["output"])),
+            ],
+            warning_text=" ".join(warnings) or None,
+        )
+        return status, result
+
     def _rewrite(
         self, stage: Stage, step_id: str, component: str, base: dict[str, Any]
     ) -> tuple[str, _Result]:
@@ -7129,6 +7812,60 @@ def graph_estimate(
     calls = len(kg.passages) + len(kg.communities)
     tokens = sum(estimate_tokens(p.text) for p in kg.passages.values())
     text = _t("graph.estimate", lang, calls=lang_int(calls, lang), tokens=lang_int(tokens, lang))
+    return {"calls": calls, "input_tokens": tokens, "text": text}
+
+
+def raptor_for(
+    content: RagContent, lang: str, size: int, documents: Sequence[DocText], folder: Path
+) -> tuple[rag_raptor.Tree, int]:
+    """V1.2 story 12: RAPTOR's tree of `documents` (in the structure of the file read, the
+    rebuilt one first) and the milliseconds its reading took."""
+    began = time.perf_counter()
+    tree = rag_raptor.load_tree(
+        documents, lang, size, audiences=graph_audiences(content), folder=folder
+    )
+    return tree, _elapsed(began)
+
+
+def raptor_key(lang: str, size: int, documents: Sequence[DocText], folder: Path) -> str:
+    """What a tree is read from: the language, the passages' size, the documents' texts and
+    the shipped and rebuilt files (the session's cache is keyed by it)."""
+    digest = hashlib.sha256(f"raptor\n{lang}\n{size}\n".encode())
+    for doc in documents:
+        digest.update(f"{doc.doc_id}\n{rag_contexts.fingerprint(doc.text)}\n".encode())
+    for path in (
+        config.content_file(rag_raptor.RAPTOR_FILE, lang),
+        rag_raptor.rebuilt_path(lang, folder),
+    ):
+        digest.update((file_digest(path) if path.is_file() else "-").encode())
+    return digest.hexdigest()
+
+
+def raptor_mark(tree: rag_raptor.Tree, lang: str) -> str:
+    """« arbre livré, calculé par une règle, sans modèle » or « arbre reconstruit par le
+    modèle X », with how many summaries the model's still are (the others by the rule)."""
+    if tree.rebuilt is not None:
+        return _t(
+            "raptor.mark_rebuilt",
+            lang,
+            model=tree.rebuilt.model,
+            by_model=lang_int(tree.by_model, lang),
+            summaries=lang_int(len(tree.nodes), lang),
+        )
+    return _t("raptor.mark_shipped", lang)
+
+
+def raptor_estimate(
+    tree: rag_raptor.Tree, estimate_tokens: Callable[[str], int], lang: str
+) -> dict[str, Any] | None:
+    """For a tree summarized by the rule only: what summaries by a model would need (one call
+    per summary node, reading its children). Labelled an estimate, never measured, in no sum.
+    `None` for a rebuilt tree."""
+    if tree.rebuilt is not None:
+        return None
+    calls = len(tree.nodes)
+    tokens = sum(estimate_tokens(rag_raptor.summary_source(tree, n)) for n in tree.nodes.values())
+    text = _t("raptor.estimate", lang, calls=lang_int(calls, lang), tokens=lang_int(tokens, lang))
     return {"calls": calls, "input_tokens": tokens, "text": text}
 
 

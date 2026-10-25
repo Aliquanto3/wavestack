@@ -868,6 +868,14 @@ d'autres (story 21) :
   RAG dense en tokens aux trois temps, sans estimation ; « Rétablir le graphe » ; captures
   `86-atelier-rag-graphrag-local.jpg`, `87-atelier-rag-graphrag-reconstruit.jpg`,
   `88-atelier-rag-graphrag-comparer.jpg`.
+- `rag_lab_raptor_crag`, V1.2 story 12 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle :
+  le faux llama-server écrit les résumés de RAPTOR (une phrase fixe). « RAPTOR » entre PageIndex et
+  GraphRAG dans la famille Structure, carte « Arbre » « calculé par une règle, sans modèle » avec
+  l'estimation étiquetée ; question globale (nœuds de plusieurs niveaux dans le focus) ;
+  « Reconstruire l'arbre » ; « Ajouter un document » (découpage, placement, résumés) ; « Rétablir
+  l'arbre » ; « Corrective RAG » en dernier de la famille Recherche, le repli après le filtre, son
+  focus (jugement, aucune recherche web, « je ne sais pas » de l'atelier si rien n'est gardé) ;
+  captures `93-atelier-rag-raptor.jpg`, `94-atelier-rag-crag.jpg`.
 - `rag_lab_wiki`, V1.2 story 14 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le faux
   llama-server répond `PAGES:` de la page du télétravail et une synthèse fixe (`workshop_plan`).
   « LLM Wiki » dans la famille Structure, après PageIndex ; lignes « Wiki compilation », « Wiki
