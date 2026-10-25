@@ -23,6 +23,7 @@ from test_turn import _run
 from wavestack import config, messages
 from wavestack import hooks as hooks_module
 from wavestack import memory as memory_file
+from wavestack.agent_eval.cases import load_provided_cases
 from wavestack.bricks.contract import load_brick_content, load_default_system_prompt
 from wavestack.cloud import load_cloud_content
 from wavestack.compression.port import load_compression_content
@@ -92,6 +93,7 @@ DEMO_FILES = sorted(
 PEDAGOGICAL = (
     *(f"bricks/{b}.yaml" for b in BRICKS),
     "scenarios.yaml",
+    "agent_cases.yaml",  # V1.5 story 2
     "cloud.yaml",
     "compression.yaml",
     "labels/segment_kinds.yaml",
@@ -220,6 +222,15 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         fr, tr = load_skills_content(SKILLS, "fr"), load_skills_content(SKILLS, lang)
         assert {i: s.name for i, s in tr.skills.items()} == {i: i for i in SKILLS}
         assert tr.skills.keys() == fr.skills.keys()
+    elif rel == "agent_cases.yaml":  # V1.5 story 2: same ids, same checks, same caps
+        fr, tr = load_provided_cases("fr"), load_provided_cases(lang)
+        assert [
+            c.model_dump(include={"id", "bricks", "tools", "hooks", "max_model_calls", "checks"})
+            for c in tr
+        ] == [
+            c.model_dump(include={"id", "bricks", "tools", "hooks", "max_model_calls", "checks"})
+            for c in fr
+        ]
     elif rel == "subagent.yaml":
         fr, tr = load_subagent_content("fr"), load_subagent_content(lang)
         assert [p.args.keys() for p in tr.presets] == [p.args.keys() for p in fr.presets]

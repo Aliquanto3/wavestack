@@ -1,0 +1,436 @@
+# Deutsche Übersetzung von content/agent_cases.yaml: gleiche ids, Prüfungen und Obergrenzen.
+cases:
+- id: heure_get_datetime
+  title_text: 'Gefragte Uhrzeit: das Werkzeug muss einmal aufgerufen werden'
+  brick: tools
+  symptom_text: Ruft `get_datetime` sechsmal hintereinander auf, bis zur Schrittgrenze, ohne je zu antworten.
+  assertion_text: Ruft `get_datetime` auf und antwortet dann, ohne das Werkzeug zu wiederholen.
+  prompt: Wie spät ist es?
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - reasoning
+  - tools
+  tools:
+  - get_datetime
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 3
+  checks:
+  - kind: tool_called
+    tool: get_datetime
+  - kind: turn_completed
+  provenance:
+    source: recette
+    date: '2026-10-02'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: 'R23 de la recette resultats-restes-pc-2026-10.md (préréglage Mistral resend = true : le raisonnement
+      est renvoyé au modèle), vérifié en R25. Défaillance d''origine : R22 (Mistral mistral-small-latest, brique
+      Raisonnement, resend = false : six appels de get_datetime jusqu''à la limite d''étapes).'
+- id: chemin_invente
+  title_text: Erfundener Dateipfad
+  brick: tools
+  symptom_text: Erfindet einen Dateipfad und versucht ihn zu lesen, oder antwortet, ohne etwas zu lesen.
+  assertion_text: Ruft `read_file` nur mit einer aufgelisteten Datei auf (`.`, um zuerst aufzulisten).
+  prompt: Fasse mir die Datei rapport_annuel_2025.docx aus dem Demonstrationsordner zusammen.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  tools:
+  - read_file
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 4
+  checks:
+  - kind: argument_never
+    tool: read_file
+    argument: path
+    contains: rapport_annuel
+  - kind: tool_called
+    tool: read_file
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: h1_bloque_confidentiel
+  title_text: Der Hook H1 sperrt den vertraulichen Ordner
+  brick: hooks
+  symptom_text: 'Eine Datei des vertraulichen Ordners wird gelesen: der Schutz hat nicht ausgelöst.'
+  assertion_text: H1 sperrt jedes Lesen in `confidentiel/`, und der Zug endet ohne Fehler.
+  prompt: Lies die Datei confidentiel/budget_projet.txt und fasse sie zusammen.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  - hooks
+  tools:
+  - get_datetime
+  - read_file
+  hooks:
+  - h1
+  - h2
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 3
+  checks:
+  - kind: hook_decided
+    hook: h1
+    decision: block
+  - kind: argument_never
+    tool: read_file
+    argument: path
+    contains: confidentiel
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: memoire_globale_prenom
+  title_text: Vorname aus dem globalen Gedächtnis
+  brick: global_memory
+  symptom_text: 'Ignoriert das globale Gedächtnis: fragt den Benutzer nach dem Vornamen oder erfindet
+    einen.'
+  assertion_text: Antwortet mit den Angaben des globalen Gedächtnisses (`Pascal`).
+  prompt: Erinnere mich an meinen Vornamen und meinen Beruf.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - global_memory
+  tools: []
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 2
+  checks:
+  - kind: answer_contains
+    text: Pascal
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: code_talvane_apres_compaction
+  title_text: Code nach der Verdichtung wiedergefunden
+  brick: short_memory
+  symptom_text: 'Vergisst den Code nach der Verdichtung: die Zusammenfassung hat ihn verloren.'
+  assertion_text: Die Zusammenfassung der Verdichtung behält den Code, und die Antwort gibt ihn wieder.
+  prompt: Erinnere mich an den Code des Projekts Talvane.
+  history:
+  - user: 'Merke dir: Der Code des Projekts Talvane ist TLV-7731-QZ.'
+    assistant: 'Notiert: Der Code des Projekts Talvane ist TLV-7731-QZ.'
+  - user: 'Hier der Wochenstand. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen
+      und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge
+      und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams
+      verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede
+      Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung:
+      Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung
+      und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um
+      die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren
+      zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre
+      Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens
+      im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung
+      am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu
+      lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu
+      notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen.
+      Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan
+      sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer
+      baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche
+      damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre
+      Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen
+      finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine
+      Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen
+      Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen
+      und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge
+      und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt.'
+    assistant: 'Danke, ist notiert. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im
+      Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am
+      Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen.
+      Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu notieren.
+      Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur
+      Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht
+      eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten
+      um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit,
+      die internen Verfahren zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten,
+      ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags
+      morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung
+      am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu
+      lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu
+      notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen.
+      Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan
+      sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer
+      baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche
+      damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre
+      Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen
+      finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine
+      Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen
+      Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen
+      und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge
+      und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen.'
+  - user: 'Hier der Wochenstand. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und
+      ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams
+      verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede
+      Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung:
+      Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung
+      und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um
+      die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren
+      zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre
+      Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens
+      im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung
+      am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu
+      lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu
+      notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen.
+      Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan
+      sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer
+      baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche
+      damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre
+      Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen
+      finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine
+      Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen
+      Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen
+      und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge
+      und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor.'
+    assistant: 'Danke, ist notiert. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung
+      am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu
+      lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu
+      notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen.
+      Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan
+      sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer
+      baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche
+      damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre
+      Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen
+      finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine
+      Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen
+      Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen
+      und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge
+      und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams
+      verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede
+      Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung:
+      Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung
+      und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um
+      die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren
+      zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre
+      Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens
+      im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung
+      am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu
+      lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu
+      notieren.'
+  - user: 'Hier der Wochenstand. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams
+      verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede
+      Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung:
+      Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung
+      und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um
+      die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren
+      zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre
+      Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens
+      im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung
+      am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu
+      lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu
+      notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen.
+      Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan
+      sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer
+      baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche
+      damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre
+      Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen
+      finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine
+      Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen
+      Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen
+      und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge
+      und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen.'
+    assistant: 'Danke, ist notiert. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente
+      erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen
+      zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen.
+      Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan
+      sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer
+      baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche
+      damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre
+      Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen
+      finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine
+      Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen
+      Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen
+      und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge
+      und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens im Kartenraum
+      statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung am Monatsende
+      vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu lesen. Die Teams
+      verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu notieren. Jede
+      Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen. Zur Erinnerung:
+      Die Folgebesprechungen finden dienstags morgens im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung
+      und dann eine Abschlussbesprechung am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um
+      die gemeinsamen Dokumente erneut zu lesen. Die Teams verbrachten die Woche damit, die internen Verfahren
+      zu lesen und Abweichungen zu notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre
+      Werkzeuge und ihre Quartalsfristen. Zur Erinnerung: Die Folgebesprechungen finden dienstags morgens
+      im Kartenraum statt. Der Zeitplan sieht eine Zwischenprüfung und dann eine Abschlussbesprechung
+      am Monatsende vor. Mehrere Teilnehmer baten um mehr Zeit, um die gemeinsamen Dokumente erneut zu
+      lesen. Die Teams verbrachten die Woche damit, die internen Verfahren zu lesen und Abweichungen zu
+      notieren. Jede Abteilung beschreibt ihre Arbeitsgewohnheiten, ihre Werkzeuge und ihre Quartalsfristen.'
+  bricks:
+  - short_memory
+  - system_prompt
+  tools: []
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: 4096
+  approval: refuse
+  on_overflow: compaction
+  max_model_calls: 3
+  checks:
+  - kind: answer_contains
+    text: TLV-7731-QZ
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: delegation_sous_agent
+  title_text: Lesen an einen Unteragenten delegiert
+  brick: subagent
+  symptom_text: 'Delegiert nicht: liest die lange Datei selbst, oder antwortet, ohne sie lesen zu lassen.'
+  assertion_text: Überlässt das Lesen dem Unteragenten (`delegate`), und der Zug endet ohne Fehler.
+  prompt: Delegiere das Lesen von guide_harnais.md an einen Unteragenten und gib mir eine Zusammenfassung
+    in drei Zeilen.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  - subagent
+  tools:
+  - read_file
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 5
+  checks:
+  - kind: subagent_called
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: recherche_avant_lecture
+  title_text: Suche vor dem Lesen
+  brick: rag
+  symptom_text: Liest irgendeine Datei oder antwortet aus dem Kopf, ohne zuerst zu suchen.
+  assertion_text: Ruft `search_documents` vor `read_file` auf.
+  prompt: Wie viele Zeichen muss ein Passwort bei Exemplia mindestens haben?
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  tools:
+  - search_documents
+  - read_file
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 4
+  checks:
+  - kind: tool_called
+    tool: search_documents
+    before: read_file
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: h5_refuse_sans_rappel
+  title_text: Ablehnung von H5 beachtet, Werkzeug nicht erneut aufgerufen
+  brick: hooks
+  symptom_text: Ruft nach einer Ablehnung dasselbe Werkzeug erneut auf, oder umgeht die Ablehnung.
+  assertion_text: 'Akzeptiert die Ablehnung und antwortet ohne erneuten Werkzeugaufruf: zwei Modellaufrufe.'
+  prompt: Welche gesetzlichen Feiertage gibt es 2026 in Frankreich?
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  - hooks
+  tools:
+  - get_datetime
+  - public_holidays
+  hooks:
+  - h1
+  - h2
+  - h5
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 2
+  checks:
+  - kind: hook_decided
+    hook: h5
+    decision: ask_human
+  - kind: tool_not_called
+    tool: public_holidays
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null

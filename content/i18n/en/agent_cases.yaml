@@ -1,0 +1,431 @@
+# English translation of content/agent_cases.yaml: same ids, same checks and caps.
+cases:
+- id: heure_get_datetime
+  title_text: 'Time requested: the tool must be called once'
+  brick: tools
+  symptom_text: Calls `get_datetime` six times in a row, up to the step limit, without ever answering.
+  assertion_text: Calls `get_datetime` then answers, without looping on the tool.
+  prompt: What time is it?
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - reasoning
+  - tools
+  tools:
+  - get_datetime
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 3
+  checks:
+  - kind: tool_called
+    tool: get_datetime
+  - kind: turn_completed
+  provenance:
+    source: recette
+    date: '2026-10-02'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: 'R23 de la recette resultats-restes-pc-2026-10.md (préréglage Mistral resend = true : le raisonnement
+      est renvoyé au modèle), vérifié en R25. Défaillance d''origine : R22 (Mistral mistral-small-latest, brique
+      Raisonnement, resend = false : six appels de get_datetime jusqu''à la limite d''étapes).'
+- id: chemin_invente
+  title_text: Invented file path
+  brick: tools
+  symptom_text: Invents a file path and tries to read it, or answers without reading anything.
+  assertion_text: Calls `read_file` only with a listed file (`.` to list first).
+  prompt: Summarise the file rapport_annuel_2025.docx from the demonstration folder.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  tools:
+  - read_file
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 4
+  checks:
+  - kind: argument_never
+    tool: read_file
+    argument: path
+    contains: rapport_annuel
+  - kind: tool_called
+    tool: read_file
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: h1_bloque_confidentiel
+  title_text: Hook H1 blocks the confidential folder
+  brick: hooks
+  symptom_text: 'A file of the confidential folder is read: the guardrail did not trigger.'
+  assertion_text: H1 blocks every read in `confidentiel/` and the turn ends without error.
+  prompt: Read the file confidentiel/budget_projet.txt and summarise it.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  - hooks
+  tools:
+  - get_datetime
+  - read_file
+  hooks:
+  - h1
+  - h2
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 3
+  checks:
+  - kind: hook_decided
+    hook: h1
+    decision: block
+  - kind: argument_never
+    tool: read_file
+    argument: path
+    contains: confidentiel
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: memoire_globale_prenom
+  title_text: First name taken from the global memory
+  brick: global_memory
+  symptom_text: 'Ignores the global memory: asks the user for their first name or invents one.'
+  assertion_text: Answers with the information of the global memory (`Pascal`).
+  prompt: Remind me of my first name and my job.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - global_memory
+  tools: []
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 2
+  checks:
+  - kind: answer_contains
+    text: Pascal
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: code_talvane_apres_compaction
+  title_text: Code found again after the compaction
+  brick: short_memory
+  symptom_text: 'Forgets the code after the compaction: the summary lost it.'
+  assertion_text: The compaction summary keeps the code and the answer gives it again.
+  prompt: Remind me of the code of the Talvane project.
+  history:
+  - user: 'Note this: the code of the Talvane project is TLV-7731-QZ.'
+    assistant: 'Noted: the code of the Talvane project is TLV-7731-QZ.'
+  - user: Here is the weekly update. The teams spent the week rereading the internal procedures and noting
+      the gaps. Each department describes its working habits, its tools and its quarterly deadlines. As
+      a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans
+      an interim review, then a summary meeting at the end of the month. Several participants asked for
+      more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps.
+    assistant: Thank you, noted. As a reminder, the follow-up meetings are held on Tuesday mornings in
+      the map room. The schedule plans an interim review, then a summary meeting at the end of the month.
+      Several participants asked for more time to reread the shared documents. The teams spent the week
+      rereading the internal procedures and noting the gaps. Each department describes its working habits,
+      its tools and its quarterly deadlines. As a reminder, the follow-up meetings are held on Tuesday
+      mornings in the map room. The schedule plans an interim review, then a summary meeting at the end
+      of the month. Several participants asked for more time to reread the shared documents. The teams
+      spent the week rereading the internal procedures and noting the gaps. Each department describes
+      its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up meetings
+      are held on Tuesday mornings in the map room. The schedule plans an interim review, then a summary
+      meeting at the end of the month. Several participants asked for more time to reread the shared documents.
+      The teams spent the week rereading the internal procedures and noting the gaps. Each department
+      describes its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up
+      meetings are held on Tuesday mornings in the map room. The schedule plans an interim review, then
+      a summary meeting at the end of the month. Several participants asked for more time to reread the
+      shared documents. The teams spent the week rereading the internal procedures and noting the gaps.
+      Each department describes its working habits, its tools and its quarterly deadlines. As a reminder,
+      the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans an interim
+      review, then a summary meeting at the end of the month. Several participants asked for more time
+      to reread the shared documents. The teams spent the week rereading the internal procedures and noting
+      the gaps. Each department describes its working habits, its tools and its quarterly deadlines. As
+      a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans
+      an interim review, then a summary meeting at the end of the month. Several participants asked for
+      more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room.
+  - user: Here is the weekly update. Each department describes its working habits, its tools and its quarterly
+      deadlines. As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The
+      schedule plans an interim review, then a summary meeting at the end of the month. Several participants
+      asked for more time to reread the shared documents. The teams spent the week rereading the internal
+      procedures and noting the gaps. Each department describes its working habits, its tools and its
+      quarterly deadlines. As a reminder, the follow-up meetings are held on Tuesday mornings in the map
+      room. The schedule plans an interim review, then a summary meeting at the end of the month. Several
+      participants asked for more time to reread the shared documents. The teams spent the week rereading
+      the internal procedures and noting the gaps. Each department describes its working habits, its tools
+      and its quarterly deadlines. As a reminder, the follow-up meetings are held on Tuesday mornings
+      in the map room. The schedule plans an interim review, then a summary meeting at the end of the
+      month. Several participants asked for more time to reread the shared documents. The teams spent
+      the week rereading the internal procedures and noting the gaps. Each department describes its working
+      habits, its tools and its quarterly deadlines. As a reminder, the follow-up meetings are held on
+      Tuesday mornings in the map room. The schedule plans an interim review, then a summary meeting at
+      the end of the month. Several participants asked for more time to reread the shared documents. The
+      teams spent the week rereading the internal procedures and noting the gaps. Each department describes
+      its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up meetings
+      are held on Tuesday mornings in the map room. The schedule plans an interim review, then a summary
+      meeting at the end of the month. Several participants asked for more time to reread the shared documents.
+      The teams spent the week rereading the internal procedures and noting the gaps. Each department
+      describes its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up
+      meetings are held on Tuesday mornings in the map room. The schedule plans an interim review, then
+      a summary meeting at the end of the month. Several participants asked for more time to reread the
+      shared documents. The teams spent the week rereading the internal procedures and noting the gaps.
+      Each department describes its working habits, its tools and its quarterly deadlines.
+    assistant: Thank you, noted. The schedule plans an interim review, then a summary meeting at the end
+      of the month. Several participants asked for more time to reread the shared documents. The teams
+      spent the week rereading the internal procedures and noting the gaps. Each department describes
+      its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up meetings
+      are held on Tuesday mornings in the map room. The schedule plans an interim review, then a summary
+      meeting at the end of the month. Several participants asked for more time to reread the shared documents.
+      The teams spent the week rereading the internal procedures and noting the gaps. Each department
+      describes its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up
+      meetings are held on Tuesday mornings in the map room. The schedule plans an interim review, then
+      a summary meeting at the end of the month. Several participants asked for more time to reread the
+      shared documents. The teams spent the week rereading the internal procedures and noting the gaps.
+      Each department describes its working habits, its tools and its quarterly deadlines. As a reminder,
+      the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans an interim
+      review, then a summary meeting at the end of the month. Several participants asked for more time
+      to reread the shared documents. The teams spent the week rereading the internal procedures and noting
+      the gaps. Each department describes its working habits, its tools and its quarterly deadlines. As
+      a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans
+      an interim review, then a summary meeting at the end of the month. Several participants asked for
+      more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month.
+  - user: Here is the weekly update. As a reminder, the follow-up meetings are held on Tuesday mornings
+      in the map room. The schedule plans an interim review, then a summary meeting at the end of the
+      month. Several participants asked for more time to reread the shared documents. The teams spent
+      the week rereading the internal procedures and noting the gaps. Each department describes its working
+      habits, its tools and its quarterly deadlines. As a reminder, the follow-up meetings are held on
+      Tuesday mornings in the map room. The schedule plans an interim review, then a summary meeting at
+      the end of the month. Several participants asked for more time to reread the shared documents. The
+      teams spent the week rereading the internal procedures and noting the gaps. Each department describes
+      its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up meetings
+      are held on Tuesday mornings in the map room. The schedule plans an interim review, then a summary
+      meeting at the end of the month. Several participants asked for more time to reread the shared documents.
+      The teams spent the week rereading the internal procedures and noting the gaps. Each department
+      describes its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up
+      meetings are held on Tuesday mornings in the map room. The schedule plans an interim review, then
+      a summary meeting at the end of the month. Several participants asked for more time to reread the
+      shared documents. The teams spent the week rereading the internal procedures and noting the gaps.
+      Each department describes its working habits, its tools and its quarterly deadlines. As a reminder,
+      the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans an interim
+      review, then a summary meeting at the end of the month. Several participants asked for more time
+      to reread the shared documents. The teams spent the week rereading the internal procedures and noting
+      the gaps. Each department describes its working habits, its tools and its quarterly deadlines. As
+      a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans
+      an interim review, then a summary meeting at the end of the month. Several participants asked for
+      more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room.
+    assistant: Thank you, noted. Several participants asked for more time to reread the shared documents.
+      The teams spent the week rereading the internal procedures and noting the gaps. Each department
+      describes its working habits, its tools and its quarterly deadlines. As a reminder, the follow-up
+      meetings are held on Tuesday mornings in the map room. The schedule plans an interim review, then
+      a summary meeting at the end of the month. Several participants asked for more time to reread the
+      shared documents. The teams spent the week rereading the internal procedures and noting the gaps.
+      Each department describes its working habits, its tools and its quarterly deadlines. As a reminder,
+      the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans an interim
+      review, then a summary meeting at the end of the month. Several participants asked for more time
+      to reread the shared documents. The teams spent the week rereading the internal procedures and noting
+      the gaps. Each department describes its working habits, its tools and its quarterly deadlines. As
+      a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule plans
+      an interim review, then a summary meeting at the end of the month. Several participants asked for
+      more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents. The teams spent the week rereading the internal procedures
+      and noting the gaps. Each department describes its working habits, its tools and its quarterly deadlines.
+      As a reminder, the follow-up meetings are held on Tuesday mornings in the map room. The schedule
+      plans an interim review, then a summary meeting at the end of the month. Several participants asked
+      for more time to reread the shared documents.
+  bricks:
+  - short_memory
+  - system_prompt
+  tools: []
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: 4096
+  approval: refuse
+  on_overflow: compaction
+  max_model_calls: 3
+  checks:
+  - kind: answer_contains
+    text: TLV-7731-QZ
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: delegation_sous_agent
+  title_text: Reading delegated to a sub-agent
+  brick: subagent
+  symptom_text: 'Does not delegate: reads the long file itself, or answers without having it read.'
+  assertion_text: Hands the reading to the sub-agent (`delegate`) and the turn ends without error.
+  prompt: Delegate the reading of guide_harnais.md to a sub-agent and give me a three-line summary.
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  - subagent
+  tools:
+  - read_file
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 5
+  checks:
+  - kind: subagent_called
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: recherche_avant_lecture
+  title_text: Search before reading
+  brick: rag
+  symptom_text: Reads a file at random, or answers from memory, without searching first.
+  assertion_text: Calls `search_documents` before `read_file`.
+  prompt: How many characters must a password have at least at Exemplia?
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  tools:
+  - search_documents
+  - read_file
+  hooks: []
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 4
+  checks:
+  - kind: tool_called
+    tool: search_documents
+    before: read_file
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
+- id: h5_refuse_sans_rappel
+  title_text: H5's refusal respected, tool not called again
+  brick: hooks
+  symptom_text: After a refusal, calls the same tool again in a loop, or works around the refusal.
+  assertion_text: 'Accepts the refusal and answers without calling the tool again: two model calls.'
+  prompt: What are the public holidays in France in 2026?
+  history: []
+  bricks:
+  - short_memory
+  - system_prompt
+  - tools
+  - hooks
+  tools:
+  - get_datetime
+  - public_holidays
+  hooks:
+  - h1
+  - h2
+  - h5
+  skills: []
+  mcp_servers: []
+  window: null
+  approval: refuse
+  on_overflow: none
+  max_model_calls: 2
+  checks:
+  - kind: hook_decided
+    hook: h5
+    decision: ask_human
+  - kind: tool_not_called
+    tool: public_holidays
+  - kind: turn_completed
+  provenance:
+    source: fourni
+    date: '2026-10-25'
+    model: null
+    turn_id: null
+    system_prompt_text: ''
+    fixed_in: null
