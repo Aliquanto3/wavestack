@@ -41,7 +41,7 @@ import yaml
 from mcp.shared.exceptions import MCPError
 from pydantic import SecretStr
 
-from wavestack import config, greenops
+from wavestack import __version__, config, greenops
 from wavestack import memory as memory_file
 from wavestack.bricks.contract import (
     BrickContent,
@@ -261,6 +261,8 @@ from wavestack.tools.registry import (
     ToolSpec,
     load_tools_content,
 )
+from wavestack.trace import otel as trace_otel
+from wavestack.trace import tree as trace_tree
 from wavestack.trace.catalog import (
     PAYLOAD_MODELS,
     LlmGenerationEndedPayload,
@@ -268,6 +270,7 @@ from wavestack.trace.catalog import (
     LlmTokenizedPayload,
     LlmTokenPayload,
 )
+from wavestack.trace.envelope import now_iso
 from wavestack.trace.journal import get_journal
 from wavestack.trace.scope import TraceScope, current, scoped
 from wavestack.ui_texts import UiTexts, load_ui_texts
@@ -10739,7 +10742,8 @@ class AppSession:
             "context_id": "rag_lab",
             "call_id": None,
             "step_id": step_id,
-            "parent_step": None,
+            # V1.2 story 16 (CAP-12): the step that holds it, read from the chain's ids.
+            "parent_step": rag_lab.parent_step(step_id),
             "brick": brick,
             "component": component,
             "edge": None,
@@ -10993,6 +10997,7 @@ class AppSession:
             "work_copy": self._rag_lab_work_copy(),
             "contexts": self._rag_lab_contexts(),
             "questions": self._rag_lab_questions(),
+            "otel": self.rag_lab_otel(),  # V1.2 story 16 (CAP-12)
             "session_state": {"state": state, "reason_text": reason_text},
             "seq": tip,
         }
@@ -12139,9 +12144,68 @@ class AppSession:
         model = PAYLOAD_MODELS[kind]
         # Lot 5c-3: the generation's progress is emitted during the model's call, never
         # under its `origin`.
+        if kind == "rag_lab_run_ended":  # V1.2 story 16 (CAP-12): the run's tree of steps
+            payload = payload | {"steps": self._rag_lab_steps(payload)}
         with scoped(**self._rag_lab_scope(step_id, component), origin=None):
             payload = in_language(payload, self._language)
             self._journal().emit(kind, model.model_validate(payload).model_dump(mode="json"))
+
+    def _rag_lab_model_info(self) -> dict[str, Any]:
+        """V1.2 story 16: the run's model as its calls name it in the tree and the export:
+        its id, label and provider (`llama_cpp` for a local one, the entry's for a cloud)."""
+        model = self.active_model() or {}
+        cloud = self._cloud
+        return {
+            "id": cloud.model if cloud is not None else model.get("id"),
+            "label": model.get("label"),
+            "provider": cloud.provider if cloud is not None else "llama_cpp",
+        }
+
+    def _rag_lab_steps(self, ended: dict[str, Any]) -> dict[str, Any] | None:
+        """V1.2 story 16 (CAP-12): the tree of the run that ends, from its events in the
+        journal (`trace/tree.py`), before its `rag_lab_run_ended` is emitted."""
+        try:
+            events = trace_tree.run_events(self._journal().all_events(), ended["run_id"])
+            tree = trace_tree.build(
+                events, ended["run_id"], model=self._rag_lab_model_info(), ended=(ended, now_iso())
+            )
+        except Exception:  # noqa: BLE001 - AD-16: a tree that cannot be read is left out
+            return None
+        return tree.model_dump(mode="json") if tree is not None else None
+
+    def rag_lab_otel(self) -> dict[str, Any]:
+        """V1.2 story 16 (CAP-12): what the export button needs: the extra installed or why
+        not, the collector's URL (`None`: unset, nothing leaves), and whether the texts go."""
+        missing = trace_otel.missing()
+        endpoint = self.cfg.otel_endpoint
+        reason = missing or (None if endpoint else Message("rag_lab.otel.unset"))
+        return {
+            "available": missing is None,
+            "endpoint": endpoint,
+            "capture_content": self.cfg.otel_capture_content,
+            "ready": reason is None,
+            "reason_text": reason,
+        }
+
+    def export_rag_lab_otel(self, run_id: str) -> dict[str, Any]:
+        """`POST /api/rag_lab/otel/export` (V1.2 story 16, CAP-12): the tree of a finished run
+        sent as OTLP spans to `[otel] endpoint`, through the factory (AD-15). Refused
+        (`SendRefused`) without the extra, without a URL or without that run; a collector that
+        cannot be reached or refuses raises `trace_otel.ExportFailed`."""
+        status = self.rag_lab_otel()
+        if not status["ready"]:
+            raise SendRefused(status["reason_text"])
+        events = trace_tree.run_events(self._journal().all_events(), run_id)
+        if not events or events[-1].kind != "rag_lab_run_ended":
+            raise SendRefused(Message("rag_lab.otel.no_run"))
+        texts = trace_tree.Texts() if self.cfg.otel_capture_content else None
+        tree = trace_tree.build(events, run_id, model=self._rag_lab_model_info(), texts=texts)
+        if tree is None:
+            raise SendRefused(Message("rag_lab.otel.no_run"))
+        body, count = trace_otel.encode(tree, texts, service_version=__version__)
+        with scoped(**self._rag_lab_scope(run_id, "rag_lab.otel", brick=None), origin="otel"):
+            trace_otel.send(body, status["endpoint"], self.cfg.otel_auth_env)
+        return {"run_id": run_id, "spans": count, "endpoint": status["endpoint"]}
 
     def _rag_lab_generate(
         self, ask: rag_lab.GenerationAsk, cancel: CancelToken
@@ -12178,7 +12242,9 @@ class AppSession:
 
         step_id = ask.step_id
         scope = self._rag_lab_scope(step_id, "rag_lab.generation", brick=None)
-        with scoped(**scope | {"call_id": step_id}, origin="model"):
+        # V1.2 story 16 (CAP-12): a model call is traced on its stage's step, which holds it.
+        scope |= {"call_id": step_id, "parent_step": step_id}
+        with scoped(**scope, origin="model"):
             rendered: RenderedContext | RenderedChat
             if cloud is None:
                 rendered = self._rag_lab_render(engine, caps, messages, step_id, reasons)

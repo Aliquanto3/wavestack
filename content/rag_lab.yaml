@@ -654,6 +654,23 @@ compare:
 
 # V1.2 story 5 (CAP-17) : la fiche de chaque option de la compréhension de la requête, en cinq
 # blocs ; « bench_text » reste vide tant que le projet de banc ne publie rien.
+# V1.2 story 16 (CAP-12) : l'arbre des étapes de l'exécution et son export OTLP.
+tree:
+  title_text: "Arbre des étapes de l'exécution"
+  hint_text: "Étape, sous-étape et appel de modèle, avec leur durée et leurs tokens, lus dans la trace de l'exécution."
+  empty_text: "Lancez la chaîne : l'arbre de la dernière exécution s'affiche ici."
+  tokens_text: "{input} → {output} tokens"
+  tokens_count_text: "{count} tokens"
+  length_text: "réserve de sortie atteinte"
+  otel_missing_text: "Export OTLP : installez l'extra otel (uv sync --extra otel) et réglez l'URL de votre Langfuse ou Phoenix. Rien ne sort du poste sinon."
+  otel_unset_text: "Export OTLP : réglez [otel] endpoint, l'URL de votre Langfuse ou Phoenix, puis redémarrez WaveStack. Rien ne sort du poste sinon."
+  otel_ready_text: "Export OTLP vers {endpoint}, aux conventions GenAI d'OpenTelemetry. Sans les textes : ni question, ni passage, ni réponse."
+  otel_content_text: "Export OTLP vers {endpoint}, aux conventions GenAI d'OpenTelemetry. Les textes partent aussi : question, prompts et réponses (capture_content)."
+  export_text: "Exporter cette exécution"
+  export_running_text: "Export en cours…"
+  export_done_text: "{count} spans envoyés à {endpoint}."
+  export_failed_text: "Export impossible : {reason}"
+
 sheets:
   query.rewrite:
     purpose_text: "Remplacer la question, souvent bavarde ou approximative, par une requête qui ressemble au vocabulaire des documents, avant la recherche."

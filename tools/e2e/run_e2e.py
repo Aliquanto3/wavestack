@@ -14466,6 +14466,55 @@ def s_rag_lab_views(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_tree(r: Run) -> None:
+    """V1.2 story 16 (CAP-12), after `rag` and `rag_rerank`: the run's tree of steps in its
+    folding panel of the Build tab (the run, its stages with their duration, a model call
+    under the stage that made it), drawn from `steps` of `rag_lab_run_ended`; without
+    `[otel] endpoint` the export button stays hidden and the note says nothing leaves; no
+    `outbound_request`. Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_mode(r, "compose")
+        page.locator("#rag-reset-chain").click()
+        ended, seq = _rag_lab_run(r)
+        steps = ended["payload"].get("steps") or {}
+        page.locator("#rag-tree > summary").click()
+        root = page.locator("#rag-tree-body li.is-run")
+        expect(root).to_be_visible(timeout=5000)
+
+        def count(tree: dict) -> int:
+            return 1 + sum(count(c) for c in tree.get("children", []))
+
+        drawn = page.locator("#rag-tree-body li.rag-tree-node").count()
+        stages = page.locator("#rag-tree-body li.is-stage")
+        r.check(
+            steps.get("kind") == "run"
+            and drawn == count(steps)
+            and stages.count() == len(ended["payload"].get("steps", {}).get("children", []))
+            and " ms" in stages.first.inner_text(),
+            "arbre : la course, ses étapes avec leur durée, autant de nœuds que la trace",
+            f"{drawn} / {count(steps)}",
+        )
+        calls = page.locator("#rag-tree-body li.is-stage > ul > li.is-model_call")
+        generation = _stage_ended(r, seq, "generation")
+        r.check(
+            generation.get("status") != "ok" or calls.count() >= 1,
+            "arbre : l'appel de modèle sous l'étape qui l'a fait, avec ses tokens",
+            str(generation.get("status")),
+        )
+        r.check(
+            page.locator("#rag-otel-export").is_hidden()
+            and "Rien ne sort du poste" in page.locator("#rag-otel-note").inner_text()
+            and not r.ev.since(seq, "outbound_request"),
+            "export OTLP : sans URL réglée, pas de bouton et rien ne sort",
+        )
+        r.shot("92-atelier-rag-arbre", full_page=True)
+    finally:
+        r.goto_app()
+
+
 def s_rag_lab_diagnosis(r: Run) -> None:
     """V1.2 story 9 (CAP-10), after `rag` and `rag_rerank`: the rank of the expected passage at
     each stage of a run on a prepared question (the stage at fault named, no mean), a free
@@ -19034,6 +19083,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
     ("rag_lab_query", s_rag_lab_query),  # V1.2 story 5
     ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
+    ("rag_lab_tree", s_rag_lab_tree),  # V1.2 story 16
     ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
     ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
     ("rag_lab_decision", s_rag_lab_decision),  # V1.2 story 8

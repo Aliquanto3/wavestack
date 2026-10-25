@@ -697,7 +697,44 @@ class Config:
     def allowed_hosts(self) -> list[str]:
         """AD-15: the configured hosts, plus the host of every enabled cloud model."""
         hosts = list(self.get("net", "allowed_hosts", default=[]))
-        return hosts + [m.host for m in self.cloud_models[0] if m.host not in hosts]
+        hosts += [m.host for m in self.cloud_models[0] if m.host not in hosts]
+        # V1.2 story 16 (CAP-12): the OTLP collector's host, allowed only by its URL set.
+        otel = self.otel_endpoint
+        otel_host = urlsplit(otel).hostname if otel else None
+        return hosts + [otel_host] if otel_host and otel_host not in hosts else hosts
+
+    @property
+    def otel_endpoint(self) -> str | None:
+        """V1.2 story 16 (CAP-12): `[otel] endpoint`, the OTLP/HTTP collector's URL (a
+        Langfuse, a Phoenix). `None` when unset, empty or not an http(s) URL with a host:
+        nothing leaves the workstation then."""
+        value = self.get("otel", "endpoint", default="")
+        if not isinstance(value, str) or not value.strip():
+            return None
+        value = value.strip()
+        try:
+            parts = urlsplit(value)
+            host = parts.hostname
+        except ValueError:
+            return None
+        if parts.scheme not in ("http", "https") or not host or parts.username:
+            return None
+        return value
+
+    @property
+    def otel_capture_content(self) -> bool:
+        """`[otel] capture_content`: the question, the prompts and the answers in the spans
+        (the GenAI conventions' opt-in content). Off unless set to `true` exactly."""
+        return self.get("otel", "capture_content", default=False) is True
+
+    @property
+    def otel_auth_env(self) -> str | None:
+        """`[otel] auth_env`: the environment variable whose value is the collector's
+        `Authorization` header (Langfuse's Basic key). A name, never the value; `None` when
+        unset or not a valid variable name."""
+        value = self.get("otel", "auth_env", default="")
+        valid = isinstance(value, str) and value.isascii() and value.replace("_", "A").isalnum()
+        return value if valid and not value[0].isdigit() else None
 
     @property
     def net_contact(self) -> str:
