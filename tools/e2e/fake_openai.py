@@ -352,6 +352,13 @@ def _final_text(user: str, messages: list[dict[str, Any]], results: list[str]) -
         words = user.rstrip(" ?").split()
         middle = max(1, len(words) // 2)
         return " ".join(words[:middle]) + " ?\n" + " ".join(words[middle:]) + " ?"
+    for marker, word in (
+        ("seul mot : oui ou non", "oui"),
+        ("one word: yes or no", "yes"),
+        ("einem Wort: ja oder nein", "ja"),
+    ):
+        if marker in system_text(messages):
+            return word  # V1.2 story 8: the workshop's SLM judge (System One's cascade)
     if "homme des cavernes" in everything and "harnais" in low:
         return _SHORT_HARNESS  # the Caveman skill's instructions are in the context
     asked = re.search(r"\blot (\d+)\b", user)

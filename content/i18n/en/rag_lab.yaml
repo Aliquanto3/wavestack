@@ -168,6 +168,16 @@ stages:
       searches then look for these queries instead of the question as typed. Each query costs a
       model call, and a model that gets it wrong rules out the right answer before the search
       even starts.
+  # V1.2 story 8 (CAP-6): System One's three decisions.
+  router:
+    label_text: "Strategy router"
+    explain_text: "Before the searches, a classifier chooses for the question a strategy the chain can run: dense RAG, hybrid or + reranking. The steps this strategy does not use are skipped. Each decision shows its author (classifier or judge), its probability and the threshold; under the threshold, the cascade, off by default, asks the SLM judge."
+  passage_filter:
+    label_text: "Passage filter"
+    explain_text: "After a search, each ranked passage is kept or rejected before the context. The score comes from the brick's reranker (local) or from a decision model (cloud): above the threshold, the classifier keeps the passage alone; under it, it rejects it, or the cascade asks the SLM judge."
+  grounding_check:
+    label_text: "Grounding check"
+    explain_text: "After the generation, each sentence of the answer is set against the context's passages: grounded or not. The check flags an unsupported claim, it does not rewrite the answer. Under the threshold, the sentence is said not grounded, or the cascade asks the SLM judge."
 
 # Each option's name; those naming a declared model take its label.
 options:
@@ -241,6 +251,22 @@ options:
       label_text: "Follow-up question made standalone"
     hyde:
       label_text: "Hypothetical document (HyDE)"
+  # V1.2 story 8 (CAP-6)
+  router:
+    local:
+      label_text: "Local classifier (deberta_xsmall)"
+    cloud:
+      label_text: "Decision API (cloud)"
+  passage_filter:
+    local:
+      label_text: "Threshold on the reranker's score"
+    cloud:
+      label_text: "Decision API (cloud)"
+  grounding_check:
+    local:
+      label_text: "Local classifier (deberta_xsmall)"
+    cloud:
+      label_text: "Decision API (cloud)"
 
 # The settings: their name and unit.
 params:
@@ -256,6 +282,13 @@ params:
   budget_tokens:
     label_text: "Context budget"
     unit_text: "tokens (estimated)"
+  # V1.2 story 8 (CAP-6)
+  decision_threshold:
+    label_text: "Decision threshold"
+    unit_text: "% (probability)"
+  judge_cascade:
+    label_text: "Cascade to the SLM judge (not validated by the bench)"
+    unit_text: "0 = no, 1 = yes"
 
 # Lot 5a: the lines of the sequence. The technical name is the same in the three languages;
 # the action and the explanation are in the page's language. Without `explain_text`, the
@@ -351,6 +384,16 @@ steps:
     label_text: "Tree descent"
     action_text: "The model picks, level by level, the nodes to open"
     explain_text: "At each level, the model reads the numbered list of the children of the nodes kept (title and summary) and answers CHOICE: 3, 7 (two at most) or CHOICE: NONE. One call per level: two on the shipped corpus (the documents, then the sections). The whole text of the sections reached becomes the context."
+  # V1.2 story 8 (CAP-6): System One's lines, in the chain's order.
+  router:
+    label_text: "Strategy router"
+    action_text: "Choose the question's search strategy"
+  passage_filter:
+    label_text: "Passage filter"
+    action_text: "Keep or reject each passage"
+  grounding_check:
+    label_text: "Grounding check"
+    action_text: "Check the grounding of each sentence of the answer"
   # V1.2 story 13: GraphRAG's graph built once, then queried at each question.
   graph_build:
     label_text: "Graph building"
@@ -415,6 +458,10 @@ components:
   section_tree:
     label_text: "Tree of sections"
     note_text: "Documents and sections, titles and summaries"
+  # V1.2 story 8 (CAP-6)
+  decision_model:
+    label_text: "Decision model"
+    note_text: "Local classifier, reranker or decision API"
   knowledge_graph:
     label_text: "Knowledge graph"
     note_text: "Entities, relations, summarized communities"
@@ -900,6 +947,73 @@ sheets:
         url: "https://github.com/VectifyAI/PageIndex"
       - label_text: "arXiv 2604.14222: PageIndex evaluated on 50 questions, latency ~1.7 times"
         url: "https://arxiv.org/html/2604.14222v1"
+  # V1.2 story 8 (CAP-6): System One's options (litterature.md, H6 and H7).
+  router.local:
+    purpose_text: "Choose, for each question, the search strategy among those the chain can run (dense RAG, hybrid, + reranking), with a local NLI classifier (deberta-v3-xsmall zero-shot, ONNX): each strategy is a hypothesis, the most probable wins, and the steps it does not use are skipped."
+    when_text: "Use it to see what a per-question choice costs and brings, against a fixed chain. Avoid it when one strategy suits the corpus: the router adds a call and can be wrong. It only leaves steps of the chain out, it never adds one."
+    cost_text: "Nothing at build or update time. At each query, one pass of the classifier per candidate strategy (a few tens of milliseconds on CPU); the bench measured 351 MB of added RAM. It saves the time of the steps it leaves out."
+    literature_text: "Hypothesis H6, partly supported: per-query routing beats the best fixed choice, but the gain is modest and far from the oracle (43.7 against 39.3 fixed and 60.8 oracle, RAGRouter-Bench); it is mostly about cost (Adaptive-RAG)."
+    bench_text: "Routing was not measured by the preliminary bench (story 2: filter and grounding only). The routing hypotheses and the 50 % threshold are proposals. deberta-v3-xsmall is the model the V2 CAP-6 bench chose for routing by specialty."
+    sources:
+      - label_text: "RAGRouter-Bench: per-query routing, 43.7 against 39.3 fixed and 60.8 oracle"
+        url: "https://arxiv.org/html/2602.00296v2"
+      - label_text: "Adaptive-RAG: choosing the strategy by the question's complexity"
+        url: "https://arxiv.org/pdf/2403.14403"
+  router.cloud:
+    purpose_text: "The same choice of strategy by OpenRouter's decision API: a “choice” question that returns a label, its probabilities and a confidence. Default model: Jev 1.14 (TypeSafe). The option is greyed out without the OPENROUTER_API_KEY key."
+    when_text: "Use it to compare a decision model and a local classifier on the same choice. Avoid it offline, or on real documents: a cloud model only receives the fictitious Exemplia corpus, and the option is refused on a modified work copy."
+    cost_text: "Nothing at build or update time. One API call per question, 70 to 500 ms announced, billed on input; the spend counts within the session's cap ([finops] max_session_usd)."
+    literature_text: "Hypothesis H6, partly supported: a modest gain from per-query routing, mostly on cost (RAGRouter-Bench, Adaptive-RAG). The “choice” shape of the alpha endpoint was not called by the bench: it follows the documentation and remains to be checked."
+    bench_text: "Not measured for routing. On grounding, Jev 1.14 accepted 0 % of the unsupported claims of the fictitious set, against 23 % in the article the framing cites."
+    sources:
+      - label_text: "RAGRouter-Bench: per-query routing, 43.7 against 39.3 fixed and 60.8 oracle"
+        url: "https://arxiv.org/html/2602.00296v2"
+      - label_text: "Eden AI: Jev, a model built for decisions"
+        url: "https://www.edenai.co/post/jev-a-new-kind-of-ai-model-built-for-decisions-not-conversation"
+  passage_filter.local:
+    purpose_text: "Keep or reject each ranked passage before the context, on the score of the brick's reranker: above the threshold the passage is kept; under it, it is rejected or, cascade on, judged by the SLM. The preliminary bench chose this reranker as the default local filter."
+    when_text: "Use it to remove from the context the off-topic passages that distract the model. Avoid a high threshold: a useful passage rejected does not come back, and the answer loses its support. A reranker's score is not a calibrated probability: its threshold holds for that model only."
+    cost_text: "Nothing at build or update time. At each query, one pass of the reranker per candidate (141 ms median at the bench), even after a Reranking: the filter reads the candidates again."
+    literature_text: "Hypothesis H7, not shown: a decision model would replace the intermediate LLM judges without loss of quality. Its accuracy is close to an LLM's, but it accepts more unsupported claims; no study covers a whole pipeline."
+    bench_text: "Bench of story 2 (fictitious set, 279 pairs in fr, en, de): at the 0.02 threshold, the reranker keeps 95 % of the expected passages and drops 64 % of the off-topic ones (92 % at 0.5). Threshold fitted on the set itself: optimistic."
+    sources:
+      - label_text: "Towards AI: Jev as a judge of claim verification (23 % against 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "jev-corrective-rag: a passage filter by a decision model"
+        url: "https://github.com/sudeshkar/jev-corrective-rag"
+  passage_filter.cloud:
+    purpose_text: "Keep or reject each passage by the decision API: a “noul” question that returns the probability of yes to “is this passage enough to answer?”. Default model: PPLX Decider Flash 1.2, the bench's cloud choice. The option is greyed out without a key."
+    when_text: "Use it to compare a decision model with the reranker on the same sorting. Avoid it offline or on real documents: only the fictitious Exemplia corpus goes to the cloud."
+    cost_text: "Nothing at build time. One API call per candidate and per question (249 ms median at the bench), billed on input; the spend counts within the session's cap."
+    literature_text: "Hypothesis H7, not shown: a decision model would replace the intermediate LLM judges without loss of quality; no study covers a whole pipeline."
+    bench_text: "At the 0.13 threshold, PPLX Decider Flash 1.2 keeps 95 % of the expected passages and drops 79 % of the off-topic ones (AUC 0.92), better than the shipped reranker. Threshold fitted on the set: optimistic."
+    sources:
+      - label_text: "Towards AI: Jev as a judge of claim verification (23 % against 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "MLflow: Jev as an LLM judge"
+        url: "https://mlflow.org/blog/jev-llm-judge/"
+  grounding_check.local:
+    purpose_text: "Check each sentence of the answer (eight at most) against the context's passages, with the local NLI deberta-v3-xsmall: above the threshold the sentence is grounded; under it, it is said not grounded or, cascade on, judged by the SLM. The check flags, it does not correct the answer."
+    when_text: "Use it to spot an answer that adds or changes a fact, a number or a condition. Avoid it as a guarantee: the classifier lets part of the unsupported claims through, and it reads only 512 tokens (a long context is cut)."
+    cost_text: "Nothing at build time. At each query, one pass of the classifier per sentence (28 ms median at the bench); 351 MB of added RAM."
+    literature_text: "Hypothesis H7, not shown: a decision model accepts 23 % of unsupported claims against 13 % for an LLM (Towards AI); no study covers a whole pipeline."
+    bench_text: "At the 0.20 threshold, deberta-v3-xsmall accepts 9 % of the unsupported claims (CI 5 to 16 %) while keeping 81 % of the supported ones. The bench's SLM judge (Qwen3.5-2B with a grammar and its probability) accepted 64 %: the cascade is not validated, and the judge here (the active model, without grammar) was not measured. Threshold fitted on the set: optimistic."
+    sources:
+      - label_text: "Towards AI: Jev as a judge of claim verification (23 % against 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "AnyJev (Nokia): decisions from a small local model"
+        url: "https://github.com/nokia-applied-research/AnyJev"
+  grounding_check.cloud:
+    purpose_text: "The same check by the decision API: one “noul” question per sentence, “is the claim fully supported by the passages?”. Default model: Jev 1.14 (TypeSafe), the bench's cloud choice. The option is greyed out without a key."
+    when_text: "Use it to compare a decision model and a local classifier on the same sentences. Avoid it offline or on real documents: only the fictitious Exemplia corpus goes to the cloud."
+    cost_text: "Nothing at build time. One API call per sentence (246 ms median at the bench), billed on input; the spend counts within the session's cap."
+    literature_text: "Hypothesis H7, not shown: 23 % of unsupported claims accepted by Jev against 13 % by an LLM in the only published article (Towards AI)."
+    bench_text: "At the 0.59 threshold, Jev 1.14 accepts 0 % of the unsupported claims (CI 0 to 3 %) while keeping 81 % of the supported ones. A small fictitious set, items translated from one another: the intervals are optimistic."
+    sources:
+      - label_text: "Towards AI: Jev as a judge of claim verification (23 % against 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "Arize: TypeSafe Jev as an LLM judge"
+        url: "https://arize.com/blog/typesafe-jev-llm-judge/"
   context.graph_search:
     purpose_text: "Search without vectors in a knowledge graph built once: the corpus's entities, their relations (with their evidence passages) and their summarized communities. Locally, the question's entities and their neighbours one hop away give the context's passages; globally, the closest communities each go through a « map » call."
     when_text: "Use it for multi-hop questions (linking two procedures, two departments) and global ones (an overview of a theme), on a stable corpus. Avoid it for a simple fact: it loses on simple facts, wins on multi-hop and global questions. Avoid it too on a corpus that changes often: the graph and its summaries must be redone."

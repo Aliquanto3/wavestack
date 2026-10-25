@@ -273,7 +273,8 @@ function stageControls(stage, index) {
   if (info && info.options.length > 1) box.append(optionSelect(stage, info));
   else box.append(el("span", "rag-chain-option", option?.label_text ?? stage.option));
   for (const param of option?.params ?? []) box.append(paramInput(stage, param));
-  if (info?.movable) box.append(moveButtons(index));
+  // V1.2 story 8: a check (after the generation) is removed the same way, never moved.
+  if (info?.movable || info?.check) box.append(moveButtons(index));
   if (option?.note_text) box.append(el("p", "rag-chain-note", option.note_text));
   for (const other of info?.options ?? []) {
     if (!other.available && other.reason_text) {
@@ -474,7 +475,7 @@ function renderPalette() {
   const pipeline = chain();
   if (!pipeline || !store.catalog || store.mode !== "compose") return;
   const present = new Set(pipeline.stages.map((s) => s.kind));
-  const absent = store.catalog.stages.filter((s) => s.movable && !present.has(s.kind));
+  const absent = store.catalog.stages.filter((s) => (s.movable || s.check) && !present.has(s.kind));
   if (!absent.length) return;
   const label = el("label", "rag-palette-label");
   label.append(el("span", null, text("add_text") || t("rag.add")));
@@ -489,7 +490,9 @@ function renderPalette() {
   add.type = "button";
   add.addEventListener("click", () => {
     const info = store.catalog.stages.find((s) => s.kind === select.value);
-    const choice = info?.options.find((o) => o.available) ?? info?.options[0];
+    // V1.2 story 8 (CAP-6): a cloud option is only ever chosen by hand, never by default: when
+    // the local one is unavailable, it is added anyway and says why (and what to download).
+    const choice = info?.options.find((o) => o.available && o.id !== "cloud") ?? info?.options[0];
     if (!info || !choice) return;
     const used = new Set(pipeline.stages.map((s) => s.id));
     let n = pipeline.stages.length + 1;

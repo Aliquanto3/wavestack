@@ -2177,6 +2177,10 @@ dependencies = [
 compression = [
     { name = "headroom-ai" },
 ]
+decision = [
+    { name = "onnxruntime" },
+    { name = "tokenizers" },
+]
 greenops = [
     { name = "codecarbon" },
 ]
@@ -2218,6 +2222,7 @@ requires-dist = [
     { name = "mcp", specifier = ">=2.2,<2.3" },
     { name = "mcp-types", specifier = ">=2.2,<2.3" },
     { name = "mss", specifier = ">=9.0.2,<10" },
+    { name = "onnxruntime", marker = "extra == 'decision'", specifier = "==1.23.2" },
     { name = "onnxruntime", marker = "extra == 'guardrails'", specifier = "==1.23.2" },
     { name = "presidio-analyzer", marker = "extra == 'guardrails'", specifier = "==2.2.360" },
     { name = "presidio-anonymizer", marker = "extra == 'guardrails'", specifier = "==2.2.360" },
@@ -2226,11 +2231,12 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3,<7" },
     { name = "spacy", marker = "extra == 'guardrails'", specifier = "==3.8.7" },
     { name = "sqlite-vec", specifier = "==0.1.9" },
+    { name = "tokenizers", marker = "extra == 'decision'", specifier = "==0.22.1" },
     { name = "tokenizers", marker = "extra == 'guardrails'", specifier = "==0.22.1" },
     { name = "truststore", specifier = ">=0.10,<0.11" },
     { name = "uvicorn", specifier = ">=0.53,<0.54" },
 ]
-provides-extras = ["compression", "guardrails", "rag-alt", "greenops"]
+provides-extras = ["compression", "guardrails", "rag-alt", "greenops", "decision"]
 
 [package.metadata.requires-dev]
 dev = [

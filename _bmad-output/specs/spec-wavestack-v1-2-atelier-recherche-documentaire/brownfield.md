@@ -81,6 +81,7 @@
 | `guardrails` | onnxruntime==1.23.2, tokenizers==0.22.1, presidio ==2.2.360, spacy==3.8.7, fr-core-news-sm |
 | `rag-alt` | faiss-cpu==1.15.1, lancedb==0.39.0 |
 | `greenops` | codecarbon==3.3.1 |
+| `decision` (V1.2 story 8) | onnxruntime==1.23.2, tokenizers==0.22.1 : le classifieur local de System One (deberta_xsmall, NLI zero-shot en ONNX), sans Presidio ni spaCy de `guardrails` ; mêmes versions que `guardrails` |
 
 Base : llama-cpp-python>=0.3.35,<0.4, sqlite-vec==0.1.9, ecologits>=0.11.2,<0.12.
 

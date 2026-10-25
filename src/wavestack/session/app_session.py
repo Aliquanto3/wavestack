@@ -207,6 +207,7 @@ from wavestack.models.servers import (
 from wavestack.rag import access as rag_access
 from wavestack.rag import attack as rag_attack
 from wavestack.rag import contexts as rag_contexts
+from wavestack.rag import decision as rag_decision
 from wavestack.rag import erasure as rag_erasure
 from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag import (
@@ -1000,6 +1001,15 @@ class AppSession:
         # Story 16 (AD-8): the reranking sub-option, its model (`[rag.reranker]`, or why it is
         # invalid), the files missing, and the reranker loaded.
         self._reranker_factory = reranker_factory or reranker_module.open_reranker
+        # V1.2 story 8 (CAP-6): System One's local classifier (its adapter, a fake in tests),
+        # whether its extra is installed, the decision API's transport (a fake in tests) and
+        # its key (read afresh, never kept, shown nor written).
+        self._decision_classifier_factory: Callable[[config.DecisionModel], Any] = (
+            _open_decision_classifier
+        )
+        self._decision_installed: Callable[[], bool] = rag_decision.installed
+        self._decision_transport: Any = None
+        self._decision_key: Callable[[], str | None] = rag_decision.read_key
         self._rerank_model: RerankerModel | None = None
         self._rerank_config_error: str | None = None
         self._rerank_missing: list[ModelFile] = []
@@ -7335,6 +7345,12 @@ class AppSession:
         `rag_lab_reranker:<id>`) are traced outside it, so the RAG card does not show them.
         `KeyError` for an unknown target, `SendRefused` for a brick's model not declared."""
         kind, _, model_id = target.partition(":")
+        if kind == "rag_lab_decision" and model_id:  # V1.2 story 8: System One's classifier
+            decision_model, _ = self.cfg.rag_lab_decision_classifier
+            if decision_model is None or decision_model.id != model_id:
+                raise KeyError(target)
+            scope = self._rag_lab_scope("rag_lab", "rag_lab.decision", brick=None)
+            return decision_model, Message("session.rag.model_noun.decision"), scope
         if kind in ("rag_lab_embedding", "rag_lab_reranker") and model_id:
             rerank = kind == "rag_lab_reranker"
             lab_model = (
@@ -10842,6 +10858,7 @@ class AppSession:
                 reason_text=refused,
                 download=self._rag_lab_download(texts, lab_reranker),
             )
+        self._rag_lab_decision_states(texts, options)  # V1.2 story 8 (CAP-6)
         return rag_lab.Catalog(
             texts, rag_lab.default_pipeline(self.cfg), options, lang=self._language
         )
@@ -11893,6 +11910,10 @@ class AppSession:
             # around the agent's rounds and the descent's levels.
             reserve=self._reserve_of(self.build_turn_state()),
             model_scope=self._rag_lab_hold,
+            # V1.2 story 8 (CAP-6): System One's classifier, the decision API and its models.
+            classifier=lambda: self._rag_lab_classifier(loans),
+            decision_api=self._rag_lab_decision_api,
+            decision_models=self.cfg.rag_lab_decision_models,
             # V1.2 story 13: GraphRAG's mode, and its graph from the session's cache.
             graph_mode=graph_mode,
             graph=self._rag_lab_graph,
@@ -11928,6 +11949,140 @@ class AppSession:
         with self._lock:
             if self._cag_pending is not None:
                 self._cag_cache, self._cag_pending = self._cag_pending, None
+
+    # ---------- V1.2 story 8 (CAP-6): System One's decision layer ----------
+
+    def _rag_lab_decision_states(
+        self, texts: rag_lab.RagLabContent, options: dict[tuple[str, str], rag_lab.OptionState]
+    ) -> None:
+        """The local classifier's options (the extra, its files, « Télécharger »), the local
+        filter named after the brick's reranker, and the cloud options greyed without a key."""
+        model, why = self.cfg.rag_lab_decision_classifier
+        for kind in ("router", "grounding_check"):
+            state = options[(kind, "local")]
+            if model is None:
+                state.available, state.reason_text = False, why
+                continue
+            state.label_text = model.label_text
+            if not self._decision_installed():
+                state.available = False
+                state.reason_text = Message("session.rag_lab.decision_extra")
+            absent = self._rag_lab_decision_absent(model)
+            if absent is not None and state.available:
+                state.available, state.reason_text = False, absent
+            state.download = self._rag_lab_decision_download(texts, model)
+        sieve = options[("passage_filter", "local")]
+        if self._rerank_model is not None:
+            sieve.label_text = self._t(
+                "session.rag_lab.filter_label", model=self._rerank_model.label_text
+            )
+        sieve.note_text = self._rerank_static_reason()
+        sieve.download = (self._rerank_card() or {}).get("download")
+        has_key = self._decision_key() is not None
+        models = self.cfg.rag_lab_decision_models
+        for kind, role in (
+            ("router", "router"),
+            ("passage_filter", "filter"),
+            ("grounding_check", "grounding"),
+        ):
+            state = options[(kind, "cloud")]
+            state.label_text = self._t("session.rag_lab.decision_cloud_label", model=models[role])
+            if not has_key:
+                state.available = False
+                state.reason_text = Message(
+                    "session.rag_lab.decision_no_key", env=rag_decision.KEY_ENV
+                )
+
+    @staticmethod
+    def _rag_lab_decision_absent(model: config.DecisionModel) -> Message | None:
+        missing = download_module.missing_files(model.files, config.models_dir())
+        if not missing:
+            return None
+        files = ", ".join(PurePosixPath(f.path).as_posix() for f in missing)
+        return Message(
+            "session.rag_lab.lab_decision_absent", files=files, folder=config.models_dir()
+        )
+
+    @staticmethod
+    def _rag_lab_decision_download(
+        texts: rag_lab.RagLabContent, model: config.DecisionModel
+    ) -> dict[str, str] | None:
+        missing = download_module.missing_files(model.files, config.models_dir())
+        if not missing:
+            return None
+        size_mb = max(1, round(sum(f.size for f in missing) / 1_000_000))
+        return {
+            "target": f"rag_lab_decision:{model.id}",
+            "label_text": texts.download_label_text.format(size_mb=size_mb),
+        }
+
+    def _rag_lab_classifier(self, loans: rag_lab.Loans) -> rag_lab.Lent:
+        """System One's classifier, loaded for the run in its own slot, within the budget,
+        its files' sha256 checked; closed at the run's end. Missing (extra, files): skipped."""
+        model, why = self.cfg.rag_lab_decision_classifier
+        if model is None:
+            raise rag_lab.StageSkipped(why)
+        if not self._decision_installed():
+            raise rag_lab.StageSkipped(Message("session.rag_lab.decision_extra"))
+        dest = config.models_dir()
+
+        def open_model() -> Any:
+            for f in model.files:
+                if f.sha256 and rag_lab.file_digest(dest / f.path) != f.sha256.lower():
+                    raise ValueRefused(
+                        "session.rag.sha256",
+                        path=dest / f.path,
+                        section="[rag_lab.decision.classifier]",
+                    )
+            return self._decision_classifier_factory(model)
+
+        return loans.lend(
+            borrowed=None,
+            label_text=model.label_text,
+            noun_text=Message("session.rag_lab.noun.decision"),
+            unavailable_text=self._rag_lab_decision_absent(model),
+            cost=self._load_registry.component_cost(
+                model.measured_rss_mb, [f.size for f in model.files]
+            ),
+            slot=f"rag_lab.decision.{model.id}",
+            open_model=open_model,
+            soft=True,
+        )
+
+    def _rag_lab_decision_api(self) -> tuple[Any, Any]:
+        """The decision API for a run, or why there is none (no key). Each call is refused
+        once `[finops] max_session_usd` is reached, and its cost joins the session's spend."""
+        key = self._decision_key()
+        if key is None:
+            return None, Message("session.rag_lab.decision_no_key", env=rag_decision.KEY_ENV)
+        from wavestack.net.factory import create_client  # the traced client (AD-15)
+
+        http = create_client(
+            timeout=rag_decision.REQUEST_TIMEOUT_S, transport=self._decision_transport
+        )
+        api = rag_decision.DecisionApi(key, http=http)
+        return rag_decision.CappedApi(api, self._decision_cap_refusal, self._decision_spent), None
+
+    def _decision_cap_refusal(self) -> Message | None:
+        cap = self.cfg.max_session_usd
+        if cap is None:
+            return None
+        spent = float((session_spend(self.cfg.eur_per_usd) or {}).get("total_usd") or 0.0)
+        if spent < cap:
+            return None
+        return Message(
+            "session.rag_lab.decision_capped", spent=f"{spent:.2f} $", cap=f"{cap:.2f} $"
+        )
+
+    def _decision_spent(self, answer: rag_decision.ApiAnswer) -> None:
+        if answer.cost_usd is None:
+            return
+        journal = self._journal()
+        record_spend(
+            CallCost(answer.cost_usd, 0.0, "api"),
+            self.cfg.eur_per_usd,
+            lambda spend: journal.emit("consumption_updated", spend),
+        )
 
     def _rag_lab_compressor(self) -> tuple[Compressor | None, Message | str | None]:
         """V1.2 story 7: the compressor the Compression card loaded, to borrow for a run (the
@@ -15110,3 +15265,11 @@ class _RagMcpBackend:
 
     def describe(self, client: str | None) -> Any:
         return self._session._rag_mcp_describe(client)
+
+
+def _open_decision_classifier(model: config.DecisionModel) -> rag_decision.NliClassifier:
+    """V1.2 story 8: System One's classifier opened from its declared files (extra `decision`)."""
+    dest = config.models_dir()
+    return rag_decision.NliClassifier(
+        dest / model.config_path, dest / model.tokenizer_path, dest / model.load_path
+    )

@@ -235,7 +235,12 @@ def test_every_option_of_a_sheeted_kind_has_a_sheet_with_a_source(lang):
     for key, sheet in content.sheets.items():
         assert sheet.sources, key
         assert all(s.url.startswith("https://") for s in sheet.sources), key
-        assert sheet.bench_text == "", key  # nothing published by the bench yet
+        # V1.2 story 8: System One's sheets say what the bench of story 2 measured; the others
+        # have nothing published by a bench yet.
+        if key.split(".")[0] in rag_lab.DECISION_KINDS:
+            assert sheet.bench_text, key
+        else:
+            assert sheet.bench_text == "", key
 
 
 def test_a_missing_sheet_is_refused():

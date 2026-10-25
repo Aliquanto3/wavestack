@@ -18,6 +18,9 @@ allowed_hosts = [
     # GitHub, OAuth App WaveStack par code (story 3, V1.1 vague 2, CAP-4).
     "github.com",
     "api.githubcopilot.com",
+    # API de décision, option cloud de System One dans l'atelier (V1.2 story 8, CAP-6) :
+    # appelée seulement avec une clé OPENROUTER_API_KEY et une option cloud choisie.
+    "openrouter.ai",
 ]
 # Contact envoyé dans l'User-Agent à chaque service sortant : la politique robots de Wikimedia
 # l'exige (403 sans lui). Une URL ou une adresse électronique, en ASCII ; valeur par défaut si
@@ -211,6 +214,38 @@ load_path = "reranker/qwen3-reranker-0.6b-q8_0.gguf"
 measured_rss_mb = 937
 files = [
     { url = "https://huggingface.co/ggml-org/Qwen3-Reranker-0.6B-Q8_0-GGUF/resolve/a02f48bb4f057028298c21fa033da2b30d7742d5/qwen3-reranker-0.6b-q8_0.gguf", path = "reranker/qwen3-reranker-0.6b-q8_0.gguf", size = 639153184, sha256 = "22c9979ce4fbcdc5acdc310c6641c32797eff1aa980b8f7a2db8a8ea23429a48" },
+]
+
+# V1.2 story 8 (CAP-6) : la couche de décision System One de l'atelier (routeur, filtre de
+# passages, contrôle d'ancrage). Option cloud : l'API de décision d'OpenRouter
+# (/api/alpha/decisions, endpoint alpha), clé dans la variable OPENROUTER_API_KEY (ou le
+# registre utilisateur HKCU\Environment), jamais affichée ni écrite ; sans clé, l'option est
+# grisée. Modèle de chaque rôle : le choix du banc de la story 2 (rapport-banc-system-one.md).
+[rag_lab.decision]
+router_model = "typesafe/jev-1.14"  # non mesuré par le banc en routage
+filter_model = "perplexity/pplx-decider-flash-v1.2"
+grounding_model = "typesafe/jev-1.14"
+
+# Le classifieur local du routeur et du contrôle d'ancrage (le filtre local relit le score du
+# reranker de la brique) : deberta_xsmall, NLI zero-shot en ONNX quantifié, lu par l'extra
+# `decision` (onnxruntime, tokenizers ; uv sync --extra decision). Fichiers sous decision/,
+# « Télécharger » dans l'étape, sha256 vérifiés ; révision épinglée du banc. Tailles et sha256
+# relevés le 2026-10-25 sur les fichiers de cette révision. RAM ajoutée mesurée par le banc :
+# 351 Mo (SLM chargé, PC de développement).
+[rag_lab.decision.classifier]
+id = "deberta-v3-xsmall-zeroshot"
+backend = "onnx"
+label_text = "DeBERTa-v3 xsmall zero-shot (MoritzLaurer, ONNX quantifié)"
+license = "MIT"
+max_tokens = 512
+load_path = "decision/deberta-v3-xsmall-zeroshot/onnx/model_quantized.onnx"
+tokenizer_path = "decision/deberta-v3-xsmall-zeroshot/tokenizer.json"
+config_path = "decision/deberta-v3-xsmall-zeroshot/config.json"
+measured_rss_mb = 351
+files = [
+    { url = "https://huggingface.co/MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33/resolve/262ae02f29173eec1c250f90804dc7edc677dcff/config.json", path = "decision/deberta-v3-xsmall-zeroshot/config.json", size = 1017, sha256 = "dc6de98193d85d4c45f96724e6dd3672b897af3f1592e02625b9a71be795887b" },
+    { url = "https://huggingface.co/MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33/resolve/262ae02f29173eec1c250f90804dc7edc677dcff/tokenizer.json", path = "decision/deberta-v3-xsmall-zeroshot/tokenizer.json", size = 8656646, sha256 = "05402ffae6dd382a8491b1d29bfc139bec5d332662e86a026f433ce54c25c202" },
+    { url = "https://huggingface.co/MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33/resolve/262ae02f29173eec1c250f90804dc7edc677dcff/onnx/model_quantized.onnx", path = "decision/deberta-v3-xsmall-zeroshot/onnx/model_quantized.onnx", size = 87246195, sha256 = "1fbf78872ceab4e8003eaa0696896008c019d5a239be734c5d6230f312ad480e" },
 ]
 
 [tools]
