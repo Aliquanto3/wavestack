@@ -110,3 +110,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:52 · 15.3 · second-avis · lancé · —
 - 2026-10-25 21:57 · 15.3 · second-avis · 1 high (tiroir qui ne se ferme plus après modification, plantage pendant le chargement), 3 medium (erreur d'enregistrement silencieuse ; abandon pendant l'enregistrement ; collision de turn_id), 4 low · c26438b6
 - 2026-10-25 21:57 · 15.3 · review · lancé (Opus) · —
+- 2026-10-25 22:02 · 15.2 · review · prête (4 medium et 5 low corrigés ; brique reasoning ajoutée au cas R22 ; compaction du cas TLV prouvée) · b43d4bd8
+- 2026-10-25 22:02 · 15.2 · PR · #138 ouverte, CI en cours · b43d4bd8
