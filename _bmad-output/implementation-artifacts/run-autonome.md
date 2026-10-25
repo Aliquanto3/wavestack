@@ -468,3 +468,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:02 · 12.10 · CI · verte · 911399e
 - 2026-10-25 11:02 · 12.10 · fusion · #113 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.19 entrera seconde et applique le contrat long_context / cag · 7f24444
 - 2026-10-25 11:03 · 12.19 · second-avis · 0 high, 1 medium (règle .rag-badge réactivée par l'accolade corrigée), 5 low ; 43 sources identiques à litterature.md, accolades équilibrées · a6b5584
+- 2026-10-25 11:05 · 12.19 · review · lancé (Opus ; fusion de l'intégration et contrat long_context / cag d'abord) · a6b5584
+- 2026-10-25 11:05 · 12.11 · dev · phase 2 (code) lancée (Opus, effort high ; fusion de l'intégration d'abord) · 3f8f1cd
+- 2026-10-25 11:07 · 12.2 · dev · lancé (phase spec, worktree ../wavestack-v12-s2 depuis l'intégration 7f24444) · 7f24444
