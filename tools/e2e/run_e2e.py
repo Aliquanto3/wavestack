@@ -14475,6 +14475,7 @@ def s_rag_lab_diagnosis(r: Run) -> None:
     page.set_viewport_size({"width": 1600, "height": 1000})
     _goto_rag_lab(r)
     try:
+        _rag_mode(r, "compose")
         page.locator("#rag-reset-chain").click()
         questions = r.api("GET", "/api/rag_lab").json()["questions"]
         factual = next(q for q in questions if q["type"] == "factual")
