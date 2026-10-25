@@ -90,12 +90,17 @@ async function refresh(force = false) {
   const key = JSON.stringify(runs.map((r) => r.run_id));
   if (!force && key === ev.sent) return;
   ev.sent = key;
+  ev.asked = (ev.asked ?? 0) + 1;
+  const asked = ev.asked;
   const answer = await send("/api/rag_lab/evaluation", { runs });
+  // A late answer (an older request) does not overwrite a newer one: it could say `judging` again.
+  if (asked !== ev.asked) return answer.ok;
   if (answer.ok) {
     ev.body = { ...answer.body, panel: ev.body?.panel ?? null };
     ev.busy = Boolean(answer.body.judging);
   }
   draw();
+  return answer.ok;
 }
 
 // ----- drawing -----
@@ -255,10 +260,14 @@ async function judge(run, choice, criterion) {
   }
   ev.busy = true;
   draw();
-  for (let n = 0; n < 200 && ev.busy; n += 1) {
+  // No time limit: a local judge on CPU may take minutes. Only a server that stops answering
+  // ends the wait; the button stays disabled anyway while the session is not idle.
+  let failures = 0;
+  while (ev.busy && failures < 5) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    await refresh(true);
+    failures = (await refresh(true)) ? 0 : failures + 1;
   }
+  ev.busy = false;
   if (ev.body?.judge_error) ev.notice = { text: ev.body.judge_error, error: true };
   draw();
 }

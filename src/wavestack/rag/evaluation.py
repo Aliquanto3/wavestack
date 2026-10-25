@@ -47,7 +47,7 @@ ROLES = ("local", "cloud")  # the two judges of the panel
 REFERENCE = "reference"
 MAX_RUNS = 40  # the runs a page may send
 MAX_WHY = 400  # the characters of a justification kept
-JUDGE_MAX_TOKENS = 160
+JUDGE_MAX_TOKENS = 256  # 300 characters of justification (~100 tokens in French) fit
 # The GBNF grammar of a judge's output (V1.2 story 15): one JSON object, a verdict on the scale
 # and a short justification, no escape, no line break.
 GRAMMAR = r"""root ::= "{" ws vkey ":" ws verdict ws "," ws wkey ":" ws why ws "}"

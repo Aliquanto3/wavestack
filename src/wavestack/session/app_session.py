@@ -11204,15 +11204,16 @@ class AppSession:
                     )
                 )
         elif role == "local":
-            options = rag_evaluation.local_options(
-                self._rag_judge_discover(), family, texts, self._language
-            )
+            discovered = self._rag_judge_discover()
+            options = rag_evaluation.local_options(discovered, family, texts, self._language)
             found = next((o for o in options if o.id == judge_id), None)
             if found is None:
                 raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
             if found.reason:
                 raise SendRefused(str(panel_texts["rejected_text"]).format(reason=found.reason))
-            candidate = next(c for c in self._rag_judge_discover() if (c.ref or c.path) == judge_id)
+            candidate = next((c for c in discovered if (c.ref or c.path) == judge_id), None)
+            if candidate is None:  # an option is built from a discovered model: defensive only
+                raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
         else:
             raise SendRefused(str(panel_texts["unknown_judge_id_text"]))
         with self._lock:
@@ -13644,18 +13645,20 @@ class _LocalJudge:
                 raise SendRefused(refusal)
             base = registry.baseline()
             engine = s._engine_factory(candidate.path, n_ctx=window)
-            registry.grant(
-                self.label,
-                cost,
-                RAG_LAB_JUDGE,
-                in_process=True,
-                share=registry.file_share(candidate.path),
-                base=base,
-            )
         else:  # a llama-server model: nothing loads in this process
             engine = s._server_factory(candidate, n_ctx=window)
-            registry.grant(self.label, 0, RAG_LAB_JUDGE, in_process=False)
         try:
+            if candidate.engine is None:
+                registry.grant(
+                    self.label,
+                    cost,
+                    RAG_LAB_JUDGE,
+                    in_process=True,
+                    share=registry.file_share(candidate.path),
+                    base=base,
+                )
+            else:
+                registry.grant(self.label, 0, RAG_LAB_JUDGE, in_process=False)
             meta = engine.metadata()
             caps = capabilities_for(meta)
             if caps.incompatible_reason:

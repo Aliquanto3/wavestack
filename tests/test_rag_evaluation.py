@@ -829,6 +829,30 @@ def test_a_local_judge_loads_for_the_call_under_a_grammar_and_leaves(index):
     assert session.state == "idle"
 
 
+def test_a_local_judge_whose_grant_fails_still_closes_its_engine(index, monkeypatch):
+    session = ready(index)
+    judge_engine = FakeEngine(output=VERDICT_JSON)
+    closed: list[bool] = []
+    judge_engine.close = lambda: closed.append(True)
+    session._engine_factory = lambda path, n_ctx: judge_engine
+    session._rag_generators["lab1"] = ("Qwen3 0.6B", "qwen")
+    found = candidate("granite-4.0-micro.gguf", ref="fake.gguf")
+    found.path = "fake.gguf"
+    session._rag_judge_discover = lambda: [found]
+
+    def refuse(*args, **kwargs):
+        raise RuntimeError("grant failed")
+
+    monkeypatch.setattr(session._load_registry, "grant", refuse)
+    session.judge_rag_lab_run(
+        live_run(), role="local", judge_id="fake.gguf", criterion="faithfulness"
+    )
+    wait_idle(session)
+    assert closed == [True] and judge_engine.grammars == []
+    assert "grant failed" in session.rag_lab_evaluation()["judge_error"]
+    assert session.state == "idle"
+
+
 def test_a_local_judge_of_the_generators_family_is_refused(index):
     session = ready(index)
     session._rag_generators["lab1"] = ("Qwen3 0.6B", "qwen")
