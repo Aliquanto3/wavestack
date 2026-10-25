@@ -352,3 +352,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:44 · 12.7 · décision · à revoir : 8 points tranchés par le relecteur Opus (budget 450 tokens estimés, compresseur emprunté seulement, coupe en fin de phrase avec « […] ») · 1e5f3ad
 - 2026-10-25 08:44 · 12.7 · attente humaine · facultatif : mesurer avant / après de compress avec l'extra compression sur le PC cible · —
 - 2026-10-25 08:44 · 12.7 · dev · phase 2 (code) lancée (Sonnet, effort high) · 1e5f3ad
+- 2026-10-25 08:46 · 12.6 · review · passe 1 : 2 medium corrigés (en-tête des contextes reconstruits cumulé, avertissement context.parents_short), 2 low corrigés ; E2E 160/160 · ca5a441
+- 2026-10-25 08:46 · 12.6 · décision · à revoir : avertir plutôt qu'élargir la recherche des parents ; fichier reconstruit remplacé en entier si la taille de chunk change · ca5a441
+- 2026-10-25 08:46 · 12.6 · PR · #107 ouverte vers integration/v1-2-atelier (empilée sur #105) · ca5a441
