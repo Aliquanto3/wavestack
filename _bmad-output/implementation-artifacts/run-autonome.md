@@ -184,3 +184,6 @@ Au plus 2 stories en développement à la fois
 - 2026-10-25 00:44 · 13.4 · CI · cause : assertion de test_llm_lab sur l'ancien ordre (bilan désormais émis pour un appel local) ; test réaligné, code inchangé, poussé · b5386c5
 - 2026-10-25 00:45 · 13.3 · CI · verte (Windows, Ubuntu) · 02d4662
 - 2026-10-25 00:45 · 13.3 · fusion · #94 MERGED · c8d0a50
+- 2026-10-25 05:45 · run · report · limite d'usage de 02:12 à 05:45, run à l'arrêt · —
+- 2026-10-25 05:45 · 14.3 · fusion · #91 fusionnée · 48caadd
+- 2026-10-25 05:45 · 12.3 · CI · rouge (couleur codée en dur dans rag.css), corrigée · de52977
