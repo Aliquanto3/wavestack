@@ -345,3 +345,10 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:40 · 12.17 · dev · lancé (phase spec, empilé sur 12.15, worktree ../wavestack-v12-s17) · b7d33be
 - 2026-10-25 08:41 · run · fusion · #106 MERGED (version 1.4.0) via file_prs.py · ee6d251
 - 2026-10-25 08:41 · run · décision · release v1.4.0 publiée (epics 13 et 14) ; integration/v1-2-atelier avancée à ee6d251 · ee6d251
+- 2026-10-25 08:44 · 12.5 · CI · aucun contrôle sur dd95df5 (push pendant une coupure de GitHub) ; branche d'intégration fusionnée (capture 01b prise d'intégration), CI relancée · 5e991af
+- 2026-10-25 08:44 · 12.17 · dev · spec prête (15 critères, 8 points ouverts : cas enregistrés, Prompt Guard not_installed honnête, mini-graphe illustratif en attendant 12.13…) · 1e6a1c5
+- 2026-10-25 08:44 · 12.17 · review · relecture de la spec lancée · 1e6a1c5
+- 2026-10-25 08:44 · 12.7 · review · spec approuvée après 10 corrections (options budget / order / compress d'architectures.md, PARAM_DEFAULTS, passages écartés dans dropped, règle cut élargie, prompt_parts partagé) · 1e5f3ad
+- 2026-10-25 08:44 · 12.7 · décision · à revoir : 8 points tranchés par le relecteur Opus (budget 450 tokens estimés, compresseur emprunté seulement, coupe en fin de phrase avec « […] ») · 1e5f3ad
+- 2026-10-25 08:44 · 12.7 · attente humaine · facultatif : mesurer avant / après de compress avec l'extra compression sur le PC cible · —
+- 2026-10-25 08:44 · 12.7 · dev · phase 2 (code) lancée (Sonnet, effort high) · 1e5f3ad
