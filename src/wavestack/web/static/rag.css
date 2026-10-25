@@ -1563,6 +1563,8 @@ body.rag-page {
 
 #rag-case {
   margin-top: var(--spacing-3);
+}
+
 /* V1.2 story 6 (CAP-4): the chunks the chunking made, and the contexts' buttons, in the focus. */
 .rag-chunks-title {
   margin: var(--spacing-3) 0 var(--spacing-1);
@@ -1636,7 +1638,8 @@ body.rag-page {
   color: var(--color-ink-soft);
 }
 
-.rag-badge {
+/* Story 7's passage states only (`data-state`): the other badges keep story 4's primary border. */
+.rag-badge[data-state] {
   padding: 0 var(--spacing-2);
   border: 1px solid var(--color-line);
   border-radius: var(--rounded-md);
@@ -1907,4 +1910,79 @@ body.rag-page {
 .rag-acc-passage[data-leak="1"] {
   border-left-color: var(--color-danger);
   border-left-style: dashed;
+}
+
+/* V1.2 story 19: the « Fiches » tab, a list beside the sheet; the level in a word and a chip. */
+.rag-sh-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) 1fr;
+  gap: var(--spacing-4);
+  align-items: start;
+}
+
+.rag-sh-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.rag-sh-entry {
+  text-align: left;
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rag-sh-entry[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.rag-sh-block {
+  margin: var(--spacing-3) 0;
+}
+
+.rag-sh-upcoming {
+  display: inline-block;
+}
+
+.rag-sh-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rag-sh-table th,
+.rag-sh-table td {
+  padding: var(--spacing-2);
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rag-sh-components {
+  margin: 0;
+  padding-left: var(--spacing-4);
+}
+
+@media (width < 900px) {
+  .rag-sh-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The label of an upcoming architecture and the « élevé » chip keep the ink colour (AA in both themes);
+   the border says the level without the colour alone. */
+.rag-sh-entry .rag-badge,
+.rag-sh-upcoming {
+  color: var(--color-ink);
+  border-color: var(--color-line);
+}
+
+.rag-sh-table .status-chip-high {
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 var(--spacing-stroke-min) var(--color-danger);
 }

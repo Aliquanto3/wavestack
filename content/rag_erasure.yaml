@@ -28,13 +28,11 @@ architectures:
     label_text: "RAG avec reranking"
     update_text: "retirer les passages du magasin, par identifiant ; le reranking ne garde rien."
   - id: long_context
-    available: false
-    story: 10
+    available: true
     label_text: "Contexte long, sans recherche"
     update_text: "aucune copie du corpus à reconstruire, sauf le préfixe en cache, à recharger."
   - id: cag
-    available: false
-    story: 10
+    available: true
     label_text: "CAG"
     update_text: "recharger tout le cache du modèle, car le préfixe contient le document."
   - id: agentic

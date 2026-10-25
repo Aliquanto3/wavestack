@@ -40,6 +40,9 @@ STORY_OF = {
     "graphrag": 13,
     "llm_wiki": 14,
 }
+# V1.2 story 10 brought long_context and cag into the workshop (`lab.PRESETS`); their places
+# stay constructed, with the story 10 that will record the real cache.
+IN_WORKSHOP = ("dense", "hybrid", "rerank", "long_context", "cag")
 
 
 @pytest.fixture(autouse=True)
@@ -218,7 +221,7 @@ def test_the_displayed_marks_illustrative_and_upcoming():
     assert rows["hybrid"]["upcoming_text"] is None
     assert "story 12" in rows["crag"]["upcoming_text"] and "BM25" in rows["crag"]["upcoming_text"]
     source = {r["architecture"]: r["upcoming_text"] for r in places["source"]["rows"]}
-    assert "story 11" in source["agentic"] and "story 10" in source["long_context"]
+    assert "story 11" in source["agentic"] and source["long_context"] is None
 
 
 def snapshot_bytes(*roots: Path) -> dict[str, str]:
@@ -316,8 +319,8 @@ def test_constructed_places_cite_the_code_and_name_their_story(lang):
         assert CODE in (place.text or "") and CODE not in (place.rebuilt_text or "")
         assert place.story == STORY_OF[place.architectures[0]]
     for arch in content.architectures:
-        assert arch.story == STORY_OF.get(arch.id)
-        assert arch.available == (arch.id in ("dense", "hybrid", "rerank"))
+        assert arch.available == (arch.id in IN_WORKSHOP)
+        assert arch.story == (None if arch.available else STORY_OF[arch.id])
 
 
 def mutate(lang: str, fn) -> dict:

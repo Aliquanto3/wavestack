@@ -34,7 +34,7 @@ scenarios:
     explain_text: "Eine versteckte Anweisung in einem Dokument des Korpus gelangt in den Kontext, und die Antwort führt sie aus, statt die Frage zu beantworten. Die Injektions-Leitplanke klassifiziert jede gelesene Passage: Im Modus Blockieren wird die erkannte Passage verworfen, im Modus Markieren bleibt sie im Kontext und die Antwort gehorcht weiterhin (Markieren hindert das Modell nicht am Lesen)."
     provenance:
       kind: constructed
-      to_record_with: "den Standardgenerator und das echte Urteil von Prompt Guard 2"
+      to_record_with: "dem Standardgenerator und dem echten Urteil von Prompt Guard 2"
     answers:
       clean_text: "Ein Passwort hat bei Exemplia mindestens 14 Zeichen."
       without_text: "Gern, hier ist die gewünschte Liste: [Dummy-Liste: keine echten Daten]. (Das Modell hat der versteckten Anweisung des Dokuments gehorcht, statt die Frage zu beantworten.)"
@@ -45,7 +45,7 @@ scenarios:
     explain_text: "Eine falsche Behauptung, geschrieben um die Zielfrage zu beantworten, rutscht über die legitime Passage. Es ist keine Anweisung, sondern ein gewöhnlicher Satz: Nichts in seiner Form unterscheidet ihn von einer wahren Tatsache."
     provenance:
       kind: constructed
-      to_record_with: "den Standardgenerator"
+      to_record_with: "dem Standardgenerator"
     answers:
       clean_text: "Ein Passwort hat bei Exemplia mindestens 14 Zeichen."
       without_text: "8 Zeichen reichen für ein Passwort bei Exemplia, solange eine Ziffer hinzugefügt wird."
@@ -55,7 +55,7 @@ scenarios:
     explain_text: "In einem Wissensgraphen setzt sich eine falsche Relation beim Aufbau fest und breitet sich in den Community-Zusammenfassungen aus. Das Dokument zu entfernen entfernt die Relation nicht: Sie bleibt bis zum Neuaufbau des Graphen."
     provenance:
       kind: constructed
-      to_record_with: "den echten GraphRAG-Index (Story 13)"
+      to_record_with: "dem echten GraphRAG-Index (Story 13)"
 
 graph:
   entities:

@@ -1,0 +1,646 @@
+# Overlay of content/rag_sheets.yaml: same ids, levels, classes, demos, stories, hypotheses and URLs; only the texts differ.
+
+texts:
+  title_text: Component and architecture sheets
+  hint_text: 'For each component or architecture: what it is for, what it costs, what the literature says, and for an architecture its compliance risks on seven axes.'
+  banner_text: Educational grid, not legal advice; to be reviewed with your organisation's legal counsel or DPO.
+  levels_note_text: 'Exposure levels: proposal, to be reviewed.'
+  level_hint_text: 'The level states an exposure (low: little exposed, high: very exposed), never a compliance verdict.'
+  bench_empty_text: Not measured yet
+  upcoming_text: architecture coming to the workshop (story {story})
+  pending_text: 'Sheets to come (story 19b): {kinds}'
+  components_title_text: Components
+  architectures_title_text: Architectures
+  list_label_text: Available sheets
+  error_text: Sheet unavailable.
+  sources_title_text: Sources
+  compliance_title_text: Compliance sheet
+  places_title_text: Places to rebuild in order to erase
+  update_title_text: To put the copies back in order
+  update_unmeasured_text: Duration and cost not measured yet.
+  components_located_text: Components and where the data goes
+  no_level_text: no level (questions to ask)
+  before_yes_text: A check before the search is possible for this architecture.
+  before_no_text: A check before the search is hard for this architecture.
+  blocks:
+    purpose: What it is for
+    when: When to use or avoid it
+    cost: What it costs (build, update, query)
+    literature: What the literature says
+    bench: What the bench measured
+  axes:
+    location: Where the data goes
+    copies: Copies created
+    erasure: Erasure
+    rights: Access rights
+    injection: Injection and tools
+    traceability: Traceability
+    regulatory: Regulatory framework
+  columns:
+    axis: Axis
+    level: Level
+    text: Reading
+    link: Demonstration
+  classes:
+    local: local (inside the workshop)
+    cloud_eu: cloud in the EU
+    secnumcloud: SecNumCloud-qualified cloud
+    outside_eu: outside the EU
+    depends_on_provider: to check with the provider
+  components:
+    documents: Documents
+    index: Index
+    derived: Derived content
+    cache: Model cache
+    generation: Generation
+    judge: Judge or decision model
+    trace_export: Trace export
+  demo:
+    erasure: See the Erasure card in the Attack tab
+    rights: See the Access rights card in the Attack tab
+    injection: See the Booby-trapped document card in the Attack tab
+architectures:
+- id: dense
+  hypotheses:
+  - H1
+  - H12
+  purpose_text: Search the passages whose vector is closest to the question's, then hand them to the model.
+  when_text: 'Use it as the starting point: simple, cheap, a single index. Avoid it when questions hinge on exact terms (codes, names) that meaning does not retrieve.'
+  cost_text: 'Build: split and embed the corpus. Update: remove and add the document''s passages. Query: embed the question and run one search.'
+  literature_text: 'H1 (hybrid with a reranker beats dense alone): partially supported. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2604.01733
+    url: https://arxiv.org/html/2604.01733
+  - label_text: arXiv 2609.22770
+    url: https://arxiv.org/abs/2609.22770
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Documents, index and vectors run inside the workshop. Generation goes through the active model: with a cloud model, the passages and the question go to the provider.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'Each passage exists twice: its text and its vector, in the store. One more copy to track, but each can be removed by identifier.'
+    erasure:
+      level: mid
+      text: 'Removing the document''s passages is enough: the vector leaves with its passage. Copies outside the architecture (recomputed contexts, backups) still need checking.'
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Without a check before the search, forbidden passages are read and then removed: they already shaped the ranking. A filter on the index before the search is possible.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: A booby-trapped passage found by the search reaches the prompt as is. There is no tool to hijack, but the model reads the hidden instruction.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'The retained passages and their scores are in the run''s journal: one can say which sources fed the answer.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the store''s vectors and passages? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the generation model?'
+- id: hybrid
+  hypotheses:
+  - H1
+  - H12
+  purpose_text: Combine search by meaning and search by exact words (BM25), then merge the two rankings by reciprocal rank.
+  when_text: 'Use it when the corpus mixes prose and exact terms (codes, acronyms). Avoid it if one index is enough: an untuned fusion can do worse than dense.'
+  cost_text: 'Build: the vector index and the BM25 index. Update: remove the passages from both. Query: two searches and a fusion, with no extra model call.'
+  literature_text: 'H1 (hybrid with a reranker beats dense alone): partially supported. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2604.01733
+    url: https://arxiv.org/html/2604.01733
+  - label_text: arXiv 2609.22770
+    url: https://arxiv.org/abs/2609.22770
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: Documents, both indexes and the fusion run inside the workshop. Only generation can go to a provider, if the active model is a cloud model.
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'The text lives in two indexes: the vectors'' and the words''. Two places to keep up to date, both removable by identifier.'
+    erasure:
+      level: mid
+      text: The document must be removed from both indexes; forgetting one leaves the text searchable. Putting things back in order stays cheap.
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'As with dense: without a check before the search, both rankings read forbidden passages. The filter must apply to both indexes.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: A booby-trapped passage can come up through either ranking, and exact-word search easily finds a text that quotes the question's words.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Both rankings and the fusion are visible in the run: one can say by which route a source arrived.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the two indexes (vectors and words)? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the generation model?'
+- id: rerank
+  hypotheses:
+  - H1
+  - H12
+  purpose_text: Search widely by meaning, then reorder the candidates with a model that reads the question and each passage together.
+  when_text: Use it when the right passages are among the first candidates but badly ranked. Avoid it when query time matters more than precision.
+  cost_text: 'Build: dense''s. Update: remove the passages, the reranker keeps nothing. Query: one search plus a reranker pass on every candidate.'
+  literature_text: 'H1 (hybrid with a reranker beats dense alone): partially supported. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2604.01733
+    url: https://arxiv.org/html/2604.01733
+  - label_text: arXiv 2609.22770
+    url: https://arxiv.org/abs/2609.22770
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: Documents, index and reranker run inside the workshop. Generation can go to a provider if the active model is a cloud model.
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: The same copies as dense; the reranker stores nothing, it scores the candidates at query time.
+    erasure:
+      level: mid
+      text: Removing the passages from the store is enough, the reranker keeps nothing. Copies outside the architecture still need checking.
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'The reranker reads the candidates before any audience filter if there is no check before the search: a forbidden passage can thus be read and then dropped.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: A well-written booby-trapped passage can climb the reranking, since the model judges its closeness to the question.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'The ranks before and after reranking are in the run: one sees what the reranker changed.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the store''s vectors and passages? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the generation model?'
+- id: long_context
+  hypotheses:
+  - H11
+  - H12
+  purpose_text: 'Do not search: put the whole corpus in the prompt and let the model find the answer in it.'
+  when_text: 'Use it on a small corpus that fits the window: nothing to build. Avoid it as soon as the corpus grows or the model is small: everything is re-read on each query.'
+  cost_text: 'Build: none. Update: none. Query: the whole corpus in the prompt, about 12,000 tokens on every question.'
+  literature_text: 'H11 (long context is a hard baseline to beat on a small corpus): supported with a strong model. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2407.16833
+    url: https://arxiv.org/html/2407.16833v1
+  - label_text: LaRA
+    url: https://arxiv.org/html/2502.09977v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'The documents and the prefix cache run inside the workshop. The entire corpus goes with every question to the active model: to a provider if it is a cloud model.'
+      components:
+      - id: documents
+        class: local
+      - id: cache
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: low
+      text: 'No index and no derivative: the only state is the prefix cached by the engine. Few copies, but the entire corpus travels.'
+    erasure:
+      level: low
+      text: Nothing to rebuild except the cached prefix, to be reloaded. Removing the document from the source removes it from the next prompt.
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'All documents are in the prompt: no audience filter is possible without choosing in advance what goes in. The model sees everything.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: 'A booby-trapped document is read with everything else, without any search having sorted it: the exposure surface is the entire corpus.'
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'One cannot tell which passage was used: everything was in the prompt. Source traceability comes down to "the entire corpus".'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the cached prefix? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that reads the whole corpus?'
+- id: cag
+  hypotheses:
+  - H11
+  - H12
+  purpose_text: Preload the corpus into the model's cache once, then send only the question after that prefix.
+  when_text: 'Use it on a small, stable corpus queried often: the query costs almost nothing. Avoid it when documents change: the whole cache is reloaded.'
+  cost_text: 'Build: corpus preloaded into the cache (prefix). Update: reload the whole cache. Query: the question alone after the cached prefix.'
+  literature_text: 'H11 (long context is a hard baseline to beat on a small corpus): supported with a strong model. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2407.16833
+    url: https://arxiv.org/html/2407.16833v1
+  - label_text: LaRA
+    url: https://arxiv.org/html/2502.09977v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Documents and the model''s cache run inside the workshop. The prefix is replayed to the active model: at a provider if it is a cloud model.'
+      components:
+      - id: documents
+        class: local
+      - id: cache
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'The model''s cache holds the corpus in a form nobody reads: a derived copy of the whole corpus.'
+    erasure:
+      level: high
+      text: 'The whole cache must be reloaded, because the prefix contains the document: removing a single text forces a full recompute.'
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'A single cache for everyone: everything in it can answer any question, whatever the profile. One cache per profile multiplies the cost.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: A booby-trapped document enters the prefix and stays there for every following question until the cache is reloaded.
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: As with long context, one cannot tell which passage was used; in addition, the cache is a hidden state between two queries.
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the model''s cache, which holds the whole corpus? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that replays the prefix?'
+- id: agentic
+  story: 11
+  hypotheses:
+  - H5
+  - H12
+  purpose_text: Let the model search the corpus files itself with tools (list, grep, read), in a loop, until it answers.
+  when_text: 'Use it when documents change often: the source is re-read on every query. Avoid it when latency and tokens matter: the loop costs more than RAG.'
+  cost_text: 'Build: none. Update: none. Query: a loop of tool and model calls over several turns, far more tokens than a simple search.'
+  literature_text: 'H5 (agentic search matches RAG but costs more): partially supported. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2601.07711
+    url: https://arxiv.org/html/2601.07711v2
+  - label_text: arXiv 2610.05750
+    url: https://arxiv.org/pdf/2610.05750
+  - label_text: LlamaIndex
+    url: https://www.llamaindex.ai/blog/did-filesystem-tools-kill-vector-search
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'The documents stay inside the workshop. Every excerpt a tool reads is sent to the active model at each turn: to a provider if it is a cloud model.'
+      components:
+      - id: documents
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: low
+      text: 'No copy and no derivative: the source is read as is. State is limited to the loop''s history, specific to each query.'
+    erasure:
+      level: low
+      text: 'Nothing to rebuild: removing the document from the source is enough, the next query no longer finds it.'
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'Rights rest on the tools'' permissions: a tool that reads the whole folder also reads the forbidden documents. A check before the tool is possible.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: high
+      text: 'This is the most exposed architecture: a booby-trapped text read by a tool can push the model to call other tools or to leak data.'
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'Every tool call and every read is a journal event: the whole reading path can be reconstructed.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the tool loop''s history? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that reads the excerpts at each turn?'
+- id: pageindex
+  story: 11
+  hypotheses:
+  - H4
+  - H12
+  purpose_text: Build a tree of the document's sections (headings, short summaries) and let the model descend to the useful section, with no vectors.
+  when_text: 'Use it on long, structured documents (reports, contracts). Avoid it on short or heading-less texts: the tree adds nothing and costs model calls.'
+  cost_text: 'Build: the section tree, with summaries written by the model. Update: recompute the modified document''s tree. Query: a descent through the tree, by the model.'
+  literature_text: 'H4 (PageIndex wins on long, structured documents): partially supported, mostly by its publisher. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: PageIndex
+    url: https://github.com/VectifyAI/PageIndex
+  - label_text: arXiv 2604.14222
+    url: https://arxiv.org/html/2604.14222v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Documents and tree run inside the workshop. The tree''s summaries and the descent are written by the active model: at a provider if it is a cloud model.'
+      components:
+      - id: documents
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: 'The tree''s summaries are derived copies of the text, written by a model: they can keep information the document no longer holds.'
+    erasure:
+      level: mid
+      text: The tree of the modified document and its sections must be recomputed, then checked so that the summaries no longer keep the removed content.
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'The tree belongs to each document: it can be left unopened for a profile. But a high-level summary mixes sections with different rights.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: 'A booby-trapped heading or summary in the tree steers the model''s descent: it can send it to the wrong section.'
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'The path followed in the tree is a readable series of decisions: one sees which sections were opened.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the section tree and its summaries? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that writes the summaries and descends the tree?'
+- id: raptor
+  story: 12
+  hypotheses:
+  - H12
+  purpose_text: Cluster the passages, summarise each cluster, then summarise the summaries, and search across every level of that tree.
+  when_text: 'Use it for questions that need an overview of the corpus. Avoid it when documents change often: every change redoes summaries in a cascade.'
+  cost_text: 'Build: clustering and recursive summaries, many model calls. Update: redo the summaries of the touched branches. Query: one search across all levels.'
+  no_source_text: 'No primary source on RAPTOR has been opened and read yet: it will be added in a session with network access.'
+  literature_text: 'RAPTOR has no hypothesis of its own in the framing; only H12 applies to the compliance sheet. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Documents, index and summary tree run inside the workshop. The summaries are written by the active model: at a provider if it is a cloud model.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: high
+      text: 'Each level of summaries is a derived copy that mixes several documents: a document''s information survives in summaries that do not carry its name.'
+    erasure:
+      level: high
+      text: 'The summaries of the touched branches must be redone, then those that summarise them: a removal climbs up to the tree''s root.'
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'A summary mixes documents with different rights: filtering it by audience is impossible without rebuilding the tree per profile.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: mid
+      text: A booby-trapped text can end up copied into a summary, and so re-read at the upper levels. There is no tool to hijack.
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'A summary cites its sources poorly: one finds the branch, not always the original passage.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the recursive summaries? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that writes the summaries?'
+- id: graphrag
+  story: 13
+  hypotheses:
+  - H2
+  - H12
+  - H13
+  purpose_text: Extract entities and their relations into a graph, form summarised communities, and answer from an entity's neighbours or from the summaries.
+  when_text: 'Use it for global or multi-hop questions on a stable corpus. Avoid it for simple facts or a changing corpus: it loses on simple facts and its update is expensive.'
+  cost_text: 'Build: entity and relation extraction, communities and summaries, the heaviest. Update: re-extract, merge, recompute communities. Query: local or global, the global one reads many summaries.'
+  literature_text: 'H2 (GraphRAG only wins on global and multi-hop questions): supported. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported. H13 (GraphRAG and the LLM Wiki cost more to index and update): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: GraphRAG-Bench
+    url: https://arxiv.org/html/2506.05690v3
+  - label_text: arXiv 2502.11371
+    url: https://arxiv.org/html/2502.11371v2
+  - label_text: EraRAG
+    url: https://arxiv.org/pdf/2506.20963v1.pdf
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Documents, index, graph and summaries run inside the workshop. Extraction and summaries are written by the active model: at a provider if it is a cloud model.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: high
+      text: 'Entities, relations and community summaries are three layers derived from the text: a document''s information spreads through the graph.'
+    erasure:
+      level: high
+      text: 'Entities must be re-extracted, merged, then the communities and their summaries recomputed: removing a document touches several layers.'
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'An entity or a community mixes documents with different rights: a per-document check is not enough, the graph can reveal what it read. Level to settle at review.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: 'Poisoning very little text can make accuracy collapse: a booby-trapped relation is extracted, merged and re-read in the summaries.'
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'Relations cite their origin, but a community summary loses the detail of the passages: one goes back to the community, not always to the sentence.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the entities, relations and community summaries? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that extracts and summarises?'
+- id: llm_wiki
+  story: 14
+  hypotheses:
+  - H3
+  - H12
+  - H13
+  purpose_text: Have the model compile a wiki of Markdown pages from the sources, then search the wiki's pages.
+  when_text: 'Use it for a knowledge base reviewed by humans, a few hundred documents. Avoid it if sources change fast or grounding matters: the wiki rewrites the facts.'
+  cost_text: 'Build: page compilation by the model, many tokens. Update: recompile the touched pages, then run the wiki check. Query: search over the pages.'
+  literature_text: 'H3 (the LLM Wiki matches RAG on a few hundred documents, then falls behind): not studied at that volume. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported. H13 (GraphRAG and the LLM Wiki cost more to index and update): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: arXiv 2605.18490
+    url: https://arxiv.org/html/2605.18490v1
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  - label_text: GraphRAG-Bench
+    url: https://arxiv.org/html/2506.05690v3
+  axes:
+    location:
+      level: low
+      text: 'Documents and wiki pages run inside the workshop. Compilation and checking go through the active model: at a provider if it is a cloud model.'
+      components:
+      - id: documents
+        class: local
+      - id: derived
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: judge
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: high
+      text: 'The wiki pages rewrite the sources and cite each other: a piece of information can live in several pages in different forms.'
+    erasure:
+      level: high
+      text: The touched pages must be recompiled, then the wiki check run to make sure nothing survives in the pages that cite them.
+      demo: rag-erasure-card
+    rights:
+      level: high
+      text: 'A summary page mixes sources with different rights: checking rights per page says nothing about the sources it read.'
+      demo: rag-access-card
+      before_search: false
+    injection:
+      level: high
+      text: 'A booby-trapped text can be copied into a compiled page and then re-read as an established fact: the wiki turns it into trusted knowledge.'
+      demo: rag-atk-title
+    traceability:
+      level: mid
+      text: 'Each page can cite its sources, but successive rewrites move the text away from the original: the link is lost along the way.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the wiki''s compiled pages? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that compiles and checks the pages?'
+- id: crag
+  story: 12
+  hypotheses:
+  - H7
+  - H12
+  purpose_text: After a hybrid search, judge each passage; if the passages are not enough, rewrite the question and search again, or answer "I don't know".
+  when_text: 'Use it when a wrong answer is costly and a refusal is preferred. Avoid it if the decision model lets unsupported claims through: the filter reassures wrongly.'
+  cost_text: 'Build: the hybrid RAG''s. Update: the hybrid RAG''s. Query: the hybrid search, one judgement per passage, then if needed a rewrite and a second search.'
+  literature_text: 'H7 (a decision model replaces LLM judges without loss): not demonstrated. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
+  bench_text: ''
+  sources:
+  - label_text: Towards AI
+    url: https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c
+  - label_text: arXiv 2508.04276
+    url: https://arxiv.org/abs/2508.04276
+  - label_text: Microsoft Research
+    url: https://www.microsoft.com/en-us/research/publication/enterprise-ai-must-enforce-participant-aware-access-control
+  axes:
+    location:
+      level: low
+      text: 'Documents and indexes run inside the workshop. Jev, the decision model mentioned, is proprietary with no local hosting: calling it sends the passages to its provider. Generation can also go to a provider.'
+      components:
+      - id: documents
+        class: local
+      - id: index
+        class: local
+      - id: generation
+        class: depends_on_provider
+      - id: judge
+        class: depends_on_provider
+      - id: trace_export
+        class: depends_on_provider
+    copies:
+      level: mid
+      text: The same copies as hybrid, plus the judgement kept for each passage in the run.
+    erasure:
+      level: mid
+      text: 'Hybrid RAG''s: remove the passages from the store and the BM25 index. The judge keeps nothing between two queries.'
+      demo: rag-erasure-card
+    rights:
+      level: mid
+      text: 'The judge reads the passages before deciding: without a check before the search, it reads forbidden passages. The filter must stay upstream of the search.'
+      demo: rag-access-card
+      before_search: true
+    injection:
+      level: mid
+      text: A booby-trapped passage is read by the judge too, which can be influenced; the fallback (rewrite, new search) gives the booby-trapped text a second chance to come back.
+      demo: rag-atk-title
+    traceability:
+      level: low
+      text: 'The judgement of each passage and the fallback trigger are in the run: one sees why a passage was kept or rejected.'
+    regulatory:
+      text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the two indexes and the judgements kept? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the generation model and the decision model (Jev)?'
