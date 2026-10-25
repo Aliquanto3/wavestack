@@ -314,3 +314,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:57 · 12.6 · décision · à revoir : 8 points tranchés par le relecteur Opus (late chunking reporté, contextes valables à 700 caractères seulement, enfants ≤ 300, contextes reconstruits dans le dossier de données) · 282e90b
 - 2026-10-25 07:57 · 12.6 · attente humaine · facultatif : regénérer rag_contexts.yaml avec un vrai modèle ; mesurer une reconstruction complète sur le PC cible ; vérifier les sources des fiches · —
 - 2026-10-25 07:57 · 12.6 · dev · phase 2 (code) lancée · 282e90b
+- 2026-10-25 08:08 · 14.4 · review · passe 1 : main fusionnée (module 7 de 60 min, 28 scénarios, 7 h) ; 2 medium et 2 low corrigés (échanges non résumés dits à part, boutons rétablis après échec, critère 9, _last oublié), test MCP ajouté ; E2E 41/41 et 62/62 · eae5010
+- 2026-10-25 08:08 · 14.4 · décision · à revoir : boutons au débordement d'un appel ultérieur, tour rejoué avec ses outils (décision 7) ; tour de compaction visible dans Comparer ; texte « plus anciens retirés sans résumé » · eae5010
+- 2026-10-25 08:08 · 14.4 · PR · #104 ouverte · eae5010
