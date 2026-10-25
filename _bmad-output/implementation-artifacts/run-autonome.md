@@ -501,3 +501,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:18 · 12.20 · dev · phase 2 (code) lancée (Opus, effort high, story transverse) · 96e3070
 - 2026-10-25 12:18 · 12.2 · blocked · téléchargements à 9-22 Ko/s sur tous les hôtes (Hugging Face, GitHub, PyPI) ; deux curl concurrents sur le même fichier, arrêtés, fichier partiel supprimé ; script PowerShell telecharger.ps1 à lancer par Anaël hors de Claude Code · —
 - 2026-10-25 12:24 · 12.2 · attente humaine · telecharger.ps1 lancé par Anaël hors de Claude Code : même débit (14-43 Ko/s, ~8 h 25 annoncées pour le reranker), lenteur du réseau du poste et non de l'isolement réseau des commandes · —
+- 2026-10-25 12:29 · 12.2 · décision · modèles du banc téléchargés sur données mobiles (~5,7 Mo/s) : reranker bge-reranker-v2-m3 vérifié (taille et sha256), deberta_xsmall 262ae02 et mdeberta b5113eb (révisions transmises au reviewer pour épinglage), Qwen3.5-2B déjà présent · —
