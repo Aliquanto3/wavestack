@@ -1000,6 +1000,9 @@ rag_lab:
     element:
       one: element
       other: elements
+    page:
+      one: page
+      other: pages
     node:
       one: node
       other: nodes
@@ -1165,6 +1168,17 @@ rag_lab:
     graph_part_merge: Merge
     graph_part_communities: Communities recomputed
     graph_part_summaries: Summaries
+    wiki: Wiki
+    wiki_pages: Wiki pages
+    wiki_concepts: Concept pages
+    wiki_links: Links between pages
+    wiki_stale: Stale pages
+    wiki_findings: Lint findings
+    wiki_estimate: Compilation by a model (estimate)
+    wiki_chosen: Pages kept
+    wiki_hr: HR audience pages (no filter in the workshop)
+    pages_redone: Pages recompiled
+    pages_removed: Pages removed
   chunking:
     source_corpus: "the corpus (content/corpus), split for this run"
     source_index: "the RAG brick's index (split when it was built)"
@@ -1323,6 +1337,7 @@ rag_lab:
     # V1.2 story 8 (CAP-6)
     decision_unpriced: "Cost in dollars not priced: the decision API returned no cost."
     graph_measure: "Measure recorded when the graph was rebuilt (model: {model}), not redone at each run."
+    wiki_measure: "Measure recorded when the wiki was recompiled (model: {model}), not redone at each run."
   update:
     op:
       add: "Adding the document {doc}"
@@ -1348,6 +1363,10 @@ rag_lab:
     tree_rule: "Subtree recomputed by the rule, without a model: {redone} node(s) recomputed, {removed} removed; the rest of the tree is kept."
     tree_model: "Subtree summaries rewritten by the model {model}: {redone} node(s), {failed} kept for lack of an answer, {removed} removed; the rest of the tree is kept."
     graph_input: "The graph after the operation on {documents}: extraction of the touched document only, merge, communities, summaries."
+    wiki_input: "The pages the touched document feeds ({documents}): its page, those of the concepts it names, then the index."
+    wiki_rule: "Pages recompiled by the rule, without a model: {redone} page(s), {removed} removed, the index recomputed; the rest of the wiki is kept."
+    wiki_model: "Syntheses of the touched pages rewritten by the model {model}: {redone} page(s), {failed} kept for lack of an answer, {removed} removed; the rest of the wiki is kept."
+    wiki_lint_input: "The wiki after the recompilation: {pages} pages, checked by the rule."
   # V1.2 story 10 (CAG): the prefix kept in the model's memory.
   cache:
     state:
@@ -1463,6 +1482,44 @@ rag_lab:
     part_merge: "Merge: {entities} entity(ies) and {relations} relation(s) changed."
     part_communities: "Communities: {communities} recomputed from the previous ones, {changed} changed."
     part_summaries: "Summaries: {rewritten} rewritten out of {total}."
+  # V1.2 story 14 (CAP-7): the LLM Wiki, compiled from the sources, linted, queried.
+  wiki:
+    heading_facts: "Key facts"
+    heading_concepts: "Concepts"
+    heading_quotes: "What the sources say"
+    heading_sources: "Source pages"
+    heading_concept_pages: "Concept pages"
+    sources_line: "Source: {sources}"
+    index_title: "Wiki index"
+    index_synthesis: "Wiki pages: {pages}."
+    input: "The question, and the index of the wiki ({pages}) compiled from the {documents} of {source}."
+    instruction: "You search a wiki for what answers a question. You are shown the wiki's index: a numbered list of pages (title and synthesis). Answer with a single line, nothing else: PAGES: <numbers> (at most {breadth}, separated by commas) or PAGES: NONE if no page fits."
+    user: "Question: {question}\nYour choice (one PAGES: line):"
+    mark_shipped: "shipped wiki, compiled by a rule, without a model"
+    mark_rebuilt: "wiki recompiled by the model {model}"
+    index_trimmed: "{count} page(s) removed from the index shown to the model, to fit in the window."
+    unreadable: "Answer without a PAGES: line (expected format: PAGES: 2, 5 or PAGES: NONE): no page is read."
+    no_page_chosen: "The model chose no page (PAGES: NONE, or no valid number): nothing is kept."
+    rewrite_instruction: "Write the synthesis of this wiki page in one or two sentences, {max} characters at most, from the given text alone, adding nothing."
+    rewrite_source: "Page: {title}\n{text}"
+    rewrite_user: "The page's synthesis:"
+    rebuild_input: "The wiki's pages: {pages}, one model call each; the vocabulary of concepts is recomputed."
+    rebuild_output: "{done} synthesis(es) written out of {total}, {failed} kept for lack of an answer."
+    run_label: "Recompilation of the LLM Wiki"
+    summary: "{mark} · {pages} pages, {concepts} of them concepts · {links} links · {stale} stale · {findings} lint finding(s)"
+    measure: "Recompilation measured: {tokens} tokens, {duration}."
+    estimate: "Estimate, not measured and out of the sums: compiling this wiki with a model would take {calls} calls and about {tokens} tokens read. The shipped wiki is computed by a rule: a real LLM Wiki is compiled by a model (“Rebuild”)."
+    redone: "{redone} out of {total}"
+    by_rule: "recompiled by the rule, without a model"
+    by_model: "rewritten by the model {model}"
+    lint_output: "Wiki lint: {findings} finding(s) on {pages} pages."
+    lint:
+      broken_link: "{page}: link to a missing page ({detail})"
+      orphan_page: "{page}: no other page links to it"
+      thin_concept: "{page}: concept named by {detail} source(s) only"
+      empty_concept: "{page}: no document names this concept any more"
+      missing_concept: "{page}: concept the corpus calls for, without a page (recompile the wiki)"
+      stale_synthesis: "{page}: synthesis written for another text, recomputed by the rule"
   query:
     input: "Question: {question}."
     input_history: "Earlier questions of the workshop: {history}."

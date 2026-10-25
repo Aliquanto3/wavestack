@@ -193,11 +193,12 @@ def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
         "agentic",
         "pageindex",
         "graphrag",
+        "llm_wiki",  # V1.2 story 14
     ]
     assert rag_lab.PRESETS["long_context"] == rag_lab.PRESETS["cag"] == ()
     assert rag_lab.PRESET_FAMILIES == {
         "search": ("dense", "hybrid", "rerank"),
-        "structure": ("pageindex", "graphrag"),
+        "structure": ("pageindex", "graphrag", "llm_wiki"),
         "no_index": ("long_context", "cag", "agentic"),
     }
     session = lab(index)
@@ -292,6 +293,7 @@ def test_the_sequence_draws_the_prefix_for_the_cag_only_and_no_question_embeddin
         "agent_loop",  # V1.2 story 11
         "section_tree",
         "graph_search",  # V1.2 story 13
+        "wiki_pages",  # V1.2 story 14
     ]
     assert [u["component"] for u in steps["cache_prefix"]["uses"]] == [
         "documents",

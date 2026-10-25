@@ -38,6 +38,7 @@ from wavestack.rag.graph import build_graph
 from wavestack.rag.index import passage_text
 from wavestack.rag.lab import bm25, bm25_terms, lexical_index
 from wavestack.rag.pageindex import build_tree
+from wavestack.rag.wiki import build_wiki
 
 FILE = "rag_erasure.yaml"
 ARCHITECTURES = (
@@ -76,12 +77,14 @@ MEASURED = (
     "pageindex_tree",
     "graph_entities",
     "graph_communities",
+    "wiki_pages",  # V1.2 story 14: the rule's wiki, recompiled in memory
 )
 MODE_OF_MEASURED = {
     "pageindex_tree": "rebuild",  # V1.2 story 11: the rule's tree, recomputed in memory
     # V1.2 story 13: the rule's graph, recomputed in memory (its entities, its communities)
     "graph_entities": "rebuild",
     "graph_communities": "rebuild",
+    "wiki_pages": "rebuild",  # V1.2 story 14
     "chunks": "delete",
     "bm25": "delete",
     "contexts": "rebuild",
@@ -154,6 +157,7 @@ class Place(_Strict):
             "pageindex_tree",
             "graph_entities",
             "graph_communities",
+            "wiki_pages",  # V1.2 story 14
         ]
         | None
     ) = None
@@ -296,6 +300,10 @@ class Copies(NamedTuple):
     entities_without: list[str] = []
     communities_with: list[str] = []
     communities_without: list[str] = []
+    # V1.2 story 14: the LLM Wiki compiled by the rule, a page each (its whole Markdown, what
+    # the wiki copies of the documents), with the sentinel and without it.
+    wiki_with: list[str] = []
+    wiki_without: list[str] = []
 
 
 def build_copies(content: ErasureContent, lang: str) -> Copies:
@@ -344,6 +352,8 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         entities_without=graph_without[0],
         communities_with=graph_with[1],
         communities_without=graph_without[1],
+        wiki_with=[p.text for p in build_wiki(docs_with, lang).values()],
+        wiki_without=[p.text for p in build_wiki(docs_without, lang).values()],
     )
 
 
@@ -365,6 +375,8 @@ def _items(place: Place, copies: Copies, erased: bool, rebuilt: set[str]) -> lis
         return copies.entities_without if rebuilding else copies.entities_with
     if place.measured == "graph_communities":
         return copies.communities_without if rebuilding else copies.communities_with
+    if place.measured == "wiki_pages":  # V1.2 story 14
+        return copies.wiki_without if rebuilding else copies.wiki_with
     if place.measured == "source":
         return [d.text for d in (copies.docs_without if erased else copies.docs_with)]
     assert place.text and place.rebuilt_text  # noqa: S101 - validated at the load

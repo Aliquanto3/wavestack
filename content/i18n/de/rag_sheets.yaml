@@ -533,7 +533,6 @@ architectures:
     regulatory:
       text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf die Entitäten, Beziehungen und Gemeinschaftszusammenfassungen ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das extrahiert und zusammenfasst?'
 - id: llm_wiki
-  story: 14
   hypotheses:
   - H3
   - H12

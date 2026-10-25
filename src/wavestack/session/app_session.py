@@ -219,6 +219,7 @@ from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
 from wavestack.rag import pageindex as rag_pageindex
 from wavestack.rag import sheets as rag_sheets
+from wavestack.rag import wiki as rag_wiki  # V1.2 story 14
 from wavestack.rag.corpus import (
     Chunk,
     RagContent,
@@ -10811,6 +10812,10 @@ class AppSession:
                 options[("context", option)].note_text = Message(
                     "session.rag_lab.searchless_no_model"
                 )
+            # V1.2 story 14: the LLM Wiki's index is read by the model too; it stays applicable.
+            options[("context", "wiki_pages")].note_text = Message(
+                "session.rag_lab.searchless_no_model"
+            )
         # V1.2 story 7: `compress` borrows the Compression card's compressor; without one it can
         # still be chosen, the step builds the context as `order` does (the note says why).
         compressor, why = self._rag_lab_compressor()
@@ -11110,7 +11115,11 @@ class AppSession:
         rebuild_blocked = self._rag_lab_rebuild_blocked()
         if rebuild_blocked is not None:
             raise SendRefused(rebuild_blocked)
-        labels = {"pageindex": "tree.run_label", "graph": "graph.run_label"}  # V1.2 story 13
+        labels = {  # V1.2 stories 13 (graph) and 14 (the LLM Wiki's syntheses)
+            "pageindex": "tree.run_label",
+            "graph": "graph.run_label",
+            "wiki": "wiki.run_label",
+        }
         label = rag_lab._t(labels.get(target, "contexts.run_label"), self._language)
         with self._lock:
             if self.state != "idle":
@@ -11257,6 +11266,16 @@ class AppSession:
             "error_text": kg.error,
         }
 
+    def reset_rag_lab_wiki(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/wiki/reset` (V1.2 story 14): the LLM Wiki recompiled in the data
+        folder is deleted, the shipped wiki is read again (never `content/`). Refused while a
+        run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_wiki.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
     def reset_rag_lab_contexts(self) -> dict[str, Any]:
         """`POST /api/rag_lab/contexts/reset`: the contexts rebuilt in the data folder are
         deleted, the shipped ones are read again (never `content/`). Refused while a run goes
@@ -11285,6 +11304,7 @@ class AppSession:
         return {
             "pageindex": self._rag_lab_pageindex(blocked),
             "graph": self._rag_lab_graph_card(blocked),  # V1.2 story 13
+            "wiki": self._rag_lab_wiki(blocked),  # V1.2 story 14
             "author": header.author if header else None,
             "method": header.method if header else None,
             "model": header.model if header else None,
@@ -11309,6 +11329,90 @@ class AppSession:
                 "session.rag_lab.rebuild_expected",
                 chunks=book.shipped.chunks if book.shipped else (header.chunks if header else 0),
             ),
+        }
+
+    def _rag_lab_wiki(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 14: what the page's « Wiki » card shows: who wrote the wiki read (the
+        shipped rule, or the model of a recompilation), its pages, concepts and links, the pages
+        stale against the work copy, the lint's findings, the estimate of a compilation by a
+        model (shipped wiki only, never a measure), the recompilation's measure, and why
+        « Reconstruire » is not available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        audiences = {d.id: d.audience for d in content.documents}
+        book = rag_wiki.load_wiki(documents, lang, config.rag_lab_dir(), audiences)
+        findings = rag_wiki.lint(book, documents, lang)
+        rebuilt = book.rebuilt
+        mark = (
+            rag_lab._t("wiki.mark_rebuilt", lang, model=rebuilt.model)
+            if rebuilt is not None
+            else rag_lab._t("wiki.mark_shipped", lang)
+        )
+        estimate_text = None
+        if rebuilt is None:
+            calls = len(book.listed())
+            instruction = rag_lab._t(
+                "wiki.rewrite_instruction", lang, max=rag_wiki.SYNTHESIS_MAX_CHARS
+            )
+            tokens = rag_lab.wiki_estimate_tokens(
+                book,
+                instruction,
+                lambda t: config.estimate_tokens(t, self.cfg.chars_per_token),
+            )
+            estimate_text = rag_lab._t(
+                "wiki.estimate",
+                lang,
+                calls=rag_lab.lang_int(calls, lang),
+                tokens=rag_lab.lang_int(tokens, lang),
+            )
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_wiki.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_wiki.HEURISTIC,
+            "mark_text": mark,
+            "pages": len(book.pages),
+            "concepts": book.count("concept"),
+            "links": book.links(),
+            "stale": book.stale,
+            "findings": len(findings),
+            "lint": [
+                {
+                    "code": f.code,
+                    "page_id": f.page_id,
+                    "text": rag_lab._t(
+                        f"wiki.lint.{f.code}", lang, page=f.page_id, detail=f.detail
+                    ),
+                }
+                for f in findings[: rag_lab.WIKI_FINDINGS_SHOWN]
+            ],
+            "hr_pages": sum(1 for p in book.pages.values() if p.audience == "hr"),
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "summary_text": rag_lab._t(
+                "wiki.summary",
+                lang,
+                mark=mark,
+                pages=rag_lab.lang_int(len(book.pages), lang),
+                concepts=rag_lab.lang_int(book.count("concept"), lang),
+                links=rag_lab.lang_int(book.links(), lang),
+                stale=rag_lab.lang_int(book.stale, lang),
+                findings=rag_lab.lang_int(len(findings), lang),
+            ),
+            "measure_text": rag_lab._t(
+                "wiki.measure",
+                lang,
+                tokens=rag_lab.lang_int(rebuilt.tokens or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "estimate_text": estimate_text,
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": book.error,
         }
 
     def _rag_lab_pageindex(self, blocked: Message | None) -> dict[str, Any] | None:
@@ -11840,6 +11944,8 @@ class AppSession:
         workcopy.save(copy, self._language)
         # V1.2 story 13: a deleted document's evidence leaves the rebuilt graph (story 18).
         rag_graph.forget(self._language, list(copy.deleted), config.rag_lab_dir())
+        # V1.2 story 14: and its pages leave the rebuilt wiki, whatever the chain's Context.
+        rag_wiki.forget(self._language, list(copy.deleted), config.rag_lab_dir())
         with self._lock:
             if self._cag_pending is not None:
                 self._cag_cache, self._cag_pending = self._cag_pending, None

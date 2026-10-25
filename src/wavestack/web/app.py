@@ -358,8 +358,8 @@ class RagLabRebuildIntention(BaseModel):
 
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
     # V1.2 story 11: what is rebuilt, the contexts (by default) or PageIndex's summaries.
-    # V1.2 story 13: or GraphRAG's graph.
-    target: Literal["contexts", "pageindex", "graph"] = "contexts"
+    # V1.2 story 13: or GraphRAG's graph; story 14: or the LLM Wiki's syntheses.
+    target: Literal["contexts", "pageindex", "graph", "wiki"] = "contexts"
 
 
 class RagLabValidateRequest(BaseModel):
@@ -754,6 +754,17 @@ def create_app(
         run goes on."""
         try:
             return shown({"contexts": app_session.reset_rag_lab_contexts()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/wiki/reset")
+    def rag_lab_wiki_reset() -> dict[str, object]:
+        """V1.2 story 14: the LLM Wiki recompiled by a model deleted, the shipped wiki read
+        again; 409 while a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_wiki()})
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)

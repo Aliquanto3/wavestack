@@ -863,3 +863,10 @@ d'autres (story 21) :
   RAG dense en tokens aux trois temps, sans estimation ; « Rétablir le graphe » ; captures
   `86-atelier-rag-graphrag-local.jpg`, `87-atelier-rag-graphrag-reconstruit.jpg`,
   `88-atelier-rag-graphrag-comparer.jpg`.
+- `rag_lab_wiki`, V1.2 story 14 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le faux
+  llama-server répond `PAGES:` de la page du télétravail et une synthèse fixe (`workshop_plan`).
+  « LLM Wiki » dans la famille Structure, après PageIndex ; lignes « Wiki compilation », « Wiki
+  lint », « Wiki lookup » ; la page du télétravail choisie dans l'index ; carte « Wiki » « compilé
+  par une règle, sans modèle » et son estimation ; « Ajouter » : pages recompilées puis
+  vérification, 0 token ; « Recompiler » puis « Rétablir » ; Effacement (`wiki_pages` mesuré,
+  « effacé » après la recompilation) ; en puis de ; capture `89-atelier-rag-wiki.jpg`.
