@@ -525,3 +525,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:54 · 12.13 · dev · lancé (phase spec, empilé sur 12.11, worktree ../wavestack-v12-s13) · 8b0342b
 - 2026-10-25 12:57 · 12.19b · second-avis · 0 high, 0 medium, 6 low (fastembed sans consigne d'installation, échec de load() non testé, missing_sheets au niveau des familles, conflit 12.11 attendu, chiffres Sentence-BERT et DPR à revérifier, « même classement » trop fort) ; vector stores exacts confirmés dans le code · 347db6d
 - 2026-10-25 12:57 · 12.19b · review · lancé (Opus) · 347db6d
+- 2026-10-25 12:59 · 12.13 · dev · spec prête (20 critères, D1 à D10 : graphe livré heuristique sans modèle, propagation d'étiquettes maison sans networkx, préréglage graphrag local / global, coût du graphe livré nul et estimation étiquetée, audience hr par preuve) · 3ef995c
+- 2026-10-25 12:59 · 12.13 · review · relecture de la spec lancée (règles hr et d'exposition MCP à aligner sur 12.11 et 12.20) · 3ef995c
