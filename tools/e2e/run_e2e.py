@@ -16076,6 +16076,8 @@ def _rag_lab_costs(r: Run) -> None:
     ended = r.ev.wait("rag_lab_run_ended", seq, timeout=60)
     expect(page.locator("#rag-copy-form")).to_be_hidden(timeout=5000)
     expect(update.locator(".rag-cost-row")).to_have_count(5, timeout=5000)
+    # The page reloads the copy on `rag_lab_run_ended`, a fetch of its own: waited for.
+    expect(page.locator("#rag-copy-info")).to_contain_text("1 modifié", timeout=5000)
     r.check(
         ended["payload"]["run_id"].startswith("upd")
         and ended["payload"]["cost_summary"][0]["phase"] == "update"

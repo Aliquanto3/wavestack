@@ -82,3 +82,14 @@ context:
 - Décisions à revoir : la question de suivi lit les trois dernières questions posées dans la session (sans les réponses), l'atelier n'ayant pas de conversation ; les questions de suivi préparées (avec historique) restent hors du sélecteur ; l'étape est un type à part (`query`), placé après le Vector store, et non une option d'un type existant ; la question tapée est encore vectorisée par l'étape Embedding (un calcul de trop quand une requête la remplace) ; les requêtes d'une décomposition sont fusionnées par rangs réciproques (le score affiché est alors celui de la fusion) ; consigne de chaque option écrite dans `messages.yaml` (`rag_lab.query.instruction`), dans la langue de la session.
 - Sources des fiches (Ma 2305.14283, Press 2210.03350, Anantha 2010.04898, Gao 2212.10496) citées sans accès réseau, à ouvrir et vérifier : `litterature.md` demande une source primaire ouverte. MultiHop-RAG et H10 viennent de `litterature.md`.
 - Hors périmètre : lien « Fiche » dans le focus et contenu de l'onglet Fiches ; fiches des options des autres types (`SHEETED_KINDS` s'étend story par story) ; rang du passage attendu (CAP-10) ; coût en dollars de l'embedding des sous-requêtes (compté dans la durée de la recherche).
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 6c28e42)
+
+- Important, medium, second avis : `rag_lab_run_ended` d'une mise à jour émis avant `workcopy.save` (préexistant, révélé par l'E2E « Modifier »). Corrigé : `UpdateRun.keep` sauve la copie avant la fin ; un échec de sauvegarde termine en erreur et la session le dit. Tests `test_the_copy_is_saved_before_the_update_says_it_ended` (rouge sur l'ancien code) et `test_an_update_whose_copy_cannot_be_saved_ends_in_error`. L'E2E attend aussi le rechargement de la copie par la page (fetch asynchrone après l'événement), autre cause de l'échec intermittent.
+- Important, medium, second avis : `parse_queries` prenait le préambule du modèle (« Voici la question reformulée : ») pour une requête. Corrigé : ligne finissant par « : » écartée, « … : « requête » » réduit à la requête ; cas ajoutés aux tests (dont une vraie requête avec deux-points, conservée).
+- Nit, low, second avis : faux modèle E2E limité à la consigne fr de décomposition. Corrigé (en, de reconnus).
+- Nit, low, second avis : `_embed_queries` sans embedder lève `vector_search.no_store`. Rejeté : inatteignable, `embedder` et `query_vector` sont posés ensemble et `query_vector is None` est testé avant.
+- Nit, low, second avis : historique `_rag_lab_asked` non vidé à la remise à zéro. Corrigé (`reset` l'oublie, test ajouté). Garder les questions des exécutions annulées ou en erreur : rejeté, ce sont des questions posées dans la session, ce que lit `follow_up`.
+- Complexité : 0 constat (historique borné à `HISTORY_MAX`, au plus quatre requêtes par recherche).
