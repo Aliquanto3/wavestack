@@ -518,3 +518,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:42 · 12.19b · dev · lancé (spec puis code, pas de spec_checkpoint, worktree ../wavestack-v12-s19b depuis l'intégration 30bbfc1) · 30bbfc1
 - 2026-10-25 12:48 · 12.11 · second-avis · 0 high, 0 medium, 3 low (search_documents lit le corpus avant de valider la requête, audience hr lisible par l'agent comme par search_documents, entrées de documents supprimés gardées dans l'arbre reconstruit), 1 info ; confinement, bornes, annulation et contrat 12.19 sans défaut · 8b0342b
 - 2026-10-25 12:48 · 12.11 · review · lancé (Opus ; règle hr à trancher en cohérence avec 12.18 et 12.20) · 8b0342b
+- 2026-10-25 12:53 · 12.19b · dev · fini ; 12 fiches ×3 (H1, H14, H10 ; Sentence-BERT, DPR et fastembed pour les embeddings), PENDING_SHEET_KINDS vide, rag.sheets_error affiché, compte de l'E2E lu sur l'API ; 439 tests ciblés, E2E 172/172 · 347db6d
+- 2026-10-25 12:53 · 12.19b · décision · à revoir : 4 vector stores dits exacts (sqlite-vec non vérifié dans le code) ; sources des embeddings hors litterature.md (hypothèse à y ajouter) ; H1 mesure l'hybride en bloc ; generation.not_run cite H10 · 347db6d
+- 2026-10-25 12:53 · 12.19b · attente humaine · relecture des 12 fiches fr/en/de (FAISS « Meta », LanceDB, sqlite-vec, fastembed, lecture de H14) · —
+- 2026-10-25 12:53 · 12.19b · second-avis · lancé · 347db6d
