@@ -242,3 +242,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:47 · run · second-avis · lancé sur #100 · 984a492
 - 2026-10-25 06:47 · run · CI · #98 en conflit (.gitignore), main fusionnée, CI équilibrée par durées relancée · bb84a21
 - 2026-10-25 06:47 · 12.9 · dev · lancé · 881e14a
+- 2026-10-25 06:47 · 14.4 · review · point de contrôle de spec : 9 points tranchés, spec ready-for-dev (3 prompts, overflow_prompt 3 ; _gen_tps ; _wait_mcp_connections avant les verrous) · 30dca94
+- 2026-10-25 06:47 · 14.4 · décision · à revoir : les 9 points ouverts de la spec tranchés par le relecteur Opus (section « Décisions du point de contrôle » de stories/4-compaction.md) · —
+- 2026-10-25 06:47 · 14.4 · dev · repris (implémentation) · 30dca94
+- 2026-10-25 06:47 · run · décision · à revoir : 3 stories en développement le temps que 12.5 ou 12.9 finisse (14.4 prioritaire, V1.4 avant V1.2) · —
