@@ -42,8 +42,7 @@ architectures:
     label_text: "PageIndex"
     update_text: "den Baum des geänderten Dokuments und seiner Abschnitte neu berechnen."
   - id: raptor
-    available: false
-    story: 12
+    available: true
     label_text: "RAPTOR"
     update_text: "die Zusammenfassungen der betroffenen Zweige neu erstellen, dann die, die sie zusammenfassen."
   - id: graphrag
@@ -56,8 +55,7 @@ architectures:
     label_text: "LLM-Wiki"
     update_text: "die betroffenen Seiten neu kompilieren, dann die Prüfung des Wikis durchlaufen."
   - id: crag
-    available: false
-    story: 12
+    available: true
     label_text: "Corrective RAG"
     update_text: "die des hybriden RAG: die Passagen aus dem Speicher und dem BM25-Index entfernen."
 
@@ -94,15 +92,11 @@ places:
     measured_on_text: "die ausgelieferte Kontextdatei, so gelesen, wie sie ist"
   - id: raptor_summaries
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "dem echten RAPTOR-Baum, Story 12"
-    story: 12
+    measured: raptor_summaries
     architectures: [raptor]
     label_text: "RAPTOR-Zusammenfassungen"
     unit_text: "Zusammenfassungen"
-    text: "Zusammenfassung Ebene 1: Das Projekt Orion, gekennzeichnet durch den eindeutigen Code ORN-7731-QZ, ist ein fiktives internes Projekt von Exemplia; sein Dokument dient als Sentinel."
-    rebuilt_text: "Zusammenfassung Ebene 1: Die Dokumente des Korpus beschreiben die internen Richtlinien von Exemplia (Homeoffice, Sicherheit, generative KI)."
+    measured_on_text: "die Zusammenfassungen des heuristischen RAPTOR-Baums, im Speicher neu berechnet"
   - id: pageindex_tree
     erase_mode: rebuild
     measured: pageindex_tree

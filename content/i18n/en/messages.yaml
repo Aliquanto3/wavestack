@@ -624,7 +624,8 @@ session:
     decision_cloud_label: "Decision API (OpenRouter, {model})"
     decision_no_key: "Unavailable without a key: set the environment variable {env} (or in the user registry), then restart WaveStack. The key is never shown nor written."
     decision_capped: "The session's spending cap is reached ({spent} of {cap}, [finops] max_session_usd): no call is sent."
-    rebuild_target: "Unknown rebuild: “{target}”. The workshop rebuilds the contexts, PageIndex's tree or GraphRAG's graph."
+    rebuild_target: "Unknown rebuild: “{target}”. The workshop rebuilds the contexts, PageIndex's tree, GraphRAG's graph or RAPTOR's tree."
+    fallback_no_model: "Without a loaded model, the fallback cannot rewrite the question: it answers “I don't know” as soon as the filter keeps nothing."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "The MCP workshop's texts cannot be read (content/mcp_lab.yaml): fix the file, then reload the page."
@@ -1048,6 +1049,9 @@ rag_lab:
     community:
       one: community
       other: communities
+    summary:
+      one: summary
+      other: summaries
   # A rank: « 1er », « 2ᵉ » (English: 1st, 2nd, 3rd, 4th; 21st, 22nd, 23rd).
   rank:
     first: "1st"
@@ -1082,6 +1086,7 @@ rag_lab:
     check_last: "Step “{stage}”: it checks the answer, so it comes last, after the step “{after}”."
     router_before: "Step “{stage}”: it chooses the searches to run, so it must come before them. Move it before the searches."
     filter_after: "Step “{stage}”: it sorts a list of passages, so a search must come before it. Move it after the searches."
+    fallback_after_filter: "Step “{stage}”: it reads the passages kept by the step “{filter}”, which must come before it. Add a passage filter, or move the fallback after it."
   not_installed: "Unavailable: {library} is not installed. From the WaveStack folder: `{command}`, then restart WaveStack. Without `--extra compression`, Headroom would be removed."
   folder_held: "The folder {folder} cannot be deleted ({error}: {cause}): another program may be holding it open. Close it, or delete the rag_lab folder with WaveStack stopped."
   load_failed: "The {noun} {model} could not be loaded ({error}: {cause})."
@@ -1165,6 +1170,21 @@ rag_lab:
     graph_part_merge: Merge
     graph_part_communities: Communities recomputed
     graph_part_summaries: Summaries
+    raptor: "Tree"
+    raptor_levels: "Levels of summaries"
+    raptor_summaries: "Summaries"
+    raptor_stale: "Stale summaries"
+    raptor_kept: "Nodes kept"
+    raptor_estimate: "Summaries by a model (estimate)"
+    raptor_part_chunking: "Chunking (the document's passages)"
+    raptor_part_placement: "Placement"
+    raptor_part_summaries: "Summaries"
+    raptor_summarized: "Summaries written by the model"
+    raptor_kept_rule: "Summaries kept from the rule"
+    fallback_verdict: "Judgement of the passages"
+    fallback_web: "Web search"
+    fallback_kept_after: "Passages kept at the second attempt"
+    fallback_answer: "Answer"
   chunking:
     source_corpus: "the corpus (content/corpus), split for this run"
     source_index: "the RAG brick's index (split when it was built)"
@@ -1323,6 +1343,7 @@ rag_lab:
     # V1.2 story 8 (CAP-6)
     decision_unpriced: "Cost in dollars not priced: the decision API returned no cost."
     graph_measure: "Measure recorded when the graph was rebuilt (model: {model}), not redone at each run."
+    raptor_measure: "Measure recorded when RAPTOR's tree was rebuilt (model: {model}), not redone at each run."
   update:
     op:
       add: "Adding the document {doc}"
@@ -1348,6 +1369,7 @@ rag_lab:
     tree_rule: "Subtree recomputed by the rule, without a model: {redone} node(s) recomputed, {removed} removed; the rest of the tree is kept."
     tree_model: "Subtree summaries rewritten by the model {model}: {redone} node(s), {failed} kept for lack of an answer, {removed} removed; the rest of the tree is kept."
     graph_input: "The graph after the operation on {documents}: extraction of the touched document only, merge, communities, summaries."
+    raptor_input: "The tree after the operation on {documents}: chunking of the touched document only, placement of its passages, summaries of the branches touched."
   # V1.2 story 10 (CAG): the prefix kept in the model's memory.
   cache:
     state:
@@ -1531,6 +1553,47 @@ rag_lab:
     input: "Sentences of the answer checked: {sentences}; passages of the context: {passages}."
     output: "Grounded: {grounded}; not grounded: {not_grounded}."
     unchecked: "Following sentences not checked: {count} (eight per answer at most)."
+  # V1.2 story 12 (CAP-7): RAPTOR's tree of summaries, Corrective RAG's fallback.
+  raptor:
+    input: "The question, and the RAPTOR tree ({passages}, {summaries} on {levels} level(s)) of the {documents} of {source}."
+    summary_title: "Summary of level {level} ({sources})"
+    nothing: "No node of the tree shares a word with the question: the context is empty."
+    rule_note: "Tree computed by a rule: a real RAPTOR has a model write its summaries, see the estimate or Rebuild."
+    mark_shipped: "shipped tree, computed by a rule, without a model"
+    mark_rebuilt: "tree rebuilt by the model {model} ({by_model} summary(ies) out of {summaries} written by the model, the others by the rule)"
+    estimate: "estimate, not measured: summaries by a model would need {calls} calls (one per summary) and about {tokens} input tokens. In no sum."
+    summary_instruction: "Summarize in one or two sentences, {max} characters at most, the texts that follow (passages of a documentation, or summaries of groups of passages), inventing nothing. Answer with the summary only."
+    summary_user: "The summary of these texts:"
+    summaries_empty: "{count} empty answer(s) from the model: these summaries keep the rule's."
+    input_trimmed: "{count} input(s) cut to fit in the window."
+    rebuild_input: "The {summaries} of the tree, clustered again by the rule, one model call each, bottom-up."
+    rebuild_output: "{done} summary(ies) out of {total} written by the model, {empty} kept from the rule."
+    rebuild_model_error: "The model failed while rebuilding the tree: nothing is written, the tree in place is kept; the event log says why."
+    rebuild_nothing: "The model wrote no summary: nothing is written, the tree in place is kept."
+    run_label: "Rebuild of RAPTOR's tree"
+    summary: "{mark}: {passages}, {summaries} on {levels} level(s); {stale} summary(ies) stale against the work copy."
+    measure: "Measure of the rebuild: {tokens} tokens, {calls} model calls, {duration}."
+    part_chunking: "Chunking: {passages} passage(s) of the touched document."
+    part_placement: "Placement: {added} passage(s) placed in the tree, {removed} removed."
+    part_summaries: "Summaries: {rewritten} redone out of {total}."
+    placement_fact: "{added} placed, {removed} removed"
+    summaries_fact: "{rewritten} redone out of {total}"
+    by_rule: "by the rule, without a model"
+    by_model: "by the model (rebuilt tree)"
+  fallback:
+    no_filter: "No passage filter judged the list in this run (skipped or failed): nothing to correct."
+    input: "The passages the filter kept: {kept}."
+    correct: "The filter kept {kept}: no fallback."
+    corrected: "Second attempt: the filter kept {kept} for the rewritten question."
+    abstain: "The filter kept no passage: the workshop will answer “I don't know”, without calling the model."
+    abstained_answer: "I don't know: no passage of the corpus answers the question."
+    by_workshop: "written by the workshop (Corrective RAG), no generation"
+    verdict_correct: "at least one passage kept"
+    verdict_incorrect: "no passage kept"
+    no_web: "none: the workshop is offline, the fallback searches the same corpus"
+    no_rewrite: "No rewrite ({why}): no second attempt."
+    empty_rewrite: "The model gave no query: no second attempt."
+    step_failed: "Second attempt, step “{stage}”: {why}"
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:

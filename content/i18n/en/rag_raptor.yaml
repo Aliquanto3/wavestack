@@ -1,0 +1,265 @@
+# RAPTOR's tree of summaries (V1.2 story 12). Built by tools/build_raptor.py, not by hand:
+# computed by a rule, without a model; each leaf names a passage and its sha256.
+author: shipped
+method: heuristic
+model: heuristic
+chunk_max_chars: 700
+leaves_total: 65
+nodes_total: 27
+levels: 3
+leaves:
+  mots_de_passe#1: e5928b32331910896a93a34148aa766bcc6a7c741d66211660ce6ee27667faa5
+  mots_de_passe#2: d643e70d1efa466bd188ed02fcdf2700017ded971fe0ca87d1b283d9fb09a3f4
+  mots_de_passe#3: fd60466f0d1553295063fdf5cf7d9ff6f8378a80ca337e238b5f412d7d8e71e0
+  teletravail#1: 1930ab7e86f89d9663c40fc927dff06b1c84c595bdb6e8be3480d8c8591e492c
+  teletravail#2: ad823ce84eca6db421bf8272704a2eeffd80d25435d8bc20f2edead4e7e53039
+  teletravail#3: 8e0a32707dee57935c047fd7fd190eb4f1ee8ba3e3995b32803ccdc89e57356c
+  classification#1: 6445ceaf3bec3196e61ea4881410ae5230828b6e24113ac4ac44cf4e551ff2ce
+  classification#2: c7e3e1ecabcd0338fa509d0ff4c23a948c87c282d2f952c8e450dadc9f414baa
+  classification#3: 908d02e0f0a544bb6e4d5f2e43217c428cef07c8942c1f233d656ecb13f9edc1
+  classification#4: 9d9cddeaf0eca04831a6245f855cf635a395ab1cdd11a757222c31cca0de5872
+  incidents#1: 203a8d3a326d7336a387fb81179a569b0d361f2591034e034edad8119ebdc54e
+  incidents#2: 743d594bb97b956c714d4645f4ad268ec92fe0e2a7fa0eb122909d48ecaa91f1
+  incidents#3: c3fac147bbad34b38691c3d4e129a56f4f3cf356b34ef147b95004e6a6de7f0a
+  incidents#4: d8ca6b19e24a10335bb1483f761ebc3a78bec21b0d3f05a323eccd7489e4eff8
+  donnees_personnelles#1: 5dc3e6f2838412b308893beed508b0752ac2f1c34ae16881bea52118c90e0b27
+  donnees_personnelles#2: 2f03c85a9b43372cc770cbe64fc94537c1934446ed401c62d7e2ecd59b35a70f
+  donnees_personnelles#3: 89e01f79e7713888f2cd4a0cabd72d7ed36aa8ddcb92e8b98827ee6d4d398803
+  donnees_personnelles#4: a355e9db6586356b0fdbd9c5bcd3d15ce276cac54f5ce9598576c7987403bcdb
+  ia_generative#1: a6dad983a7b82f03cb8cb876371384c74717f04422f8f0acec3289d2d455cc5d
+  ia_generative#2: 7fc757a4b502e90be898ac1296b68a1cd3da2047ab16fbee0b7b7bf2f64324d7
+  ia_generative#3: 13b6bc6e2f8e70841fc28a3dc8ca35372fef0a1db190903b729a03b1a5de0b69
+  deplacements#1: 99f8f75114c2e4b15c5a1bd492fcd430a5065f1a8591e03c913c38a7b5f9b9ae
+  deplacements#2: b26d80def4475bf5c466ad7c443ba7bbeb128601ce285183fa56fbcb08083745
+  deplacements#3: 4139d43ce2752e1c04c9656d039e1873fd593d97127ec6559d2c55e9bbaf64cd
+  sauvegardes#1: 54d0f02d5bf96dddf0dec519a73d8f3c6fa557fbf163d5ff103bde9fb0e84c35
+  sauvegardes#2: f000b7ab550d82b6ef94594a2cac6d11af5e74f480270a0e76966403331901f4
+  sauvegardes#3: 2ab93c0b254ef42f6b0b2eda42a51245916a3f0c761e225018f3042621a5a14c
+  prestataires#1: 073bcef8965624df822354de399dce01e5f5aff3c7fc6caf669c34e840954a10
+  prestataires#2: 0582378b6e59b7919106f9ccd38b3163c9c836e0417d16150a6b56e8eb9c4313
+  prestataires#3: 1be1f9b218fc0c8b8f96b0f5e97a4e9db9a874b4a4a973df56adfe4458468f16
+  clauses_contrats#1: 58b770a8a2856594ed3aaa3429884b25750e82b70cf9f2b80a2bda01cd635cde
+  clauses_contrats#2: 3ac46ea52d48f2ebc92d6eddc17c7ec90c611dae004e054c113b12d2e4f8c4d7
+  registre_sous_traitants#1: 41dcad804aba08bdf52f4acf087d9e6bf063b929e12cd2198dde07d756e6f478
+  registre_sous_traitants#2: ed5632363a2f1f6f108fda40ef63d5967cc91848d5f133b6bc95f8c2732df982
+  gestion_crise#1: c79c9edfcddf4ec87f7a889bf77f881bfcc7e1e311cc63512b13dc40b1550f6b
+  gestion_crise#2: c2d6eecfe63afbf192cc5dad2d85b98ebc5be576ee0a55775b2378773adff990
+  gestion_crise#3: 1de2392bcb0bc97df789bba8b83c6f1a9f6bbdd52ef3674f34494b2c98806f68
+  astreinte#1: f4c0fac57209f31ac48aa6d0a6fb2ff18f389315dddbbd762bb822d46edab069
+  astreinte#2: 220730e34e475bcb71e786eb04b67d6df6f78a229e987bce78d44e3fc0cf330c
+  charte_messagerie_v1#1: 3af1e6254a5f073bda33e22f6232cad1f362964f8b38d5b1a7c7e8404816c4a3
+  charte_messagerie_v1#2: 780cc095e9ce15e9b709219eaf73116fefb6f5e5cd372101abb32cf5ab692d4b
+  charte_messagerie_v2#1: 1b35f990dd7aa501beb3ec003684196a921a8d223584f5b21fd1a190449f1d7a
+  charte_messagerie_v2#2: 940950577073f114c59b1b92fa41b6ea0ecb90a3965f974a6c1caa6afbcb79a2
+  note_changement_messagerie#1: 7e8a2dd99c0c3596d6303cb4fd04f41f2fc1ec5c5cf8d18032425d85a232c64b
+  note_changement_messagerie#2: 49c0609ac11d0c955ecc35c3f9047aa2f1b1301d2f7eab5283a162cbd75bfada
+  note_changement_messagerie#3: d28740e1763277a20f329d9a68b2541a34ba2653e96d43d92c033b6c467dba6c
+  rundschreiben_usb#1: 22c6745521218b7fe0b79360d9649d65b948bf8f0086ee923a72e54aff7c9bc5
+  rundschreiben_usb#2: e33e654a791dd0e71e1fff377539c5d32a1eb07e6008e0268e6ae2698934a8b8
+  rundschreiben_usb#3: da54e5f6b11a183f1c06bbb2169c43dd0dd4dff76a6b5a64e4e8a8f3a42df8cc
+  uk_visitor_badges#1: 0274b80b9831c97f4a078e1a3a440d0d483fbe28ca12217c600174e533229cec
+  uk_visitor_badges#2: 9a89d6b07c4567adbee8ecc0ce3c93afcfd42ebf6dc7e192521d066ca2608836
+  plan_continuite_lyon#1: 9cffef50791b8f3145020377654a1115e134a7a8c48545bd1095c27471e92e5a
+  plan_continuite_lyon#2: de022e5e6e8cac8c1f18b42a2afc33e49dbea729b6ad73469dad948d7faf6a23
+  grille_remunerations#1: 69e771117d6d1eb91cb878f31adfea9e6159a2bd8e094e62379eb95d2dc9d189
+  grille_remunerations#2: da900e94ad82cbf9a92a089c2e8902e2a6194b0d8eec9db06bca80ebf5f21c31
+  dossier_disciplinaire#1: b275edbe1b9825ca0fd31e462d4fa5976efddf7f5bff2bc4bf5beabab697d759
+  dossier_disciplinaire#2: 8f3cd43d83b8dd5c3f606b47652d9eea063d89717ed4f7aab9bc0fb036194380
+  entretiens_annuels#1: e95149416f053604dcc11391e41e5fd8a78f2bd3864d3918b43e8c49f2b3361f
+  entretiens_annuels#2: 68a5029300d28b76c2b434464d249ebfd456da6f39980deaa307584da2b5fb3b
+  acces_physique#1: c8502781bdf7c56d7af0b92367853b7a3fc9eaaf780d25eb1e58195c4c47e302
+  acces_physique#2: 8bca571448657d411c34b4fa5b43b70bbb7970de77698d7d6cbca94bea6e8ef5
+  revue_habilitations#1: c1cb5c36860eef4afb59136563ce2d0dd8b4799baf987ce5d3f187a5e4324ab3
+  revue_habilitations#2: 5d5fb4a02aff40b96e5fed44e15e41835a5861e8143a746c3d1c953a8b48ee8f
+  formation_securite#1: be0992844aed04ffd297b01160b37595fead2534c013493b0023088c265b87f7
+  formation_securite#2: c8d1d77cffe49c3aaacb0e23894b3db1fdbe29ca5d06a9fa2bf7b98901eff97b
+nodes:
+- id: L1-mots_de_passe#1
+  level: 1
+  children: [mots_de_passe#1, mots_de_passe#3]
+  sources: [mots_de_passe]
+  audience: all
+  summary_text: 'At Exemplia, a user account password has at least 14 characters. An automatic check compares each new password with a list of 100,000 common or already leaked passwords: a password on that list is refused, even if it has more than 14 characters.'
+  sha256: ba8e839016a23af37a5eb826d57901fc9a146404490b88cbef6928632c05575e
+- id: L1-mots_de_passe#2
+  level: 1
+  children: [mots_de_passe#2, teletravail#1, teletravail#3]
+  sources: [mots_de_passe, teletravail]
+  audience: all
+  summary_text: Remote work days are declared in the HR tool by the previous Friday at the latest. Remote work from abroad is limited to 20 days per calendar year, with the written agreement of the manager and of the human resources department, for tax and social security reasons.
+  sha256: 11f0bdf9c8e100c6fcbae9233620bc461815b61642db7c9cde22183919ed78ff
+- id: L1-teletravail#2
+  level: 1
+  children: [teletravail#2, incidents#2]
+  sources: [teletravail, incidents]
+  audience: all
+  summary_text: 'Working on a public Wi-Fi network, on a train, in a café or in a hotel, is allowed only with the VPN on and a privacy filter fitted to the screen. While waiting for CERT-Ex to respond, the suspect workstation is disconnected from the network, cable unplugged and Wi-Fi turned off, but it is not shut down: its RAM holds traces that are useful to the investigation.'
+  sha256: 64fb6e55936c6ae08d18401baa9988f12d75039172c48634bb302056a7ccf003
+- id: L1-classification#1
+  level: 1
+  children: [classification#1, classification#2, classification#3, classification#4]
+  sources: [classification]
+  audience: all
+  summary_text: 'All information produced or received by Exemplia carries one of the following 4 classification levels: Public, Internal, Confidential and Secret. The Secret level is reserved for a short list of strategic information, such as acquisition projects or detailed business continuity plans. Confidential and Secret paper documents are stored in a locked cabinet and destroyed with a level P-5 shredder.'
+  sha256: 76a2c311a8264b489989c32dfba881b2aaf26346fb9db575ebf64d9fe0293abe
+- id: L1-incidents#1
+  level: 1
+  children: [incidents#1, incidents#4]
+  sources: [incidents]
+  audience: all
+  summary_text: Any employee who notices or suspects an incident reports it within 30 minutes to the response team, CERT-Ex. Each level 2 or 3 incident gives rise to a written lessons-learned report, drafted within 15 working days, which describes the timeline, the cause and the measures taken to prevent it from happening again.
+  sha256: 5b76f9abaaffbb8ef383f6d586b90530fadf1ebaa76443566b8c38991f452a98
+- id: L1-incidents#3
+  level: 1
+  children: [incidents#3, gestion_crise#1, astreinte#1, astreinte#2]
+  sources: [incidents, gestion_crise, astreinte]
+  audience: all
+  summary_text: A level 2 incident mobilises CERT-Ex, which informs the chief information security officer within the hour. To know who to call at night, the on-call contacts annex lists the numbers to reach, depending on the time and the area concerned.
+  sha256: 3fd9731a697e93f63a20ede79cd1b47a2f6462924a78cd2761f806781f801840
+- id: L1-donnees_personnelles#1
+  level: 1
+  children: [donnees_personnelles#1, donnees_personnelles#3, donnees_personnelles#4]
+  sources: [donnees_personnelles]
+  audience: all
+  summary_text: 'Exemplia''s record of processing activities sets, for each processing activity, an active period, during which departments use the data, then an archiving period, during which only the legal department can access it. Working copies, such as spreadsheet extracts or files sent by email, follow the same periods as the original processing activity: it is up to each person to delete them.'
+  sha256: 8ebcde64cbcbbf7abc6fbd11791eecfc6695b9b0f40231701489a2386769d801
+- id: L1-donnees_personnelles#2
+  level: 1
+  children: [donnees_personnelles#2, sauvegardes#1, sauvegardes#2]
+  sources: [donnees_personnelles, sauvegardes]
+  audience: all
+  summary_text: Unsuccessful job applications are kept for 2 years after the last contact with the applicant, who is informed of this and may ask for them to be deleted sooner. Daily backups are kept for 35 days, weekly backups for 12 weeks, and one monthly backup is kept for 7 years for accounting obligations.
+  sha256: 190510a55e3384470cf96e79241f2002d741520806e9412a48f439a5da8faaec
+- id: L1-ia_generative#1
+  level: 1
+  children: [ia_generative#1, ia_generative#2]
+  sources: [ia_generative]
+  audience: all
+  summary_text: 'The reference tool is ExempliaGPT, an assistant hosted in Exemplia''s data centre: the texts entrusted to it do not leave the company and are not used to train any model. It is forbidden to paste into them a contract, an extract of Exemplia''s source code, personal data or the minutes of an internal meeting.'
+  sha256: 71f68f9527dc7da4b71fb81657ded66cdd95b77b64e27ca76b474ae5a7fc42f4
+- id: L1-ia_generative#3
+  level: 1
+  children: [ia_generative#3, formation_securite#1, formation_securite#2]
+  sources: [ia_generative, formation_securite]
+  audience: all
+  summary_text: Before getting access to ExempliaGPT, each employee takes a 3-hour online training course, then passes a quiz with at least 8 correct answers out of 10. Every Exemplia employee takes a 2-hour online information security training, then passes a quiz with at least 8 correct answers out of 10 to obtain it.
+  sha256: ca6bfdbb49146fc8959767c3dbe8bf2669effdb6d7f834b5d97437c0af15d573
+- id: L1-deplacements#1
+  level: 1
+  children: [deplacements#1, deplacements#2, deplacements#3]
+  sources: [deplacements]
+  audience: all
+  summary_text: Air travel is allowed only beyond 4 and a half hours by train, in economy class, and business class is reserved for flights of more than 7 hours. A meal taken while travelling is reimbursed up to 22 euros; a meal with a client is reimbursed on invoice, up to 60 euros per person, with the name of the guest company. After 90 days, an expense is no longer reimbursed.
+  sha256: b7f6f7a60878d99255f659e72196fdb79a675be9fd0ed39d15f1ebdd263e7f69
+- id: L1-prestataires#1
+  level: 1
+  children: [prestataires#1, clauses_contrats#1, clauses_contrats#2, registre_sous_traitants#1]
+  sources: [prestataires, clauses_contrats, registre_sous_traitants]
+  audience: all
+  summary_text: 'A standard supplier answers an annual security questionnaire. This register, kept by the supplier unit and cited by the model of security clauses, lists every subcontractor used by an Exemplia supplier: its name, its function, the country where it hosts or processes data, and the tier of the supplier that uses it.'
+  sha256: fb1485a49867b5da4ff824f3dda0edfe5d34a9e826ce5a3627b3b9018ec95e86
+- id: L1-prestataires#2
+  level: 1
+  children: [prestataires#2, prestataires#3, registre_sous_traitants#2]
+  sources: [prestataires, registre_sous_traitants]
+  audience: all
+  summary_text: At the end of a contract, the supplier erases Exemplia's data and confirms it in writing within the delay set by the contract's clauses. A subcontractor hosted outside the European Union only appears in the register with the written exception set by the supplier policy, attached to its entry.
+  sha256: 748cf2b67d79660800f18d82f05daa1482bd4378761e638a302c6e81050950d8
+- id: L1-gestion_crise#2
+  level: 1
+  children: [gestion_crise#2, gestion_crise#3]
+  sources: [gestion_crise]
+  audience: all
+  summary_text: The crisis unit shares a situation update every 2 hours with the directions concerned, and a single message to employees is approved before any release. The crisis is closed once the unit finds the situation under control and corrective measures under way; the closure is recorded in the crisis log.
+  sha256: b5551c8a17255eec0348ffa785df2d86d50ac81220c5363c8461d11c3788574a
+- id: L1-charte_messagerie_v1#1
+  level: 1
+  children: [charte_messagerie_v1#1, charte_messagerie_v2#1, note_changement_messagerie#1, note_changement_messagerie#3]
+  sources: [charte_messagerie_v1, charte_messagerie_v2, note_changement_messagerie]
+  audience: all
+  summary_text: 'This version of the email charter, in force since January 2024, is replaced by version 2: it is kept here as an archive, to understand past decisions. This change led to the revision of the email charter, from its version 1 to its version 2. Version 1 of the charter remains available as an archive, to understand decisions made before this change, but it no longer applies since 1 January 2026.'
+  sha256: f849af12c6c79cdbc47de83dfaebf709d8e94d4328968b99a9d6b8053ccf3850
+- id: L1-charte_messagerie_v1#2
+  level: 1
+  children: [charte_messagerie_v1#2, charte_messagerie_v2#2, note_changement_messagerie#2]
+  sources: [charte_messagerie_v1, charte_messagerie_v2, note_changement_messagerie]
+  audience: all
+  summary_text: A message sent by mistake to the wrong external recipient is reported to the incident response team within the hour, especially if it contains confidential information or personal data. A message sent by mistake to the wrong external recipient is still reported to the incident response team within the hour, especially if it contains confidential information or personal data.
+  sha256: 294daafdbe974f9f8ddbaeb19dcf7607f61fad271018f5ba8b54dfd0f23225bf
+- id: L1-rundschreiben_usb#1
+  level: 1
+  children: [rundschreiben_usb#1, rundschreiben_usb#2, rundschreiben_usb#3]
+  sources: [rundschreiben_usb]
+  audience: all
+  summary_text: Jede Mitarbeiterin und jeder Mitarbeiter, der einen USB-Speicher benötigt, erhält auf Anfrage einen von der IT-Abteilung ausgegebenen, verschlüsselten USB-Stick mit 256-Bit-Verschlüsselung. Externe Besucher und Lieferanten dürfen an der Zentrale keinen eigenen USB-Speicher anschließen; für einen Datenaustausch steht ein gesicherter Übertragungsdienst zur Verfügung, der vom Empfang vermittelt wird.
+  sha256: e654a5dc2f84a2d5e79a7c9eaca2aa3f0b67080987f6754c5105fdae7081babd
+- id: L1-uk_visitor_badges#1
+  level: 1
+  children: [uk_visitor_badges#1, uk_visitor_badges#2, acces_physique#1, acces_physique#2]
+  sources: [uk_visitor_badges, acces_physique]
+  audience: all
+  summary_text: Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor register. A visitor who needs access to another floor returns to reception for a new badge. The visitor badge is returned at reception on leaving; the visitor register is kept for 90 days.
+  sha256: 27a6edc78017d6180c3d4d604bd7a986cde8f46ac1c28e9d783fa602ebd5ae86
+- id: L1-plan_continuite_lyon#1
+  level: 1
+  children: [plan_continuite_lyon#1, plan_continuite_lyon#2]
+  sources: [plan_continuite_lyon]
+  audience: all
+  summary_text: Si le site principal de Lyon devient inaccessible, pour cause d'incendie, de panne électrique prolongée ou d'évacuation, le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la décision du directeur de site. La liste des équipes prioritaires, celles qui doivent rejoindre le site de repli en premier, est affichée dans chaque bureau du site de Lyon et revue chaque année.
+  sha256: 0941410456a8b5dbb2755b8c6859dd78418d94b55a511a7a94d1ec92bf162b9d
+- id: L1-grille_remunerations#1
+  level: 1
+  children: [grille_remunerations#1, grille_remunerations#2, entretiens_annuels#1, entretiens_annuels#2]
+  sources: [grille_remunerations, entretiens_annuels]
+  audience: hr
+  summary_text: Each category matches a gross annual salary range, revised once a year by the compensation committee, made up of general management and human resources management. This document describes Exemplia's annual review, led by each employee's direct manager; it is classed as a human resources document.
+  sha256: 972014a72f9ce398fc07b3262b2f53be82f7df09bdaadfad2464c1858118486c
+- id: L1-dossier_disciplinaire#1
+  level: 1
+  children: [dossier_disciplinaire#1, dossier_disciplinaire#2, revue_habilitations#1, revue_habilitations#2]
+  sources: [dossier_disciplinaire, revue_habilitations]
+  audience: hr
+  summary_text: A written warning stays on file for 3 years; past that delay, it is no longer taken into account for a later measure, unless the same breach recurs before it is erased. An external audit may cover the access rights review; the register of reviews for the past two years is then presented as proof of effective access control.
+  sha256: b4ef94cef79cd98336b4fa9b7fdfa254c63b37c3994af8def82a3bcf820ad21b
+- id: L2-mots_de_passe#1
+  level: 2
+  children: [L1-mots_de_passe#1, L1-mots_de_passe#2]
+  sources: [mots_de_passe, teletravail]
+  audience: all
+  summary_text: 'It is forbidden to write a password down on paper, in a text file or in the mailbox, and to reuse a work password on a personal website. An automatic check compares each new password with a list of 100,000 common or already leaked passwords: a password on that list is refused, even if it has more than 14 characters.'
+  sha256: d902721fe19bfe6aa65ba7150754472bbc7b830a53b966e411da853b4a57d926
+- id: L2-classification#1
+  level: 2
+  children: [L1-classification#1, L1-ia_generative#1, L1-charte_messagerie_v1#1, L1-charte_messagerie_v1#2]
+  sources: [classification, ia_generative, charte_messagerie_v1, charte_messagerie_v2, note_changement_messagerie]
+  audience: all
+  summary_text: It accepts information up to the Confidential level. A message sent by mistake to the wrong external recipient is reported to the incident response team within the hour, especially if it contains confidential information or personal data. Version 1 of the charter remains available as an archive, to understand decisions made before this change, but it no longer applies since 1 January 2026.
+  sha256: e216bb380d1ea24df8eac5fa59fa55208efa4320046c5a5f3d08b38871fd717f
+- id: L2-incidents#1
+  level: 2
+  children: [L1-incidents#1, L1-incidents#3, L1-gestion_crise#2]
+  sources: [incidents, gestion_crise, astreinte]
+  audience: all
+  summary_text: Any employee who notices or suspects an incident reports it within 30 minutes to the response team, CERT-Ex. A level 2 incident mobilises CERT-Ex, which informs the chief information security officer within the hour. The crisis is closed once the unit finds the situation under control and corrective measures under way; the closure is recorded in the crisis log.
+  sha256: 8e6e670c9b2cee856bbd20c0cd559da3f53abc2aa02b1625e7d282de803e7f16
+- id: L2-donnees_personnelles#1
+  level: 2
+  children: [L1-donnees_personnelles#1, L1-donnees_personnelles#2, L1-prestataires#1, L1-prestataires#2]
+  sources: [donnees_personnelles, sauvegardes, prestataires, clauses_contrats, registre_sous_traitants]
+  audience: all
+  summary_text: 'At the end of a contract, the supplier erases Exemplia''s data and confirms it in writing within the delay set by the contract''s clauses. This register, kept by the supplier unit and cited by the model of security clauses, lists every subcontractor used by an Exemplia supplier: its name, its function, the country where it hosts or processes data, and the tier of the supplier that uses it.'
+  sha256: e9a072fc4bc72dd42495882e66e2d6af9e3013002c4bdee27181acc55f9c027f
+- id: L2-ia_generative#3
+  level: 2
+  children: [L1-ia_generative#3, L1-uk_visitor_badges#1, L1-grille_remunerations#1, L1-dossier_disciplinaire#1]
+  sources: [ia_generative, uk_visitor_badges, grille_remunerations, dossier_disciplinaire, entretiens_annuels, acces_physique, revue_habilitations, formation_securite]
+  audience: hr
+  summary_text: Every visitor receives a temporary badge at reception, after an ID check, and must be escorted by an employee in any restricted or secure zone. Human resources keeps the list of trainings taken, useful for the access rights review and for the annual review's future training needs.
+  sha256: d0a4c63eb1af147ef090f0e0ae5edf5da6e714464a4810a45b11e267eec4d84b
+- id: L3-classification#1
+  level: 3
+  children: [L2-classification#1, L2-incidents#1, L2-donnees_personnelles#1, L2-ia_generative#3]
+  sources: [classification, incidents, donnees_personnelles, ia_generative, sauvegardes, prestataires, clauses_contrats, registre_sous_traitants, gestion_crise, astreinte, charte_messagerie_v1, charte_messagerie_v2, note_changement_messagerie, uk_visitor_badges, grille_remunerations, dossier_disciplinaire, entretiens_annuels, acces_physique, revue_habilitations, formation_securite]
+  audience: hr
+  summary_text: A level 2 incident mobilises CERT-Ex, which informs the chief information security officer within the hour. Any security incident at a supplier must be reported to Exemplia, within the delay set in its contract. A message sent by mistake to the wrong external recipient is reported to the incident response team within the hour, especially if it contains confidential information or personal data.
+  sha256: 9bbc33c895e5122558d02b43b851f79faf598948d374ec5221056cc69b89b9a7

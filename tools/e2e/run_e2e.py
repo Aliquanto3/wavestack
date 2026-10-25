@@ -16858,8 +16858,8 @@ def _rag_lab_presets(r: Run) -> None:
     # V1.2 story 10: the « Recherche » family; « Sans index » follows (its own scenario).
     search = [k for k, p in served.items() if p.get("family") == "search"]
     r.check(
-        search == ["dense", "hybrid", "rerank"]
-        and all(served[k]["available"] for k in search)
+        search[:3] == ["dense", "hybrid", "rerank"]  # V1.2 story 12: CRAG after them
+        and all(served[k]["available"] for k in search[:3])
         and [s["kind"] for s in served["hybrid"]["segment"]]
         == ["vector_search", "lexical_search", "fusion"]
         and sorted(shown) == sorted(served)  # V1.2 story 11: drawn family by family
@@ -18430,7 +18430,7 @@ def s_rag_lab_agentic(r: Run) -> None:
         )
         r.check(
             families == ["search", "structure", "no_index"]
-            and _family_buttons(r, "structure") == ["pageindex", "graphrag"]  # V1.2 story 13
+            and _family_buttons(r, "structure")[0] == "pageindex"  # V1.2 stories 12, 13, 14
             and _family_buttons(r, "no_index") == ["long_context", "cag", "agentic"],
             "familles Recherche, Structure (PageIndex), Sans index (… recherche agentique)",
             str(families),
@@ -18675,7 +18675,7 @@ def s_rag_lab_graphrag(r: Run) -> None:
         _goto_rag_lab(r)
         _rag_mode(r, "compose")
         r.check(
-            _family_buttons(r, "structure") == ["pageindex", "graphrag"],
+            "graphrag" in _family_buttons(r, "structure"),  # V1.2 story 12: RAPTOR too
             "famille Structure : PageIndex puis GraphRAG",
             str(_family_buttons(r, "structure")),
         )
@@ -18834,6 +18834,199 @@ def s_rag_lab_graphrag(r: Run) -> None:
             )
 
 
+def s_rag_lab_raptor_crag(r: Run) -> None:
+    """V1.2 story 12 (CAP-7), after `rag` and `rag_rerank`, no real model: the fake llama-server
+    writes RAPTOR's summaries by its script. (1) « RAPTOR » in « Structure », between PageIndex
+    and GraphRAG: the lines « Summary tree building » and « Summary tree search », the card says
+    « calculé par une règle, sans modèle », the estimate labelled; (2) a global question: nodes
+    of several levels in the focus, a summary among them; (3) « Reconstruire l'arbre »:
+    « reconstruit » and its measure; (4) « Ajouter un document »: the update says its three
+    parts; (5) « Rétablir l'arbre »: the rule again; (6) « Corrective RAG », last of « Recherche »:
+    the fallback's line after the filter, its focus (verdict, no web); « je ne sais pas » said by
+    the workshop when the filter kept nothing. Back to A, 4 096, the shipped corpus and tree."""
+    page = r.page
+    page.set_viewport_size({"width": 1280, "height": 1000})
+    r.goto_app()
+    r.wait_idle()
+    overview = (
+        "Quels processus encadrent la relation entre Exemplia et ses collaborateurs côté "
+        "ressources humaines ?"
+    )
+    parking = "Quelle est la politique de remboursement du stationnement chez Exemplia ?"
+
+    def card_text() -> str:
+        return page.locator("#rag-focus #rag-raptor-card").inner_text()
+
+    try:
+        ok, _ = r.poll(lambda: _picker_options(r).get(LLAMA_OPTION) is False, 10)
+        seq = r.ev.mark()
+        page.select_option("#model-picker", label=LLAMA_OPTION)
+        page.click("#model-picker-apply")
+        ended = r.ev.wait("model_load_ended", seq, timeout=30)
+        r.check(ok and ended["payload"]["status"] == "ok", "faux llama-server chargé")
+        r.wait_idle()
+        if (r.state().get("context_window_state") or {}).get("configured") != 8192:
+            _apply_window(r, 8192)
+        r.api("POST", "/api/rag_lab/raptor/reset")
+
+        # (1) « RAPTOR » in « Structure », the card of the shipped tree.
+        _goto_rag_lab(r)
+        _rag_mode(r, "compose")
+        structure = _family_buttons(r, "structure")
+        r.check(
+            "raptor" in structure
+            and structure.index("pageindex")
+            < structure.index("raptor")
+            < structure.index("graphrag"),
+            "famille Structure : PageIndex, RAPTOR, GraphRAG",
+            str(structure),
+        )
+        _apply_preset(r, "raptor")
+        r.check(
+            _pressed_preset(r) == ["raptor"]
+            and _chain_kinds(r)[3:] == ["context", "generation"]
+            and page.locator('#rag-seq .rag-seq-step[data-step="raptor_build"]').count() == 1
+            and page.locator('#rag-seq .rag-seq-step[data-step="raptor_query"]').count() == 1
+            and page.locator('#rag-seq .rag-seq-step[data-step="embed_query"]').count() == 0,
+            "« RAPTOR » appliqué : lignes « Summary tree building », « Summary tree search »",
+            str(_chain_kinds(r)),
+        )
+        _focus_of(r, "raptor_query")
+        expect(page.locator("#rag-focus #rag-raptor-card")).to_be_visible(timeout=10_000)
+        r.check(
+            "calculé par une règle, sans modèle" in card_text()
+            and page.locator("#rag-focus .rag-graph-estimate-badge").count() == 1
+            and page.locator("#rag-focus #rag-raptor-card .rag-graph-table").count() == 1,
+            "carte Arbre : « calculé par une règle, sans modèle », estimation étiquetée, tableau",
+            card_text()[:240],
+        )
+
+        # (2) A global question: nodes of every level.
+        ended, seq = _rag_lab_run(r, overview)
+        info = _stage_ended(r, seq, "context").get("raptor") or {}
+        _focus_of(r, "raptor_query")
+        levels = {p.get("level") for p in info.get("picked", [])}
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and any(level and level >= 1 for level in levels)
+            and page.locator("#rag-focus .rag-raptor .rag-graph-passage").count() >= 1,
+            "question globale : nœuds de plusieurs niveaux dans le focus, un résumé parmi eux",
+            str(sorted(level for level in levels if level is not None)),
+        )
+        r.shot("93-atelier-rag-raptor", full_page=True)
+
+        # (3) « Reconstruire l'arbre » by the fake server.
+        seq = r.ev.mark()
+        page.click("#rag-raptor-rebuild")
+        rebuilt = r.ev.wait(
+            "rag_lab_run_ended",
+            seq,
+            lambda p: str(p.get("run_id", "")).startswith("ctx"),
+            timeout=600,
+        )
+        r.poll(lambda: (r.state().get("session_state") or {}).get("state") == "idle", 30)
+        time.sleep(0.5)
+        _focus_of(r, "raptor_query")
+        expect(page.locator("#rag-focus #rag-raptor-card .rag-graph-card-summary")).to_contain_text(
+            "reconstruit par le modèle", timeout=10_000
+        )
+        r.check(
+            rebuilt["payload"]["status"] == "ok"
+            and page.locator("#rag-focus #rag-raptor-card .rag-graph-measure").count() == 1
+            and page.locator("#rag-focus .rag-graph-estimate-badge").count() == 0,
+            "« Reconstruire l'arbre » : reconstruit par le modèle, sa mesure, plus d'estimation",
+            card_text()[:240],
+        )
+
+        # (4) « Ajouter un document »: the three parts of the update.
+        _rag_mode(r, "compose")
+        seq = r.ev.mark()
+        page.locator('#rag-copy button[data-op="add"]').click()
+        expect(page.locator("#rag-copy-form")).to_be_visible()
+        page.fill("#rag-copy-id", "note_raptor")
+        page.fill("#rag-copy-title", "Note de crise")
+        page.fill(
+            "#rag-copy-body",
+            "La cellule de crise appelle l'astreinte la nuit.\n\nL'astreinte prévient la cellule.",
+        )
+        page.click("#rag-copy-apply")
+        ended = r.ev.wait(
+            "rag_lab_run_ended",
+            seq,
+            lambda p: str(p.get("run_id", "")).startswith("upd"),
+            timeout=300,
+        )
+        note = page.locator('#rag-cost-cards .rag-cost-card[data-phase="update"] .rag-cost-note')
+        expect(note).to_contain_text("Résumés", timeout=10_000)
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and all(w in note.inner_text() for w in ("Découpage", "Placement", "Résumés")),
+            "« Ajouter » : la mise à jour dit ses trois parties (découpage, placement, résumés)",
+            note.inner_text()[:240],
+        )
+
+        # (5) « Rétablir l'arbre ».
+        _apply_preset(r, "raptor")
+        _focus_of(r, "raptor_query")
+        page.click("#rag-raptor-reset")
+        expect(page.locator("#rag-focus #rag-raptor-card .rag-graph-card-summary")).to_contain_text(
+            "calculé par une règle", timeout=10_000
+        )
+        r.check(
+            page.locator("#rag-focus .rag-graph-estimate-badge").count() == 1,
+            "« Rétablir l'arbre » : l'arbre livré, l'estimation étiquetée revient",
+            card_text()[:240],
+        )
+        r.api("POST", "/api/rag_lab/copy/reset")
+
+        # (6) « Corrective RAG », last of « Recherche ».
+        _goto_rag_lab(r)
+        search = _family_buttons(r, "search")
+        r.check(search[-1] == "crag", "famille Recherche : Corrective RAG en dernier", str(search))
+        _apply_preset(r, "crag")
+        kinds = _chain_kinds(r)
+        r.check(
+            _pressed_preset(r) == ["crag"]
+            and kinds.index("passage_filter") + 1 == kinds.index("fallback")
+            and page.locator('#rag-seq .rag-seq-step[data-step="fallback"]').count() == 1,
+            "« Corrective RAG » appliqué : hybride, filtre de passages, puis le repli",
+            str(kinds),
+        )
+        ended, seq = _rag_lab_run(r, parking)
+        fallback = _stage_ended(r, seq, "fallback")
+        generation = _stage_ended(r, seq, "generation")
+        info = fallback.get("fallback") or {}
+        _focus_of(r, "fallback")
+        abstained = bool(info.get("abstained"))
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and info.get("verdict") in ("correct", "incorrect", "corrected")
+            and info.get("web") is False
+            and page.locator("#rag-focus .rag-fallback").count() == 1
+            and "hors ligne" in page.inner_text("#rag-focus .rag-fallback")
+            and (not abstained or "Je ne sais pas" in generation.get("output_text", "")),
+            "Corrective RAG : le focus du repli dit son jugement, aucune recherche web ; "
+            "« je ne sais pas » de l'atelier quand le filtre n'a rien gardé",
+            f"{info.get('verdict')} · abstention : {abstained}",
+        )
+        r.shot("94-atelier-rag-crag", full_page=True)
+    finally:
+        try:
+            page.keyboard.press("Escape")
+            r.api("POST", "/api/rag_lab/copy/reset")
+            r.api("POST", "/api/rag_lab/raptor/reset")
+            r.goto_app()
+            page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+            if (r.state().get("active_model") or {}).get("ref") != MODEL_ENTRY_ID:
+                _pick_model(r, A_LABEL)
+            if (r.state().get("context_window_state") or {}).get("configured") != 4096:
+                _apply_window(r, 4096)
+        except Exception as exc:  # noqa: BLE001 - reported, the scenario's own error kept
+            r.check(
+                False, "retour au faux cloud A, à 4 096, au corpus et à l'arbre livrés", repr(exc)
+            )
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -18876,6 +19069,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_no_index", s_rag_lab_no_index),  # V1.2 story 10
     ("rag_lab_agentic", s_rag_lab_agentic),  # V1.2 story 11
     ("rag_lab_graphrag", s_rag_lab_graphrag),  # V1.2 story 13
+    ("rag_lab_raptor_crag", s_rag_lab_raptor_crag),  # V1.2 story 12
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18

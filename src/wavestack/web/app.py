@@ -358,8 +358,8 @@ class RagLabRebuildIntention(BaseModel):
 
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
     # V1.2 story 11: what is rebuilt, the contexts (by default) or PageIndex's summaries.
-    # V1.2 story 13: or GraphRAG's graph.
-    target: Literal["contexts", "pageindex", "graph"] = "contexts"
+    # V1.2 story 13: or GraphRAG's graph; V1.2 story 12: or RAPTOR's tree of summaries.
+    target: Literal["contexts", "pageindex", "graph", "raptor"] = "contexts"
 
 
 class RagLabValidateRequest(BaseModel):
@@ -765,6 +765,17 @@ def create_app(
         409 while a run goes on."""
         try:
             return shown({"contexts": app_session.reset_rag_lab_pageindex()})
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/raptor/reset")
+    def rag_lab_raptor_reset() -> dict[str, object]:
+        """V1.2 story 12: RAPTOR's rebuilt tree deleted, the shipped tree read again; 409 while
+        a run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_raptor()})
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)

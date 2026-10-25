@@ -184,7 +184,8 @@ def update(session: AppSession, *args, **kwargs) -> list:  # noqa: ANN002, ANN00
 def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
     # V1.2 story 11: the agentic search and PageIndex follow, PageIndex in « Structure »;
     # V1.2 story 13: GraphRAG last, after PageIndex in « Structure ».
-    assert list(rag_lab.PRESETS) == [
+    # V1.2 stories 12 and 14 add theirs after these (an inclusion, not an equality).
+    assert list(rag_lab.PRESETS)[:8] == [
         "dense",
         "hybrid",
         "rerank",
@@ -195,11 +196,11 @@ def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
         "graphrag",
     ]
     assert rag_lab.PRESETS["long_context"] == rag_lab.PRESETS["cag"] == ()
-    assert rag_lab.PRESET_FAMILIES == {
-        "search": ("dense", "hybrid", "rerank"),
-        "structure": ("pageindex", "graphrag"),
-        "no_index": ("long_context", "cag", "agentic"),
-    }
+    families = rag_lab.PRESET_FAMILIES
+    assert list(families) == ["search", "structure", "no_index"]
+    assert families["search"][:3] == ("dense", "hybrid", "rerank")
+    assert families["structure"][0] == "pageindex" and "graphrag" in families["structure"]
+    assert families["no_index"] == ("long_context", "cag", "agentic")
     session = lab(index)
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
     for key, option in (("long_context", "full_corpus"), ("cag", "cached_corpus")):
@@ -211,10 +212,14 @@ def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
     assert shown["cag"]["segment"] == [] and shown["cag"]["replaces_context"] is True
     assert shown["cag"]["context"] == {"option": "cached_corpus", "params": {}}
     state = session.rag_lab_state()["catalog"]
-    assert state["preset_families"] == [
-        {"id": "search", "label_text": "Recherche"},
-        {"id": "structure", "label_text": "Structure"},
-        {"id": "no_index", "label_text": "Sans index"},
+    assert [(f["id"], f["label_text"]) for f in state["preset_families"]] == [
+        ("search", "Recherche"),
+        ("structure", "Structure"),
+        ("no_index", "Sans index"),
+    ]
+    # V1.2 story 12: each family says its presets in its order (the page draws them so).
+    assert [f["presets"] for f in state["preset_families"]] == [
+        list(m) for m in rag_lab.PRESET_FAMILIES.values()
     ]
     assert state["corpus_options"] == ["full_corpus", "cached_corpus"]
     session.close()
@@ -292,6 +297,7 @@ def test_the_sequence_draws_the_prefix_for_the_cag_only_and_no_question_embeddin
         "agent_loop",  # V1.2 story 11
         "section_tree",
         "graph_search",  # V1.2 story 13
+        "raptor_search",  # V1.2 story 12
     ]
     assert [u["component"] for u in steps["cache_prefix"]["uses"]] == [
         "documents",

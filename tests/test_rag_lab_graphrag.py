@@ -92,11 +92,11 @@ def test_the_preset_its_family_and_its_context(index):
     session = full(index)
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
     chain = catalog.preset_pipeline("graphrag")
-    assert rag_lab.PRESETS["graphrag"] == () and list(rag_lab.PRESETS)[-1] == "graphrag"
+    assert rag_lab.PRESETS["graphrag"] == () and "graphrag" in rag_lab.PRESETS
     assert [s.kind for s in chain.stages] == [*rag_lab.FIXED_HEAD, *rag_lab.FIXED_TAIL]
     assert stage(chain, "context").option == "graph_search"
     assert rag_lab.check_pipeline(chain, catalog) is None
-    assert rag_lab.PRESET_FAMILIES["structure"] == ("pageindex", "graphrag")
+    assert "graphrag" in rag_lab.PRESET_FAMILIES["structure"]  # V1.2 story 12: RAPTOR too
     shown = presets(session)
     assert shown["graphrag"]["family"] == "structure" and shown["graphrag"]["available"]
     state = session.rag_lab_state()["catalog"]

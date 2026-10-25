@@ -38,6 +38,7 @@ from wavestack.rag.graph import build_graph
 from wavestack.rag.index import passage_text
 from wavestack.rag.lab import bm25, bm25_terms, lexical_index
 from wavestack.rag.pageindex import build_tree
+from wavestack.rag.raptor import build_tree as build_raptor
 
 FILE = "rag_erasure.yaml"
 ARCHITECTURES = (
@@ -76,12 +77,15 @@ MEASURED = (
     "pageindex_tree",
     "graph_entities",
     "graph_communities",
+    "raptor_summaries",  # V1.2 story 12
 )
 MODE_OF_MEASURED = {
     "pageindex_tree": "rebuild",  # V1.2 story 11: the rule's tree, recomputed in memory
     # V1.2 story 13: the rule's graph, recomputed in memory (its entities, its communities)
     "graph_entities": "rebuild",
     "graph_communities": "rebuild",
+    # V1.2 story 12: the rule's RAPTOR tree, recomputed in memory (its summaries)
+    "raptor_summaries": "rebuild",
     "chunks": "delete",
     "bm25": "delete",
     "contexts": "rebuild",
@@ -154,6 +158,7 @@ class Place(_Strict):
             "pageindex_tree",
             "graph_entities",
             "graph_communities",
+            "raptor_summaries",
         ]
         | None
     ) = None
@@ -296,6 +301,9 @@ class Copies(NamedTuple):
     entities_without: list[str] = []
     communities_with: list[str] = []
     communities_without: list[str] = []
+    # V1.2 story 12: RAPTOR's tree by the rule, a summary each, with and without the sentinel.
+    raptor_with: list[str] = []
+    raptor_without: list[str] = []
 
 
 def build_copies(content: ErasureContent, lang: str) -> Copies:
@@ -323,6 +331,10 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         ]
         return list(names.values()), communities
 
+    def raptor(documents: list[DocText]) -> list[str]:
+        built = build_raptor(documents, lang, content.chunk_max_chars)
+        return [n.summary_text for n in built.nodes.values()]
+
     graph_with, graph_without = graph(docs_with), graph(docs_without)
     shipped = load_book(lang).shipped  # the shipped file alone, never the rebuilt one
     index = lexical_index([passage_text(c) for c in chunks], lang)
@@ -344,6 +356,8 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         entities_without=graph_without[0],
         communities_with=graph_with[1],
         communities_without=graph_without[1],
+        raptor_with=raptor(docs_with),
+        raptor_without=raptor(docs_without),
     )
 
 
@@ -365,6 +379,8 @@ def _items(place: Place, copies: Copies, erased: bool, rebuilt: set[str]) -> lis
         return copies.entities_without if rebuilding else copies.entities_with
     if place.measured == "graph_communities":
         return copies.communities_without if rebuilding else copies.communities_with
+    if place.measured == "raptor_summaries":  # V1.2 story 12
+        return copies.raptor_without if rebuilding else copies.raptor_with
     if place.measured == "source":
         return [d.text for d in (copies.docs_without if erased else copies.docs_with)]
     assert place.text and place.rebuilt_text  # noqa: S101 - validated at the load

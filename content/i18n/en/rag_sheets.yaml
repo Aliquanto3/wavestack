@@ -425,16 +425,16 @@ architectures:
     regulatory:
       text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the section tree and its summaries? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that writes the summaries and descends the tree?'
 - id: raptor
-  story: 12
   hypotheses:
   - H12
   purpose_text: Cluster the passages, summarise each cluster, then summarise the summaries, and search across every level of that tree.
   when_text: 'Use it for questions that need an overview of the corpus. Avoid it when documents change often: every change redoes summaries in a cascade.'
   cost_text: 'Build: clustering and recursive summaries, many model calls. Update: redo the summaries of the touched branches. Query: one search across all levels.'
-  no_source_text: 'No primary source on RAPTOR has been opened and read yet: it will be added in a session with network access.'
   literature_text: 'RAPTOR has no hypothesis of its own in the framing; only H12 applies to the compliance sheet. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
   bench_text: ''
   sources:
+  - label_text: RAPTOR (Sarthi et al., 2024)
+    url: https://arxiv.org/abs/2401.18059
   - label_text: arXiv 2508.04276
     url: https://arxiv.org/abs/2508.04276
   - label_text: Microsoft Research
@@ -589,7 +589,6 @@ architectures:
     regulatory:
       text: 'Questions to ask, not a verdict. GDPR: what legal basis, what minimisation, and how to exercise the right to erasure on the wiki''s compiled pages? AI Act: which classification depending on the use? DORA or NIS2: depending on the organisation''s sector. Provider dependency: what leaves the workshop with the use of the model that compiles and checks the pages?'
 - id: crag
-  story: 12
   hypotheses:
   - H7
   - H12
@@ -599,6 +598,8 @@ architectures:
   literature_text: 'H7 (a decision model replaces LLM judges without loss): not demonstrated. H12 (derived architectures complicate erasure and access rights, and widen the attack surface): partially supported.'
   bench_text: ''
   sources:
+  - label_text: CRAG (Yan et al., 2024)
+    url: https://arxiv.org/abs/2401.15884
   - label_text: Towards AI
     url: https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c
   - label_text: arXiv 2508.04276

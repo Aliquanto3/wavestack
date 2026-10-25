@@ -431,16 +431,16 @@ architectures:
     regulatory:
       text: 'Questions à poser, pas un verdict. RGPD : quelle base légale, quelle minimisation, et comment exercer le droit à l''effacement sur l''arbre des sections et ses résumés ? AI Act : quelle classification selon l''usage ? DORA ou NIS2 : selon le secteur de l''organisation. Dépendance fournisseur : que quitte l''atelier avec l''utilisation du modèle qui écrit les résumés et descend l''arbre ?'
 - id: raptor
-  story: 12
   hypotheses:
   - H12
   purpose_text: Regrouper les passages, résumer chaque groupe, puis résumer les résumés, et chercher sur tous les niveaux de cet arbre.
   when_text: 'À utiliser pour des questions qui demandent une vue d''ensemble du corpus. À éviter quand les documents changent souvent : chaque modification refait des résumés en cascade.'
   cost_text: 'Construction : regroupement des passages et résumés récursifs, beaucoup d''appels de modèle. Mise à jour : refaire les résumés des branches touchées. Requête : une recherche sur tous les niveaux.'
-  no_source_text: 'Aucune source primaire sur RAPTOR n''a encore été ouverte et lue : elle sera ajoutée avec une session ayant accès au réseau.'
   literature_text: 'RAPTOR n''a pas d''hypothèse propre dans le cadrage ; seule H12 s''applique à la fiche conformité. H12 (les architectures dérivées compliquent l''effacement et les droits, et élargissent la surface d''attaque) : partiellement soutenue.'
   bench_text: ''
   sources:
+  - label_text: RAPTOR (Sarthi et al., 2024)
+    url: https://arxiv.org/abs/2401.18059
   - label_text: arXiv 2508.04276
     url: https://arxiv.org/abs/2508.04276
   - label_text: Microsoft Research
@@ -595,7 +595,6 @@ architectures:
     regulatory:
       text: 'Questions à poser, pas un verdict. RGPD : quelle base légale, quelle minimisation, et comment exercer le droit à l''effacement sur les pages compilées du wiki ? AI Act : quelle classification selon l''usage ? DORA ou NIS2 : selon le secteur de l''organisation. Dépendance fournisseur : que quitte l''atelier avec l''utilisation du modèle qui compile et vérifie les pages ?'
 - id: crag
-  story: 12
   hypotheses:
   - H7
   - H12
@@ -605,6 +604,8 @@ architectures:
   literature_text: 'H7 (un modèle de décision remplace les juges LLM sans perte) : non démontrée. H12 (les architectures dérivées compliquent l''effacement et les droits, et élargissent la surface d''attaque) : partiellement soutenue.'
   bench_text: ''
   sources:
+  - label_text: CRAG (Yan et al., 2024)
+    url: https://arxiv.org/abs/2401.15884
   - label_text: Towards AI
     url: https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c
   - label_text: arXiv 2508.04276

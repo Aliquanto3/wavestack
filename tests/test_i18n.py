@@ -383,6 +383,12 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert tr["entities_total"] == len(tr["entities"]) >= 80
         assert tr["communities_total"] == len(tr["communities"]) >= 8
         assert tr["entities"] != fr["entities"]
+    elif rel == "rag_raptor.yaml":  # V1.2 story 12: its own corpus's tree, the same header
+        fr, tr = _yaml(rel, "fr"), _yaml(rel, lang)
+        for key in ("author", "method", "model", "chunk_max_chars"):
+            assert tr[key] == fr[key]
+        assert tr["nodes_total"] == len(tr["nodes"]) >= 15 and tr["levels"] >= 2
+        assert tr["nodes"] != fr["nodes"]
     elif rel == "rag_questions.yaml":  # story 1: same ids, types and doc_ids, texts translated
         fr, tr = load_rag_questions("fr"), load_rag_questions(lang)
 

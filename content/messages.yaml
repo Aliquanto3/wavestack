@@ -632,7 +632,8 @@ session:
     decision_cloud_label: "API de décision (OpenRouter, {model})"
     decision_no_key: "Indisponible sans clé : définissez la variable d'environnement {env} (ou dans le registre utilisateur), puis relancez WaveStack. La clé n'est jamais affichée ni écrite."
     decision_capped: "Plafond de dépense de la session atteint ({spent} sur {cap}, [finops] max_session_usd) : aucun appel n'est envoyé."
-    rebuild_target: "Reconstruction inconnue : « {target} ». L'atelier reconstruit les contextes, l'arbre de PageIndex ou le graphe de GraphRAG."
+    rebuild_target: "Reconstruction inconnue : « {target} ». L'atelier reconstruit les contextes, l'arbre de PageIndex, le graphe de GraphRAG ou l'arbre de RAPTOR."
+    fallback_no_model: "Sans modèle chargé, le repli ne peut pas réécrire la question : il répond « je ne sais pas » dès que le filtre ne garde rien."
   # Story 6 of 2026-09-30: the MCP workshop (`/mcp`), its own connections, never the brick's.
   mcp_lab:
     content_invalid: "Textes de l'atelier MCP illisibles (content/mcp_lab.yaml) : corrigez le fichier puis rechargez la page."
@@ -1066,6 +1067,9 @@ rag_lab:
     community:
       one: communauté
       other: communautés
+    summary:
+      one: résumé
+      other: résumés
   # A rank: « 1er », « 2ᵉ » (English: 1st, 2nd, 3rd, 4th; 21st, 22nd, 23rd).
   rank:
     first: "1er"
@@ -1100,6 +1104,7 @@ rag_lab:
     check_last: "Étape « {stage} » : elle contrôle la réponse, elle vient en dernier, après l'étape « {after} »."
     router_before: "Étape « {stage} » : elle choisit les recherches à lancer, elle doit venir avant elles. Déplacez-la avant les recherches."
     filter_after: "Étape « {stage} » : elle trie une liste de passages, une recherche doit venir avant elle. Déplacez-la après les recherches."
+    fallback_after_filter: "Étape « {stage} » : elle lit les passages gardés par l'étape « {filter} », qui doit venir avant elle. Ajoutez un filtre de passages, ou déplacez le repli après lui."
   not_installed: "Indisponible : {library} n'est pas installé. Depuis le dossier de WaveStack : `{command}`, puis relancez WaveStack. Sans `--extra compression`, Headroom serait retiré."
   folder_held: "Le dossier {folder} ne peut pas être supprimé ({error} : {cause}) : un autre programme le tient peut-être ouvert. Fermez-le, ou supprimez le dossier rag_lab WaveStack arrêté."
   load_failed: "Le {noun} {model} n'a pas pu être chargé ({error} : {cause})."
@@ -1183,6 +1188,21 @@ rag_lab:
     graph_part_merge: Fusion
     graph_part_communities: Communautés recalculées
     graph_part_summaries: Résumés
+    raptor: "Arbre"
+    raptor_levels: "Niveaux de résumés"
+    raptor_summaries: "Résumés"
+    raptor_stale: "Résumés périmés"
+    raptor_kept: "Nœuds retenus"
+    raptor_estimate: "Résumés par un modèle (estimation)"
+    raptor_part_chunking: "Découpage (passages du document)"
+    raptor_part_placement: "Placement"
+    raptor_part_summaries: "Résumés"
+    raptor_summarized: "Résumés écrits par le modèle"
+    raptor_kept_rule: "Résumés gardés par la règle"
+    fallback_verdict: "Jugement des passages"
+    fallback_web: "Recherche web"
+    fallback_kept_after: "Passages gardés au second essai"
+    fallback_answer: "Réponse"
   chunking:
     source_corpus: "le corpus (content/corpus), découpé pour cette exécution"
     source_index: "l'index de la brique RAG (découpé à sa construction)"
@@ -1342,6 +1362,7 @@ rag_lab:
     # V1.2 story 8 (CAP-6)
     decision_unpriced: "Coût en dollars non chiffré : l'API de décision n'a pas rendu de coût."
     graph_measure: "Mesure enregistrée à la reconstruction du graphe (modèle : {model}), non refaite à chaque exécution."
+    raptor_measure: "Mesure enregistrée à la reconstruction de l'arbre RAPTOR (modèle : {model}), non refaite à chaque exécution."
   update:
     op:
       add: "Ajout du document {doc}"
@@ -1367,6 +1388,7 @@ rag_lab:
     tree_rule: "Sous-arbre recalculé par la règle, sans modèle : {redone} nœud(s) recalculé(s), {removed} retiré(s) ; le reste de l'arbre est gardé."
     tree_model: "Résumés du sous-arbre réécrits par le modèle {model} : {redone} nœud(s), {failed} gardé(s) faute de réponse, {removed} retiré(s) ; le reste de l'arbre est gardé."
     graph_input: "Le graphe après l'opération sur {documents} : extraction du seul document touché, fusion, communautés, résumés."
+    raptor_input: "L'arbre après l'opération sur {documents} : découpage du seul document touché, placement de ses passages, résumés des branches touchées."
   # V1.2 story 10 (CAG): the prefix kept in the model's memory.
   cache:
     state:
@@ -1550,6 +1572,47 @@ rag_lab:
     input: "Phrases de la réponse contrôlées : {sentences} ; passages du contexte : {passages}."
     output: "Ancrées : {grounded} ; non ancrées : {not_grounded}."
     unchecked: "Phrases suivantes non contrôlées : {count} (au plus huit par réponse)."
+  # V1.2 story 12 (CAP-7): RAPTOR's tree of summaries, Corrective RAG's fallback.
+  raptor:
+    input: "La question, et l'arbre RAPTOR ({passages}, {summaries} sur {levels} niveau(x)) des {documents} de {source}."
+    summary_title: "Résumé de niveau {level} ({sources})"
+    nothing: "Aucun nœud de l'arbre ne partage un mot avec la question : le contexte est vide."
+    rule_note: "Arbre calculé par une règle : un vrai RAPTOR fait écrire ses résumés par un modèle, voir l'estimation ou Reconstruire."
+    mark_shipped: "arbre livré, calculé par une règle, sans modèle"
+    mark_rebuilt: "arbre reconstruit par le modèle {model} ({by_model} résumé(s) sur {summaries} écrit(s) par le modèle, les autres par la règle)"
+    estimate: "estimation, non mesurée : des résumés par un modèle demanderaient {calls} appels (un par résumé) et environ {tokens} tokens d'entrée. Hors de toute somme."
+    summary_instruction: "Tu résumes en une ou deux phrases, {max} caractères au plus, les textes qui suivent (des passages d'une documentation, ou des résumés de groupes de passages), sans rien inventer. Réponds par le résumé seul."
+    summary_user: "Le résumé de ces textes :"
+    summaries_empty: "{count} réponse(s) vide(s) du modèle : ces résumés gardent celui de la règle."
+    input_trimmed: "{count} entrée(s) coupée(s) pour tenir dans la fenêtre."
+    rebuild_input: "Les {summaries} de l'arbre, regroupé de nouveau par la règle, un appel au modèle chacun, de bas en haut."
+    rebuild_output: "{done} résumé(s) sur {total} écrit(s) par le modèle, {empty} gardé(s) par la règle."
+    rebuild_model_error: "Le modèle a échoué pendant la reconstruction de l'arbre : rien n'est écrit, l'arbre en place est gardé ; le journal des événements dit pourquoi."
+    rebuild_nothing: "Le modèle n'a écrit aucun résumé : rien n'est écrit, l'arbre en place est gardé."
+    run_label: "Reconstruction de l'arbre RAPTOR"
+    summary: "{mark} : {passages}, {summaries} sur {levels} niveau(x) ; {stale} résumé(s) périmé(s) face à la copie de travail."
+    measure: "Mesure de la reconstruction : {tokens} tokens, {calls} appels au modèle, {duration}."
+    part_chunking: "Découpage : {passages} passage(s) du document touché."
+    part_placement: "Placement : {added} passage(s) placé(s) dans l'arbre, {removed} retiré(s)."
+    part_summaries: "Résumés : {rewritten} refait(s) sur {total}."
+    placement_fact: "{added} placé(s), {removed} retiré(s)"
+    summaries_fact: "{rewritten} refait(s) sur {total}"
+    by_rule: "par la règle, sans modèle"
+    by_model: "par le modèle (arbre reconstruit)"
+  fallback:
+    no_filter: "Aucun filtre de passages n'a jugé la liste dans cette exécution (sauté ou en erreur) : rien à corriger."
+    input: "Les passages gardés par le filtre : {kept}."
+    correct: "Le filtre a gardé {kept} : pas de repli."
+    corrected: "Second essai : le filtre a gardé {kept} pour la question réécrite."
+    abstain: "Le filtre n'a gardé aucun passage : l'atelier répondra « je ne sais pas », sans appeler le modèle."
+    abstained_answer: "Je ne sais pas : aucun passage du corpus ne répond à la question."
+    by_workshop: "écrite par l'atelier (Corrective RAG), aucune génération"
+    verdict_correct: "au moins un passage gardé"
+    verdict_incorrect: "aucun passage gardé"
+    no_web: "aucune : l'atelier est hors ligne, le repli cherche dans le même corpus"
+    no_rewrite: "Pas de réécriture ({why}) : pas de second essai."
+    empty_rewrite: "Le modèle n'a donné aucune requête : pas de second essai."
+    step_failed: "Second essai, étape « {stage} » : {why}"
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:

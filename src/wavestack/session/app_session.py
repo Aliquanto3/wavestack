@@ -218,6 +218,7 @@ from wavestack.rag import graph as rag_graph
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
 from wavestack.rag import pageindex as rag_pageindex
+from wavestack.rag import raptor as rag_raptor
 from wavestack.rag import sheets as rag_sheets
 from wavestack.rag.corpus import (
     Chunk,
@@ -401,6 +402,7 @@ RAG_LAB_CATALOG_TTL_S = 5.0  # story 30: the validation's catalog, read again af
 # V1.2 story 13: the graphs of GraphRAG kept (by corpus and files), the entities the card lists.
 RAG_LAB_GRAPHS_KEPT = 4
 GRAPH_CARD_ENTITIES = 30
+RAG_LAB_RAPTORS_KEPT = 4  # V1.2 story 12: RAPTOR's trees kept (by corpus and files)
 _RAG_LAB_FR = Message("session.state.rag_lab")
 _MCP_LAB_FR = Message("session.state.mcp_lab")  # story 6 of 2026-09-30
 # Story 10 (CAP-9, the page Sécurité's « Ce que le harnais ne protège pas »): one id per
@@ -1060,6 +1062,9 @@ class AppSession:
         # V1.2 story 13: GraphRAG's graphs built, by what they are built from (a few kept).
         self._rag_lab_graphs: dict[str, tuple[rag_graph.Graph, int]] = {}
         self._rag_lab_graphs_lock = threading.Lock()  # read by the HTTP thread and the worker
+        # V1.2 story 12: RAPTOR's trees read, by what they are read from (a few kept).
+        self._rag_lab_raptors: dict[str, tuple[rag_raptor.Tree, int]] = {}
+        self._rag_lab_raptors_lock = threading.Lock()
         # V1.2 story 15 (CAP-11), the Evaluate tab: the generating model of each finished run
         # (`run_id` -> label and family), the judges' verdicts kept by run, both bounded (the
         # oldest leaves), the last judgment's failure, and the local-model discovery (replaced
@@ -10811,6 +10816,9 @@ class AppSession:
                 options[("context", option)].note_text = Message(
                     "session.rag_lab.searchless_no_model"
                 )
+            # V1.2 story 12: Corrective RAG's fallback cannot rewrite the question: it
+            # answers that it does not know at once.
+            options[("fallback", "retry")].note_text = Message("session.rag_lab.fallback_no_model")
         # V1.2 story 7: `compress` borrows the Compression card's compressor; without one it can
         # still be chosen, the step builds the context as `order` does (the note says why).
         compressor, why = self._rag_lab_compressor()
@@ -11111,6 +11119,7 @@ class AppSession:
         if rebuild_blocked is not None:
             raise SendRefused(rebuild_blocked)
         labels = {"pageindex": "tree.run_label", "graph": "graph.run_label"}  # V1.2 story 13
+        labels["raptor"] = "raptor.run_label"  # V1.2 story 12
         label = rag_lab._t(labels.get(target, "contexts.run_label"), self._language)
         with self._lock:
             if self.state != "idle":
@@ -11171,6 +11180,101 @@ class AppSession:
                     self._rag_lab_graphs.pop(next(iter(self._rag_lab_graphs)))
                 self._rag_lab_graphs[key] = kept
         return kept
+
+    def reset_rag_lab_raptor(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/raptor/reset` (V1.2 story 12): RAPTOR's tree rebuilt in the data
+        folder is deleted, the shipped tree is read again (never `content/`). Refused while a
+        run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_raptor.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def _rag_lab_raptor(self, documents: Sequence[rag_lab.DocText]) -> tuple[rag_raptor.Tree, int]:
+        """V1.2 story 12: RAPTOR's tree of `documents` and the milliseconds its reading took,
+        kept by what it is read from (the language, the documents of the work copy, the shipped
+        and rebuilt files)."""
+        content = self._rag_content
+        assert content is not None  # checked when the intention was accepted
+        lang, size, folder = self._language, self.cfg.rag_chunk_max_chars, config.rag_lab_dir()
+        key = rag_lab.raptor_key(lang, size, documents, folder)
+        with self._rag_lab_raptors_lock:
+            kept = self._rag_lab_raptors.get(key)
+        if kept is None:
+            kept = rag_lab.raptor_for(content, lang, size, documents, folder)
+            with self._rag_lab_raptors_lock:
+                while len(self._rag_lab_raptors) >= RAG_LAB_RAPTORS_KEPT:
+                    self._rag_lab_raptors.pop(next(iter(self._rag_lab_raptors)))
+                self._rag_lab_raptors[key] = kept
+        return kept
+
+    def _rag_lab_raptor_card(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 12: what the page's « Arbre RAPTOR » card shows: who wrote the tree read
+        (the shipped rule, or the model of a rebuild), its numbers, the summaries stale against
+        the work copy, the rebuild's measure or the labelled estimate, an accessible table of
+        its summaries (level, children, documents, audience), and why « Reconstruire » is not
+        available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        tree, _ = self._rag_lab_raptor(documents)
+        rebuilt = tree.rebuilt
+        mark = rag_lab.raptor_mark(tree, lang)
+        estimate = rag_lab.raptor_estimate(
+            tree, lambda t: config.estimate_tokens(t, self.cfg.chars_per_token), lang
+        )
+        say = lambda key, **kw: rag_lab._t(key, lang, **kw)  # noqa: E731
+        count = lambda n, noun: rag_lab.count_text(n, noun, lang)  # noqa: E731
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_raptor.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_raptor.HEURISTIC,
+            "mark_text": mark,
+            "passages": len(tree.leaves),
+            "summaries": len(tree.nodes),
+            "levels": tree.levels,
+            "unparented": tree.unparented(),
+            "stale": tree.stale,
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "calls": rebuilt.calls if rebuilt is not None else 0,
+            "summary_text": say(
+                "raptor.summary",
+                mark=mark,
+                passages=count(len(tree.leaves), "passage"),
+                summaries=count(len(tree.nodes), "summary"),
+                levels=rag_lab.lang_int(tree.levels, lang),
+                stale=rag_lab.lang_int(tree.stale, lang),
+            ),
+            "measure_text": say(
+                "raptor.measure",
+                tokens=rag_lab.lang_int(rebuilt.tokens, lang),
+                calls=rag_lab.lang_int(rebuilt.calls or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "rule_note_text": None if rebuilt is not None else say("raptor.rule_note"),
+            "estimate": estimate,
+            "node_rows": [
+                {
+                    "id": n.id,
+                    "level": n.level,
+                    "children": len(n.children),
+                    "sources": n.sources,
+                    "audience": n.audience,
+                    "summary_text": n.summary_text,
+                    "summary_source": n.source,
+                }
+                for n in sorted(tree.nodes.values(), key=lambda n: -n.level)
+            ],
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": tree.error,
+        }
 
     def _rag_lab_graph_card(self, blocked: Message | None) -> dict[str, Any] | None:
         """V1.2 story 13: what the page's « Graphe » card shows: who built the graph read (the
@@ -11285,6 +11389,7 @@ class AppSession:
         return {
             "pageindex": self._rag_lab_pageindex(blocked),
             "graph": self._rag_lab_graph_card(blocked),  # V1.2 story 13
+            "raptor": self._rag_lab_raptor_card(blocked),  # V1.2 story 12
             "author": header.author if header else None,
             "method": header.method if header else None,
             "model": header.model if header else None,
@@ -11813,6 +11918,7 @@ class AppSession:
             # V1.2 story 13: GraphRAG's mode, and its graph from the session's cache.
             graph_mode=graph_mode,
             graph=self._rag_lab_graph,
+            raptor=self._rag_lab_raptor,  # V1.2 story 12: RAPTOR's tree, from the cache
         )
 
     @contextmanager
@@ -11840,6 +11946,8 @@ class AppSession:
         workcopy.save(copy, self._language)
         # V1.2 story 13: a deleted document's evidence leaves the rebuilt graph (story 18).
         rag_graph.forget(self._language, list(copy.deleted), config.rag_lab_dir())
+        # V1.2 story 12: and its passages leave RAPTOR's rebuilt tree, the summaries emptied.
+        rag_raptor.forget(self._language, list(copy.deleted), config.rag_lab_dir())
         with self._lock:
             if self._cag_pending is not None:
                 self._cag_cache, self._cag_pending = self._cag_pending, None

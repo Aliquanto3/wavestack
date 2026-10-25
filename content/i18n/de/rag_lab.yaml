@@ -184,6 +184,9 @@ stages:
   grounding_check:
     label_text: "Grounding check"
     explain_text: "Nach der Generierung wird jeder Satz der Antwort den Passagen des Kontexts gegenübergestellt: verankert oder nicht. Die Prüfung meldet eine nicht gestützte Aussage, sie schreibt die Antwort nicht um. Unter der Schwelle gilt der Satz als nicht verankert, oder die Kaskade fragt den SLM-Richter."
+  fallback:  # V1.2 story 12 (CAP-7)
+    label_text: "Corrective fallback"
+    explain_text: "Nach dem Passagenfilter: Hat er mindestens eine Passage behalten, gibt es nichts zu korrigieren. Hat er keine behalten, formuliert das aktive Modell die Frage um, Suche und Filter laufen ein zweites Mal; bleibt weiterhin nichts, antwortet die Werkstatt „Ich weiß es nicht“, ohne das Modell aufzurufen. Das Corrective RAG des Artikels erweitert die Suche auf das Web: Die Werkstatt ist offline, ihr Rückfall sucht erneut im selben Korpus."
 
 # The name of each option; those naming a declared model take its label.
 options:
@@ -241,6 +244,8 @@ options:
       label_text: "Abschnittsbaum (PageIndex)"
     graph_search:
       label_text: "Wissensgraph (GraphRAG)"
+    raptor_search:  # V1.2 story 12
+      label_text: "Baum von Zusammenfassungen (RAPTOR)"
   generation:
     active:
       label_text: "Aktives Modell der Werkstatt"
@@ -271,6 +276,11 @@ options:
       label_text: "Lokaler Klassifikator (deberta_xsmall)"
     cloud:
       label_text: "Entscheidungs-API (Cloud)"
+  fallback:  # V1.2 story 12
+    retry:
+      label_text: "Umformulieren und erneut suchen, dann „Ich weiß es nicht“"
+    abstain:
+      label_text: "„Ich weiß es nicht“ antworten"
 
 # The settings: their name and unit.
 params:
@@ -411,6 +421,19 @@ steps:
     label_text: "Graph query"
     action_text: "Das Modell nennt die Entitäten der Frage oder liest die nächsten Communities"
     explain_text: "Im lokalen Modus liefert ein Aufruf die Entitäten der Frage (ENTITIES: a, b); der Graph verbindet sie mit ihren Nachbarn einen Schritt entfernt, und die Belegpassagen dieser Beziehungen werden zum Kontext. Im globalen Modus durchlaufen die drei der Frage nächsten Communities je einen « map »-Aufruf (POINTS: … oder POINTS: NONE); die Generierung übernimmt das « reduce ». Keine Zielgruppe wird gefiltert: Jedes Element nennt seine eigene."
+  # V1.2 story 12: RAPTOR's tree built once, then searched on every level;
+  # Corrective RAG's fallback.
+  raptor_build:
+    label_text: "Summary tree building"
+    action_text: "Die Passagen gruppieren und jede Gruppe zusammenfassen, Ebene für Ebene"
+    explain_text: "RAPTOR baut einmal einen Baum: Die Passagen des Korpus werden nach der Nähe ihrer Wörter gruppiert, jede Gruppe wird zusammengefasst, dann werden die Zusammenfassungen ihrerseits gruppiert und zusammengefasst, bis zu drei Ebenen. Der mitgelieferte Baum wird von einer Regel berechnet, ohne Modell (extraktive Zusammenfassungen: der Satz jedes Kindes, der der Gruppe am nächsten ist); „Neu aufbauen“ lässt das aktive Modell jede Zusammenfassung schreiben, ein Aufruf je Knoten. Die Aktualisierung eines Dokuments ordnet seine Passagen in den Baum ein und erneuert nur die betroffenen Zusammenfassungen."
+  raptor_query:
+    label_text: "Summary tree search"
+    action_text: "Auf allen Ebenen des Baums zugleich suchen"
+    explain_text: "Der Baum wird abgeflacht: Passagen und Zusammenfassungen aller Ebenen werden gemeinsam mit BM25 bewertet, und die fünf besten Knoten werden zum Kontext, ohne Modellaufruf. Eine Überblicksfrage findet eine Zusammenfassung, eine Faktenfrage eine Passage. Keine Zielgruppe wird gefiltert: Jedes Element nennt seine eigene."
+  fallback:
+    label_text: "Corrective fallback"
+    action_text: "Die Frage umformulieren und erneut suchen, wenn der Filter nichts behalten hat"
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -460,6 +483,9 @@ components:
   knowledge_graph:
     label_text: "Wissensgraph"
     note_text: "Entitäten, Beziehungen, zusammengefasste Communities"
+  summary_tree:  # V1.2 story 12
+    label_text: "Baum von Zusammenfassungen"
+    note_text: "Passagen, Zusammenfassungen von Gruppen, Zusammenfassungen von Zusammenfassungen"
 
 groups:
   data:
@@ -532,6 +558,12 @@ presets:
       zusammengefassten Communities, einmal aufgebaut. Lokal nennt das Modell die Entitäten der
       Frage und liest die Belege ihrer Nachbarn; global liest es die nächsten Communities. Teuer
       im Aufbau und in der Aktualisierung mit einem Modell, mehrere Aufrufe je Anfrage.
+  raptor:  # V1.2 story 12
+    label_text: "RAPTOR"
+    explain_text: "Keine Vektoren: ein Baum von Zusammenfassungen, einmal aufgebaut, die Passagen gruppiert und zusammengefasst, dann die Zusammenfassungen gruppiert und zusammengefasst. Die Anfrage sucht auf allen Ebenen zugleich, ohne Modellaufruf. Teuer im Aufbau mit einem Modell, Zusammenfassungen bei jeder Aktualisierung zu erneuern."
+  crag:  # V1.2 story 12
+    label_text: "Corrective RAG"
+    explain_text: "Das hybride RAG, dann der Passagenfilter von System One; behält der Filter nichts, formuliert das Modell die Frage um und die Suche läuft ein zweites Mal, dann antwortet die Werkstatt „Ich weiß es nicht“. Ohne Websuche: Die Werkstatt ist offline."
 # V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
 preset_families:
   search:
@@ -1017,3 +1049,39 @@ sheets:
         url: "https://arxiv.org/pdf/2506.20963v1.pdf"
       - label_text: "LightRAG (Guo et al., 2024), Entitätsgraph mit lokaler oder globaler Abfrage: die Vorlage des Aufbaus"
         url: "https://arxiv.org/abs/2410.05779"
+  # V1.2 story 12 (CAP-7): RAPTOR, Corrective RAG's fallback.
+  context.raptor_search:
+    purpose_text: "In einem einmal aufgebauten Baum von Zusammenfassungen suchen: die Passagen nach Nähe gruppiert und zusammengefasst, dann die Zusammenfassungen ihrerseits gruppiert und zusammengefasst. Die Anfrage bewertet alle Knoten des Baums gemeinsam (der „abgeflachte Baum“ des Artikels) und behält die nächsten."
+    when_text: "Für Überblicksfragen, die keine einzelne Passage abdeckt: Die Zusammenfassung einer Gruppe vereint mehrere Dokumente. Zu meiden bei einem Korpus, der sich oft ändert: Jede Änderung erneuert die Zusammenfassungen ihres Zweigs, bis zur Wurzel."
+    cost_text: "Der Aufbau ist der Aufbau-Kostenpunkt: per Regel (mitgelieferter Baum) wenige Millisekunden und kein Token; per Modell („Neu aufbauen“) ein Aufruf je Zusammenfassung, von unten nach oben. Eine Aktualisierung zerlegt das betroffene Dokument, ordnet seine Passagen ein und erneuert die Zusammenfassungen seines Zweigs. Die Anfrage macht vor der Generierung keinen Aufruf, aber der Kontext kann Zusammenfassungen enthalten."
+    literature_text: "RAPTOR (Sarthi et al., 2024) gruppiert und fasst die Passagen rekursiv zusammen und sucht dann auf allen Ebenen des Baums; mit GPT-4 verbessert es das beste Ergebnis auf dem Benchmark QuALITY um 20 Punkte Genauigkeit. Der Artikel bettet die Passagen ein (SBERT) und gruppiert sie mit Gaußschen Mischungen; die Werkstatt gruppiert sie nach ihren Wörtern, für einen mitgelieferten Baum, der ohne Embedding-Modell reproduzierbar ist. H12 gilt: Jede Zusammenfassung ist eine abgeleitete Kopie, die mehrere Dokumente vermischt."
+    bench_text: ""
+    sources:
+      - label_text: "RAPTOR (Sarthi et al., 2024): rekursive Zusammenfassungen und Suche auf allen Ebenen des Baums"
+        url: "https://arxiv.org/abs/2401.18059"
+      - label_text: "arXiv 2508.04276: abgeleitete Inhalte vergrößern die Angriffsfläche (H12)"
+        url: "https://arxiv.org/abs/2508.04276"
+  fallback.retry:
+    purpose_text: "Eine Suche korrigieren, die nichts ergeben hat: Hat der Passagenfilter keine Passage behalten, formuliert das aktive Modell die Frage um, Suche und Filter laufen ein zweites Mal; bleibt nichts, antwortet die Werkstatt „Ich weiß es nicht“."
+    when_text: "Wenn eine falsche Antwort mehr kostet als eine Ablehnung und die Frage schlecht formuliert sein kann. Zu meiden, wenn der Filter zu Unrecht ablehnt: Die zweite Suche legt dem Filter erneut die ursprüngliche Frage vor, und die Ablehnung verdeckt dann eine Antwort, die im Korpus steht."
+    cost_text: "Nichts beim Aufbau und bei der Aktualisierung (die des hybriden RAG). Bei der Anfrage nur, wenn der Filter nichts behalten hat: ein Umformulierungsaufruf, eine zweite Suche, ein zweiter Durchlauf des Filters. Ein „Ich weiß es nicht“ kostet keine Generierung."
+    literature_text: "CRAG (Yan et al., 2024) beurteilt die Qualität der gefundenen Passagen mit einem leichten Bewerter und behält sie je nach dessen Zuversicht, ergänzt sie durch eine Websuche oder beides. Die Werkstatt behält die Beurteilung (den Passagenfilter von System One) und ersetzt die offline fehlende Websuche durch eine Umformulierung und eine zweite Suche im selben Korpus. Hypothese H7, nicht belegt: Ein Entscheidungsmodell ersetze die zwischengeschalteten LLM-Richter ohne Qualitätsverlust."
+    bench_text: ""
+    sources:
+      - label_text: "CRAG (Yan et al., 2024): ein Bewerter der Suche, dann Korrektur oder Websuche"
+        url: "https://arxiv.org/abs/2401.15884"
+      - label_text: "Towards AI: Jev als Richter der Aussagenprüfung (23 % gegenüber 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+      - label_text: "jev-corrective-rag: ein Corrective RAG mit einem Entscheidungsmodell"
+        url: "https://github.com/sudeshkar/jev-corrective-rag"
+  fallback.abstain:
+    purpose_text: "„Ich weiß es nicht“ antworten, wenn der Passagenfilter keine Passage behalten hat, ohne zweiten Versuch und ohne das Modell aufzurufen."
+    when_text: "Für eine klare, kostenlose Ablehnung, wenn nichts Brauchbares gefunden wurde (eine Frage außerhalb des Korpus). Zu meiden, wenn sich die Frage umformulieren lässt: Die Option mit Umformulierung versucht vor der Ablehnung eine zweite Suche."
+    cost_text: "Keine: weder Aufbau noch Aktualisierung; bei der Anfrage ersetzt ein „Ich weiß es nicht“ die Generierung, null Token."
+    literature_text: "CRAG (Yan et al., 2024) löst eine korrigierende Aktion aus, wenn seine Passagen als falsch beurteilt werden; die Enthaltung ist die einfachste Aktion, ohne weitere Suche. Hypothese H7, nicht belegt: Ein Entscheidungsmodell ersetze die zwischengeschalteten LLM-Richter ohne Qualitätsverlust."
+    bench_text: ""
+    sources:
+      - label_text: "CRAG (Yan et al., 2024): ein Bewerter der Suche, dann Korrektur oder Websuche"
+        url: "https://arxiv.org/abs/2401.15884"
+      - label_text: "Towards AI: Jev als Richter der Aussagenprüfung (23 % gegenüber 13 %)"
+        url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
