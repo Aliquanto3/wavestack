@@ -414,3 +414,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:53 · 12.18 · review · lancé · 89b0697
 - 2026-10-25 09:54 · 12.19 · dev · spec prête (17 critères, 8 points ouverts : 13 fiches de composant à écrire, RAPTOR sans source, cadre réglementaire sans niveau, niveaux proposés à relire par Anaël) · a29f707
 - 2026-10-25 09:54 · 12.19 · review · relecture de la spec lancée · a29f707
+- 2026-10-25 09:54 · 12.17 · CI · verte après le correctif du test instable · 4d6cc03
+- 2026-10-25 09:54 · 12.17 · fusion · #109 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 16c4eca
