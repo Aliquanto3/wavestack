@@ -27,7 +27,10 @@ async function getJson(url) {
 
 async function load() {
   const body = await getJson("/api/rag_lab/sheets");
-  if (!body) return;
+  if (!body) {
+    $("rag-sh-sheet").replaceChildren(el("p", "rag-note", t("rag.sheets_error"))); // the tab retries when reopened
+    return;
+  }
   sh.body = body;
   drawChrome();
   drawList();
@@ -58,7 +61,9 @@ function drawList() {
   list.replaceChildren(el("h3", "rag-sh-group", tx("components_title_text")));
   const components = el("div", "rag-sh-entries");
   for (const c of sh.body.components) components.append(entry("component", c.key, `${c.kind_label_text} : ${c.label_text}`));
-  list.append(components, el("p", "rag-note", sh.body.pending_text), el("h3", "rag-sh-group", tx("architectures_title_text")));
+  list.append(components);
+  if (sh.body.pending_text) list.append(el("p", "rag-note", sh.body.pending_text)); // empty since story 19b
+  list.append(el("h3", "rag-sh-group", tx("architectures_title_text")));
   const archs = el("div", "rag-sh-entries");
   for (const a of sh.body.architectures) {
     archs.append(entry("architecture", a.id, a.label_text, a.available ? null : tx("upcoming_text", { story: a.story })));

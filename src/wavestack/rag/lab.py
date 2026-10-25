@@ -128,8 +128,19 @@ SUBQUERIES_MAX = 4
 HISTORY_MAX = 3
 QUERY_RESERVE = 256
 # The kinds whose every option has a component sheet (CAP-17) in `rag_lab.yaml`; each story
-# that adds options adds its kind here.
-SHEETED_KINDS = ("query", "chunking", "context")
+# that adds options adds its kind here. Story 19b: every family of `OPTIONS` (end of CAP-17).
+SHEETED_KINDS = (
+    "query",
+    "chunking",
+    "embedding",
+    "vector_store",
+    "vector_search",
+    "lexical_search",
+    "fusion",
+    "rerank",
+    "context",
+    "generation",
+)
 # V1.2 story 6 (CAP-4): constants, not settings. `parent_child`: the characters of a child (the
 # parent is a `paragraphs` chunk); `semantic`: a chunk ends where the distance between two
 # neighbouring sentences passes this percentile of the corpus's; `contextual`: the tokens a

@@ -1188,6 +1188,7 @@ rag:
   cache_evaluated: "Ausgewertet: {tokens} Tokens"
   cache_build: "Präfix aufgebaut in {ms} ms"
   cache_size: "Größe des Zustands: {mb} MB"
+  sheets_error: "Die Blätter konnten nicht geladen werden. Öffnen Sie den Tab erneut, um es noch einmal zu versuchen."
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

@@ -1188,6 +1188,7 @@ rag:
   cache_evaluated: "Evaluated: {tokens} tokens"
   cache_build: "Prefix built in {ms} ms"
   cache_size: "State size: {mb} MB"
+  sheets_error: "The sheets could not be loaded. Reopen the tab to try again."
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

@@ -595,6 +595,151 @@ sheets:
       - label_text: "Anthropic, Introducing Contextual Retrieval (2024)"
         url: "https://www.anthropic.com/news/contextual-retrieval"
 
+# V1.2 story 19b (CAP-17): the sheet of each option of the families left (embedding, vector store,
+# searches, fusion, rerank, generation), in five blocks.
+  embedding.declared:
+    purpose_text: "Turn each chunk, then the question, into a vector with the embedding model the RAG brick declares, so that the search compares meanings rather than words."
+    when_text: "Use as a starting point: it is the RAG brick's model, the one of the other screens. Avoid to compare two embedding models: this one is set by the configuration, not by the chain; the other option is for that."
+    cost_text: "One pass of the model per chunk at indexing, then one per question: on a processor, indexing time grows with the number of chunks. The model takes memory while it is loaded and must be present on the machine (the RAG card offers to download it)."
+    literature_text: "Reimers and Gurevych (Sentence-BERT) show that an encoder giving one vector per sentence lets two sentences be compared by cosine, which makes nearest-neighbour search practical (from 65 hours to about 5 seconds for 10,000 sentences, against BERT used on pairs). Karpukhin et al. (DPR) report that a dense retriever beats BM25 by 9 to 19 points of top-20 accuracy on open-domain question-answering sets. The framing's hypotheses do not cover embeddings: the sheet relies on these two primary sources."
+    bench_text: ""
+    sources:
+      - label_text: "Reimers and Gurevych, Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (2019)"
+        url: "https://arxiv.org/abs/1908.10084"
+      - label_text: "Karpukhin et al., Dense Passage Retrieval for Open-Domain Question Answering (2020)"
+        url: "https://arxiv.org/abs/2004.04906"
+  embedding.fastembed:
+    purpose_text: "Vectorize with a second embedding model, run by fastembed (ONNX format, no PyTorch or GPU, the model's files copied by hand onto the machine), to compare its effect with the RAG brick's model."
+    when_text: "Use to compare two embedding models on the same corpus. Avoid without the model: WaveStack never downloads it, so the option stays unavailable and says why. The vectors of two models do not have the same dimension and cannot be mixed: changing the model rebuilds the index."
+    cost_text: "Loading fastembed and onnxruntime adds memory for the whole life of WaveStack (150 MB expected by default, adjustable), besides the model; then one pass per chunk at indexing and one per question, on a processor."
+    literature_text: "The same primary sources as for the brick's model: Reimers and Gurevych (comparing sentences by cosine) and Karpukhin et al. (a dense retriever against BM25). They say nothing of the chosen model or of ONNX: the library is presented by its repository, with no quality measure on this corpus. The framing's hypotheses do not cover embeddings."
+    bench_text: ""
+    sources:
+      - label_text: "Reimers and Gurevych, Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (2019)"
+        url: "https://arxiv.org/abs/1908.10084"
+      - label_text: "Karpukhin et al., Dense Passage Retrieval for Open-Domain Question Answering (2020)"
+        url: "https://arxiv.org/abs/2004.04906"
+      - label_text: "Qdrant, fastembed (repository)"
+        url: "https://github.com/qdrant/fastembed"
+  vector_store.sqlite_vec:
+    purpose_text: "Store the chunk vectors in a SQLite database with the sqlite-vec extension, one file on disk, and find the nearest to another. This is the RAG brick's vector store."
+    when_text: "Use as a starting point: nothing more to install, the index persists in a file. Avoid if the extension does not load in this Python: the RAG says so. An exhaustive search gets slow when the corpus grows a lot, which is not the case here."
+    cost_text: "All vectors are written at indexing, then the vectors are read at each question; the file grows with the number of chunks and the model's dimension. No service to start."
+    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. The measures cited are about approximate indexes (ANN recall, filtering, deletions in HNSW); the workshop's four vector stores search exhaustively and rank the chunks the same way, so these recall gaps are not seen here."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.memory:
+    purpose_text: "Keep the vectors in memory and compare the question with each one, one by one, in plain Python, with no index or file: the simplest reference, the one whose ranking the others must reproduce."
+    when_text: "Use to understand what a vector store does, or as a control for the others. Avoid on a large corpus: each question reads all the vectors, and nothing is kept between two launches."
+    cost_text: "No dependency and no write to disk; memory grows with the number of chunks and the dimension, and the time of a question grows with the number of chunks."
+    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. This option is the exact search that the approximate indexes of these studies are compared with; here the four options rank alike, the measurable gaps are time and memory."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.faiss:
+    purpose_text: "Store the vectors in a FAISS index, Meta's vector search library, in exact inner product on normalized vectors (so the cosine), written to disk then read back."
+    when_text: "Use to see what a specialised library brings, or to compare its memory and latency. Avoid without the « rag-alt » extra: FAISS is not installed by default, the step gives the command to run."
+    cost_text: "One more dependency, imported once and kept in memory (WaveStack announces its cost); an index file written at indexing. The index is exact here: FAISS can also search approximately, faster and less accurately, which the workshop does not do."
+    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. The studies cited measure approximate indexes, not the workshop's exact index: their recall losses are not found here."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.lancedb:
+    purpose_text: "Store the vectors in a LanceDB table, an embedded vector database, created on disk then queried with the cosine distance."
+    when_text: "Use to see a full vector database (table, columns) rather than a bare library. Avoid without the « rag-alt » extra: LanceDB is not installed by default, the step gives the command to run."
+    cost_text: "One more dependency, imported once and kept in memory (WaveStack announces its cost); a table folder written at indexing. The search stays exact here: no approximate index is built."
+    literature_text: "The framing (H14) holds that the vector database mostly changes latency, memory and cost, little quality: partially supported. The studies cited are about approximate indexes (ANN recall, filtering, deletions); here the search is exact and the order is the one of the other options."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_search.cosine:
+    purpose_text: "Ask the vector store for the chunks whose vector is nearest to the question's, by cosine similarity, with no threshold: the k nearest, relevant or not."
+    when_text: "Use when the question and the passage say the same thing in other words. Avoid alone for an acronym, a code or an exact number, which BM25 finds better: the framing compares the two. There is no threshold: a corpus with no answer still returns k chunks."
+    cost_text: "One embedding of the question, then a search in the vector store; the number of candidates (1 to 20) hardly changes the time, but decides what the next steps can re-rank."
+    literature_text: "The framing (H1) holds that the hybrid (BM25, dense, reranker) beats dense alone at a similar cost: partially supported. The hybrid with a reranker wins (recall@5 from 0.59 to 0.82), but an untuned RRF fusion can do worse than dense. Dense alone is therefore the point of comparison of these studies."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  lexical_search.bm25:
+    purpose_text: "Search by keywords, with no embedding: the chunks that share words with the question come first, a rare word weighing more than a common one (BM25, k1 = 1.5 and b = 0.75)."
+    when_text: "Use for an acronym, a code, a number or an exact name that an embedding may miss. Avoid alone when the question does not use the corpus's words: no common word, no useful result."
+    cost_text: "No model: a lexical index built at indexing (terms and frequencies), read at each question. Time and memory are low next to those of an embedding."
+    literature_text: "The framing (H1) holds that the hybrid (BM25, dense, reranker) beats dense alone at a similar cost: partially supported. BM25 brings the exact matching of words that dense misses; the study measures the whole, not BM25 alone."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  fusion.rrf:
+    purpose_text: "Combine the dense ranking and the BM25 ranking into one: each chunk earns 1 / (60 + its rank) in each list, and the sums decide. A chunk well ranked by both comes first. This is the hybrid search."
+    when_text: "Use when BM25 and dense find different chunks. Avoid without both searches: the fusion has nothing to combine. The constant 60 is not tuned for this corpus, which the framing flags as a risk."
+    cost_text: "No model: a computation on two small lists. The cost comes from the two searches to run instead of one."
+    literature_text: "The framing (H1) holds that the hybrid beats dense alone at a similar cost: partially supported. The study cited finds that an untuned RRF fusion can do worse than dense alone: the hybrid's gain depends on its settings, it is not a given."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  rerank.declared:
+    purpose_text: "Read the question and each candidate together with the reranking model the RAG brick declares, score their relevance, then reorder: the reranker judges better than comparing two vectors computed separately."
+    when_text: "Use when the right passage is among the candidates but not first. Avoid when it is not among them: the reranker does not search, it reorders. Its score is not the dense one and compares with no other: only the order counts."
+    cost_text: "One pass of the model per candidate and per question, much slower than comparing vectors: this is why it only sees the retained candidates. The model takes memory while it is loaded."
+    literature_text: "The framing (H1) holds that the hybrid with a reranker beats dense alone at a similar cost: partially supported. The hybrid with a reranker wins (recall@5 from 0.59 to 0.82) in the study cited, which measures the whole chain and not the reranker alone."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  generation.active:
+    purpose_text: "Have the workshop's active model write the answer from the augmented prompt (the instruction, the excerpts and the question), within a turn's bounds: output reserve and reasoning budget."
+    when_text: "Use to see the answer the chain produces. Avoid to judge the search alone: a poor answer can come from the synthesis as much as from the search. The answer does not join the conversation."
+    cost_text: "One model call: the time to read the prompt, which grows with the context, then to write the answer, on a processor for a local model; with a cloud model, billed tokens."
+    literature_text: "The framing (H10) holds that a small local model is enough if the search is good and that the gap comes from the synthesis: partially supported. The gap is concentrated in reasoning and in integrating the passages, and stays real even with a perfect context."
+    bench_text: ""
+    sources:
+      - label_text: "LIT-RAGBench"
+        url: "https://arxiv.org/html/2603.06198v1"
+      - label_text: "MultiHop-RAG"
+        url: "https://arxiv.org/html/2401.15391"
+  generation.not_run:
+    purpose_text: "Stop before the model: the prompt is built and shown, nothing is sent, no answer is written."
+    when_text: "Use to judge the search and the context without the generation, or to see what the model would receive. Avoid to judge the quality of an answer: there is none."
+    cost_text: "No model call, so no generation time and no billed token: only the cost of the earlier steps remains."
+    literature_text: "The framing (H10) holds that a small model's gap comes from the synthesis more than from the search: partially supported. This is what justifies measuring the search apart, without generation. The framing's hypotheses do not cover the option itself."
+    bench_text: ""
+    sources:
+      - label_text: "LIT-RAGBench"
+        url: "https://arxiv.org/html/2603.06198v1"
+      - label_text: "MultiHop-RAG"
+        url: "https://arxiv.org/html/2401.15391"
+
 # V1.2 story 7 (CAP-17): the sheet of each context option, in five blocks.
   context.excerpts:
     purpose_text: "Keep the first passages of the ranked list, in relevance order, and paste their whole text after the introduction. This is the RAG brick's context."

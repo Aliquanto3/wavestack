@@ -15305,9 +15305,17 @@ def _rag_pick_language(r: Run, language: str) -> None:
     expect(r.page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
 
 
+def _sheet_entries(page) -> int:
+    """The entries of the Fiches list: components then architectures, counted from the served
+    listing (a story that adds options or presets changes the count, not this scenario)."""
+    body = page.evaluate("() => fetch('/api/rag_lab/sheets').then((response) => response.json())")
+    assert len(body["components"]) >= 26 and len(body["architectures"]) >= 11, body
+    return len(body["components"]) + len(body["architectures"])
+
+
 def s_rag_lab_sheets(r: Run) -> None:
     """V1.2 story 19 (CAP-16, CAP-17), after `rag` and `rag_rerank`: the Fiches tab, no model, no
-    index, no key. The list (14 components, 11 architectures, the pending families), a component
+    index, no key. The list (every family sheeted since story 19b, 11 architectures), a component
     sheet (five blocks, « Pas encore mesuré »), the hybrid architecture (seven axes, levels in a
     word, « proposition, à relire », « pas un avis juridique »), the link of the Droits axis to the
     card of the Attaquer tab (focus, not Construire), an upcoming architecture (story 13), the three
@@ -15328,11 +15336,23 @@ def s_rag_lab_sheets(r: Run) -> None:
     expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
     try:
         entries = page.locator("#rag-sh-list .rag-sh-entry")
-        expect(entries).to_have_count(25, timeout=10_000)
+        sheet_entries = _sheet_entries(page)
+        expect(entries).to_have_count(sheet_entries, timeout=10_000)
         r.check(
-            page.locator("#rag-sh-list").inner_text().count("story 19b") == 1
+            page.locator("#rag-sh-list .rag-note").count() == 0
+            and page.locator('#rag-sh-list [data-sheet-id^="generation."]').count() == 2
+            and page.locator('#rag-sh-list [data-sheet-id^="vector_store."]').count() == 4
             and "pas un avis juridique" in page.inner_text("#rag-sh-banner"),
-            "Fiches : 14 composants et 11 architectures, familles en attente (story 19b), bandeau",
+            "Fiches : toutes les familles fichées (aucune en attente), 11 architectures, bandeau",
+        )
+        page.locator('#rag-sh-list [data-sheet-id="vector_store.faiss"]').click()
+        expect(page.locator("#rag-sh-sheet")).to_have_attribute(
+            "data-sheet", "component.vector_store.faiss", timeout=10_000
+        )
+        expect(page.locator("#rag-sh-sheet .rag-sh-block")).to_have_count(5, timeout=10_000)
+        r.check(
+            "arXiv 2411.07396" in page.inner_text("#rag-sh-sheet .rag-sh-source-list"),
+            "composant vector_store.faiss (famille de la story 19b) : cinq blocs, sources H14",
         )
         page.locator('#rag-sh-list [data-sheet-id="chunking.semantic"]').click()
         expect(page.locator("#rag-sh-sheet")).to_have_attribute(
@@ -15391,7 +15411,7 @@ def s_rag_lab_sheets(r: Run) -> None:
         ):
             _rag_pick_language(r, language)
             page.click("#rag-tab-sheets")
-            expect(entries).to_have_count(25, timeout=10_000)
+            expect(entries).to_have_count(sheet_entries, timeout=10_000)
             page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
             expect(page.locator("#rag-sh-sheet .rag-sh-upcoming")).to_contain_text(
                 upcoming, timeout=10_000
@@ -15423,9 +15443,11 @@ def _rag_lab_tabs(r: Run) -> None:
         "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
         str(tabs.all_inner_texts()),
     )
-    # V1.2 story 19: Fiches shows its list (14 components, 11 architectures), its note stays hidden.
+    # V1.2 story 19: Fiches shows its list (components, 11 architectures), its note stays hidden.
     page.click("#rag-tab-sheets")
-    expect(page.locator("#rag-sh-list .rag-sh-entry")).to_have_count(25, timeout=10_000)
+    expect(page.locator("#rag-sh-list .rag-sh-entry")).to_have_count(
+        _sheet_entries(page), timeout=10_000
+    )
     r.check(
         page.locator("#rag-panel-sheets .rag-soon").is_hidden()
         and page.locator("#rag-panel-build").is_hidden(),
