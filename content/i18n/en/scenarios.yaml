@@ -528,7 +528,7 @@ scenarios:
       used to work stops working. Send the second prompt, which normally succeeds: the
       difference between the two turns is what a case will have to be able to say.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     restore_memory: true
     hooks: [h1, h2]
@@ -539,24 +539,28 @@ scenarios:
   eval_case:
     title_text: Turn the failure into a case
     description_text: >-
-      Same configuration as the previous scenario. Send the prompt (or keep the failed turn
-      of the previous scenario): under the finished turn in the Human view, click “Make it a
-      case”. The drawer that opens is pre-filled from the [[g:journal|journal]]: the prompt,
-      the configuration, the tools called. An [[g:agent_case|agent case]] is a request, a
-      configuration and [[g:check|checks]] that say what a successful turn must have done;
-      they read the event journal, never the quality of the answer. Fill in the “Symptom”
-      (what you saw), the “Assertion” (what should happen), then one check, for example
-      “Argument never passed” on read_file, argument path, contains “rapport_annuel”: the
-      [[g:verdict|verdict]] must say “The original turn does fail this case.” Replace it
-      with “Tool called”: “This case cannot fail on this turn.” appears, and it is the sign
-      of a useless case, which would never detect the failure. The “Model-call limit” is
-      pre-filled with the calls of the observed turn: a [[g:call_ceiling|call ceiling]] is
-      measured on real tries, it is never guessed; unmeasured, it is too tight (the case
-      fails for no reason) or too loose (it no longer sees the loop). Click “Save”, then
-      “Open Evaluate the agent”. The case is saved with the [[g:provenance|provenance]]
-      “session”.
+      Same configuration as the previous scenario. Send the prompt (or keep the failed turn of
+      the previous scenario): under the finished turn in the Human view, click “Make it a case”.
+      The drawer that opens is pre-filled from the [[g:journal|journal]]: the prompt, the
+      configuration, the tools called. An [[g:agent_case|agent case]] is a request, a
+      configuration and [[g:check|checks]] that say what a successful turn must have done; they
+      read the event journal, never the quality of the answer. Fill in the “Symptom” (what you
+      saw), the “Assertion” (what should happen), then two checks, like the provided case
+      “Invented file path”: “Argument never passed” on read_file, argument path, contains
+      “rapport_annuel”, and “Tool called” on read_file. The first catches the made-up path, the
+      second the turn that answers without reading anything, which the first would let through.
+      The [[g:verdict|verdict]] must say “The original turn does fail this case.” Remove the
+      first: if the original turn read a made-up path, “This case cannot fail on this turn.”
+      appears, and it is the sign of a useless case, which would never detect the failure. The
+      “Model-call limit” is pre-filled with the calls of the single observed turn: it is a
+      starting point, not a measure. A [[g:call_ceiling|call ceiling]] is measured on real
+      tries, it is never guessed: for the provided cases, the tool tools/eval/measure_cases.py
+      plays each case three times and keeps the highest count among the passed tries, plus one.
+      Unmeasured, it is too tight (the case fails for no reason) or too loose (it no longer sees
+      the loop). Click “Save”, then “Open Evaluate the agent”. The case is saved with the
+      [[g:provenance|provenance]] “session”.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:
@@ -565,27 +569,27 @@ scenarios:
   eval_suite:
     title_text: Run the suite and replay without changing anything
     description_text: >-
-      In “Evaluate the agent” (top bar), the “Provided suite” holds eight cases, one per
-      brick, and “My cases” keeps yours. Click “Run the suite” (on the first run, the page
-      warns that the conversation will be cleared, then “Run”). The cases go one after the
-      other on the current model, without reloading it: the Human view shows them live, each
-      with its badge. Each case is “Passed”, a failure or “Not run” (for example a case that
-      needs a 4,096-token window the session does not have: changing the window would reload
-      the model, which a run never does). “Show the turn” unfolds the trace of a failure and
-      frames the faulty event. Change nothing, then run the suite again: this is the
-      [[g:witness_replay|witness replay]]. Compare the two runs (A and B, “Compare A and
-      B”): everything that moves between them comes from the model (sampling, variations from
-      one turn to the next), not from you. Without that measure of the noise, you could not
-      read a comparison after a change. On a single case, “Run” with “3 tries” gives
-      “passed out of 3”, [[g:pass_at_k|pass@3]] (at least one try passed) and
-      [[g:pass_hat_k|pass^3]] (all passed): an agent's reliability is pass^k, not its best
-      attempt. WaveStack's [[g:replay|replay]] runs the tools again: the file read or the
-      time asked for may differ from one try to the next. Frozen tools (their answers
-      recorded) would make everything but the model [[g:determinism|deterministic]], hence
-      a sharper comparison, but would no longer test the tool or how the agent reads its
-      errors; here we keep the real tools.
+      In “Evaluate the agent” (top bar), the “Provided suite” holds eight cases for six bricks
+      (two for the tools, two for the hooks), and “My cases” keeps yours. Click “Run the suite”
+      (on the first run, the page warns that the conversation will be cleared, then “Run”). The
+      cases go one after the other on the current model, without reloading it: the Human view
+      shows them live, each with its badge. Each case is “Passed”, a failure or “Not run”. For
+      example, if you have left the 4,096-token window, the compaction case, which needs it, is
+      not run: the page says to pick that window in “Window ▾” (the model reloads), then to run
+      this case again. A run never reloads the model by itself. “Show the turn” unfolds the
+      trace of a failure and frames the faulty event. Change nothing, then run the suite again:
+      this is the [[g:witness_replay|witness replay]]. Compare the two runs (A and B, “Compare A
+      and B”): everything that moves between them comes from the model (sampling, variations
+      from one turn to the next), not from you. Without that measure of the noise, you could not
+      read a comparison after a change. On a single case, “Run” with “3 tries” gives “passed out
+      of 3”, [[g:pass_at_k|pass@3]] (at least one try passed) and [[g:pass_hat_k|pass^3]] (all
+      passed): an agent's reliability is pass^k, not its best attempt. WaveStack's
+      [[g:replay|replay]] runs the tools again: the file read or the time asked for may differ
+      from one try to the next. Frozen tools (their answers recorded) would make everything but
+      the model [[g:determinism|deterministic]], hence a sharper comparison, but would no longer
+      test the tool or how the agent reads its errors; here we keep the real tools.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:
@@ -610,7 +614,7 @@ scenarios:
       The checks read the journal: same events, same verdict. To finish, “Clear my cases”
       empties your session cases (a confirmation in the page); the provided cases stay.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:

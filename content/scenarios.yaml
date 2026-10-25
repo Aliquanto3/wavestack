@@ -579,7 +579,7 @@ scenarios:
       chose et que ce qui marchait ne marche plus. Envoyez le deuxième prompt, qui réussit
       normalement : la différence entre les deux tours est ce qu'un cas devra savoir dire.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     restore_memory: true
     hooks: [h1, h2]
@@ -590,25 +590,29 @@ scenarios:
   eval_case:
     title_text: Transformer l'échec en cas
     description_text: >-
-      Même configuration que le scénario précédent. Envoyez le prompt (ou gardez le tour
-      raté du scénario précédent) : sous le tour fini de la Vue humain, cliquez « En faire un
-      cas ». Le tiroir qui s'ouvre est pré-rempli depuis le [[g:journal|journal]] : le
-      prompt, la configuration, les outils appelés. Un [[g:agent_case|cas d'agent]] est une
-      demande, une configuration et des [[g:check|vérifications]] qui disent ce qu'un tour
-      réussi doit avoir fait ; elles lisent le journal d'événements, jamais la qualité de la
-      réponse. Remplissez le « Symptôme » (ce que vous avez vu), l'« Assertion » (ce qui
-      devrait arriver), puis une vérification, par exemple « Argument jamais passé » sur
-      read_file, argument path, contient « rapport_annuel » : le [[g:verdict|verdict]] doit dire « Le tour
-      d'origine échoue bien à ce cas. » Remplacez-la par « Outil appelé » : « Ce cas ne peut
-      pas échouer sur ce tour. » apparaît, et c'est le signe d'un cas inutile, qui ne
-      détecterait jamais la défaillance. Le « Plafond d'appels au modèle » est pré-rempli
-      avec les appels du tour observé : un [[g:call_ceiling|plafond d'appels]] se
-      mesure sur des essais réels, il ne se devine pas ; sans mesure, il est trop serré (le
-      cas échoue sans raison) ou trop large (il ne voit plus la boucle). Cliquez
-      « Enregistrer » puis « Ouvrir Évaluer l'agent ». Le cas est enregistré avec sa
+      Même configuration que le scénario précédent. Envoyez le prompt (ou gardez le tour raté du
+      scénario précédent) : sous le tour fini de la Vue humain, cliquez « En faire un cas ». Le
+      tiroir qui s'ouvre est pré-rempli depuis le [[g:journal|journal]] : le prompt, la
+      configuration, les outils appelés. Un [[g:agent_case|cas d'agent]] est une demande, une
+      configuration et des [[g:check|vérifications]] qui disent ce qu'un tour réussi doit avoir
+      fait ; elles lisent le journal d'événements, jamais la qualité de la réponse. Remplissez
+      le « Symptôme » (ce que vous avez vu), l'« Assertion » (ce qui devrait arriver), puis deux
+      vérifications, comme le cas fourni « Chemin de fichier inventé » : « Argument jamais passé
+      » sur read_file, argument path, contient « rapport_annuel », et « Outil appelé » sur
+      read_file. La première attrape le chemin inventé, la seconde le tour qui répond sans rien
+      lire, que la première laisserait passer. Le [[g:verdict|verdict]] doit dire « Le tour
+      d'origine échoue bien à ce cas. » Retirez la première : si le tour d'origine a lu un
+      chemin inventé, « Ce cas ne peut pas échouer sur ce tour. » apparaît, et c'est le signe
+      d'un cas inutile, qui ne détecterait jamais la défaillance. Le « Plafond d'appels au
+      modèle » est pré-rempli avec les appels du seul tour observé : c'est un point de départ,
+      pas une mesure. Un [[g:call_ceiling|plafond d'appels]] se mesure sur des essais réels, il
+      ne se devine pas : pour les cas fournis, l'outil tools/eval/measure_cases.py joue chaque
+      cas trois fois et retient le maximum des essais réussis, plus un. Sans mesure, il est trop
+      serré (le cas échoue sans raison) ou trop large (il ne voit plus la boucle). Cliquez «
+      Enregistrer » puis « Ouvrir Évaluer l'agent ». Le cas est enregistré avec sa
       [[g:provenance|provenance]] « séance ».
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:
@@ -617,28 +621,29 @@ scenarios:
   eval_suite:
     title_text: Lancer la suite et rejouer sans rien changer
     description_text: >-
-      Dans « Évaluer l'agent » (barre du haut), la « Suite fournie » compte huit cas, un par
-      brique, et « Mes cas » garde le vôtre. Cliquez « Lancer la suite » (au premier
-      lancement, la page prévient que la conversation sera vidée, puis « Lancer »). Les cas
-      passent l'un après l'autre sur le modèle courant, sans le recharger : la Vue humain
-      les montre en direct, chacun avec son badge. Chaque cas est « Réussi », un échec ou
-      « Non lancé » (par exemple un cas qui exige une fenêtre de 4 096 tokens que la
-      séance n'a pas : changer de fenêtre rechargerait le modèle, ce qu'une exécution ne fait
-      jamais). « Voir le tour » déplie la trace d'un échec et encadre l'événement fautif.
-      Ne changez rien, puis relancez la suite : c'est le [[g:witness_replay|rejeu témoin]].
-      Comparez les deux exécutions (A et B, « Comparer A et B ») : tout ce qui bouge entre
-      elles vient du modèle (échantillonnage, variations d'un tour à l'autre), pas de vous.
-      Sans cette mesure du bruit, vous ne sauriez pas lire une comparaison après un
-      changement. Sur un seul cas, « Lancer » avec « 3 essais » donne « réussis sur 3 »,
-      [[g:pass_at_k|pass@3]] (au moins un essai réussi) et [[g:pass_hat_k|pass^3]] (tous
-      réussis) : la fiabilité d'un agent est pass^k, pas la meilleure des tentatives.
-      Le [[g:replay|rejeu]] de WaveStack réexécute les outils : le fichier relu ou l'heure
-      demandée peuvent différer d'un essai à l'autre. Des outils figés (leurs
-      réponses enregistrées) rendraient tout ce qui n'est pas le modèle
-      [[g:determinism|déterministe]], donc une comparaison plus nette, mais ne testeraient
-      plus l'outil ni la façon dont l'agent lit ses erreurs ; ici on garde les vrais outils.
+      Dans « Évaluer l'agent » (barre du haut), la « Suite fournie » compte huit cas pour six
+      briques (deux pour les outils, deux pour les hooks), et « Mes cas » garde le vôtre.
+      Cliquez « Lancer la suite » (au premier lancement, la page prévient que la conversation
+      sera vidée, puis « Lancer »). Les cas passent l'un après l'autre sur le modèle courant,
+      sans le recharger : la Vue humain les montre en direct, chacun avec son badge. Chaque cas
+      est « Réussi », un échec ou « Non lancé ». Par exemple, si vous avez quitté la fenêtre de
+      4 096 tokens, le cas de la compaction, qui l'exige, n'est pas lancé : la page dit de
+      choisir cette fenêtre dans « Fenêtre ▾ » (le modèle se recharge), puis de relancer ce cas.
+      Une exécution ne recharge jamais le modèle elle-même. « Voir le tour » déplie la trace
+      d'un échec et encadre l'événement fautif. Ne changez rien, puis relancez la suite : c'est
+      le [[g:witness_replay|rejeu témoin]]. Comparez les deux exécutions (A et B, « Comparer A
+      et B ») : tout ce qui bouge entre elles vient du modèle (échantillonnage, variations d'un
+      tour à l'autre), pas de vous. Sans cette mesure du bruit, vous ne sauriez pas lire une
+      comparaison après un changement. Sur un seul cas, « Lancer » avec « 3 essais » donne «
+      réussis sur 3 », [[g:pass_at_k|pass@3]] (au moins un essai réussi) et
+      [[g:pass_hat_k|pass^3]] (tous réussis) : la fiabilité d'un agent est pass^k, pas la
+      meilleure des tentatives. Le [[g:replay|rejeu]] de WaveStack réexécute les outils : le
+      fichier relu ou l'heure demandée peuvent différer d'un essai à l'autre. Des outils figés
+      (leurs réponses enregistrées) rendraient tout ce qui n'est pas le modèle
+      [[g:determinism|déterministe]], donc une comparaison plus nette, mais ne testeraient plus
+      l'outil ni la façon dont l'agent lit ses erreurs ; ici on garde les vrais outils.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:
@@ -664,7 +669,7 @@ scenarios:
       journal : mêmes événements, même verdict. Pour finir, « Effacer mes cas » vide vos
       cas de séance (une confirmation dans la page) ; les cas fournis restent.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:

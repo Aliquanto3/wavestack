@@ -568,7 +568,7 @@ scenarios:
       Senden Sie den zweiten Prompt, der normalerweise gelingt: Der Unterschied zwischen den
       beiden Turns ist das, was ein Fall ausdrücken können muss.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     restore_memory: true
     hooks: [h1, h2]
@@ -580,25 +580,30 @@ scenarios:
     title_text: Den Fehler in einen Fall verwandeln
     description_text: >-
       Gleiche Konfiguration wie im vorigen Szenario. Senden Sie den Prompt (oder behalten Sie
-      den fehlgeschlagenen Turn des vorigen Szenarios): Klicken Sie unter dem beendeten Turn
-      der Nutzeransicht auf „Als Fall speichern“. Die Schublade, die sich öffnet, ist aus
-      dem [[g:journal|Journal]] vorausgefüllt: Prompt, Konfiguration, aufgerufene Tools. Ein
+      den fehlgeschlagenen Turn des vorigen Szenarios): Klicken Sie unter dem beendeten Turn der
+      Nutzeransicht auf „Als Fall speichern“. Die Schublade, die sich öffnet, ist aus dem
+      [[g:journal|Journal]] vorausgefüllt: Prompt, Konfiguration, aufgerufene Tools. Ein
       [[g:agent_case|Agentenfall]] ist eine Anfrage, eine Konfiguration und
-      [[g:check|Prüfungen]], die sagen, was ein gelungener Turn getan haben muss; sie lesen
-      das Ereignisjournal, nie die Qualität der Antwort. Füllen Sie das „Symptom“ aus (was
-      Sie gesehen haben), die „Behauptung“ (was geschehen sollte), dann eine Prüfung, zum
-      Beispiel „Argument nie übergeben“ bei read_file, Argument path, enthält
-      „rapport_annuel“: Das [[g:verdict|Urteil]] muss „Der ursprüngliche Turn besteht diesen
-      Fall tatsächlich nicht.“ sagen. Ersetzen Sie sie durch „Werkzeug aufgerufen“: „Dieser
-      Fall kann bei diesem Turn nicht fehlschlagen.“ erscheint, und das ist das Zeichen
-      eines nutzlosen Falls, der den Fehler nie erkennen würde. Die „Obergrenze für
-      Modellaufrufe“ ist mit den Aufrufen des beobachteten Turns vorausgefüllt: Eine
-      [[g:call_ceiling|Aufrufobergrenze]] wird an echten Versuchen gemessen, nie geraten;
-      ungemessen ist sie zu knapp (der Fall scheitert ohne Grund) oder zu weit (sie sieht die
-      Schleife nicht mehr). Klicken Sie auf „Speichern“, dann auf „Agent bewerten öffnen“.
-      Der Fall wird mit der [[g:provenance|Herkunft]] „Sitzung“ gespeichert.
+      [[g:check|Prüfungen]], die sagen, was ein gelungener Turn getan haben muss; sie lesen das
+      Ereignisjournal, nie die Qualität der Antwort. Füllen Sie das „Symptom“ aus (was Sie
+      gesehen haben), die „Behauptung“ (was geschehen sollte), dann zwei Prüfungen, wie im
+      mitgelieferten Fall „Erfundener Dateipfad“: „Argument nie übergeben“ bei read_file,
+      Argument path, enthält „rapport_annuel“, und „Werkzeug aufgerufen“ bei read_file. Die
+      erste fängt den erfundenen Pfad, die zweite den Turn, der antwortet, ohne etwas zu lesen,
+      und den die erste durchließe. Das [[g:verdict|Urteil]] muss „Der ursprüngliche Turn
+      besteht diesen Fall tatsächlich nicht.“ sagen. Entfernen Sie die erste: Hat der
+      ursprüngliche Turn einen erfundenen Pfad gelesen, erscheint „Dieser Fall kann bei diesem
+      Turn nicht fehlschlagen.“, und das ist das Zeichen eines nutzlosen Falls, der den Fehler
+      nie erkennen würde. Die „Obergrenze für Modellaufrufe“ ist mit den Aufrufen des einzigen
+      beobachteten Turns vorausgefüllt: ein Ausgangspunkt, keine Messung. Eine
+      [[g:call_ceiling|Aufrufobergrenze]] wird an echten Versuchen gemessen, nie geraten: Für
+      die mitgelieferten Fälle spielt das Werkzeug tools/eval/measure_cases.py jeden Fall
+      dreimal und behält das Maximum der bestandenen Versuche plus eins; ungemessen ist sie zu
+      knapp (der Fall scheitert ohne Grund) oder zu weit (sie sieht die Schleife nicht mehr).
+      Klicken Sie auf „Speichern“, dann auf „Agent bewerten öffnen“. Der Fall wird mit der
+      [[g:provenance|Herkunft]] „Sitzung“ gespeichert.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:
@@ -607,30 +612,31 @@ scenarios:
   eval_suite:
     title_text: Die Suite starten und ohne Änderung wiederholen
     description_text: >-
-      In „Agent bewerten“ (obere Leiste) enthält die „Mitgelieferte Suite“ acht Fälle, einen
-      pro Baustein, und „Meine Fälle“ hält Ihren. Klicken Sie auf „Suite starten“ (beim
-      ersten Start warnt die Seite, dass die Unterhaltung geleert wird, dann „Starten“). Die
-      Fälle laufen nacheinander auf dem aktuellen Modell, ohne es neu zu laden: Die
-      Nutzeransicht zeigt sie live, jeden mit seinem Abzeichen. Jeder Fall ist „Bestanden“,
-      ein Fehlschlag oder „Nicht gestartet“ (zum Beispiel ein Fall, der ein Fenster von
-      4 096 Tokens verlangt, das die Sitzung nicht hat: Ein Fensterwechsel würde das Modell
-      neu laden, was ein Lauf nie tut). „Turn anzeigen“ klappt den Ablauf eines Fehlers auf
-      und rahmt das fehlerhafte Ereignis. Ändern Sie nichts und starten Sie die Suite erneut:
-      Das ist die [[g:witness_replay|Zeugen-Wiedergabe]]. Vergleichen Sie die beiden Läufe
-      (A und B, „A und B vergleichen“): Alles, was sich zwischen ihnen bewegt, kommt vom
-      Modell (Stichprobe, Schwankungen von Turn zu Turn), nicht von Ihnen. Ohne diese Messung
-      des Rauschens könnten Sie einen Vergleich nach einer Änderung nicht lesen. Bei einem
-      einzelnen Fall liefert „Starten“ mit „3 Versuchen“ „bestanden von 3“,
-      [[g:pass_at_k|pass@3]] (mindestens ein Versuch bestanden) und
-      [[g:pass_hat_k|pass^3]] (alle bestanden): Die Verlässlichkeit eines Agenten ist
-      pass^k, nicht sein bester Versuch. Die [[g:replay|Wiedergabe]] von WaveStack führt die
-      Tools erneut aus: Die gelesene Datei oder die erfragte Uhrzeit können von Versuch zu
-      Versuch abweichen. Eingefrorene Tools (ihre Antworten aufgezeichnet) würden alles außer
-      dem Modell [[g:determinism|deterministisch]] machen, also einen schärferen Vergleich,
-      würden aber weder das Tool noch den Umgang des Agenten mit seinen Fehlern testen; hier
-      behalten wir die echten Tools.
+      In „Agent bewerten“ (obere Leiste) enthält die „Mitgelieferte Suite“ acht Fälle für sechs
+      Bausteine (zwei für die Tools, zwei für die Hooks), und „Meine Fälle“ hält Ihren. Klicken
+      Sie auf „Suite starten“ (beim ersten Start warnt die Seite, dass die Unterhaltung geleert
+      wird, dann „Starten“). Die Fälle laufen nacheinander auf dem aktuellen Modell, ohne es neu
+      zu laden: Die Nutzeransicht zeigt sie live, jeden mit seinem Abzeichen. Jeder Fall ist
+      „Bestanden“, ein Fehlschlag oder „Nicht gestartet“. Haben Sie zum Beispiel das Fenster von
+      4 096 Tokens verlassen, wird der Kompaktierungsfall, der es verlangt, nicht gestartet: Die
+      Seite sagt, dieses Fenster unter „Fenster ▾“ zu wählen (das Modell wird neu geladen) und
+      den Fall dann erneut zu starten. Ein Lauf lädt das Modell nie von selbst neu. „Turn
+      anzeigen“ klappt den Ablauf eines Fehlers auf und rahmt das fehlerhafte Ereignis. Ändern
+      Sie nichts und starten Sie die Suite erneut: Das ist die
+      [[g:witness_replay|Zeugen-Wiedergabe]]. Vergleichen Sie die beiden Läufe (A und B, „A und
+      B vergleichen“): Alles, was sich zwischen ihnen bewegt, kommt vom Modell (Stichprobe,
+      Schwankungen von Turn zu Turn), nicht von Ihnen. Ohne diese Messung des Rauschens könnten
+      Sie einen Vergleich nach einer Änderung nicht lesen. Bei einem einzelnen Fall liefert
+      „Starten“ mit „3 Versuchen“ „bestanden von 3“, [[g:pass_at_k|pass@3]] (mindestens ein
+      Versuch bestanden) und [[g:pass_hat_k|pass^3]] (alle bestanden): Die Verlässlichkeit eines
+      Agenten ist pass^k, nicht sein bester Versuch. Die [[g:replay|Wiedergabe]] von WaveStack
+      führt die Tools erneut aus: Die gelesene Datei oder die erfragte Uhrzeit können von
+      Versuch zu Versuch abweichen. Eingefrorene Tools (ihre Antworten aufgezeichnet) würden
+      alles außer dem Modell [[g:determinism|deterministisch]] machen, also einen schärferen
+      Vergleich, würden aber weder das Tool noch den Umgang des Agenten mit seinen Fehlern
+      testen; hier behalten wir die echten Tools.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:
@@ -658,7 +664,7 @@ scenarios:
       löschen“ Ihre Sitzungsfälle (eine Bestätigung in der Seite); die mitgelieferten Fälle
       bleiben.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
-    tools: [read_file]
+    tools: [get_datetime, read_file]
     mcp_lazy: true
     hooks: [h1, h2]
     prompts:
