@@ -19,7 +19,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 |---|---|---|
 | V0 | 15.1 ★ · 15.6 · 15.2 | 15.2 : phase spec seulement, code ← 15.1 |
 | V1 | 15.2 · 15.3 | 15.2 ← 15.1 ; 15.3 ← 15.1 |
-| V2 | 15.4 ★ | 15.4 ← 15.1 ; 15.4 ← 15.3 |
+| V2 | 15.4 ★ | 15.4 ← 15.1 ; 15.4 ← 15.3 ; découpée en 4a (exécuteur et API, ← 15.2) puis 4b (vue, ← 4a et 15.3), Opus |
 | V3 | 15.5 | 15.5 ← 15.2 ; 15.5 ← 15.4 ; 15.5 ← 15.6 |
 
 ## Règles du run
@@ -43,6 +43,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 
 ## Décisions
 
+- 2026-10-25 : spec de 15.4 (9bb362e7) : état de session `agent_eval` + garde HTTP ; k = 3 réussi à la majorité stricte (pass@3 et pass^3 affichés à côté) — à revoir par Anaël ; id de configuration inconnu dans un cas de séance ignoré et montré (« Joué sans : … »), contrat inchangé — à revoir par Anaël ; mémoire globale restaurée avant chaque cas et à la fin ; tests en 16 384 avec `start(..., check_window=False)` réservé aux tests (à 4 096 le faux moteur déborde sur le résumé) ; plafond de dépense en cours de cas et `approval: approve` testés en fonction pure, à vérifier en recette.
 - 2026-10-25 : spec de 15.3 : tout tour de message terminé est éligible à « En faire un cas », annulé compris (note « tour non abouti », 1re vérification proposée turn_completed) — à revoir par Anaël ; approval et on_overflow déduits du journal, modifiables.
 - 2026-10-25 : spec de 15.2 (6afc1faa) : cas de recette = boucle de `get_datetime` (R22, Mistral, corrigée R23/R25), gardé comme cas de régression bien qu'il ne se reproduise pas en local — à revoir par Anaël ; H5 plafond 2 sans marge (un appel refusé n'émet pas tool_started) ; mémoire globale vérifiée sur un fait (Pascal), pas une consigne.
 - 2026-10-25 : à reporter dans la spec de 15.4 : `tools/eval/case_player.py` (15.2, ~60 lignes) est repris par l'exécuteur de 15.4 puis supprimé.
@@ -103,3 +104,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:45 · 15.4 · dev · spec mise à jour avec les écarts de 15.2 (accesseurs publics de configuration, case_player supprimé) · 87a40c37
 - 2026-10-25 21:51 · 15.2 · second-avis · 4 medium (plafond mesuré sur les échecs ; cas joués hors de leur fenêtre, compaction non prouvée ; cas R22 sans brique Raisonnement ; symptôme de chemin_invente non vérifié), 7 low · 74b431a7
 - 2026-10-25 21:51 · 15.2 · review · lancé (Opus) · —
+- 2026-10-25 21:52 · 15.4 · review · spec ready-for-dev, découpage 4a/4b, 11 points tranchés · 9bb362e7
+- 2026-10-25 21:52 · 15.4 · décision · k = 3 réussi à la majorité ; id inconnu ignoré et montré · à revoir
+- 2026-10-25 21:52 · 15.3 · dev · fini (E2E agent_case 34/34) · c26438b6
+- 2026-10-25 21:52 · 15.3 · second-avis · lancé · —
