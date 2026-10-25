@@ -489,3 +489,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:50 · 12.2 · décision · à revoir : Strands Decider 2B et AnyJev écartés d'office (« carte non lue ») ; verdict mémoire sur le plus grand de l'ensemble de travail et de la mémoire privée ; instructions en 3 langues ; adaptateurs locaux testés seulement en réel · 1621e21
 - 2026-10-25 11:50 · 12.2 · second-avis · lancé · 1621e21
 - 2026-10-25 11:50 · 12.20 · dev · lancé (phase spec, worktree ../wavestack-v12-s20 depuis l'intégration 5d74aff) · 5d74aff
+- 2026-10-25 11:57 · 12.20 · dev · spec prête (16 critères, 12 points ouverts : streamable HTTP monté sur le port de l'application, 2 outils en lecture seule, chaîne figée, jeton porteur par démarrage, dense / hybrid / rerank seuls exposables ; aucune dépendance nouvelle) · 5a11c7c
+- 2026-10-25 11:57 · 12.20 · review · relecture de la spec lancée · 5a11c7c
