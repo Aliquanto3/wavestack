@@ -63,6 +63,15 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 
 - 2026-10-24 : ordre V1.3, V1.4, V1.2 ; points de contrôle levés pour la nuit, revus au matin (Anaël).
 
+## Reprise après /clear
+
+- Lire ce fichier en entier, puis `sprint-status.yaml` ; l'état réel prime : `gh pr list --state open`, `git -C ../wavestack-<lot>-s<n> log -3 --oneline` pour chaque worktree d'une story en cours.
+- Worktrees : `../wavestack-v13-s6` (13.6, PR #101), `../wavestack-v14-s4` (14.4, spec `stories/4-compaction.md` ready-for-dev puis code), `../wavestack-v12-s5` (12.5), `../wavestack-v12-s9` (12.9), `../wavestack-tests-sparse` (PR #100), `../agent-cost-kit-ci-run` (PR du kit 0.12.0, dépôt agent-cost-kit).
+- Une story dont le dev a commité sans rapport : relancer la chaîne à partir de `second-avis` sur son dernier commit.
+- Fusions par `scripts/file_prs.py` du kit (vérifie `MERGED`), puis journal.
+- Fin de lot : PR de version (SemVer mineure), tag annoté, release GitHub ; V1.3 dès la fusion de 13.6, V1.4 dès celle de 14.4.
+- Fin de run : `rapport-nuit-2026-10-25.md` (fusionné, bloqué, reporté, liste « à revoir », tests manuels du matin), mémoire du projet, suppression des worktrees.
+
 ## Après le run
 
 - (Avancée dans le run le 2026-10-25, décision d'Anaël.) Story d'outillage : accélérer les tests lents propres à Windows de `tests/test_model_servers.py` et `tests/test_context_window_setting.py` (11 à 33 s chacun sous Windows, absents du haut de la liste sous Ubuntu ; piste : connexion à un port fermé qui met ~2 s à échouer sous Windows). Gain mesuré attendu : ~2 min 30 de tests Windows. Décision d'Anaël du 2026-10-25.
