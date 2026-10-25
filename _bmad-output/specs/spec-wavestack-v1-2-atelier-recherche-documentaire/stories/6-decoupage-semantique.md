@@ -2,7 +2,7 @@
 title: 'Story 6 : découpage sémantique, parent-enfant et contextual retrieval'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -66,13 +66,13 @@ context:
 
 ## Tasks & Acceptance
 
-- [ ] Fonctions de découpage `semantic` et `parent_child` (déterministes à embedding donné), options, constantes, repli.
-- [ ] Contextes : constructeur heuristique, fichiers livrés (fr, en, de) avec leur mesure, lecture validée, option `contextual`, empreintes, clé de cache.
-- [ ] Reconstruction par le modèle actif (faux moteur en test), intention, bouton, annulation, échec doux, remise aux livrés.
-- [ ] Focus : liste des chunks, parent, contexte marqué.
-- [ ] Mise à jour refusée hors `paragraphs` ; index de la brique limité à `paragraphs`.
-- [ ] Fiches composant des options du découpage, en fr, en et de ; late chunking reporté.
-- [ ] Tests ciblés et scénario E2E `rag_lab_chunking`.
+- [x] Fonctions de découpage `semantic` et `parent_child` (déterministes à embedding donné), options, constantes, repli.
+- [x] Contextes : constructeur heuristique, fichiers livrés (fr, en, de) avec leur mesure, lecture validée, option `contextual`, empreintes, clé de cache.
+- [x] Reconstruction par le modèle actif (faux moteur en test), intention, bouton, annulation, échec doux, remise aux livrés.
+- [x] Focus : liste des chunks, parent, contexte marqué.
+- [x] Mise à jour refusée hors `paragraphs` ; index de la brique limité à `paragraphs`.
+- [x] Fiches composant des options du découpage, en fr, en et de ; late chunking reporté.
+- [x] Tests ciblés et scénario E2E `rag_lab_chunking`.
 
 **Acceptance Criteria:**
 1. Given `OPTIONS["chunking"]`, then elle vaut `("paragraphs", "semantic", "parent_child", "contextual")` et `paragraphs` produit exactement les chunks, la clé de cache (valeur figée dans le test, calculée avant la story) et les lignes `STEPS` d'avant la story.
