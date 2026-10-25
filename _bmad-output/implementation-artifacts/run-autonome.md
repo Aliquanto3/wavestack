@@ -246,3 +246,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:47 · 14.4 · décision · à revoir : les 9 points ouverts de la spec tranchés par le relecteur Opus (section « Décisions du point de contrôle » de stories/4-compaction.md) · —
 - 2026-10-25 06:47 · 14.4 · dev · repris (implémentation) · 30dca94
 - 2026-10-25 06:47 · run · décision · à revoir : 3 stories en développement le temps que 12.5 ou 12.9 finisse (14.4 prioritaire, V1.4 avant V1.2) · —
+- 2026-10-25 06:49 · run · second-avis · #100 : 0 high, 0 medium, 4 low · 984a492
+- 2026-10-25 06:49 · run · review · #100 lancée en Sonnet (diff de tests de 55 lignes, second avis propre) · 984a492
