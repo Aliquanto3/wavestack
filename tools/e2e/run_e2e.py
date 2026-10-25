@@ -15317,6 +15317,9 @@ def s_rag_lab_sheets(r: Run) -> None:
         if not request.url.startswith(("http://127.0.0.1", "data:", "blob:")):
             outside.append(request.url)
 
+    if r.state().get("language_locked"):  # a conversation of an earlier scenario locks the picker
+        r.goto_app()
+        _clear_conversation(r)
     page.on("request", listener)
     page.goto(f"{r.stack.app_url}/rag#sheets")
     expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
