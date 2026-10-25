@@ -522,3 +522,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:53 · 12.19b · décision · à revoir : 4 vector stores dits exacts (sqlite-vec non vérifié dans le code) ; sources des embeddings hors litterature.md (hypothèse à y ajouter) ; H1 mesure l'hybride en bloc ; generation.not_run cite H10 · 347db6d
 - 2026-10-25 12:53 · 12.19b · attente humaine · relecture des 12 fiches fr/en/de (FAISS « Meta », LanceDB, sqlite-vec, fastembed, lecture de H14) · —
 - 2026-10-25 12:53 · 12.19b · second-avis · lancé · 347db6d
+- 2026-10-25 12:54 · 12.13 · dev · lancé (phase spec, empilé sur 12.11, worktree ../wavestack-v12-s13) · 8b0342b
