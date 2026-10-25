@@ -138,3 +138,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:45 · 15.4 · review · 4a lancé (Opus) · —
 - 2026-10-25 22:52 · 15.4 · review · 4a prête (1 medium et 3 low corrigés, 2 faux ; API inchangée) · ed6e15e8
 - 2026-10-25 22:52 · 15.4 · PR · #140 ouverte (partie 4a), CI en cours · ed6e15e8
+- 2026-10-25 23:01 · 15.4 · CI · 4a verte (8/8) · ed6e15e8
+- 2026-10-25 23:01 · 15.4 · fusion · #140 MERGED dans main (squash, partie 4a) · dd66ed03
