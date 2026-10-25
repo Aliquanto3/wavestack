@@ -62,6 +62,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 ## Décisions
 
 - 2026-10-24 : ordre V1.3, V1.4, V1.2 ; points de contrôle levés pour la nuit, revus au matin (Anaël).
+- 2026-10-25 : les stories V1.2 restantes s’intègrent sur `integration/v1-2-atelier` (créée depuis main à 75864b7), PR avec `--base integration/v1-2-atelier` ; main reste à la 1.4.0 (onglet harnais) jusqu’à la fin de la V1.2, qui sera fusionnée en une fois (Anaël, formation sur l’onglet harnais).
 
 ## Reprise après /clear
 
@@ -334,3 +335,11 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:34 · 12.15 · décision · à revoir : verdicts yes / partly / no (1 / 0,5 / 0), jeu de 10 questions, juges cibles Granite 4.0 Micro et Mistral Small, sondage 1,5 s, juge chargé par appel, moteur sans grammar refusé comme juge · b7d33be
 - 2026-10-25 08:34 · 12.15 · second-avis · lancé · b7d33be
 - 2026-10-25 08:34 · 12.17 · dev · lancé (phase spec, empilé sur 12.15, worktree ../wavestack-v12-s17) · b7d33be
+- 2026-10-25 08:40 · 14.4 · CI · verte après correctif · a29fecf
+- 2026-10-25 08:40 · 14.4 · fusion · #104 MERGED via file_prs.py ; lot V1.4 terminé · 75864b7
+- 2026-10-25 08:40 · 12.5 · CI · rouge : garde-fou des textes français sur les guillemets et le motif de préambule de parse_queries ; exceptions ajoutées, poussé · dd95df5
+- 2026-10-25 08:40 · run · PR · #106 ouverte (version 1.4.0, epics 13 et 14) · —
+- 2026-10-25 08:40 · run · décision · Anaël : stories V1.2 restantes sur la branche integration/v1-2-atelier, main gardée à la 1.4.0 pour la formation sur l'onglet harnais ; #105 reciblée · 75864b7
+- 2026-10-25 08:40 · 12.15 · second-avis · 0 high, 1 medium (sondage arrêté à 300 s sans rétablir le bouton), 5 low ; grammar sans effet sur les appels existants vérifié · b7d33be
+- 2026-10-25 08:40 · 12.15 · review · lancé (base integration/v1-2-atelier) · b7d33be
+- 2026-10-25 08:40 · 12.17 · dev · lancé (phase spec, empilé sur 12.15, worktree ../wavestack-v12-s17) · b7d33be
