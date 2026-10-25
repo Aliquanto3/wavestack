@@ -405,3 +405,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:45 · 12.10 · attente humaine · mesures réelles sur le PC cible (durées à froid et à chaud, taille de l'état, mémoire de crête, tokens réels du corpus) ; fenêtre de 16 384 dans 4 Go à confirmer par la story 12.2 · —
 - 2026-10-25 09:45 · 12.10 · dev · phase 2 (code) lancée (Opus, effort high) · 689a1f1
 - 2026-10-25 09:47 · 12.17 · CI · rouge Windows groupe 4 : même test instable test_the_files_are_read_again_before_idle ; cause : _rag_caught_up appelé par le fil de téléchargement après idle, hors du worker attendu par join ; le test attend désormais l'appel (Event, 10 s) · 4d6cc03
+- 2026-10-25 09:49 · 12.18 · dev · fini ; 16 critères, 4760 tests ciblés verts, E2E rag_lab_attack et rag_lab_rights verts, rag_rerank en échec mémoire (1 à 1,25 Go de RAM libre) · 89b0697
+- 2026-10-25 09:49 · 12.18 · décision · à revoir : 11 architectures et 12 endroits dont 7 construits, textes de remise en conformité écrits par le dev, rebuild vide accepté, capture 69 · 89b0697
+- 2026-10-25 09:49 · 12.18 · second-avis · lancé · 89b0697
