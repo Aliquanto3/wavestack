@@ -277,3 +277,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:21 · 14.4 · dev · relancé (Opus) depuis le worktree : commit du travail en cours, fusion de main, fin de l'implémentation · 30dca94
 - 2026-10-25 07:21 · 12.5 · dev · relancé (Sonnet) : vérification des critères, captures, fusion de main · 05ec223
 - 2026-10-25 07:21 · 12.9 · second-avis · lancé · afe6bbd
+- 2026-10-25 07:27 · 13.6 · CI · verte (8 groupes) · 4c67f02
+- 2026-10-25 07:27 · 13.6 · fusion · #101 MERGED via file_prs.py ; lot V1.3 terminé · 1a55608
+- 2026-10-25 07:27 · run · PR · #102 ouverte (version 1.3.0) · —
