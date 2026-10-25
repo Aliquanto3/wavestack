@@ -609,3 +609,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 16:19 · 12.8 · CI · verte · 5285a128
 - 2026-10-25 16:19 · 12.8 · fusion · #121 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.12 prévenue · 2b0a49e
 - 2026-10-25 16:19 · 12.14 · dev · refusion de l'intégration (avec 12.8) lancée avant la PR · e3e734b2
+- 2026-10-25 16:26 · 12.14 · dev · intégration fusionnée (avec 12.8) sans conflit ; 648 tests ciblés, E2E 164/164 et 92/92 · 5be654fe
+- 2026-10-25 16:26 · 12.14 · PR · #122 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 5be654fe
