@@ -6041,7 +6041,10 @@ class LabRun:
         warnings: list[tuple[str, str]] = []
         found: list[Item] = []
         if stage.option == "retry":
-            found = self._retry(chain, stage, step_id, progress, result, payload, warnings)
+            try:
+                found = self._retry(chain, stage, step_id, result, payload, warnings)
+            except LabCancelled:  # the parts run said it, their costs with them
+                raise LabCancelled(result) from None
             payload["kept_after"] = len(found)
             facts.append((say("fact.fallback_kept_after"), self._int(len(found))))
         if found:
@@ -6056,9 +6059,80 @@ class LabRun:
                 chain.lists.append([])
             result.output_text = say("fallback.abstain")
             facts.append((say("fact.fallback_answer"), say("fallback.abstained_answer")))
+            # The workshop's own answer, a part of the fallback (no model call, no token).
+            self._fallback_part(
+                stage,
+                step_id,
+                "abstain",
+                "fallback",
+                stage.option,
+                lambda *_: _Result(
+                    input_text=result.input_text,
+                    output_text=say("fallback.abstained_answer"),
+                    costs=[],
+                ),
+            )
         result.facts = facts
         payload["warnings"] = [{"code": c, "text": t} for c, t in warnings]
         result.warning_text = " ".join(t for _, t in warnings) or None
+        return result
+
+    def _fallback_part(
+        self,
+        stage: Stage,
+        step_id: str,
+        part: str,
+        kind: str,
+        option: str,
+        work: Callable[[str, Callable[[int, int], None]], _Result],
+    ) -> _Result:
+        """One part of the fallback (the rewrite, a step of the second attempt, the abstention),
+        run apart as BM25's index is: its own `rag_lab_stage_started` / `rag_lab_stage_ended`
+        under the step id `{step_id}.{part}` (the fallback's stage id, `part`, the `kind` of
+        the step it runs), its model calls under that id, its costs in its own event (in
+        `query`). `work(part_step_id, progress)` gives the part's result; a skip, a failure or
+        « Arrêter » is said in the part's event, then raised to the fallback."""
+        part_id = f"{step_id}.{part}"
+        component = f"rag_lab.{kind}"
+        base = {"stage_id": stage.id, "kind": kind, "option": option, "part": part}
+        label = self.deps.texts.stages[kind].label_text
+        self._emit(
+            "rag_lab_stage_started",
+            base | {"phase_label": self._text("stage.running", stage=label)},
+            part_id,
+            component,
+        )
+        rss_before = self.deps.rss()
+        began = time.monotonic()
+
+        def close(status: str, result: _Result | None, error_text: str | None) -> None:
+            duration = _ms(time.monotonic() - began)
+            result = result or _Result(costs=[])
+            if result.costs is None:
+                result.costs = [StageCost("query", kind, duration_ms=duration)]
+            self._ended(part_id, component, base, status, result, error_text, duration, rss_before)
+
+        try:
+            result = work(part_id, self._progress(part_id, component, base))
+        except LabCancelled as stop:
+            close("cancelled", stop.result, self._text("stage.stopped"))
+            raise
+        except StageSkipped as why:
+            close("skipped", why.result, why.render(self._lang))
+            raise
+        except StageFailed as why:
+            close("error", why.result, why.render(self._lang))
+            raise
+        except Exception as exc:  # noqa: BLE001 - said in the part, then the fallback's
+            close(
+                "error",
+                None,
+                self._text(
+                    "stage.failed", error=type(exc).__name__, cause=exception_text(exc, self._lang)
+                ),
+            )
+            raise
+        close("ok", result, None)
         return result
 
     def _retry(
@@ -6066,28 +6140,30 @@ class LabRun:
         chain: _Chain,
         stage: Stage,
         step_id: str,
-        progress: Callable[[int, int], None],
         result: _Result,
         payload: dict[str, Any],
         warnings: list[tuple[str, str]],
     ) -> list[Item]:
         """The question rewritten by the active model, then the chain's searches, fusion,
         reranking and filter run once more on it, in the chain's order: what the filter keeps
-        this time (nothing when a step of it cannot run). Each step's cost in `query`."""
+        this time (nothing when a step of it cannot run). Each one a part of the fallback
+        (`{step_id}.rewrite`, `{step_id}.retry_{kind}`), its cost in `query`."""
         say, lang = self._text, self._lang
         rewrite = Stage(id=stage.id, kind="query", option="rewrite")
         try:
-            got = self._query(chain, rewrite, step_id, progress)
-        except LabCancelled as stop:
-            result.costs = list((stop.result.costs if stop.result else None) or [])
-            raise LabCancelled(result) from None
+            got = self._fallback_part(
+                stage,
+                step_id,
+                "rewrite",
+                "query",
+                "rewrite",
+                lambda part_id, progress: self._query(chain, rewrite, part_id, progress),
+            )
         except (StageSkipped, StageFailed) as why:
-            result.costs += (why.result.costs if why.result else None) or []
             warnings.append(
                 ("fallback_no_rewrite", say("fallback.no_rewrite", why=why.render(lang)))
             )
             return []
-        result.costs += got.costs or []
         if not got.queries:
             warnings.append(("fallback_no_rewrite", say("fallback.empty_rewrite")))
             return []
@@ -6103,20 +6179,27 @@ class LabRun:
             and s.kind not in chain.routed_out
         ]
         chain.lists, chain.list_kinds, chain.filtered = [], [], False
-        for step in again:
-            self._check()
-            began = time.monotonic()
-            try:
+
+        def runner(step: Stage) -> Callable[[str, Callable[[int, int], None]], _Result]:
+            def work(part_id: str, progress: Callable[[int, int], None]) -> _Result:
+                self._check()
                 if step.kind == "vector_search":
-                    sub = self._vector_search(chain, step)
-                elif step.kind == "lexical_search":
-                    sub = self._lexical_search(chain, step)
-                elif step.kind == "fusion":
-                    sub = self._fusion(chain, step)
-                elif step.kind == "rerank":
-                    sub = self._rerank(chain, step, progress)
-                else:
-                    sub = self._decision(chain, step, step_id, progress)
+                    return self._vector_search(chain, step)
+                if step.kind == "lexical_search":
+                    return self._lexical_search(chain, step)
+                if step.kind == "fusion":
+                    return self._fusion(chain, step)
+                if step.kind == "rerank":
+                    return self._rerank(chain, step, progress)
+                return self._decision(chain, step, part_id, progress)
+
+            return work
+
+        for step in again:
+            try:
+                self._fallback_part(
+                    stage, step_id, f"retry_{step.kind}", step.kind, step.option, runner(step)
+                )
             except (StageSkipped, StageFailed) as why:
                 label = self.deps.texts.stages[step.kind].label_text
                 warnings.append(
@@ -6128,10 +6211,6 @@ class LabRun:
                 if isinstance(why, StageFailed) and not why.soft:
                     return []
                 continue
-            costs = sub.costs
-            if costs is None:
-                costs = [StageCost("query", step.kind, duration_ms=_ms(time.monotonic() - began))]
-            result.costs += costs
         return list(chain.ranked or []) if chain.filtered else []
 
 
@@ -6239,6 +6318,9 @@ class UpdateRun(LabRun):
         # Called with the copy once measured, before `rag_lab_run_ended`: the page reloads the
         # copy on that event, so it must already be saved (review of V1.2 story 5).
         self.keep: Callable[[workcopy.WorkCopy], None] | None = None
+        # V1.2 story 12: writes into the data folder that wait for the copy kept (RAPTOR's
+        # rebuilt tree): a run in error or a copy not saved leaves the files as they were.
+        self.after_keep: list[Callable[[], None]] = []
 
     def _label_of(self, stage: Stage, kind: str) -> str:
         if kind == "lexical_index":
@@ -6321,9 +6403,12 @@ class UpdateRun(LabRun):
                 status = self._part(index, stage, kind, fn, status)
         except Exception:  # noqa: BLE001 - the run ends in error, `run_ended` all the same
             status = "error"
-        if status == "ok" and self.keep is not None:
+        if status == "ok" and (self.keep is not None or self.after_keep):
             try:  # kept only when it was measured, and before the page reloads it
-                self.keep(self.after)
+                if self.keep is not None:
+                    self.keep(self.after)
+                for write in self.after_keep:
+                    write()
             except Exception:
                 self.end("error", _ms(time.monotonic() - started))
                 raise  # the session says it (`session.rag_lab.interrupted`)
@@ -6357,8 +6442,9 @@ class UpdateRun(LabRun):
         status, error_text, result = "ok", None, _Result(costs=[])
         try:
             result = fn(stage)
-        except LabCancelled:
+        except LabCancelled as stop:  # what the part had spent stays in its event
             status, error_text = "cancelled", self._text("stage.stopped")
+            result = stop.result or result
         except StageSkipped as skipped:  # V1.2 story 10: estimated, the update goes on
             status, error_text = "skipped", skipped.render(self._lang)
             result = skipped.result or result
@@ -6755,6 +6841,12 @@ class UpdateRun(LabRun):
             self.costs = self.costs[:mark]
             if out["status"] == "cancelled":
                 raise LabCancelled(_Result(costs=costs + part))
+            if out["status"] == "error":
+                # A failing model writes nothing (as « Reconstruire »): the copy is not kept.
+                raise StageFailed(
+                    Message("rag_lab.raptor.update_model_error"),
+                    result=_Result(costs=costs + part),
+                )
         else:
             rag_raptor.resummarize(tree, redone, lang)
             part = [StageCost("update", "raptor_summaries", 0, _elapsed(began), 0.0, None)]
@@ -6769,8 +6861,9 @@ class UpdateRun(LabRun):
             ),
         )
         costs += part
-        # A deleted document leaves none of its text in the rebuilt file (story 18).
-        rag_raptor.forget(lang, removed, deps.lab_dir)
+        # A deleted document leaves none of its text in the rebuilt file (story 18). Both
+        # written once the copy is kept only (`after_keep`).
+        writes: list[Callable[[], None]] = [lambda: rag_raptor.forget(lang, removed, deps.lab_dir)]
         if by_model and out["written"] and rebuilt is not None:
             models = [m for m in rebuilt.model.split(" + ") if m]
             if out["model"] and out["model"] not in models:
@@ -6788,7 +6881,8 @@ class UpdateRun(LabRun):
                     "calls": (rebuilt.calls or 0) + out["calls"],
                 },
             )
-            rag_raptor.write_rebuilt(lang, file, deps.lab_dir)
+            writes.append(lambda: rag_raptor.write_rebuilt(lang, file, deps.lab_dir))
+        self.after_keep += writes
         summaries = say(
             "raptor.summaries_fact", rewritten=count(len(redone)), total=count(len(tree.nodes))
         )

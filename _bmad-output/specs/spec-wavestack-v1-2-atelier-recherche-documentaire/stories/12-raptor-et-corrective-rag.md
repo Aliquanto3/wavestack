@@ -127,3 +127,21 @@ context:
 - Embeddings pour RAPTOR (D2) : regroupement et recherche par le modèle d'embedding de la chaîne.
 - Mesure réelle d'un arbre reconstruit par un vrai modèle sur le PC cible et éventuel remplacement de l'arbre livré : done_checkpoint d'Anaël.
 - Exposition MCP de RAPTOR et de CRAG : demanderait d'étendre la règle D12 de la story 20.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 16043c36)
+
+Base : `integration/v1-2-atelier` (35253237) déjà ancêtre de la branche, aucun écart.
+
+- **Important** · high · second avis · corrigé : `_update_raptor`, une erreur du modèle en cours de mise à jour (arbre reconstruit) laissait écrire les résumés déjà produits, l'exécution finissait `ok` et la copie était gardée. Désormais `StageFailed` (`rag_lab.raptor.update_model_error`, fr, en, de) avec les coûts des appels faits, rien d'écrit, copie non gardée ; test `test_a_model_failing_during_an_update_writes_nothing_and_keeps_no_copy` (1er appel réussi, 2e en échec). Écart assumé avec D10 (« le reste garde la règle ») : la règle commune de 12.13 l'emporte.
+- **Important** · medium · second avis · corrigé : la réécriture, le second essai et l'abstention ne passaient pas par les événements d'étape (coûts agrégés dans l'étape `fallback`, appel du modèle sous l'id de l'étape). Chacun est maintenant une partie de l'étape `fallback` (`_fallback_part`) : `rag_lab_stage_started` / `rag_lab_stage_ended` sous `{run}.sN.rewrite` (kind `query`, option `rewrite`), `{run}.sN.retry_<kind>` (`retry_vector_search`, `retry_lexical_search`, `retry_fusion`, `retry_rerank`, `retry_passage_filter`, kind et option de l'étape rejouée), `{run}.sN.abstain` (kind `fallback`, 0 coût) ; `stage_id` = celui du repli, champ `part` = le suffixe ; appels du modèle sous l'id de la partie ; coûts dans l'événement de la partie, plus dans celui du repli (somme `query` inchangée, chaque coût compté une fois, testé).
+- **Nit** · low · second avis · corrigé : `LabCancelled` levé par le filtre ou le reranking du second essai perdait les coûts du repli ; la partie annulée dit son état et ses coûts, le repli finit `cancelled` avec son jugement (test `test_a_stop_during_the_second_attempt_keeps_the_rewrite_cost`).
+- **Nit** · low · second avis · corrigé : fichier RAPTOR (et `forget`) écrit par la mise à jour avant `keep` ; écritures différées dans `UpdateRun.after_keep`, faites après la copie gardée seulement.
+- **Nit** · low · revue · corrigé : `UpdateRun._part` ignorait le `result` d'un `LabCancelled` (coûts des appels RAPTOR et GraphRAG perdus à l'annulation d'une mise à jour) ; défaut antérieur, corrigé en une ligne car la story s'appuie dessus.
+- **Nit** · low · second avis · rejeté : le filtre du second essai juge la question d'origine, choix D5 déjà dit dans la fiche `fallback.retry` (`when_text`).
+- **Nit** · low · second avis · corrigé : `rag.js`, un préréglage absent de `preset_families` va en fin de famille (`Number.MAX_SAFE_INTEGER`, pas `Infinity` : pas de `NaN` entre deux absents).
+- **Nit** · low · second avis · reporté : déterminisme de l'arbre livré entre libm (similarités arrondies à 9 chiffres) ; à vérifier par la CI de la PR (Ubuntu, macOS), test « livré = règle » de `tests/test_rag_raptor.py`.
+- **Pre-existing** · low · revue · noté : `_update_graph` (12.13) écrit le graphe reconstruit avant `keep` et garde les extractions partielles sur erreur du modèle ; même correctif à porter hors de cette story.
+- Vérifié : sources arXiv 2401.18059 (« RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval », Sarthi) et 2401.15884 (« Corrective Retrieval Augmented Generation », Yan) ouvertes par curl.
+- Complexité : 0 constat (listes de coûts en ajout, arbre de 65 à 78 feuilles, tri des préréglages une fois par rendu).

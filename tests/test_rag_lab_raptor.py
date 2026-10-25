@@ -237,6 +237,38 @@ def test_a_rebuilt_tree_updated_by_the_model_then_a_deletion_forgets(index):
     session.close()
 
 
+class FailsSecond(FakeEngine):
+    """Its first call answers, the next ones fail (`status: error`)."""
+
+    @property
+    def fail(self) -> bool:  # type: ignore[override]
+        return len(self.calls) >= 2
+
+    @fail.setter
+    def fail(self, value: bool) -> None:
+        pass
+
+
+def test_a_model_failing_during_an_update_writes_nothing_and_keeps_no_copy(index):
+    # Review of V1.2 story 12: the summaries already written are not kept (as « Reconstruire »).
+    session = full(index, FakeEngine(output="Résumé écrit par le modèle."))
+    rebuild(session, FakeEngine(output="Résumé écrit par le modèle."))
+    path = rag_raptor.rebuilt_path("fr", config.rag_lab_dir())
+    before = path.read_text(encoding="utf-8")
+    chain = preset(session, "raptor")
+    fake = FailsSecond(output="Résumé du Projet Zéphyr.")
+    session._engine = fake
+    text = "Le Projet Zéphyr dépend de la cellule de crise.\n\nLe Projet Zéphyr a son astreinte."
+    events = update(session, "add", "note_zephyr", "Note Zéphyr", text, chain)
+    part = ended(events, "raptor_search")
+    assert len(fake.calls) == 2 and part["status"] == "error"
+    assert "rien n'est écrit" in part["error_text"]
+    assert any(c["tokens"] for c in part["costs"])  # the calls made are said
+    assert path.read_text(encoding="utf-8") == before
+    assert "note_zephyr" not in {d.doc_id for d in docs(session)}
+    session.close()
+
+
 def test_the_payload_keeps_the_tree_in_the_journal(index):
     session = full(index)
     events = run(session, GLOBAL, preset(session, "raptor"))

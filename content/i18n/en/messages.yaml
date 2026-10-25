@@ -1625,6 +1625,7 @@ rag_lab:
     input_trimmed: "{count} input(s) cut to fit in the window."
     rebuild_input: "The {summaries} of the tree, clustered again by the rule, one model call each, bottom-up."
     rebuild_output: "{done} summary(ies) out of {total} written by the model, {empty} kept from the rule."
+    update_model_error: "The model failed while updating the summaries: nothing is written, the work copy and the tree in place are kept; the event log says why."
     rebuild_model_error: "The model failed while rebuilding the tree: nothing is written, the tree in place is kept; the event log says why."
     rebuild_nothing: "The model wrote no summary: nothing is written, the tree in place is kept."
     run_label: "Rebuild of RAPTOR's tree"

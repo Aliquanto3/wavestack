@@ -14,9 +14,9 @@ from pathlib import Path
 import pytest
 from fake_reranker import FakeReranker
 from test_rag import build
-from test_rag_lab import QUESTION, ended, run, run_status, stage
+from test_rag_lab import QUESTION, run, run_status, stage
 from test_rag_lab_decision import ready
-from test_rag_lab_no_index import lab
+from test_rag_lab_no_index import lab, summary
 
 from wavestack.models.reranker import RerankScore
 from wavestack.rag import exposed
@@ -59,6 +59,28 @@ class Scripted(FakeReranker):
 def scripted(session, *scores: float) -> None:  # noqa: ANN001
     shared = list(scores)
     session._reranker_factory = lambda model: Scripted(shared, model_id=model.id)
+
+
+def ended(events: list, kind: str) -> dict:
+    """The stage's own `rag_lab_stage_ended` (the fallback's parts set apart)."""
+    found = [
+        e.payload
+        for e in events
+        if e.kind == "rag_lab_stage_ended"
+        and e.payload["kind"] == kind
+        and e.payload.get("part") is None
+    ]
+    assert len(found) == 1, (kind, len(found))
+    return found[0]
+
+
+def parts(events: list) -> list:
+    """The fallback's parts ended (BM25's index set apart): their events, in order."""
+    return [
+        e
+        for e in events
+        if e.kind == "rag_lab_stage_ended" and e.payload.get("part") not in (None, "index")
+    ]
 
 
 def facts(payload: dict) -> dict:
@@ -139,8 +161,40 @@ def test_nothing_kept_rewrites_once_then_answers_it_does_not_know(index):
     assert payload["verdict"] == "incorrect" and payload["abstained"] and not payload["web"]
     assert payload["rewritten"] and fallback["queries"] == [payload["rewritten"]]
     assert payload["kept_after"] == 0
-    kinds = [c["kind"] for c in fallback["costs"]]
-    assert kinds[0] == "query" and "passage_filter" in kinds and "vector_search" in kinds
+    # Review of V1.2 story 12: each step of the fallback is a part of it (`run.sN.<part>`),
+    # with its own events and costs (the step tree of story 16 reads them as they are).
+    step = next(
+        e.step_id for e in events if e.kind == "rag_lab_stage_ended" and e.payload is fallback
+    )
+    done = parts(events)
+    assert [e.step_id for e in done] == [
+        f"{step}.{p}"
+        for p in (
+            "rewrite",
+            "retry_vector_search",
+            "retry_lexical_search",
+            "retry_fusion",
+            "retry_passage_filter",
+            "abstain",
+        )
+    ]
+    assert all(e.payload["stage_id"] == fallback["stage_id"] for e in done)
+    started = [e.step_id for e in events if e.kind == "rag_lab_stage_started"]
+    assert all(e.step_id in started for e in done)
+    rewrite = done[0].payload
+    assert rewrite["kind"] == "query" and rewrite["option"] == "rewrite"
+    assert sum(c["tokens"] or 0 for c in rewrite["costs"]) > 0 and fallback["costs"] == []
+    calls = [e.step_id for e in events if e.kind == "model_call_started"]
+    assert calls == [f"{step}.rewrite"]  # under its part
+    assert done[-1].payload["costs"] == [] and done[-1].payload["kind"] == "fallback"
+    spent = sum(
+        c["tokens"] or 0
+        for e in events
+        if e.kind == "rag_lab_stage_ended"
+        for c in e.payload["costs"]
+        if c["phase"] == "query"
+    )
+    assert summary(events, "query")["tokens"] == spent  # each cost counted once
     assert len(fake.calls) == 1  # the rewrite only: no generation
     generation = ended(events, "generation")
     assert generation["status"] == "ok" and "Je ne sais pas" in generation["output_text"]
@@ -186,6 +240,40 @@ def test_without_a_model_the_fallback_does_not_rewrite_and_abstains(index):
     fallback = ended(events, "fallback")
     assert fallback["fallback"]["abstained"] and fallback["warning_text"]
     assert "Je ne sais pas" in ended(events, "generation")["output_text"]
+    session.close()
+
+
+class StopsOnSecond(Scripted):
+    """Stops the session as its second scoring begins (the filter of the second attempt)."""
+
+    session = None
+
+    def score(self, query, passages, cancelled=None, progress=None):  # noqa: ANN001, ANN201
+        self.seen = getattr(self, "seen", 0) + 1
+        if self.seen == 2 and self.session is not None:
+            self.session.stop()
+        return super().score(query, passages, cancelled, progress)
+
+
+def test_a_stop_during_the_second_attempt_keeps_the_rewrite_cost(index):
+    session, _ = ready(index, judge="télétravail jours semaine")
+    shared = [0.0]
+    reranker = StopsOnSecond(shared, model_id="x")
+    reranker.session = session
+
+    def factory(model):  # noqa: ANN001, ANN202
+        reranker.model_id = model.id
+        return reranker
+
+    session._reranker_factory = factory
+    events = run(session, QUESTION, crag(session))
+    assert run_status(events) == "cancelled"
+    assert ended(events, "fallback")["status"] == "cancelled"
+    done = {e.payload["part"]: e.payload for e in parts(events)}
+    assert done["rewrite"]["status"] == "ok"
+    assert done["retry_passage_filter"]["status"] == "cancelled"
+    rewrite = sum(c["tokens"] or 0 for c in done["rewrite"]["costs"])
+    assert rewrite > 0 and summary(events, "query")["tokens"] >= rewrite
     session.close()
 
 

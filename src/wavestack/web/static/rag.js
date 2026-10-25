@@ -659,7 +659,7 @@ function renderPresets() {
   }
   // V1.2 story 12: within a family, the family's own order (RAPTOR between PageIndex and GraphRAG).
   const rank = new Map(families.flatMap((f) => (f.presets ?? []).map((id, i) => [id, i])));
-  const ordered = [...presets].sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+  const ordered = [...presets].sort((a, b) => (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER));
   for (const preset of ordered) {
     const target = sections.get(preset.family) ?? box;
     const label = preset.available ? preset.label_text : `${preset.label_text} (${text("unavailable_text")})`;

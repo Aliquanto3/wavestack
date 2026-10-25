@@ -1644,6 +1644,7 @@ rag_lab:
     input_trimmed: "{count} entrée(s) coupée(s) pour tenir dans la fenêtre."
     rebuild_input: "Les {summaries} de l'arbre, regroupé de nouveau par la règle, un appel au modèle chacun, de bas en haut."
     rebuild_output: "{done} résumé(s) sur {total} écrit(s) par le modèle, {empty} gardé(s) par la règle."
+    update_model_error: "Le modèle a échoué pendant la mise à jour des résumés : rien n'est écrit, la copie de travail et l'arbre en place sont gardés ; le journal des événements dit pourquoi."
     rebuild_model_error: "Le modèle a échoué pendant la reconstruction de l'arbre : rien n'est écrit, l'arbre en place est gardé ; le journal des événements dit pourquoi."
     rebuild_nothing: "Le modèle n'a écrit aucun résumé : rien n'est écrit, l'arbre en place est gardé."
     run_label: "Reconstruction de l'arbre RAPTOR"

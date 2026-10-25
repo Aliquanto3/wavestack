@@ -1628,6 +1628,7 @@ rag_lab:
     input_trimmed: "{count} Eingabe(n) gekürzt, damit sie ins Fenster passen."
     rebuild_input: "Die {summaries} des Baums, von der Regel neu gruppiert, je ein Modellaufruf, von unten nach oben."
     rebuild_output: "{done} von {total} Zusammenfassung(en) vom Modell geschrieben, {empty} von der Regel behalten."
+    update_model_error: "Das Modell ist beim Aktualisieren der Zusammenfassungen gescheitert: Nichts wird geschrieben, die Arbeitskopie und der vorhandene Baum bleiben; das Ereignisprotokoll nennt den Grund."
     rebuild_model_error: "Das Modell ist beim Neuaufbau des Baums gescheitert: Nichts wird geschrieben, der vorhandene Baum bleibt; das Ereignisprotokoll nennt den Grund."
     rebuild_nothing: "Das Modell hat keine Zusammenfassung geschrieben: Nichts wird geschrieben, der vorhandene Baum bleibt."
     run_label: "Neuaufbau des RAPTOR-Baums"
