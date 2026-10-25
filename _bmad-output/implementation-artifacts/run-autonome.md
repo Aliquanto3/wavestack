@@ -485,3 +485,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:29 · 12.2 · décision · Anaël : téléchargement des modèles du banc autorisé ; clé OpenRouter déjà en place (env et HKCU) ; téléchargement des ONNX et du reranker lancé · —
 - 2026-10-25 11:37 · 12.19 · CI · verte · b16730e
 - 2026-10-25 11:37 · 12.19 · fusion · #114 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; contrat des fiches transmis à 12.11 (entre seconde) · 5d74aff
+- 2026-10-25 11:50 · 12.2 · dev · fini ; banc v12s2_system_one_bench.py (dry-run, online, local, memory), 117 affirmations écrites à la main, jeu de 450 items, 30 tests sans réseau, rapport gabarit « pas encore mesuré » ; critères 6 (H7) et 8 (RSS) ouverts jusqu'au banc réel · 1621e21
+- 2026-10-25 11:50 · 12.2 · décision · à revoir : Strands Decider 2B et AnyJev écartés d'office (« carte non lue ») ; verdict mémoire sur le plus grand de l'ensemble de travail et de la mémoire privée ; instructions en 3 langues ; adaptateurs locaux testés seulement en réel · 1621e21
+- 2026-10-25 11:50 · 12.2 · second-avis · lancé · 1621e21
+- 2026-10-25 11:50 · 12.20 · dev · lancé (phase spec, worktree ../wavestack-v12-s20 depuis l'intégration 5d74aff) · 5d74aff
