@@ -523,3 +523,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:53 · 12.19b · attente humaine · relecture des 12 fiches fr/en/de (FAISS « Meta », LanceDB, sqlite-vec, fastembed, lecture de H14) · —
 - 2026-10-25 12:53 · 12.19b · second-avis · lancé · 347db6d
 - 2026-10-25 12:54 · 12.13 · dev · lancé (phase spec, empilé sur 12.11, worktree ../wavestack-v12-s13) · 8b0342b
+- 2026-10-25 12:57 · 12.19b · second-avis · 0 high, 0 medium, 6 low (fastembed sans consigne d'installation, échec de load() non testé, missing_sheets au niveau des familles, conflit 12.11 attendu, chiffres Sentence-BERT et DPR à revérifier, « même classement » trop fort) ; vector stores exacts confirmés dans le code · 347db6d
+- 2026-10-25 12:57 · 12.19b · review · lancé (Opus) · 347db6d
