@@ -435,3 +435,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:34 · 12.10 · décision · à revoir : préfixe en cache comme partie de l'étape Contexte ; sans état gardé, la génération relit le préfixe resté dans le moteur ; catalogue de validation relu au changement de modèle ou de fenêtre ; captures 77 et 78 · 598f633
 - 2026-10-25 10:34 · 12.10 · second-avis · lancé · 598f633
 - 2026-10-25 10:34 · 12.11 · dev · lancé (phase spec, empilé sur 12.10, worktree ../wavestack-v12-s11) · 598f633
+- 2026-10-25 10:38 · 12.11 · dev · spec prête (21 critères, 9 points ouverts : boucle agentique dans l'étape Contexte, outils sur la copie de travail, arbre à deux niveaux heuristique, famille Structure) · d9f6a59
+- 2026-10-25 10:38 · 12.11 · review · relecture de la spec lancée · d9f6a59
