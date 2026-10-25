@@ -894,3 +894,96 @@ def test_a_prompt_over_the_window_is_never_sent_nor_cached(index):
     assert ended(events, "cache_prefix")["status"] == "skipped"
     assert session._cag_cache is None
     session.close()
+
+
+# ---------- review: errors around the prefix, a merging tokenizer, the budget's slot ----------
+
+
+class Merging(FakeEngine):
+    """A tokenizer that merges an end of line with the byte after it (as BPE merges across a
+    line): the text up to a cut tokenized alone ends otherwise than the whole prompt."""
+
+    def tokenize(self, text: str) -> list[int]:
+        raw, out, i = list(text.encode("utf-8")), [], 0
+        while i < len(raw):
+            if raw[i] == 10 and i + 1 < len(raw):
+                out.append(1000 + raw[i + 1])
+                i += 2
+            else:
+                out.append(raw[i])
+                i += 1
+        return out
+
+
+def test_the_prefix_stays_an_exact_prefix_with_a_merging_tokenizer():
+    from wavestack.context.render import RenderedContext
+
+    engine = Merging()
+    prompt = "Consigne\nCorpus entier\nQuestion ?"
+    rendered = RenderedContext(prompt, engine.tokenize(prompt), [])
+    ids = AppSession._cag_prefix_ids(engine, rendered, "Question ?")
+    alone = engine.tokenize(prompt[: prompt.rfind("\n") + 1])
+    assert ids and ids == rendered.ids[: len(ids)]
+    assert len(ids) == len(alone) - 1  # the merged « \nQ » is never in the prefix
+    assert ids == alone[:-1]
+
+
+def test_a_model_call_that_raises_after_the_prefix_restores_the_main_context(index, monkeypatch):
+    engine = Counting()
+    session = lab(index, engine)
+    chat(session, "Bonjour")
+    main = list(session._main_cache or [])
+    assert main
+
+    def broken(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+        raise RuntimeError("panne")
+
+    monkeypatch.setattr(session, "_call_model", broken)
+    events = run(session, pipeline=preset(session, "cag"))
+    assert ended(events, "generation")["status"] == "error"
+    assert ended(events, "cache_prefix")["status"] == "ok"  # built before the call
+    assert engine.cache == main and session._main_cache == main
+    session.close()
+
+
+def test_a_preparation_that_raises_is_not_said_local_only(index, monkeypatch):
+    engine = Counting()
+    session = lab(index, engine)
+
+    def broken(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+        raise RuntimeError("panne")
+
+    monkeypatch.setattr(session, "_cag_prepare", broken)
+    events = run(session, pipeline=preset(session, "cag"))
+    part = ended(events, "cache_prefix")
+    assert part["status"] == "error" and "RuntimeError" in part["error_text"]
+    assert "local" not in part["error_text"]
+    session.close()
+
+
+def test_a_failed_prefill_sends_no_generation(index):
+    class Failing(Counting):
+        def prefill(self, ids, cancel):  # noqa: ANN001, ANN201
+            raise RuntimeError("prefill en panne")
+
+    engine = Failing()
+    session = lab(index, engine)
+    calls = len(engine.calls)
+    events = run(session, pipeline=preset(session, "cag"))
+    assert ended(events, "cache_prefix")["status"] == "error"
+    generation = ended(events, "generation")
+    assert generation["status"] == "error" and "RuntimeError" in generation["error_text"]
+    assert len(engine.calls) == calls  # nothing generated behind a failed prefix
+    assert session._cag_cache is None
+    session.close()
+
+
+def test_the_kept_state_is_held_by_the_budget_until_it_is_dropped(index):
+    engine = Counting()
+    session = lab(index, engine)
+    run(session, pipeline=preset(session, "cag"))
+    assert session._load_registry.holder("rag_lab.cag") is not None
+    session.clear_cache()
+    assert session._cag_cache is None
+    assert session._load_registry.holder("rag_lab.cag") is None
+    session.close()

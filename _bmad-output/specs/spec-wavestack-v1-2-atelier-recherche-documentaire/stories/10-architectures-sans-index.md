@@ -172,3 +172,19 @@ Tranchées le 2026-10-25 (point de contrôle de spec, relu contre SPEC.md, `arch
 - Écart à la maquette, à confirmer par Anaël : le titre des boutons grisés y renvoie à « Diagnostic et modèles », alors que la fenêtre se règle par le sélecteur « Fenêtre » de la page Conversation ; la spec suit le code.
 - Base : la branche est empilée sur la story 7 ; la branche d'intégration a avancé depuis (stories 9 et 15 fusionnées). Le développement part d'une base à jour (`origin/integration/v1-2-atelier` fusionnée), en particulier pour le diagnostic de la story 9 (critère 18).
 - Hors périmètre : recherche agentique et PageIndex (story 11), RAPTOR et CRAG (12), GraphRAG (13), LLM Wiki (14), System One (8) ; CAG en mode nuage ; plusieurs entrées de cache CAG ou plafond configurable de mémoire ; sauvegarde de l'état sur disque (`/slots` save/restore de llama-server, non utilisé à ce jour) ; fiches d'architecture de l'onglet Fiches.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 598f633)
+
+Base : la branche contient déjà `origin/integration/v1-2-atelier` (aucune fusion à faire). Constats du second avis (Haiku) repris un par un.
+
+- Important, medium, second avis : l'état CAG n'était pas tenu par le `LoadRegistry` (seulement `check_component`). Effet réel limité, car les contrôles du registre lisent le RSS, qui contient l'instantané, mais le créneau `rag_lab.cag` restait vide, contrairement aux autres composants. **Corrigé** : `_cag_grant` à la construction d'un état gardé, `_cag_forget` (sous verrou) libère le créneau à chaque purge (déchargement, fenêtre, langue, vider le cache, fermeture, mise à jour non gardée).
+- Important, low, second avis : un préfixe en erreur ou annulé (`prefill` qui lève, Arrêter) laissait partir la génération. **Corrigé** : aucune génération derrière un préfixe en erreur ; l'étape Génération est `error` (ou `cancelled`), avec la raison du préfixe.
+- Important, low, second avis : quand `_cag_prepare` levait, l'étape « Préfixe » disait « local seulement » (`cag_local_only`). **Corrigé** : elle dit l'erreur de l'étape.
+- Nit, low, second avis : `probe.stop()` hors `finally` dans `_cag_build`. **Corrigé** (`finally`).
+- Nit, low, second avis : contrôle du RSS seulement après `snapshot`. **Rejeté en partie** : l'estimation `_kv_per_token × (préfixe + contexte principal)` est déjà contrôlée avant le `prefill`, donc avant le `snapshot` ; refuser quand `_kv_per_token` est illisible contredirait le bloc d'intention gelé (« seul le contrôle après le `snapshot` s'applique ») : décision à revoir par Anaël s'il veut ce refus.
+- Nit, low, second avis : tests manquants. **Corrigé** : tokenizer à fusions pour la coupe du préfixe, `_call_model` qui lève après `_cag_prepare` (contexte principal remis), préparation qui lève, `prefill` en échec sans génération, créneau du registre tenu puis libéré.
+- Nit, low, second avis : coût de construction relu à chaud compté dans « build ». **Rejeté** : chaque temps est sommé à part (`greenops.summarize` par phase, aucun total qui additionne les trois temps), et la règle est celle de la story 3 pour un index livré (`measured_at_build`, badge « mesuré à la construction ») ; à chaud, la carte « Construction » redit le coût du préfixe, la carte « Requête » ne compte que la question. Rien n'est compté deux fois.
+- Nit, low, revue : l'estimation mémoire compte le contexte principal alors que sa copie (`_save_main_state`) est déjà dans le RSS au moment du contrôle : double compte prudent (quelques dizaines de Mo à 4 000 tokens). Non corrigé (formule du bloc d'intention).
+- Complexité : 0 constat (une seule entrée de cache ; la lecture de `model_call_ended` parcourt les événements depuis la marque de l'appel, existant).
