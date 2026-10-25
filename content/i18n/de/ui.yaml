@@ -1188,6 +1188,7 @@ rag:
   cache_evaluated: "Ausgewertet: {tokens} Tokens"
   cache_build: "Präfix aufgebaut in {ms} ms"
   cache_size: "Größe des Zustands: {mb} MB"
+  sheets_error: "Die Blätter konnten nicht geladen werden. Öffnen Sie den Tab erneut, um es noch einmal zu versuchen."
   # V1.2 story 11: the agent's rounds, PageIndex's descent and its « Arbre » card.
   agent_title: "Runden der Werkzeugschleife: {rounds} / {max}"
   agent_round: "Runde {round}"

@@ -136,11 +136,47 @@ def test_the_listing_serves_a_sheet_for_each_component(lang):
     body = sheets.listing(lang)
     expected = [f"{k}.{o}" for k in lab.SHEETED_KINDS for o in lab.OPTIONS[k]]
     assert [c["key"] for c in body["components"]] == expected
-    assert len(expected) >= 8
-    assert {p["kind"] for p in body["pending"]} == set(sheets.PENDING_SHEET_KINDS)
-    assert "19b" in body["pending_text"]
+    # Story 19b (end of CAP-17): every option of every family has a sheet, none is pending.
+    assert set(expected) == {f"{k}.{o}" for k, opts in lab.OPTIONS.items() for o in opts}
+    assert sheets.PENDING_SHEET_KINDS == () and body["pending"] == []
+    assert body["pending_text"] == ""
     for key in expected:
         assert sheets.component(lang, key)["bench_text"] == ""
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_every_component_sheet_has_a_source(lang):
+    for key in lab_components():
+        sheet = sheets.component(lang, key)
+        assert sheet["sources"], key
+        assert all(s["url"].startswith("https://") for s in sheet["sources"]), key
+
+
+@needs_literature
+def test_the_sources_of_the_story_19b_sheets_are_those_of_the_literature():
+    """H1 (search, fusion, rerank), H14 (vector store), H10 (generation): the links are the ones of
+    `litterature.md`, as they stand; the embeddings, absent from it, carry primary sources of
+    arXiv instead (read when the sheets were written), never an invented reference."""
+    rows = literature_rows()
+    links = {
+        "H1": ["vector_search.cosine", "lexical_search.bm25", "fusion.rrf", "rerank.declared"],
+        "H14": [f"vector_store.{o}" for o in lab.OPTIONS["vector_store"]],
+        "H10": [f"generation.{o}" for o in lab.OPTIONS["generation"]],
+    }
+    for hyp, keys in links.items():
+        wanted = re.findall(r"\[([^\]]+)\]\((https://[^)]+)\)", rows[hyp][2])
+        assert wanted, hyp
+        for key in keys:
+            have = [(s["label_text"], s["url"]) for s in sheets.component("fr", key)["sources"]]
+            assert have == wanted, key
+    literature_text = LITERATURE.read_text(encoding="utf-8")
+    for key in ("embedding.declared", "embedding.fastembed"):
+        for source in sheets.component("fr", key)["sources"]:
+            assert source["url"] not in literature_text, key  # not in the framing's table
+    assert {s["url"] for s in sheets.component("fr", "embedding.declared")["sources"]} == {
+        "https://arxiv.org/abs/1908.10084",
+        "https://arxiv.org/abs/2004.04906",
+    }
 
 
 # ---------- structure and validation (criteria 3 to 5) ----------
@@ -401,7 +437,7 @@ def test_endpoints_and_404():
     assert arch.status_code == 200
     assert [a["id"] for a in arch.json()["axes"]] == list(sheets.AXES)
     for url in (
-        "/api/rag_lab/sheets/component/embedding.declared",  # a pending family
+        "/api/rag_lab/sheets/component/embedding.unknown",
         "/api/rag_lab/sheets/component/query.unknown",
         "/api/rag_lab/sheets/component/nothing",
         "/api/rag_lab/sheets/architecture/unknown",

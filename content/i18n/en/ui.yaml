@@ -1188,6 +1188,7 @@ rag:
   cache_evaluated: "Evaluated: {tokens} tokens"
   cache_build: "Prefix built in {ms} ms"
   cache_size: "State size: {mb} MB"
+  sheets_error: "The sheets could not be loaded. Reopen the tab to try again."
   # V1.2 story 11: the agent's rounds, PageIndex's descent and its « Arbre » card.
   agent_title: "Rounds of the tool loop: {rounds} / {max}"
   agent_round: "Round {round}"

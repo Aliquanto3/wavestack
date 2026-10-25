@@ -643,6 +643,151 @@ sheets:
       - label_text: "Anthropic, Introducing Contextual Retrieval (2024)"
         url: "https://www.anthropic.com/news/contextual-retrieval"
 
+# V1.2 story 19b (CAP-17): the sheet of each option of the families left (embedding, vector store,
+# searches, fusion, rerank, generation), in five blocks.
+  embedding.declared:
+    purpose_text: "Jeden Chunk, dann die Frage, mit dem Embedding-Modell, das der RAG-Baustein deklariert, in einen Vektor umwandeln, damit die Suche Bedeutungen statt Wörter vergleicht."
+    when_text: "Als Ausgangspunkt einsetzen: Es ist das Modell des RAG-Bausteins, dasselbe wie auf den anderen Seiten. Vermeiden, um zwei Embedding-Modelle zu vergleichen: Dieses wird von der Konfiguration festgelegt, nicht von der Kette; dafür gibt es die andere Option."
+    cost_text: "Ein Modelldurchlauf pro Chunk bei der Indexierung, dann einer pro Frage: Auf dem Prozessor wächst die Indexierungszeit mit der Zahl der Chunks. Das Modell belegt Speicher, solange es geladen ist, und muss auf dem Rechner vorhanden sein (die RAG-Karte bietet den Download an)."
+    literature_text: "Reimers und Gurevych (Sentence-BERT) zeigen, dass ein Encoder, der einen Vektor pro Satz liefert, den Vergleich zweier Sätze per Kosinus erlaubt und so die Suche nach dem nächsten Nachbarn praktikabel macht (von 65 Stunden auf etwa 5 Sekunden bei 10 000 Sätzen, im Vergleich zu BERT auf Satzpaaren). Karpukhin et al. (DPR) berichten, dass ein dichter Retriever BM25 bei Fragen-Antwort-Datensätzen mit offener Domäne um 9 bis 19 Punkte Genauigkeit im Top 20 schlägt. Die Hypothesen der Rahmung decken Embeddings nicht ab: Die Fiche stützt sich auf diese beiden Primärquellen."
+    bench_text: ""
+    sources:
+      - label_text: "Reimers und Gurevych, Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (2019)"
+        url: "https://arxiv.org/abs/1908.10084"
+      - label_text: "Karpukhin et al., Dense Passage Retrieval for Open-Domain Question Answering (2020)"
+        url: "https://arxiv.org/abs/2004.04906"
+  embedding.fastembed:
+    purpose_text: "Mit einem zweiten Embedding-Modell vektorisieren, das fastembed ausführt (ONNX-Format, ohne PyTorch und GPU, die Modelldateien von Hand auf den Rechner kopiert), um seine Wirkung mit der des Modells des RAG-Bausteins zu vergleichen."
+    when_text: "Einsetzen, um zwei Embedding-Modelle am selben Korpus zu vergleichen. Vermeiden ohne fastembed und das Modell: WaveStack liefert beides nicht mit und lädt nichts herunter (der Leitfaden, docs/guide.md, nennt den Installationsbefehl), die Option bleibt dann nicht verfügbar und sagt warum. Die Vektoren zweier Modelle haben nicht dieselbe Dimension und lassen sich nicht mischen: Ein Modellwechsel baut den Index neu auf."
+    cost_text: "Das Laden von fastembed und onnxruntime belegt zusätzlichen Speicher für die ganze Lebensdauer von WaveStack (standardmäßig 150 MB erwartet, einstellbar), zusätzlich zum Modell; danach ein Durchlauf pro Chunk bei der Indexierung und einer pro Frage, auf dem Prozessor."
+    literature_text: "Dieselben Primärquellen wie für das Modell des Bausteins: Reimers und Gurevych (Sätze per Kosinus vergleichen) und Karpukhin et al. (ein dichter Retriever gegen BM25). Sie sagen nichts über das gewählte Modell oder ONNX: Die Bibliothek wird durch ihr Repository vorgestellt, ohne Qualitätsmessung an diesem Korpus. Die Hypothesen der Rahmung decken Embeddings nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Reimers und Gurevych, Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (2019)"
+        url: "https://arxiv.org/abs/1908.10084"
+      - label_text: "Karpukhin et al., Dense Passage Retrieval for Open-Domain Question Answering (2020)"
+        url: "https://arxiv.org/abs/2004.04906"
+      - label_text: "Qdrant, fastembed (Repository)"
+        url: "https://github.com/qdrant/fastembed"
+  vector_store.sqlite_vec:
+    purpose_text: "Die Vektoren der Chunks in einer SQLite-Datenbank mit der Erweiterung sqlite-vec ablegen, eine einzige Datei auf der Festplatte, und die nächsten zu einem anderen finden. Das ist der Vector Store des RAG-Bausteins."
+    when_text: "Als Ausgangspunkt einsetzen: nichts zusätzlich zu installieren, der Index bleibt in einer Datei erhalten. Vermeiden, wenn sich die Erweiterung in diesem Python nicht laden lässt: Das RAG sagt es. Eine erschöpfende Suche wird langsam, wenn der Korpus stark wächst, was hier nicht der Fall ist."
+    cost_text: "Alle Vektoren werden bei der Indexierung geschrieben, bei jeder Frage werden die Vektoren gelesen; die Datei wächst mit der Zahl der Chunks und der Dimension des Modells. Kein Dienst zu starten."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Messungen betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen in HNSW); die vier Vector Stores der Werkstatt suchen erschöpfend und ordnen die Chunks gleich, bis auf Punktgleichstände und Rundungen, diese Recall-Unterschiede treten hier also nicht auf."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.memory:
+    purpose_text: "Die Vektoren im Speicher halten und die Frage mit jedem einzeln vergleichen, in reinem Python, ohne Index und ohne Datei: die einfachste Referenz, deren Rangfolge die anderen wiederfinden müssen."
+    when_text: "Einsetzen, um zu verstehen, was ein Vector Store tut, oder als Vergleichsmaßstab für die anderen. Vermeiden bei einem großen Korpus: Jede Frage liest alle Vektoren, und zwischen zwei Starts bleibt nichts erhalten."
+    cost_text: "Keine Abhängigkeit und kein Schreiben auf die Festplatte; der Speicher wächst mit der Zahl der Chunks und der Dimension, die Zeit einer Frage wächst mit der Zahl der Chunks."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Diese Option ist die exakte Suche, mit der die näherungsweisen Indizes dieser Studien verglichen werden; hier ordnen die vier Optionen gleich (bis auf Punktgleichstände und Rundungen), messbar sind Zeit und Speicher."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.faiss:
+    purpose_text: "Die Vektoren in einem FAISS-Index ablegen, der Vektorsuch-Bibliothek von Meta, mit exaktem Skalarprodukt auf normalisierten Vektoren (also dem Kosinus), auf die Festplatte geschrieben und wieder gelesen."
+    when_text: "Einsetzen, um zu sehen, was eine spezialisierte Bibliothek bringt, oder um Speicher und Latenz zu vergleichen. Vermeiden ohne das Extra « rag-alt »: FAISS ist nicht standardmäßig installiert, der Schritt nennt den auszuführenden Befehl."
+    cost_text: "Eine Abhängigkeit mehr, einmal importiert und im Speicher gehalten (WaveStack kündigt die Kosten an); eine Indexdatei, die bei der Indexierung geschrieben wird. Der Index ist hier exakt: FAISS kann auch näherungsweise suchen, schneller und weniger genau, was die Werkstatt nicht tut."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Studien messen näherungsweise Indizes, nicht den exakten Index der Werkstatt: Ihre Recall-Verluste finden sich hier nicht."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_store.lancedb:
+    purpose_text: "Die Vektoren in einer LanceDB-Tabelle ablegen, einer eingebetteten Vektordatenbank, auf der Festplatte angelegt und mit der Kosinus-Distanz abgefragt."
+    when_text: "Einsetzen, um eine vollständige Vektordatenbank (Tabelle, Spalten) statt einer bloßen Bibliothek zu sehen. Vermeiden ohne das Extra « rag-alt »: LanceDB ist nicht standardmäßig installiert, der Schritt nennt den auszuführenden Befehl."
+    cost_text: "Eine Abhängigkeit mehr, einmal importiert und im Speicher gehalten (WaveStack kündigt die Kosten an); ein Tabellenordner, der bei der Indexierung geschrieben wird. Die Suche bleibt hier exakt: Es wird kein näherungsweiser Index gebaut."
+    literature_text: "Die Rahmung (H14) stellt fest, dass die Vektordatenbank vor allem Latenz, Speicher und Kosten ändert, kaum die Qualität: teilweise gestützt. Die zitierten Studien betreffen näherungsweise Indizes (ANN-Recall, Filterung, Löschungen); hier ist die Suche exakt und die Reihenfolge dieselbe wie bei den anderen Optionen, bis auf Punktgleichstände und Rundungen."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2411.07396"
+        url: "https://arxiv.org/html/2411.07396v1"
+      - label_text: "arXiv 2507.21989"
+        url: "https://arxiv.org/html/2507.21989v1"
+      - label_text: "arXiv 2407.07871"
+        url: "https://arxiv.org/html/2407.07871v1"
+  vector_search.cosine:
+    purpose_text: "Den Vector Store nach den Chunks fragen, deren Vektor dem der Frage am nächsten liegt, per Kosinus-Ähnlichkeit, ohne Schwelle: die k nächsten, relevant oder nicht."
+    when_text: "Einsetzen, wenn Frage und Passage dasselbe mit anderen Worten sagen. Allein vermeiden bei einem Kürzel, einem Code oder einer genauen Zahl, die BM25 besser findet: Die Rahmung vergleicht beide. Es gibt keine Schwelle: Ein Korpus ohne Antwort liefert trotzdem k Chunks."
+    cost_text: "Ein Embedding der Frage, dann eine Suche im Vector Store; die Zahl der Kandidaten (1 bis 20) ändert die Zeit kaum, bestimmt aber, was die weiteren Schritte neu ordnen können."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche (BM25, dicht, Reranker) die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. Der Hybrid mit Reranker gewinnt (Recall@5 von 0,59 auf 0,82), aber eine nicht abgestimmte RRF-Fusion kann schlechter abschneiden als die dichte Suche. Die dichte Suche allein ist daher der Vergleichspunkt dieser Studien."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  lexical_search.bm25:
+    purpose_text: "Nach Stichwörtern suchen, ohne Embedding: Die Chunks, die Wörter mit der Frage teilen, kommen zuerst, ein seltenes Wort wiegt mehr als ein häufiges (BM25, k1 = 1,5 und b = 0,75)."
+    when_text: "Einsetzen bei einem Kürzel, einem Code, einer Zahl oder einem genauen Namen, den ein Embedding verfehlen kann. Allein vermeiden, wenn die Frage nicht die Wörter des Korpus verwendet: kein gemeinsames Wort, kein brauchbares Ergebnis."
+    cost_text: "Kein Modell: ein lexikalischer Index, bei der Indexierung gebaut (Terme und Häufigkeiten) und bei jeder Frage gelesen. Zeit und Speicher sind gering gegenüber denen eines Embeddings."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche (BM25, dicht, Reranker) die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. BM25 liefert den exakten Wortabgleich, den die dichte Suche verfehlt; die Studie misst das Ganze, nicht BM25 allein."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  fusion.rrf:
+    purpose_text: "Die dichte Rangliste und die BM25-Rangliste zu einer verbinden: Jeder Chunk erhält in jeder Liste 1 / (60 + sein Rang), und die Summen entscheiden. Ein von beiden gut platzierter Chunk kommt zuerst. Das ist die Hybridsuche."
+    when_text: "Einsetzen, wenn BM25 und die dichte Suche verschiedene Chunks finden. Vermeiden ohne beide Suchen: Die Fusion hat nichts zu verbinden. Die Konstante 60 ist für diesen Korpus nicht abgestimmt, was die Rahmung als Risiko nennt."
+    cost_text: "Kein Modell: eine Berechnung auf zwei kleinen Listen. Die Kosten entstehen durch die beiden Suchen statt einer."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. Die zitierte Studie findet, dass eine nicht abgestimmte RRF-Fusion schlechter abschneiden kann als die dichte Suche allein: Der Gewinn des Hybrids hängt von seinen Einstellungen ab, er ist nicht gesichert."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  rerank.declared:
+    purpose_text: "Die Frage und jeden Kandidaten zusammen mit dem Reranking-Modell lesen, das der RAG-Baustein deklariert, ihre Relevanz bewerten und dann neu ordnen: Der Reranker urteilt besser als der Vergleich zweier getrennt berechneter Vektoren."
+    when_text: "Einsetzen, wenn die richtige Passage unter den Kandidaten ist, aber nicht an erster Stelle. Vermeiden, wenn sie nicht darunter ist: Der Reranker sucht nicht, er ordnet neu. Sein Score ist nicht der der dichten Suche und lässt sich mit keinem anderen vergleichen: Nur die Reihenfolge zählt."
+    cost_text: "Ein Modelldurchlauf pro Kandidat und Frage, viel langsamer als der Vergleich von Vektoren: Deshalb sieht er nur die behaltenen Kandidaten. Das Modell belegt Speicher, solange es geladen ist."
+    literature_text: "Die Rahmung (H1) stellt fest, dass die Hybridsuche mit Reranker die dichte Suche allein bei ähnlichen Kosten übertrifft: teilweise gestützt. Der Hybrid mit Reranker gewinnt (Recall@5 von 0,59 auf 0,82) in der zitierten Studie, die die ganze Kette misst und nicht den Reranker allein."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2604.01733"
+        url: "https://arxiv.org/html/2604.01733"
+      - label_text: "arXiv 2609.22770"
+        url: "https://arxiv.org/abs/2609.22770"
+  generation.active:
+    purpose_text: "Das aktive Modell der Werkstatt die Antwort aus dem angereicherten Prompt (Anweisung, Auszüge und Frage) schreiben lassen, innerhalb der Grenzen eines Durchgangs: Ausgabereserve und Denkbudget."
+    when_text: "Einsetzen, um die Antwort zu sehen, die die Kette liefert. Vermeiden, um die Suche allein zu beurteilen: Eine schlechte Antwort kann von der Synthese ebenso kommen wie von der Suche. Die Antwort wird nicht Teil der Unterhaltung."
+    cost_text: "Ein Modellaufruf: die Zeit, den Prompt zu lesen, der mit dem Kontext wächst, dann die Antwort zu schreiben, bei einem lokalen Modell auf dem Prozessor; bei einem Cloud-Modell abgerechnete Tokens."
+    literature_text: "Die Rahmung (H10) stellt fest, dass ein kleines lokales Modell genügt, wenn die Suche gut ist, und dass der Abstand von der Synthese kommt: teilweise gestützt. Der Abstand konzentriert sich auf das Schlussfolgern und das Zusammenführen der Passagen und bleibt auch bei perfektem Kontext real."
+    bench_text: ""
+    sources:
+      - label_text: "LIT-RAGBench"
+        url: "https://arxiv.org/html/2603.06198v1"
+      - label_text: "MultiHop-RAG"
+        url: "https://arxiv.org/html/2401.15391"
+  generation.not_run:
+    purpose_text: "Vor dem Modell anhalten: Der Prompt wird gebaut und gezeigt, nichts wird gesendet, keine Antwort geschrieben."
+    when_text: "Einsetzen, um Suche und Kontext ohne Generierung zu beurteilen oder um zu sehen, was das Modell erhalten würde. Vermeiden, um die Qualität einer Antwort zu beurteilen: Es gibt keine."
+    cost_text: "Kein Modellaufruf, also weder Generierungszeit noch abgerechnetes Token: Es bleiben nur die Kosten der vorherigen Schritte."
+    literature_text: "Die Rahmung (H10) stellt fest, dass der Abstand eines kleinen Modells eher von der Synthese als von der Suche kommt: teilweise gestützt. Das rechtfertigt, die Suche getrennt und ohne Generierung zu messen. Die Hypothesen der Rahmung decken die Option selbst nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "LIT-RAGBench"
+        url: "https://arxiv.org/html/2603.06198v1"
+      - label_text: "MultiHop-RAG"
+        url: "https://arxiv.org/html/2401.15391"
+
 # V1.2 story 7 (CAP-17): the sheet of each context option, in five blocks.
   context.excerpts:
     purpose_text: "Die ersten Passagen der Rangliste in Relevanzreihenfolge behalten und ihren ganzen Text hinter die Einleitung setzen. Das ist der Kontext des RAG-Bausteins."

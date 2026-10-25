@@ -20,16 +20,10 @@ from wavestack.mcp.policy import RISKS
 from wavestack.rag import erasure, lab
 
 FILE = "rag_sheets.yaml"
-# The families of `lab.OPTIONS` whose component sheets come with story 19b (end of CAP-17).
-PENDING_SHEET_KINDS = (
-    "embedding",
-    "vector_store",
-    "vector_search",
-    "lexical_search",
-    "fusion",
-    "rerank",
-    "generation",
-)
+# The families of `lab.OPTIONS` whose component sheets are still to come: empty since story 19b
+# (end of CAP-17). A family added to `OPTIONS` goes here until its sheets are written, or in
+# `lab.SHEETED_KINDS` with them; `missing_sheets()` fails otherwise.
+PENDING_SHEET_KINDS: tuple[str, ...] = ()
 AXES = ("location", "copies", "erasure", "rights", "injection", "traceability", "regulatory")
 DEMO_OF_AXIS = {
     "erasure": "rag-erasure-card",
@@ -171,8 +165,10 @@ def listing(lang: str) -> dict[str, Any]:
             for a in content.architectures
         ],
         "pending": pending,
-        "pending_text": texts["pending_text"].format(
-            kinds=", ".join(p["label_text"] for p in pending)
+        "pending_text": (
+            texts["pending_text"].format(kinds=", ".join(p["label_text"] for p in pending))
+            if pending
+            else ""
         ),
     }
 
