@@ -483,3 +483,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:29 · 12.19 · décision · à revoir : accolade manquante de rag.css aussi sur main (v1.4.0), corrigée à la fusion de la V1.2 · —
 - 2026-10-25 11:29 · 12.19 · PR · #114 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · b16730e
 - 2026-10-25 11:29 · 12.2 · décision · Anaël : téléchargement des modèles du banc autorisé ; clé OpenRouter déjà en place (env et HKCU) ; téléchargement des ONNX et du reranker lancé · —
+- 2026-10-25 11:37 · 12.19 · CI · verte · b16730e
+- 2026-10-25 11:37 · 12.19 · fusion · #114 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; contrat des fiches transmis à 12.11 (entre seconde) · 5d74aff
