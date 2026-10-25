@@ -618,3 +618,8 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 16:57 · 12.12 · décision · à revoir : D1 arbre par règle, D2 vecteurs de mots et BM25 au lieu des embeddings d'architectures.md, D3 résumé extractif qui privilégie les codes, D5 CRAG limité au cas « rien gardé », D6 pas de recherche web, D9 ordre des familles envoyé par le catalogue · 16043c36
 - 2026-10-25 16:57 · 12.12 · attente humaine · recette : « Reconstruire l'arbre » avec un vrai modèle, RAPTOR sur q_global_rh contre l'hybride, CRAG sur q_noanswer_* · —
 - 2026-10-25 16:57 · 12.12 · second-avis · lancé · 16043c36
+- 2026-10-25 16:59 · 12.16 · dev · fini ; parent_step générique (hérité par RAPTOR / CRAG), arbre course / étapes / sous-étapes / appels dans Construire, export OTLP/HTTP GenAI (invoke_workflow, chat, retrieval ; semconv-genai 9ffc7e0, v1.44.0) derrière l'extra otel 1.44.0, par la fabrique, rien ne sort sans [otel] endpoint ni texte sans capture_content ; test_rag_lab_otel 10 (3 sautés en CI sans l'extra), E2E 157/157 · 219eb637
+- 2026-10-25 16:59 · 12.16 · décision · à revoir : export à la demande par bouton ; SDK + encodeur au lieu de l'exporteur HTTP de brownfield.md ; [otel] auth_env ; redémarrage pour changer d'URL ; extra à 1.44.0 (pas 1.45.1) pour ne pas relever opentelemetry-api ; tests d'export hors CI · 219eb637
+- 2026-10-25 16:59 · 12.16 · attente humaine · recette : uv sync --extra otel, Phoenix ou Langfuse, [otel] endpoint, « Exporter cette exécution » ; capture_content · —
+- 2026-10-25 16:59 · 12.16 · second-avis · lancé · 219eb637
+- 2026-10-25 16:59 · 12.21 · dev · lancé (spec et script de mesure seulement, ni téléchargement ni mesure ; worktree ../wavestack-v12-s21) ; mesure plus tard sur poste libre · 3525323
