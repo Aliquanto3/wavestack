@@ -2320,6 +2320,20 @@ security:
       reason: "In der Konfiguration angegebene Preise; „≈“, wenn die Nutzung vom Anbieter nicht gemessen wird."
       production: "Abgleich mit der Rechnung des Anbieters."
 
+# V1.5 CAP-3: the refusals and errors of « En faire un cas » (`web/agent_case_api.py`).
+agent_case:
+  refused:
+    unknown_turn: "Dieser Turn ist nicht mehr im Journal (WaveStack wurde neu gestartet)."
+    not_a_message: "Nur ein Nachrichten-Turn kann zu einem Fall werden."
+    case_turn: "Dieser Turn wurde von einem Fall-Lauf gespielt."
+    unfinished: "Dieser Turn ist noch nicht beendet."
+  error:
+    required: "Dieses Feld ist erforderlich."
+    max_calls: "Die Obergrenze muss mindestens 1 betragen."
+    checks_count: "Wählen Sie eine oder zwei Prüfungen."
+    checks_kind: "Diese Art von Prüfung gibt es nicht."
+    unreadable: "Die Datei mit Ihren Fällen ist nicht lesbar: Der Fall wurde nicht gespeichert. Sie können sie unter „Agent bewerten“ („Meine Fälle löschen“) leeren."
+
 # V1.5 CAP-1: the reasons of an agent case's checks (`agent_eval/checks.py`).
 agent_eval:
   incomplete: "unvollständige Runde"

@@ -525,6 +525,89 @@ main:
     time: "Zeit: {time}{diff}"
     no_context: "Für diese Runden wurde kein Kontext gerendert."
     button: "Vergleichen"
+  agent_case:
+    form:
+      action: "Als Fall speichern"
+      action_label: "{turn} als Fall speichern"
+      title: "Als Fall speichern"
+      subtitle: "{turn} · {model} · {date}"
+      loading: "Der Turn wird gelesen …"
+      incomplete: "Dieser Turn wurde nicht abgeschlossen („{status}“): Bei ihm schlagen alle Prüfungen fehl („unvollständiger Turn“). Das Urteil sagt also nicht, ob Ihre Prüfungen den beobachteten Fehler treffen."
+      field:
+        title: "Titel"
+        prompt: "Prompt"
+        symptom: "Symptom"
+        assertion: "Behauptung"
+        max_calls: "Obergrenze für Modellaufrufe"
+      config:
+        legend: "Konfiguration des Turns (schreibgeschützt)"
+        line: "Bausteine: {bricks} · Fenster: {window}"
+        window_unset: "nicht verlangt"
+        not_kept: "Vom Fall nicht übernommen: {options}. Der Lauf behält die aktuelle Einstellung."
+        option:
+          mcp_lazy: "verzögertes Laden (MCP)"
+          rag_rerank: "RAG-Reranking"
+      tools:
+        legend: "Vom Turn aufgerufene Werkzeuge"
+        none: "Kein Werkzeug aufgerufen."
+      history:
+        include:
+          one: "Verlauf übernehmen ({count} Austausch)"
+          other: "Verlauf übernehmen ({count} Austausche)"
+        compacted: "Der Verlauf wurde vor diesem Turn verdichtet oder gekürzt: Er wird so übernommen, wie das Modell ihn erhalten hat (Zusammenfassung inbegriffen)."
+        unavailable: "Der Verlauf dieses Turns lässt sich aus dem Journal nicht rekonstruieren: Er wird nicht übernommen."
+      freeze_prompt: "Diesen Systemprompt im Fall festhalten"
+      approval:
+        label: "Menschliche Freigabe (H5) während des Laufs"
+        refuse: "ablehnen"
+        approve: "annehmen"
+      overflow:
+        label: "Wenn der Kontext überläuft"
+        none: "Turn beenden"
+        compaction: "verdichten, dann erneut senden"
+        sliding_window: "gleitendes Fenster, dann erneut senden"
+      checks:
+        legend: "Prüfungen (eine oder zwei)"
+        type_label: "Art der Prüfung"
+        add: "Prüfung hinzufügen"
+        remove: "Diese Prüfung entfernen"
+        kind:
+          tool_called: "Werkzeug aufgerufen"
+          tool_not_called: "Werkzeug nicht aufgerufen"
+          argument_never: "Argument nie übergeben"
+          answer_contains: "Text in der Antwort"
+          hook_decided: "Hook hat entschieden"
+          subagent_called: "Subagent aufgerufen"
+          turn_completed: "Turn fehlerfrei beendet"
+        param:
+          tool: "Werkzeug"
+          before: "vor (optional)"
+          argument: "Argument"
+          contains: "enthält"
+          text: "Text"
+          hook: "Hook"
+          decision: "Entscheidung"
+        decision:
+          block: "blockiert"
+          ask_human: "fragt nach Zustimmung"
+      verdict:
+        fails: "Der ursprüngliche Turn besteht diesen Fall tatsächlich nicht."
+        cannot_fail: "Dieser Fall kann bei diesem Turn nicht fehlschlagen. Er erkennt den beobachteten Fehler nicht."
+        pending: "Urteil wird berechnet …"
+        incomplete: "Vervollständigen Sie die Prüfungen, um das Urteil zu sehen."
+        unavailable: "WaveStack antwortet nicht: Das Urteil konnte nicht berechnet werden."
+      save: "Speichern"
+      saving: "Wird gespeichert …"
+      cancel: "Abbrechen"
+      discard:
+        ask: "Änderungen verwerfen?"
+        "yes": "Verwerfen"
+        "no": "Weiter bearbeiten"
+      saved: "Fall gespeichert."
+      open_view: "„Agent bewerten“ öffnen"
+      close: "Schließen"
+      error:
+        no_answer: "WaveStack antwortet nicht: Der Fall wurde nicht gespeichert."
   orch:
     catalog:
       one: "{count} Tool, dem Modell im Kontext beschrieben: {tokens} Tokens."

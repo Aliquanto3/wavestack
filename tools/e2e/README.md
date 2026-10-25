@@ -732,6 +732,15 @@ haut) :
   `prefix_not_reused` avec `again_tokens`, ligne « Cache non réutilisé » « <cause> · N tokens
   relus », repliée en fin de tour, son message au clic.
 
+## Lot V1.5 : évaluer l'agent
+
+- `agent_case` (story 3, « En faire un cas ») : le bouton sous un tour terminé, le tiroir
+  pré-rempli depuis le journal (prompt, outil `get_datetime`, historique à zéro), le verdict
+  « échoue bien » puis « ne peut pas échouer » sans appel au modèle, « Abandonner les
+  modifications ? », l'erreur sous un symptôme vide, le cas écrit dans `agent_cases.json`
+  (provenance `séance`) et intact après « Vider la conversation » et « Réinitialiser », la note
+  d'un tour arrêté, le tiroir en anglais et en allemand ; capture `agent-case-form.jpg`.
+
 ## Déclencheurs du faux modèle
 
 La réponse dépend du dernier message de l'utilisateur (sans le texte ajouté par H3 ni les

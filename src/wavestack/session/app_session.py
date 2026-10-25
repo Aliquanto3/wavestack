@@ -871,6 +871,9 @@ class AppSession:
         download_transport: Any = None,
         compressor_factory: Callable[[], Compressor] | None = None,
     ) -> None:
+        # V1.5 story 3: the journal is the process's, turn ids restart at `t1` with each
+        # session; the events of this session are those after this seq.
+        self.journal_floor = get_journal().last_seq()
         self.cfg = cfg or config.load_config()
         # Languages (1/5): the language of the content sent to the model, `fr` by default;
         # changed only on an empty conversation (`set_language`).
