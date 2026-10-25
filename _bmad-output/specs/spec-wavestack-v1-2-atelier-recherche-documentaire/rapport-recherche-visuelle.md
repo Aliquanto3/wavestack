@@ -5,10 +5,10 @@ V1.2, story 21, CAP-19. Généré par `tools/bench/v12s21_visual_search_bench.py
 ## 1. Statut
 
 - Mesure enregistrée le 2026-10-25 sur Windows-11-10.0.26300-SP0 (12 CPU, 31861 Mo de RAM).
-- Corpus : fr, 12 pages tirées de 26 (rendu A4 150 dpi, police consola.ttf), 8 requêtes ; commit e647ad100ae229a3da1c4fb58e30354cf0ec0674.
+- Corpus : fr, 12 pages tirées de 26 (rendu A4 150 dpi, police consola.ttf), 8 requêtes ; commit 15b013131ade711a6ee2ff8f85ef52d2dad77971.
 - La mesure vaut pour le poste de développement (32 Go) : la mémoire est un pic de processus, indépendant de la RAM libre, mais les durées ne valent pas pour le PC cible (16 Go, i5) sans confirmation.
 
-**Conclusion : ne tient pas.** Aucun candidat mesuré ne tient. ColPali v1.3, ONNX fp16 (Qdrant, fastembed) : mémoire : arrêté au plafond de sécurité de 16384 Mo (RSS à l'arrêt 18750 Mo), bien au-delà du budget de 4096 Mo; ColSmol-256M, ONNX fp32 (onnx-community) : mémoire : pic 6118 Mo > 4096 Mo ; requêtes non exécutables : le graphe refuse l'entrée : Fail("[ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running Split node. Name:'/model/model/vision_model/embeddings/Split' Status Message: Cannot split using values in 'split' attribute. Axis=0 Input shape={0,32,32} NumOutputs=13 Num entries in 'split ; qualité non jugeable : 0 requêtes < 6.
+**Conclusion : ne tient pas.** Aucun candidat mesuré ne tient. ColPali v1.3, ONNX fp16 (Qdrant, fastembed) : mémoire : arrêté au plafond de sécurité de 16384 Mo (RSS à l'arrêt 18750 Mo), bien au-delà du budget de 4096 Mo; ColSmol-256M, ONNX fp32 (onnx-community) : mémoire : pic 6098 Mo > 4096 Mo ; requête : médiane 8967.2 ms > 3000 ms.
 
 ## 2. Candidats
 
@@ -34,14 +34,14 @@ Pic retenu = le plus grand du pic de l'ensemble de travail et du pic de mémoire
 | Candidat | Pic retenu (Mo) | Ensemble de travail / mémoire privée / validée (Mo) | Budget 4 096 Mo (marge) | Chargement (s) | Indexation médiane / max (s par page) | Requête médiane / max (ms) | Pages indexées | Vecteurs par page |
 |---|---|---|---|---|---|---|---|---|
 | ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | > 16384 (arrêté au plafond de sécurité ; RSS à l'arrêt 18750) | n/d | non | | | | | |
-| ColSmol-256M, ONNX fp32 (onnx-community) | 6118 | 4244 / 6118 / 6130 | non (-2022 Mo) | 1,7 | 9,6 / 10,9 | n/d / n/d | 12 | 871 |
+| ColSmol-256M, ONNX fp32 (onnx-community) | 6098 | 4224 / 6098 / 6109 | non (-2002 Mo) | 1,6 | 9,7 / 10,1 | 8967 / 9112 | 12 | 871 |
 
 ## 4. Qualité de la recherche et taille de l'index
 
 | Candidat | Requêtes | Rappel@1 | Rappel@3 | MRR | Index du corpus entier (Mo, fp16, extrapolé) | Indexation du corpus entier (min, extrapolé) |
 |---|---|---|---|---|---|---|
 | ColPali v1.3, ONNX fp16 (Qdrant, fastembed) | non mesuré (voir section 3) | | | | | |
-| ColSmol-256M, ONNX fp32 (onnx-community) | 0 | n/d | n/d | n/d | 5,5 (26 pages) | 4,2 |
+| ColSmol-256M, ONNX fp32 (onnx-community) | 8 | 0,62 | 0,88 | 0,76 | 5,5 (26 pages) | 4,2 |
 
 Colonnes « extrapolé » : calculées, non mesurées (vecteurs moyens par page x pages du corpus x 128 x 2 octets ; médiane d'indexation par page x pages du corpus).
 
@@ -84,7 +84,7 @@ Pistes si rien ne tient :
 
 ```yaml
 - source_spec: `_bmad-output/specs/spec-wavestack-v1-2-atelier-recherche-documentaire/stories/21-recherche-visuelle-sans-ocr.md`
-  summary: CAP-19, recherche visuelle sans OCR : ne tient pas. Aucun candidat mesuré ne tient. ColPali v1.3, ONNX fp16 (Qdrant, fastembed) : mémoire : arrêté au plafond de sécurité de 16384 Mo (RSS à l'arrêt 18750 Mo), bien au-delà du budget de 4096 Mo; ColSmol-256M, ONNX fp32 (onnx-community) : mémoire : pic 6118 Mo > 4096 Mo ; requêtes non exécutables : le graphe refuse l'entrée : Fail("[ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running Split node. Name:'/model/model/vision_model/embeddings/Split' Status Message: Cannot split using values in 'split' attribute. Axis=0 Input shape={0,32,32} NumOutputs=13 Num entries in 'split ; qualité non jugeable : 0 requêtes < 6.
+  summary: CAP-19, recherche visuelle sans OCR : ne tient pas. Aucun candidat mesuré ne tient. ColPali v1.3, ONNX fp16 (Qdrant, fastembed) : mémoire : arrêté au plafond de sécurité de 16384 Mo (RSS à l'arrêt 18750 Mo), bien au-delà du budget de 4096 Mo; ColSmol-256M, ONNX fp32 (onnx-community) : mémoire : pic 6098 Mo > 4096 Mo ; requête : médiane 8967.2 ms > 3000 ms.
   evidence: rapport-recherche-visuelle.md ; décision d'intégration (ou non) à prendre par Anaël. Pistes : quantification de ColSmol (int8 ou fp16 d'onnxruntime) pour baisser le pic de mémoire ; autre port ONNX : `guyettinger/colSmol-256M-dynamic-onnx` (tuiles dynamiques), ou un export dont l'encodeur de texte est séparé, pour qu'une requête ne paie pas le passage de vision ; ColQwen2.5 avec torch hors de l'application (service séparé) : contraire au budget et à « pas de torch », à décider par Anaël.
 ```
 

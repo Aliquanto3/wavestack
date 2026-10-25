@@ -1,6 +1,6 @@
 {
- "bench_sha256": "d9d3613dfd1fbba9f3d674545be8ba9a0cfb4d9f72173a539a5ec53f95f2868d",
- "commit": "e647ad100ae229a3da1c4fb58e30354cf0ec0674",
+ "bench_sha256": "85466510d7505183fdb726930abdc408bcf687ab7b33373338f0ab94c58a14df",
+ "commit": "15b013131ade711a6ee2ff8f85ef52d2dad77971",
  "corpus_pages": 26,
  "font": "consola.ttf",
  "lang": "fr",
