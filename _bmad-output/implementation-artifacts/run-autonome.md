@@ -207,3 +207,8 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 05:56 · run · décision · Anaël : CI découpée en 4 groupes par système (PR chore/ci-shards) et analyse des fichiers partagés de la V1.2 avant de planifier ses vagues · —
 - 2026-10-25 05:56 · run · décision · Anaël : mesurer l'effet d'un allègement ciblé des tests (tests lents, rechargements de modèle, tests instables) sans l'appliquer pendant le run · —
 - 2026-10-25 05:57 · run · décision · à revoir : V1.2 en deux pistes (chaîne et onglets), vagues V10 à V18 ; code JS de chaque onglet dans son propre fichier dès 12.4 · —
+- 2026-10-25 06:03 · 12.4 · dev · fini (fichier JS par onglet, épingle en localStorage) · e4db223
+- 2026-10-25 06:03 · 12.4 · décision · à revoir : épingle Comparer en localStorage ; titre « Atelier recherche documentaire », lien de barre « RAG » gardé ; questions de suivi exclues du sélecteur ; Comparer en 4 lignes sans synthèse · —
+- 2026-10-25 06:03 · run · PR · #98 ouverte (CI en 4 groupes, pytest-split 0.11.0) · 2345834
+- 2026-10-25 06:05 · 12.3 · fusion · #96 fusionnée · 377426f
+- 2026-10-25 06:05 · 12.4 · second-avis · lancé · e4db223
