@@ -795,3 +795,12 @@ d'autres (story 21) :
   question préparée ajoutée (n = 11, « non annoté ») ; le juge cloud refusé sans clé (409) ;
   aucune requête hors de `127.0.0.1` ; aucune moyenne dans Comparer ; capture
   `67-atelier-rag-evaluer.jpg`. Le bouton « Juger » n'est pas exercé (il exige un modèle).
+
+- `rag_lab_attack`, V1.2 story 17 (CAP-13), après `rag` et `rag_rerank` : l'onglet Attaquer, carte
+  « Document piégé » (bandeau « aucune donnée réelle ne sort », document inactif d'emblée puis
+  activé) ; les trois scénarios sans puis avec garde-fou (Prompt Guard n'est pas chargé : verdict
+  `not_installed`, verdict enregistré à côté, rien de téléchargé), modes Bloquer et Signaler, rangs
+  BM25, limite de PoisonedRAG, étapes du graphe jusqu'à la persistance puis la reconstruction ;
+  entrées « Démonstration Document piégé » au Journal de sécurité ; aucun événement de l'atelier ;
+  corpus de Construire inchangé ; aucune requête hors de `127.0.0.1` ; capture
+  `atelier-rag-attaquer-document-piege.jpg`.

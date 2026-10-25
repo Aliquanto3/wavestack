@@ -42,6 +42,7 @@ from wavestack.messages import in_language, msg, render
 from wavestack.models import catalog
 from wavestack.models.cloud_base import session_spend
 from wavestack.models.engine import SAMPLING_BOUNDS, Sampling
+from wavestack.rag import attack as rag_attack
 from wavestack.rag import diagnosis as rag_diagnosis
 from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag.lab import QUESTION_MAX, Pipeline
@@ -778,6 +779,29 @@ def create_app(
         found = rag_evaluation.replay_trap(trap_id, app_session.language)
         if found is None:
             raise HTTPException(status_code=404, detail="unknown trap")
+        return found
+
+    # ----- V1.2 story 17 (CAP-13): the Attack tab's « Document piégé » card -----
+
+    @app.get("/api/rag_lab/attack")
+    def rag_lab_attack_texts() -> dict[str, object]:
+        """V1.2 story 17: the card's texts, scenarios (with their provenance), default state
+        (the trap inactive) and whether the session's Prompt Guard is loaded. Read only."""
+        return app_session.rag_lab_attack_texts()
+
+    @app.post("/api/rag_lab/attack")
+    def rag_lab_attack(request: rag_attack.AttackRequest) -> dict[str, object]:
+        """V1.2 story 17: the target question's two columns, recomputed from the request (the
+        trap's activation is a field, nothing is kept). No model, no download, no network. An
+        unknown field or value: 422."""
+        return app_session.rag_lab_attack(request)
+
+    @app.get("/api/rag_lab/attack/cases/{scenario_id}")
+    def rag_lab_attack_case(scenario_id: str) -> dict[str, object]:
+        """V1.2 story 17: a scenario's recorded case replayed, no computation. 404: unknown."""
+        found = rag_attack.replay(scenario_id, app_session.language)
+        if found is None:
+            raise HTTPException(status_code=404, detail="unknown scenario")
         return found
 
     @app.get("/mcp")
