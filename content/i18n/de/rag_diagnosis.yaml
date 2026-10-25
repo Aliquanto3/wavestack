@@ -1,0 +1,141 @@
+# Story 9 (CAP-10), deutsche Überlagerung: dieselben Fälle und Verweise, übersetzte Texte.
+texts:
+  title_text: "Wo geht der richtige Ausschnitt verloren?"
+  hint_text: >-
+    Für eine vorbereitete Frage: der Rang der erwarteten Passage in jeder Stufe und die Stufe,
+    in der sie verschwindet oder abfällt. Keine Antwort des Modells wird gelesen: Nur die Ränge
+    zählen. Eine Frage, ein Lauf: der Mittelwert über mehrere Fragen gehört zum Tab Bewerten.
+  free_question_text: "Freie Frage: Wählen Sie eine vorbereitete Frage, um die erwartete Passage zu kennen."
+  no_expected_text: "Diese Frage hat keine Passage zu finden: Es gibt nichts zu diagnostizieren."
+  wait_text: "Starten Sie die Kette mit dieser Frage, um den Rang der erwarteten Passage in jeder Stufe zu sehen."
+  passage_text: "Erwartete Passage in {doc}"
+  rank_text: "Rang {rank} von {of}"
+  absent_text: "fehlt"
+  whole_text: "ganz in einem Chunk"
+  cut_chunk_text: "zwischen zwei Chunks getrennt"
+  fault_text: "Fehlerhafte Stufe: {stage}"
+  no_fault_text: "Keine fehlerhafte Stufe: Die Passage erreicht den Kontext."
+  rescued_text: "Danach gerettet durch: {stage}"
+  middle_text: "In der Mitte des Kontexts: Modelle lesen die ersten und letzten Ausschnitte besser."
+  budget_text: "Kontextbudget: {budget} Passagen. Tolerierter Abfall: {tolerance} Ränge."
+  stages:
+    chunking_text: "Chunking"
+    vector_search_text: "Vektorsuche"
+    lexical_search_text: "BM25-Suche"
+    fusion_text: "Fusion"
+    rerank_text: "Reranking"
+    context_text: "Kontext"
+  reasons:
+    not_indexed_text: "Die Passage steht in keinem Chunk: Sie ist nicht im Index."
+    missing_text: "Die Passage steht nicht mehr in der Liste dieser Stufe."
+    ranked_low_text: "Die Passage liegt jenseits des Kontextbudgets."
+    fell_text: "Die Passage fällt um mehr Ränge als der tolerierte Abfall."
+    cut_text: "Die Passage wird gefunden, aber das Kontextbudget schneidet sie ab."
+  cases_title_text: "Wo der Fehler entsteht"
+  cases_hint_text: "Drei aufgezeichnete Fehlschläge, jeder in einer anderen Stufe entstanden. Ein Klick spielt sie ab: kein Modell, kein Index, keine berechneten Vektoren."
+  replay_badge_text: "Aufgezeichneter Lauf, kein Aufruf des Modells"
+  replay_failed_text: "Fall nicht gefunden."
+  run_unavailable_text: "Die Diagnose ist nicht erreichbar."
+cases:
+  - id: not_indexed
+    question_id: q_cross_lyon
+    chunk_max_chars: 200
+    top_k: 3
+    expected_fault: chunking:not_indexed
+    title_text: "Die Passage steht nicht im Index"
+    explain_text: >-
+      Der Kontinuitätsplan von Lyon fasst seine Regel in einem langen Satz zusammen. Bei Chunks von höchstens 200 Zeichen schneidet das Chunking ihn entzwei: Kein Chunk enthält den ganzen Satz. Nichts weiter hinten in der Kette findet ihn wieder, egal welches Reranking.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 1}
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 1}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: context
+        items:
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+  - id: ranked_low
+    question_id: q_fact_sauvegarde
+    chunk_max_chars: 700
+    top_k: 3
+    expected_fault: vector_search:ranked_low
+    title_text: "Von der Suche schlecht eingestuft, vom Reranking gerettet"
+    explain_text: >-
+      Die Vektorsuche setzt die Passage zur 3-2-1-Regel auf Rang sechs, außerhalb des Budgets von 3 Passagen. Das Reranking hebt sie an die Spitze: Ohne es hätte der Kontext sie verloren. Der Fehler entsteht bei der Suche, eine andere Stufe behebt ihn.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: ia_generative, other: 0}
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: ia_generative, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: context
+        items:
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+  - id: cut_by_budget
+    question_id: q_fact_badge
+    chunk_max_chars: 700
+    top_k: 3
+    expected_fault: context:cut
+    title_text: "In der Liste, aber vom Budget abgeschnitten"
+    explain_text: >-
+      Die Suche setzt sie auf Rang drei, das Reranking lässt sie auf Rang vier: Der Abstand ist klein, keine der beiden Stufen ist schuld. Aber der Kontext behält nur 3 Passagen: Die vierte wird vor dem Prompt abgeschnitten, und das Modell erfährt nichts davon.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: acces_physique, passage: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: acces_physique, passage: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+      - kind: context
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}

@@ -9,7 +9,7 @@ context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-v2/brownfield.md'
 ---
 
-> Brouillon non déclenché. Dépend des stories 1 à 3.
+> Brouillon non déclenché. Dépend des stories 1 à 3. Partiellement absorbée par la V1.2, story 9 (CAP-10, `spec-wavestack-v1-2-atelier-recherche-documentaire/stories/9-diagnostic-du-bon-extrait.md`) : rang du bon extrait par étape de l'Atelier RAG, étape fautive et trois cas rejoués. Reste à faire : le module V2 et ses scénarios (`scenarios.yaml`), le rattachement des prompts suggérés aux questions, le lancement depuis la vue harnais.
 
 ## Intent
 

@@ -6695,7 +6695,8 @@ class AppSession:
     def reset(self) -> None:
         """Class (b): back to the launch state: bare LLM, no turn, no scenario. Lot 4 of
         2026-10-04 (AD-27): the MCP workshop's connection closed too, its series forgotten."""
-        self._reconfigure(None, lambda: None)
+        # V1.2 story 5: the workshop's questions, read by `follow_up`, are forgotten too.
+        self._reconfigure(None, self._rag_lab_asked.clear)
         self._mcp_lab_reset()
 
     def _reconfigure(
@@ -10701,9 +10702,8 @@ class AppSession:
                 lab_run = rag_lab.LabRun(run_id, question, chain, deps)
             else:
                 lab_run = rag_lab.UpdateRun(run_id, question, chain, deps, *update)
-            outcome = lab_run.run()
-            if update is not None and outcome == "ok":
-                workcopy.save(update[1], self._language)  # kept only when it was measured
+                lab_run.keep = lambda copy: workcopy.save(copy, self._language)
+            lab_run.run()
         except Exception as exc:  # noqa: BLE001 - AD-16: the state still comes back
             with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
                 self._error(

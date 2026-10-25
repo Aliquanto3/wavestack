@@ -65,6 +65,19 @@ def chain_with(session, option: str, *, hybrid: bool = False) -> rag_lab.Pipelin
         ("follow_up", "1. Et pour les stagiaires ?", ["Et pour les stagiaires ?"]),
         ("decompose", "- a\n2) b\n* a\n\n« c »\nd\ne", ["a", "b", "c", "d"]),
         ("hyde", "Le télétravail\n est de deux jours.", ["Le télétravail est de deux jours."]),
+        # A preamble is not a query (review of V1.2 story 5).
+        (
+            "rewrite",
+            "Voici la question reformulée :\n« jours de télétravail »",
+            ["jours de télétravail"],
+        ),
+        (
+            "follow_up",
+            "Question autonome : « Combien de jours pour les stagiaires ? »",
+            ["Combien de jours pour les stagiaires ?"],
+        ),
+        ("decompose", "Sous-questions :\n1. a ?\n2. b ?", ["a ?", "b ?"]),
+        ("rewrite", "Télétravail : combien de jours ?", ["Télétravail : combien de jours ?"]),
         ("rewrite", " \n ", []),
         ("hyde", "", []),
     ],
@@ -150,6 +163,15 @@ def test_follow_up_reads_the_questions_asked_before(index):
     assert QUESTION in query["input_text"]
     assert QUESTION in query["prompt_text"]
     assert query["queries"] == [standalone]
+
+
+def test_the_reset_forgets_the_questions_asked_before(index):
+    session = ready(index, ANSWER)
+    chain = chain_with(session, "follow_up")
+    run(session, QUESTION, chain)
+    session.reset()  # back to the launch state: no previous question for `follow_up`
+    again = ended(run(session, "Et pour les stagiaires ?", chain), "query")
+    assert again["status"] == "skipped" and again["queries"] == []
 
 
 def test_a_model_that_says_nothing_leaves_the_question_as_typed(index):
