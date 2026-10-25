@@ -225,6 +225,10 @@ options:
       label_text: "Ganzer Korpus im Prompt (langer Kontext)"
     cached_corpus:
       label_text: "Ganzer Korpus im Cache des Modells (CAG)"
+    agent_loop:
+      label_text: "Agentische Suche (Werkzeuge auf den Dateien)"
+    section_tree:
+      label_text: "Abschnittsbaum (PageIndex)"
   generation:
     active:
       label_text: "Aktives Modell der Werkstatt"
@@ -340,6 +344,19 @@ steps:
       Schnitt in Tokens des gesendeten Prompts, bis zum letzten Zeilenende vor der Frage. Jede
       Aktualisierung des Korpus lädt es vollständig neu, und der Zustand belegt Speicher,
       solange er behalten wird.
+  # V1.2 story 11: PageIndex's tree built once, gone down at each question; the agent's calls.
+  tree_build:
+    label_text: "Tree building"
+    action_text: "Den Abschnittsbaum der Dokumente aufbauen"
+    explain_text: "PageIndex baut einmal einen Baum des Korpus: die Wurzel, ein Knoten je Dokument, einer je Abschnitt, jeder mit Titel und kurzer Zusammenfassung. Der mitgelieferte Baum ist nach einer Regel berechnet, ohne Modell; „Neu aufbauen“ lässt das aktive Modell die Zusammenfassungen schreiben. Die Aktualisierung eines Dokuments berechnet nur seinen Teilbaum neu."
+  agent_calls:
+    label_text: "Tool calls"
+    action_text: "Das Modell wählt eine Aktion, das Werkzeug liest sie im Korpus"
+    explain_text: "In jeder Runde antwortet das Modell mit einer Zeile ACTION: list_files, grep <Wörter>, read_file <Name> oder ANSWER. Die Werkzeuge lesen die Arbeitskopie im Speicher, nie die Festplatte: Ein Name außerhalb des Korpus wird abgelehnt und dem Modell gesagt. Jedes Werkzeugergebnis wird ein Element des Kontexts. Die Schleife endet bei ANSWER, in der 6. Runde oder nach zwei unlesbaren Antworten."
+  tree_levels:
+    label_text: "Tree descent"
+    action_text: "Das Modell wählt Ebene für Ebene die zu öffnenden Knoten"
+    explain_text: "Auf jeder Ebene liest das Modell die nummerierte Liste der Kinder der behaltenen Knoten (Titel und Zusammenfassung) und antwortet CHOICE: 3, 7 (höchstens zwei) oder CHOICE: NONE. Ein Aufruf je Ebene: zwei beim mitgelieferten Korpus (die Dokumente, dann die Abschnitte). Der ganze Text der erreichten Abschnitte wird der Kontext."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -376,6 +393,12 @@ components:
   model_cache:
     label_text: "Model cache"
     note_text: "Der Zustand des Modells nach dem Präfix (CAG)"
+  file_tools:
+    label_text: "Werkzeuge auf den Dateien"
+    note_text: "list_files, grep, read_file, auf den Korpus beschränkt"
+  section_tree:
+    label_text: "Abschnittsbaum"
+    note_text: "Dokumente und Abschnitte, Titel und Zusammenfassungen"
 
 groups:
   data:
@@ -429,10 +452,24 @@ presets:
       Kein Index, keine Suche: Der Korpus wird einmal ausgewertet und im Speicher des lokalen
       Modells behalten; jede Anfrage wertet nur die Frage aus. Jede Aktualisierung lädt das
       ganze Präfix neu. Es braucht ein lokales Modell und ein Fenster von 16.384 Tokens.
+  agentic:
+    label_text: "Agentische Suche"
+    explain_text: >-
+      Kein Index: Das Modell durchsucht den Korpus selbst mit drei Werkzeugen (auflisten, Wörter
+      suchen, ein Dokument lesen), eine Aktion je Runde, bis zu sechs. Nichts aufzubauen oder
+      zu aktualisieren, aber mehrere Modellaufrufe bei jeder Anfrage.
+  pageindex:
+    label_text: "PageIndex"
+    explain_text: >-
+      Keine Vektoren: ein Baum der Dokumente und ihrer Abschnitte, einmal aufgebaut, den das
+      Modell Ebene für Ebene hinabsteigt und dabei Titel und Zusammenfassungen liest. Ein Baum
+      zum Aufbauen und bei jeder Aktualisierung neu, wenige Aufrufe je Anfrage.
 # V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
 preset_families:
   search:
     label_text: "Suche"
+  structure:
+    label_text: "Struktur"
   no_index:
     label_text: "Ohne Index"
 
@@ -806,3 +843,25 @@ sheets:
     sources:
       - label_text: "Chan et al., Don't Do RAG: When Cache-Augmented Generation is All You Need for Knowledge Tasks (2024)"
         url: "https://arxiv.org/abs/2412.15605"
+  context.agent_loop:
+    purpose_text: "Nichts indexieren: Das Modell durchsucht die Korpusdateien selbst, mit drei Werkzeugen (list_files, grep, read_file), auf die Arbeitskopie beschränkt, eine Aktion je Runde, bis ANSWER oder zur Obergrenze von sechs Runden. Was die Werkzeuge zurückgeben, wird der Kontext."
+    when_text: "Zu verwenden bei einem volatilen Korpus, der sich oft ändert: nichts neu aufzubauen, ein hinzugefügtes Dokument wird ab der nächsten Anfrage gefunden. Zu vermeiden, wenn die Anfrage schnell oder günstig sein muss, und bei einem großen Korpus: Der Vorteil verschwindet bei 100 bis 1 000 Dokumenten. Ein kleines Modell befolgt das Protokoll vielleicht nicht: Die Schleife endet dann mit einer Warnung."
+    cost_text: "Kein Aufbau, keine Aktualisierung: kein Index. Jede Anfrage kostet mehrere Modellaufrufe (einer je Runde, der Prompt jedes Mal neu gelesen) und dann die Generierung: Die Zeit Anfrage zeigt es, zum Vergleich mit dem dichten RAG in Vergleichen."
+    literature_text: "Hypothese H5, teilweise gestützt: Die agentische Suche erreicht ein RAG, kostet aber mehr, 3,3-mal mehr Tokens (arXiv 2601.07711) und bis zu 107 s je Anfrage (arXiv 2610.05750); sie gewinnt bei einem volatilen Korpus, was nie getestet wurde. Die Messungen auf dem Ziel-PC stehen noch aus."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2601.07711: agentische Suche auf Dateien, 3,3-mal mehr Tokens als ein RAG"
+        url: "https://arxiv.org/html/2601.07711v2"
+      - label_text: "arXiv 2610.05750: Agenten für Dokumentensuche, bis zu 107 s je Anfrage"
+        url: "https://arxiv.org/pdf/2610.05750"
+  context.section_tree:
+    purpose_text: "Ohne Vektoren in einem einmal aufgebauten Abschnittsbaum suchen (der Korpus, seine Dokumente, ihre Abschnitte, mit Titel und Zusammenfassung): Das Modell steigt Ebene für Ebene ab und wählt höchstens zwei Knoten, und der ganze Text der erreichten Abschnitte wird der Kontext."
+    when_text: "Zu verwenden bei langen, strukturierten Dokumenten, wenn die Frage auf einen bestimmten Abschnitt zielt. Zu vermeiden bei einem Korpus, der sich oft ändert (der Baum ist neu aufzubauen), oder wenn Titel und Zusammenfassungen den Inhalt schlecht wiedergeben: Eine falsche Wahl auf der ersten Ebene verliert die Antwort."
+    cost_text: "Der Aufbau des Baums ist der Aufbau-Kosten: nach der Regel einige Millisekunden und kein Token; durch das Modell („Neu aufbauen“) ein Aufruf je Knoten. Jede Anfrage kostet einen Aufruf je Ebene (zwei beim mitgelieferten Korpus) und dann die Generierung. Eine Aktualisierung berechnet den Teilbaum des betroffenen Dokuments neu."
+    literature_text: "Hypothese H4, teilweise gestützt, vor allem vom Herausgeber: PageIndex gewönne bei langen, strukturierten Dokumenten, zu höheren LLM-Kosten. Eine unabhängige Studie mit 50 Fragen misst eine Latenz von etwa dem 1,7-Fachen eines RAG (arXiv 2604.14222). Der hier mitgelieferte Baum ist nach einer Regel berechnet, ohne Modell."
+    bench_text: ""
+    sources:
+      - label_text: "PageIndex (Vectify AI), vektorlose Suche über einen Abschnittsbaum"
+        url: "https://github.com/VectifyAI/PageIndex"
+      - label_text: "arXiv 2604.14222: PageIndex an 50 Fragen bewertet, Latenz ~1,7-fach"
+        url: "https://arxiv.org/html/2604.14222v1"

@@ -407,6 +407,15 @@ sable : la brique RAG de l'atelier (ses réglages, son index, ses modèles) ne c
   deux exigent une fenêtre effective de 16 384 tokens (sélecteur « Fenêtre » de la page
   Conversation, dans la limite du modèle ou du `-c` du serveur), le CAG un modèle local ; sinon
   leur bouton est grisé avec la raison. La taille de l'état gardé est dans le focus du Contexte.
+  « Recherche agentique » (famille « Sans index », V1.2) laisse le modèle fouiller lui-même le
+  corpus avec trois outils (`list_files`, `grep`, `read_file`, confinés à la copie de travail,
+  jamais au disque), une action par tour, six tours au plus ; rien à construire ni à mettre à
+  jour, plusieurs appels au modèle à chaque requête. « PageIndex » (famille « Structure ») fait
+  descendre le modèle dans un arbre des documents et de leurs sections (titres et résumés), un
+  appel par niveau ; l'arbre livré est calculé par une règle, sans modèle, « Reconstruire »
+  dans la carte « Arbre » fait réécrire ses résumés par le modèle actif et « Rétablir » rend
+  l'arbre livré. Les deux restent applicables sans modèle (le Contexte est alors sauté) ; le
+  focus du Contexte liste les tours de la boucle ou les niveaux de la descente.
 - **L'exécution.** « Lancer la chaîne » exécute chaque étape sur la question (500 caractères au
   plus) et montre ce qu'elle reçoit, ce qu'elle produit, ses chiffres, ses extraits (rang, rang
   d'avant, document, score), sa durée et la mémoire de WaveStack. La chaîne livrée lit l'index

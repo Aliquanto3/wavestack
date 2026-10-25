@@ -7,8 +7,9 @@ the sentinel, chunked as the workshop chunks them. The shipped corpus, `rag.yaml
 contexts, the index and the work copy are never read for writing.
 
 What is measured, without any model: the text of the chunks, BM25's inverted index, the
-heuristic contexts recomputed in memory, the shipped contexts file (read as it is), the source.
-What a model would produce (summaries, tree, graph, wiki, prompt cache) is a *constructed* case,
+heuristic contexts recomputed in memory, the shipped contexts file (read as it is), the source,
+and (V1.2 story 11) PageIndex's tree, the rule's, recomputed in memory.
+What a model would produce (summaries, graph, wiki, prompt cache) is a *constructed* case,
 shown as illustrative with the story that will replace it. The status of every place is
 computed, never declared: it is the search of the code in the place's current content. Nothing
 is generated, loaded, downloaded or sent.
@@ -35,6 +36,7 @@ from wavestack.rag.corpus import (
 )
 from wavestack.rag.index import passage_text
 from wavestack.rag.lab import bm25, bm25_terms, lexical_index
+from wavestack.rag.pageindex import build_tree
 
 FILE = "rag_erasure.yaml"
 ARCHITECTURES = (
@@ -64,8 +66,9 @@ Architecture = Literal[
     "crag",
 ]
 STEPS = ("idle", "start", "erase", "rebuild")
-MEASURED = ("chunks", "bm25", "contexts", "shipped_contexts", "source")
+MEASURED = ("chunks", "bm25", "contexts", "shipped_contexts", "source", "pageindex_tree")
 MODE_OF_MEASURED = {
+    "pageindex_tree": "rebuild",  # V1.2 story 11: the rule's tree, recomputed in memory
     "chunks": "delete",
     "bm25": "delete",
     "contexts": "rebuild",
@@ -128,7 +131,9 @@ class ArchitectureInfo(_Strict):
 class Place(_Strict):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     erase_mode: Literal["delete", "rebuild", "reload", "none"]
-    measured: Literal["chunks", "bm25", "contexts", "shipped_contexts", "source"] | None = None
+    measured: (
+        Literal["chunks", "bm25", "contexts", "shipped_contexts", "source", "pageindex_tree"] | None
+    ) = None
     provenance: Provenance | None = None
     story: int | None = None
     architectures: list[Architecture] = Field(min_length=1)
@@ -258,6 +263,10 @@ class Copies(NamedTuple):
     shipped_contexts: list[str]
     index_counts: list[dict[str, int]]  # BM25's inverted index, one document per chunk
     terms: list[str]
+    # V1.2 story 11: PageIndex's tree by the rule, a node each (its title and its summary,
+    # what the tree copies of the documents), with the sentinel and without it.
+    tree_with: list[str] = []
+    tree_without: list[str] = []
 
 
 def build_copies(content: ErasureContent, lang: str) -> Copies:
@@ -271,6 +280,10 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
     def contexts(documents: list[DocText]) -> list[str]:
         made = chunk_documents(documents, content.chunk_max_chars)
         return [e.context_text for e in heuristic_entries(documents, made, say)]
+
+    def tree(documents: list[DocText]) -> list[str]:
+        nodes = build_tree(documents).values()
+        return [f"{n.title_text} — {n.summary_text}" for n in nodes]
 
     shipped = load_book(lang).shipped  # the shipped file alone, never the rebuilt one
     index = lexical_index([passage_text(c) for c in chunks], lang)
@@ -286,6 +299,8 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         shipped_contexts=[e.context_text for e in shipped.entries] if shipped else [],
         index_counts=index.counts,
         terms=bm25_terms(content.code, lang),
+        tree_with=tree(docs_with),
+        tree_without=tree(docs_without),
     )
 
 
@@ -301,6 +316,8 @@ def _items(place: Place, copies: Copies, erased: bool, rebuilt: set[str]) -> lis
         return copies.contexts_without if rebuilding else copies.contexts_with
     if place.measured == "shipped_contexts":
         return copies.shipped_contexts
+    if place.measured == "pageindex_tree":  # V1.2 story 11
+        return copies.tree_without if rebuilding else copies.tree_with
     if place.measured == "source":
         return [d.text for d in (copies.docs_without if erased else copies.docs_with)]
     assert place.text and place.rebuilt_text  # noqa: S101 - validated at the load

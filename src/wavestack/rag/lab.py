@@ -23,6 +23,7 @@ import time
 import unicodedata
 from array import array
 from collections.abc import Callable, Sequence
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
@@ -37,9 +38,9 @@ from wavestack.messages import KeyedError, Lazy, Message, join, msg, number, ren
 from wavestack.models.embedding import Embedder
 from wavestack.models.load_registry import LoadRegistry
 from wavestack.models.reranker import RerankCancelled, Reranker
+from wavestack.rag import agent_tools, pageindex, workcopy
 from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import index as rag_index
-from wavestack.rag import workcopy
 from wavestack.rag.corpus import (
     Chunk,
     DocText,
@@ -93,7 +94,18 @@ OPTIONS: dict[str, tuple[str, ...]] = {
     # budget of tokens, then the passages are ordered « extremities first », then compressed.
     # V1.2 story 10: the architectures without an index read the whole corpus instead, in the
     # prompt at each question (`full_corpus`) or once in the model's cache (`cached_corpus`).
-    "context": ("excerpts", "budget", "order", "compress", "full_corpus", "cached_corpus"),
+    # V1.2 story 11 (CAP-7): searching without vectors, the model searches by itself: with
+    # tools on the corpus (`agent_loop`), or going down a tree of sections (`section_tree`).
+    "context": (
+        "excerpts",
+        "budget",
+        "order",
+        "compress",
+        "full_corpus",
+        "cached_corpus",
+        "agent_loop",
+        "section_tree",
+    ),
     # Lot 5c-3: the workshop's active model generates (the shipped one), or nothing is sent.
     "generation": ("active", "not_run"),
 }
@@ -158,6 +170,19 @@ QUESTION_MAX = 500  # the characters of a question the workshop accepts
 # effective window they need (the largest of `config.WINDOW_CHOICES`).
 CORPUS_OPTIONS = ("full_corpus", "cached_corpus")
 NO_INDEX_WINDOW = 16384
+# V1.2 story 11: the Context options that have no retrieval segment (they search by themselves
+# or read everything), and the bounds of the agentic search and of PageIndex's descent
+# (constants, no setting: the loop's rounds, the tokens a model's action may write).
+SEARCHLESS_OPTIONS = (*CORPUS_OPTIONS, "agent_loop", "section_tree")
+MAX_AGENT_ROUNDS = 6
+UNREADABLE_MAX = 2  # unreadable answers in a row that stop the loop
+AGENT_RESERVE = 128
+ACTION_ARG_MAX_CHARS = agent_tools.ACTION_ARG_MAX_CHARS
+AGENT_RESULT_MAX_TOKENS = agent_tools.AGENT_RESULT_MAX_TOKENS
+PAGEINDEX_BREADTH = pageindex.PAGEINDEX_BREADTH
+TREE_SUMMARY_MAX_CHARS = pageindex.TREE_SUMMARY_MAX_CHARS
+TREE_SOURCE_MAX_TOKENS = 1500  # what a summary's rewrite reads of a node's text
+PREVIEW_CHARS = 200  # the characters of a tool's result or a model's answer the event keeps
 STATUSES = ("ok", "error", "skipped", "cancelled", "not_run")
 EMBED_BATCH = 8  # passages embedded at a time: « Arrêter » and the progress between batches
 PROGRESS_INTERVAL_S = 0.1  # `rag_lab_stage_progress` at most ten times a second
@@ -185,6 +210,9 @@ COMPONENTS: dict[str, tuple[str, str, str | None]] = {
     "answer": ("exchange", "💡", None),
     # V1.2 story 10: the prefix the CAG keeps in the model's memory.
     "model_cache": ("models", "🗃️", None),
+    # V1.2 story 11: the agent's tools on the corpus files, and PageIndex's tree of sections.
+    "file_tools": ("models", "🛠️", None),
+    "section_tree": ("data", "🌳", None),
 }
 
 
@@ -236,7 +264,8 @@ STEPS: dict[str, SequenceStep] = {
         own=False,
         reads=("question",),
         calls=("embedding_model",),
-        hidden_with=CORPUS_OPTIONS,  # V1.2 story 10: no vector search, no question embedded
+        # V1.2 stories 10, 11: no vector search, no question embedded
+        hidden_with=SEARCHLESS_OPTIONS,
     ),
     # V1.2 story 5: the queries the searches will run (the question, rewritten or split).
     "query": SequenceStep("run", "query", reads=("question",), calls=("llm",)),
@@ -262,6 +291,32 @@ STEPS: dict[str, SequenceStep] = {
         part="prefix",
         options=("cached_corpus",),
     ),
+    # V1.2 story 11: PageIndex's tree, built once from the documents (its cost: `build`), then
+    # gone down at each question; the agent's calls, each a model's action on the files.
+    "tree_build": SequenceStep(
+        "build",
+        "context",
+        own=False,
+        reads=("documents",),
+        writes=("section_tree",),
+        options=("section_tree",),
+    ),
+    "agent_calls": SequenceStep(
+        "run",
+        "context",
+        own=False,
+        reads=("documents", "question"),
+        calls=("llm", "file_tools"),
+        options=("agent_loop",),
+    ),
+    "tree_levels": SequenceStep(
+        "run",
+        "context",
+        own=False,
+        reads=("section_tree", "question"),
+        calls=("llm",),
+        options=("section_tree",),
+    ),
 }
 
 # ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
@@ -276,13 +331,23 @@ PRESETS: dict[str, tuple[tuple[str, str], ...]] = {
     # V1.2 story 10: no search at all, the Context reads the whole corpus (`PRESET_CONTEXT`).
     "long_context": (),
     "cag": (),
+    # V1.2 story 11: no search segment either, the Context searches by itself.
+    "agentic": (),
+    "pageindex": (),
 }
 # V1.2 story 10: the Context option a preset sets (the others keep the chain's Context).
-PRESET_CONTEXT: dict[str, str] = {"long_context": "full_corpus", "cag": "cached_corpus"}
+PRESET_CONTEXT: dict[str, str] = {
+    "long_context": "full_corpus",
+    "cag": "cached_corpus",
+    "agentic": "agent_loop",  # V1.2 story 11
+    "pageindex": "section_tree",
+}
 # V1.2 story 10 (vues.md): the presets' families, drawn in this order; each preset is in one.
+# V1.2 story 11: « Structure » between « Recherche » and « Sans index » (the mock-up's order).
 PRESET_FAMILIES: dict[str, tuple[str, ...]] = {
     "search": ("dense", "hybrid", "rerank"),
-    "no_index": ("long_context", "cag"),
+    "structure": ("pageindex",),
+    "no_index": ("long_context", "cag", "agentic"),
 }
 
 
@@ -773,6 +838,8 @@ class Catalog:
                 for f in PRESET_FAMILIES
             ],
             "corpus_options": list(CORPUS_OPTIONS),
+            # V1.2 story 11: every Context option without a retrieval segment (`rag.js`).
+            "searchless_options": list(SEARCHLESS_OPTIONS),
         }
 
     def kind_options(self, kind: str) -> list[str]:
@@ -966,13 +1033,13 @@ def check_pipeline(
     searches = [s for s in segment if s.kind in SEARCHES]
     # V1.2 story 10: a Context that reads the whole corpus takes no search, nor any stage of
     # the segment; the head stays in the chain without running (its availability unchecked).
-    whole = stages[-len(tail)].option in CORPUS_OPTIONS
+    # V1.2 story 11: the same for a Context that searches by itself (its own message).
+    context_option = stages[-len(tail)].option
+    whole = context_option in SEARCHLESS_OPTIONS
     if whole and segment:
-        option = catalog.option_label("context", stages[-len(tail)].option)
-        return (
-            text("corpus_needs_no_search", stage=names[segment[0].kind], option=option),
-            segment[0].id,
-        )
+        option = catalog.option_label("context", context_option)
+        key = "corpus_needs_no_search" if context_option in CORPUS_OPTIONS else "searches_itself"
+        return text(key, stage=names[segment[0].kind], option=option), segment[0].id
     if not whole:
         refused = _segment_refusal(segment, searches, names, text, stages[-len(tail)].id)
         if refused is not None:
@@ -1790,6 +1857,11 @@ class LabDeps:
     # -> `CagPrefix` measured in `update`; `None`: no local model, the part is estimated.
     window: int = 0
     cag: Callable[[str, str], CagPrefix] | None = None
+    # V1.2 story 11: the generation's output reserve (the final prompt holds in `window −
+    # reserve`), and the frame the session puts around a stage's several model calls (the
+    # agent's rounds, the descent's levels): the main context's engine state saved once.
+    reserve: int = 0
+    model_scope: Callable[[], AbstractContextManager[Any]] = nullcontext
 
 
 @dataclass
@@ -1860,6 +1932,9 @@ class _Result:
     # V1.2 story 10: the window a whole corpus is shown against, and the CAG's cache.
     window: int | None = None
     cache: dict[str, Any] | None = None
+    # V1.2 story 11: the agent's rounds (`agent_loop`) and the descent's levels (`section_tree`).
+    agent: dict[str, Any] | None = None
+    tree: dict[str, Any] | None = None
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -2036,15 +2111,16 @@ class LabRun:
             "rag_lab",
         )
 
-    def _whole_corpus(self, chain: _Chain) -> bool:
-        """V1.2 story 10: the chain's Context reads the whole corpus (no index, no search)."""
+    def _searchless(self, chain: _Chain) -> bool:
+        """V1.2 story 10: the chain's Context reads the whole corpus (no index, no search);
+        V1.2 story 11: or searches by itself (the agent's tools, PageIndex's tree)."""
         context = chain.pipeline.find("context")
-        return context is not None and context.option in CORPUS_OPTIONS
+        return context is not None and context.option in SEARCHLESS_OPTIONS
 
     def _run_chain(self, chain: _Chain) -> None:
         stopped = False  # an earlier stage failed or was stopped: the rest is skipped
         indexed = False  # B2: BM25's index part run (at the end of BUILD)
-        whole = self._whole_corpus(chain)
+        whole = self._searchless(chain)
         for index, stage in enumerate(chain.pipeline.stages, start=1):
             if not indexed and stage.kind not in FIXED_HEAD:
                 indexed = True
@@ -2059,7 +2135,9 @@ class LabRun:
             if whole and stage.kind in FIXED_HEAD:
                 # V1.2 story 10: in the chain, never run: nothing indexed, nothing to build.
                 unused = _Result(costs=[StageCost("build", stage.kind, 0, 0, 0.0, NO_IMPACT)])
-                reason = self._text("stage.not_used")
+                context = chain.pipeline.find("context")
+                corpus = context is not None and context.option in CORPUS_OPTIONS
+                reason = self._text("stage.not_used" if corpus else "stage.not_used_searchless")
                 self._ended(step_id, component, base, "skipped", unused, reason, 0, None)
                 continue
             if stage.kind == "generation" and stage.option == "not_run":
@@ -2212,6 +2290,8 @@ class LabRun:
                 "prompt_tokens": result.prompt_tokens,
                 "window": result.window,
                 "cache": result.cache,
+                "agent": result.agent,
+                "tree": result.tree,
             },
             step_id,
             component,
@@ -2258,7 +2338,12 @@ class LabRun:
         if stage.kind == "rerank":
             return self._rerank(chain, stage, progress)
         if stage.kind == "context":
-            return self._context(chain, stage)
+            # V1.2 story 11: one progress event per round of the agent, per level of the tree.
+            def tick(done: int, total: int) -> None:
+                payload = base | {"done": done, "total": total}
+                self._emit("rag_lab_stage_progress", payload, step_id, component)
+
+            return self._context(chain, stage, step_id, tick)
         if stage.kind == "generation":
             return self._generation_run(chain, step_id, progress)
         raise StageFailed(Message("rag_lab.stage.unknown", kind=stage.kind))
@@ -3278,7 +3363,17 @@ class LabRun:
             items=items,
         )
 
-    def _context(self, chain: _Chain, stage: Stage) -> _Result:
+    def _context(
+        self,
+        chain: _Chain,
+        stage: Stage,
+        step_id: str = "",
+        tick: Callable[[int, int], None] = lambda *_: None,
+    ) -> _Result:
+        if stage.option == "agent_loop":  # V1.2 story 11
+            return self._context_agent(chain, step_id, tick)
+        if stage.option == "section_tree":
+            return self._context_tree(chain, step_id, tick)
         if stage.option in CORPUS_OPTIONS:
             return self._context_corpus(chain, stage)
         ranked = chain.ranked
@@ -3536,6 +3631,506 @@ class LabRun:
             result.facts.append((say("fact.cache"), say("context.cached_note")))
         return result
 
+    # -- V1.2 story 11: searching without vectors (the agent's tools, PageIndex's tree) --
+
+    def _ask(self, step_id: str, instruction: str, context_text: str, question: str) -> Generated:
+        """One short call of the active model (an action, a choice, a summary): its own
+        instruction, no reasoning, at most `AGENT_RESERVE` tokens written."""
+        assert self.deps.generator is not None  # checked by the caller
+        ask = GenerationAsk(
+            context_text=context_text,
+            question=question,
+            step_id=step_id,
+            progress=lambda *_: None,
+            cancelled=self.deps.cancelled,
+            instruction=instruction,
+            reserve=AGENT_RESERVE,
+        )
+        return self.deps.generator(ask)
+
+    @staticmethod
+    def _call_cost(phase: str, kind: str, got: Generated) -> StageCost:
+        return StageCost(
+            phase,
+            kind,
+            got.prompt_tokens + got.output_tokens,
+            got.duration_ms,
+            got.cost_usd,
+            got.impact,
+            note_text=None
+            if got.cost_usd is not None or got.impact is not None
+            else Message("rag_lab.costs.generation_unpriced"),
+        )
+
+    def _room(self, *texts: str) -> int | None:
+        """The estimated tokens a short call's prompt has left, `window − reserve` minus the
+        texts it always sends; `None` when the window is unknown (no bound)."""
+        if not self.deps.window:
+            return None
+        used = sum(self.deps.estimate_tokens(t) for t in texts)
+        return self.deps.window - AGENT_RESERVE - used
+
+    @staticmethod
+    def _preview(text: str) -> str:
+        flat = " ".join(text.split())
+        return flat if len(flat) <= PREVIEW_CHARS else flat[: PREVIEW_CHARS - 1].rstrip() + "…"
+
+    def _searchless_items(
+        self, found: Sequence[tuple[str, str, str, bool, dict[str, Any]]]
+    ) -> list[Item]:
+        """The context's elements, in the order read: `(doc_id, title, text, cut, source)`,
+        each formatted as an excerpt at its rank."""
+        items = []
+        for rank, (doc_id, title, raw, cut, source) in enumerate(found, start=1):
+            formatted = self.deps.content.excerpt(rank, title, raw)
+            items.append(
+                Item(
+                    rank,
+                    doc_id,
+                    title,
+                    formatted,
+                    None,
+                    rank=rank,
+                    placed=rank,
+                    state="cut" if cut else "whole",
+                    tokens=self.deps.estimate_tokens(formatted),
+                    sources=[source],
+                )
+            )
+        return items
+
+    def _fit_generation(self, items: list[Item]) -> tuple[list[Item], int]:
+        """The elements the final prompt (instruction, elements, question) holds in `window −
+        reserve`: the oldest left out first. Returns them and how many were left out."""
+        deps = self.deps
+        if not deps.window:
+            return items, 0
+        usable = deps.window - deps.reserve
+        kept = list(items)
+
+        def tokens(chosen: list[Item]) -> int:
+            text = self._context_text(chosen) if chosen else ""
+            return sum(deps.estimate_tokens(t) for _, t in deps.prompt_parts(text, self.question))
+
+        while kept and tokens(kept) > usable:
+            kept.pop(0)
+        for placed, item in enumerate(kept, start=1):
+            item.placed = placed
+        return kept, len(items) - len(kept)
+
+    def _searchless_end(
+        self, chain: _Chain, result: _Result, items: list[Item], warnings: list[tuple[str, str]]
+    ) -> None:
+        """The elements kept become the chain's context; the warnings, joined, the stage's."""
+        kept, dropped = self._fit_generation(items)
+        if dropped:
+            warnings.append(
+                (
+                    "agent_context_trimmed",
+                    self._text("agent.context_trimmed", count=self._int(dropped)),
+                )
+            )
+        text = self._context_text(kept) if kept else ""
+        chain.context, chain.context_text = kept, text
+        result.items, result.output_text = kept, text
+        result.warning_text = " ".join(w for _, w in warnings) or None
+        self._prompt_preview(result, text)
+
+    def _transcript(self, log: Sequence[tuple[str, str]], room: int | None) -> tuple[str, int]:
+        """The previous actions and their results, as each round shows them to the model; the
+        oldest results replaced by « [résultat écarté] » while it does not hold in `room`."""
+        say, estimate = self._text, self.deps.estimate_tokens
+        label, gone = say("agent.result_label"), say("agent.result_dropped")
+        entries = [f"{line}\n{label}\n{text}" for line, text in log]
+        dropped = 0
+        if room is not None:
+            while dropped < len(entries) and estimate("\n\n".join(entries)) > room:
+                entries[dropped] = f"{log[dropped][0]}\n{label}\n{gone}"
+                dropped += 1
+        return "\n\n".join(entries), dropped
+
+    def _context_agent(
+        self, chain: _Chain, step_id: str, tick: Callable[[int, int], None]
+    ) -> _Result:
+        """`agent_loop` (V1.2 story 11, CAP-7): the model searches the corpus with three tools
+        (`list_files`, `grep`, `read_file`) on the chain's documents (the work copy while it
+        differs), one action per round, until `ACTION: ANSWER`, `MAX_AGENT_ROUNDS` rounds or
+        `UNREADABLE_MAX` unreadable answers in a row. Each tool's result is an element of the
+        context, with its source; a refused action is said to the model, never raised. A
+        document's text is data: only the model's own lines are read for an action."""
+        deps, say, count = self.deps, self._text, self._int
+        copy = deps.work_copy if self._reads_work_copy() else None
+        docs = self._corpus_documents(copy)
+        source = say("chunking.source_work_copy" if copy else "chunking.source_corpus")
+        documents = self._count(len(docs), "document")
+        result = _Result(
+            input_text=say("agent.input", documents=documents, source=source),
+            costs=[],
+        )
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.generation.no_model"), result=result)
+        tools = agent_tools.Workspace(docs, self._lang, deps.estimate_tokens)
+        instruction = say("agent.instruction", max=MAX_AGENT_ROUNDS)
+        user = say("agent.user", question=self.question)
+        room = self._room(instruction, user)
+        turns: list[dict[str, Any]] = []
+        log: list[tuple[str, str]] = []
+        found: list[tuple[str, str, str, bool, dict[str, Any]]] = []
+        stop, streak, last, model, error = "round_limit", 0, "", "", None
+        trimmed = 0
+        with deps.model_scope():
+            for round_ in range(1, MAX_AGENT_ROUNDS + 1):
+                if deps.cancelled():
+                    stop = "cancelled"
+                    break
+                transcript, dropped = self._transcript(log, room)
+                trimmed = max(trimmed, dropped)
+                got = self._ask(step_id, instruction, transcript, user)
+                result.costs.append(self._call_cost("query", "agent_loop", got))  # type: ignore[union-attr]
+                model = got.model_label or model
+                turn: dict[str, Any] = {
+                    "round": round_,
+                    "action": None,
+                    "argument": "",
+                    "status": "",
+                    "result_preview": "",
+                    "result_chars": 0,
+                    "result_tokens": 0,
+                    "cut": False,
+                    "prompt_tokens": got.prompt_tokens,
+                    "output_tokens": got.output_tokens,
+                    "answer_preview": self._preview(got.answer_text),
+                }
+                turns.append(turn)
+                if got.status in ("cancelled", "too_long") or got.status not in (
+                    "completed",
+                    "limit",
+                ):
+                    stop = got.status if got.status in ("cancelled", "too_long") else "error"
+                    turn["status"], error = stop, got.error_text
+                    break
+                last = got.answer_text
+                action = agent_tools.parse_action(got.answer_text)
+                if action is None:
+                    streak += 1
+                    turn["status"] = "unreadable"
+                    log.append((say("agent.unreadable_line"), say("agent.unreadable_feedback")))
+                    tick(round_, MAX_AGENT_ROUNDS)
+                    if streak >= UNREADABLE_MAX:
+                        stop = "unreadable"
+                        break
+                    continue
+                streak = 0
+                turn["action"], turn["argument"] = action.name, action.argument
+                if action.name == "answer":
+                    turn["status"], stop = "answer", "answer"
+                    tick(round_, MAX_AGENT_ROUNDS)
+                    break
+                if deps.cancelled():  # read before each tool too
+                    turn["status"], stop = "cancelled", "cancelled"
+                    break
+                out = tools.run(action)
+                turn["status"] = "ok" if out.ok else "refused"
+                turn["result_preview"] = self._preview(out.text)
+                turn["result_chars"] = len(out.text)
+                turn["result_tokens"] = deps.estimate_tokens(out.text)
+                turn["cut"] = out.cut
+                line = f"ACTION: {action.name}" + (f" {action.argument}" if action.argument else "")
+                log.append((line, out.text))
+                if out.ok:
+                    found.append(self._agent_element(round_, action, out))
+                tick(round_, MAX_AGENT_ROUNDS)
+        rounds = len(turns)
+        warnings: list[tuple[str, str]] = []
+        if stop == "round_limit":
+            warnings.append(("agent_round_limit", say("agent.round_limit", rounds=count(rounds))))
+        elif stop == "unreadable":
+            cut = self._preview(last)[:80]
+            warnings.append(
+                (
+                    "agent_unreadable",
+                    say("agent.unreadable", rounds=count(rounds), last=self._quoted(cut)),
+                )
+            )
+        elif stop == "too_long":
+            warnings.append(("agent_too_long", say("agent.too_long")))
+        if trimmed:
+            warnings.append(
+                ("agent_round_trimmed", say("agent.round_trimmed", count=count(trimmed)))
+            )
+        self._searchless_end(chain, result, self._searchless_items(found), warnings)
+        tokens = sum(t["result_tokens"] for t in turns if t["status"] == "ok")
+        actions = [t["action"] or "?" for t in turns]
+        result.facts = [
+            (say("fact.model"), model or "—"),
+            (
+                say("fact.rounds"),
+                say("agent.rounds", rounds=count(rounds), max=count(MAX_AGENT_ROUNDS)),
+            ),
+            (
+                say("fact.actions"),
+                ", ".join(a.upper() if a == "answer" else a for a in actions) or "—",
+            ),
+            (say("fact.result_tokens"), count(tokens)),
+            (say("fact.source"), source),
+        ]
+        result.agent = {
+            "rounds": rounds,
+            "max_rounds": MAX_AGENT_ROUNDS,
+            "stop": stop,
+            "turns": turns,
+            "result_tokens": tokens,
+            "warnings": [{"code": c, "text": t} for c, t in warnings],
+        }
+        if stop == "cancelled":
+            raise LabCancelled(result)
+        if stop == "error":
+            raise StageFailed(error or Message("rag_lab.agent.model_error"), result=result)
+        return result
+
+    def _agent_element(
+        self, round_: int, action: agent_tools.Action, out: agent_tools.AgentResult
+    ) -> tuple[str, str, str, bool, dict[str, Any]]:
+        """A tool's result as an element of the context: the document read (`read_file`),
+        else the corpus (a `grep`'s lines, the list of files)."""
+        say = self._text
+        if out.doc is not None:
+            doc_id, title = out.doc.doc_id, out.doc.title_text
+        elif action.name == "grep":
+            doc_id, title = "corpus", say("agent.grep_title", terms=action.argument)
+        else:
+            doc_id, title = "corpus", say("agent.list_title")
+        source = {
+            "kind": action.name,
+            "label_text": ", ".join(out.files) or "corpus",
+            "rank": round_,
+            "score": None,
+        }
+        return doc_id, title, out.text, out.cut, source
+
+    def _tree_build_cost(self, tree: pageindex.Tree, built_ms: int) -> StageCost:
+        """The tree's construction, in `build`: the rule's, measured by this run (no token);
+        the model's, read from the rebuilt file's header (its tokens, its duration)."""
+        if tree.rebuilt is not None:
+            return StageCost(
+                "build",
+                "section_tree",
+                tree.rebuilt.tokens,
+                tree.rebuilt.duration_ms,
+                None,
+                None,
+                measured_at_build=True,
+                note_text=Message("rag_lab.costs.tree_measure", model=tree.rebuilt.model),
+            )
+        return StageCost("build", "section_tree", 0, built_ms, 0.0, None)
+
+    def tree_mark(self, tree: pageindex.Tree) -> str:
+        """« arbre livré, calculé par une règle, sans modèle » or « arbre reconstruit par le
+        modèle X »."""
+        if tree.rebuilt is not None:
+            return self._text("tree.mark_rebuilt", model=tree.rebuilt.model)
+        return self._text("tree.mark_shipped")
+
+    def _level_fit(
+        self, children: list[pageindex.Node], room: int | None
+    ) -> tuple[list[pageindex.Node], int]:
+        """The children a level's list holds in `room`: the last ones left out."""
+        listed = list(children)
+        if room is None:
+            return listed, 0
+        while len(listed) > 1 and self.deps.estimate_tokens(pageindex.level_list(listed)) > room:
+            listed.pop()
+        return listed, len(children) - len(listed)
+
+    def _context_tree(
+        self, chain: _Chain, step_id: str, tick: Callable[[int, int], None]
+    ) -> _Result:
+        """`section_tree` (V1.2 story 11, CAP-7, PageIndex): the tree of sections of the chain's
+        documents (precomputed summaries, the structure from the documents), gone down one level
+        at a time: the model reads one numbered list of the children of the nodes kept (title
+        and summary) and answers `CHOICE: 3, 7` (at most `PAGEINDEX_BREADTH`) or `CHOICE: NONE`;
+        the sections reached give an element each (the section's whole text)."""
+        deps, say, count = self.deps, self._text, self._int
+        copy = deps.work_copy if self._reads_work_copy() else None
+        docs = self._corpus_documents(copy)
+        source = say("chunking.source_work_copy" if copy else "chunking.source_corpus")
+        began = time.perf_counter()
+        tree = pageindex.load_tree(docs, self._lang, deps.lab_dir)
+        built_ms = math.ceil((time.perf_counter() - began) * 1000)
+        nodes = len(tree.nodes)
+        result = _Result(
+            input_text=say(
+                "tree.input",
+                nodes=self._count(nodes, "node"),
+                documents=self._count(len(docs), "document"),
+                source=source,
+            ),
+            costs=[self._tree_build_cost(tree, built_ms)],
+        )
+        result.facts = [
+            (say("fact.tree"), self.tree_mark(tree)),
+            (say("fact.nodes"), count(nodes)),
+            (say("fact.stale"), count(tree.stale)),
+        ]
+        payload: dict[str, Any] = {
+            "author": tree.header.author if tree.header else "shipped",
+            "method": tree.header.method if tree.header else pageindex.HEURISTIC,
+            "model": tree.header.model if tree.header else pageindex.HEURISTIC,
+            "mark_text": self.tree_mark(tree),
+            "nodes": nodes,
+            "depth": tree.depth(),
+            "stale": tree.stale,
+            "levels": [],
+            "chosen": [],
+            "stop": "no_model",
+            "warnings": [],
+        }
+        result.tree = payload
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.generation.no_model"), result=result)
+        instruction = say("tree.instruction", breadth=PAGEINDEX_BREADTH)
+        user = say("tree.user", question=self.question)
+        room = self._room(instruction, user)
+        warnings: list[tuple[str, str]] = []
+        frontier = [tree.root]
+        reached: list[pageindex.Node] = []
+        stop, error, model, level = "done", None, "", 0
+        depth = max(1, tree.depth())
+        with deps.model_scope():
+            while True:
+                children: list[pageindex.Node] = []
+                for node in frontier:
+                    kids = tree.children(node.id)
+                    if kids:
+                        children += kids
+                    elif node.id != pageindex.ROOT_ID:
+                        reached.append(node)
+                if not children:
+                    break
+                level += 1
+                listed, cut = self._level_fit(children, room)
+                if cut:
+                    warnings.append(
+                        (
+                            "tree_level_trimmed",
+                            say("tree.level_trimmed", count=count(cut), level=count(level)),
+                        )
+                    )
+                if deps.cancelled():
+                    stop = "cancelled"
+                    break
+                got = self._ask(step_id, instruction, pageindex.level_list(listed), user)
+                result.costs.append(self._call_cost("query", "section_tree", got))  # type: ignore[union-attr]
+                model = got.model_label or model
+                entry: dict[str, Any] = {
+                    "level": level,
+                    "shown": [
+                        {
+                            "number": n,
+                            "node_id": c.id,
+                            "title_text": c.title_text,
+                            "summary_text": c.summary_text,
+                        }
+                        for n, c in enumerate(listed, start=1)
+                    ],
+                    "chosen": [],
+                    "trimmed": cut,
+                    "answer_preview": self._preview(got.answer_text),
+                    "prompt_tokens": got.prompt_tokens,
+                    "output_tokens": got.output_tokens,
+                }
+                payload["levels"].append(entry)
+                if got.status not in ("completed", "limit"):
+                    stop = got.status if got.status in ("cancelled", "too_long") else "error"
+                    error = got.error_text
+                    break
+                picked = pageindex.parse_choice(got.answer_text, len(listed))
+                tick(level, depth)
+                if picked is None:
+                    stop = "unreadable"
+                    warnings.append(("tree_unreadable", say("tree.unreadable")))
+                    break
+                entry["chosen"] = [listed[n - 1].id for n in picked]
+                if not picked:
+                    stop = "none"
+                    warnings.append(("no_node_chosen", say("tree.no_node_chosen")))
+                    break
+                frontier = [listed[n - 1] for n in picked]
+        if stop == "too_long":
+            warnings.append(("tree_too_long", say("agent.too_long")))
+        found = []
+        for node in reached:
+            doc = tree.nodes[node.doc_id] if node.doc_id in tree.nodes else node
+            source = {
+                "kind": "section_tree",
+                "label_text": node.id,
+                "rank": node.rank,
+                "score": None,
+            }
+            found.append((node.doc_id or node.id, doc.title_text, node.text, False, source))
+        self._searchless_end(chain, result, self._searchless_items(found), warnings)
+        result.facts[:0] = [(say("fact.model"), model or "—")]
+        result.facts.append((say("fact.levels"), count(level)))
+        result.facts.append((say("fact.sections"), count(len(reached))))
+        payload |= {
+            "chosen": [n.id for n in reached],
+            "stop": stop,
+            "warnings": [{"code": c, "text": t} for c, t in warnings],
+        }
+        if stop == "cancelled":
+            raise LabCancelled(result)
+        if stop == "error":
+            raise StageFailed(error or Message("rag_lab.agent.model_error"), result=result)
+        return result
+
+    def _rewrite_summaries(
+        self,
+        nodes: Sequence[pageindex.Node],
+        step_id: str,
+        phase: str,
+        progress: Callable[[int, int], None] = lambda *_: None,
+    ) -> tuple[str, list[pageindex.TreeNode], int, int, str]:
+        """The summaries of `nodes` rewritten by the active model, one call each (its cost in
+        `phase`, added to the run's): `(status, entries written, tokens written, failures,
+        model)`. A node the model fails on, or leaves empty, keeps its summary."""
+        deps, say = self.deps, self._text
+        entries: list[pageindex.TreeNode] = []
+        failed = tokens = 0
+        model, status = "", "ok"
+        instruction = say("tree.rewrite_instruction", max=TREE_SUMMARY_MAX_CHARS)
+        with deps.model_scope():
+            for done, node in enumerate(nodes, start=1):
+                if deps.cancelled():
+                    status = "cancelled"
+                    break
+                text, _ = agent_tools.cut_to_tokens(
+                    node.text, TREE_SOURCE_MAX_TOKENS, deps.estimate_tokens
+                )
+                got = self._ask(
+                    step_id,
+                    instruction,
+                    say("tree.rewrite_source", title=node.title_text, text=text),
+                    say("tree.rewrite_user"),
+                )
+                self.costs.append(self._call_cost(phase, "section_tree", got))
+                model = got.model_label or model
+                if got.status == "cancelled":
+                    status = "cancelled"
+                    break
+                summary = (
+                    pageindex.clean_summary(got.answer_text)
+                    if got.status in ("completed", "limit")
+                    else ""
+                )
+                if summary:
+                    entry = node.entry()
+                    entries.append(entry.model_copy(update={"summary_text": summary}))
+                    tokens += got.prompt_tokens + got.output_tokens
+                else:
+                    failed += 1
+                progress(done, len(nodes))
+        return status, entries, tokens, failed, model
+
     def _kept_fact(self, kept: int, total: int) -> tuple[str, str]:
         say = self._text
         return (
@@ -3731,9 +4326,14 @@ class LabRun:
         """« le contexte construit (3 extraits), puis la question », or the question alone."""
         if chain.status != "ok" or not chain.context_text:
             return self._text("generation.question_only")
-        if self._whole_corpus(chain):  # V1.2 story 10: every document, whole
+        context = chain.pipeline.find("context")
+        option = context.option if context is not None else ""
+        if option in CORPUS_OPTIONS:  # V1.2 story 10: every document, whole
             documents = self._count(len(chain.context), "document")
             return self._text("generation.with_corpus", documents=documents)
+        if option in SEARCHLESS_OPTIONS:  # V1.2 story 11: what the model read by itself
+            elements = self._count(len(chain.context), "element")
+            return self._text("generation.with_read", elements=elements)
         kept = self._count(len(chain.context), "extract")
         return self._text("generation.with_context", extracts=kept)
 
@@ -3993,8 +4593,10 @@ class UpdateRun(LabRun):
         context = pipeline.find("context")
         # V1.2 story 10: the long context reads the corpus at each question, nothing to redo;
         # the CAG reloads its whole prefix (any change invalidates all that follows it).
-        if context is not None and context.option == "full_corpus":
-            return []
+        if context is not None and context.option in ("full_corpus", "agent_loop"):
+            return []  # V1.2 story 11: the agent reads the source at each question too
+        if context is not None and context.option == "section_tree":
+            return [(context, "section_tree", self._update_tree)]
         if context is not None and context.option == "cached_corpus":
             return [(context, "cache_prefix", self._update_prefix)]
         chunking = pipeline.find("chunking")
@@ -4139,6 +4741,82 @@ class UpdateRun(LabRun):
         )
         if built.warning_text:
             result.warning_text = render(built.warning_text, self._lang)
+        return result
+
+    def _update_tree(self, stage: Stage) -> _Result:
+        """V1.2 story 11 (PageIndex): only the subtree of the document the operation touched is
+        computed again (the document and its sections; a deletion removes its subtree), then
+        the root. It follows the tree in use: rebuilt by a model and a model loaded, the
+        touched document's summaries are rewritten by the model (its tokens and seconds, kept
+        in the rebuilt file); else by the rule (milliseconds, no token)."""
+        deps, say, count = self.deps, self._text, self._int
+        before = {d.doc_id: d for d in self._corpus_documents(self.before)}
+        after_docs = self._corpus_documents(self.after)
+        if not after_docs:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        after = {d.doc_id: d for d in after_docs}
+        touched = [i for i, d in after.items() if i not in before or before[i].text != d.text]
+        removed = [i for i in before if i not in after]
+        rebuilt = pageindex.load_files(self._lang, deps.lab_dir)[1]
+        gone = sum(len(pageindex.build_tree([before[i]])) - 1 for i in removed)
+        total = len(pageindex.build_tree(after_docs))
+        began = time.perf_counter()
+        # The touched documents' subtree, under a root of their own: the corpus's root is
+        # then the same rule on the documents' titles and fingerprints (counted, not redone).
+        sub = pageindex.build_tree([after[i] for i in touched])
+        redone = [n for n in sub.values() if n.id != pageindex.ROOT_ID]
+        by_model = rebuilt is not None and deps.generator is not None and bool(redone)
+        facts = [
+            (
+                say("fact.nodes_redone"),
+                say("tree.redone", redone=count(len(redone)), total=count(total)),
+            ),
+            (say("fact.nodes_removed"), count(gone)),
+        ]
+        result = _Result(
+            input_text=say(
+                "update.tree_input",
+                documents=self._count(len(touched) + len(removed), "document"),
+            ),
+            facts=facts,
+        )
+        if not by_model:
+            # A deleted document's model summaries leave the rebuilt file (story 18: erased).
+            pageindex.forget(self._lang, removed, deps.lab_dir)
+            ms = math.ceil((time.perf_counter() - began) * 1000)
+            result.output_text = say(
+                "update.tree_rule", redone=count(len(redone)), removed=count(gone)
+            )
+            result.costs = [StageCost("update", "section_tree", 0, ms, 0.0, None)]
+            result.facts.append((say("fact.tree"), say("tree.by_rule")))
+            return result
+        step_id = f"{self.run_id}.tree"
+        mark = len(self.costs)
+        started = time.monotonic()
+        status, entries, tokens, failed, model = self._rewrite_summaries(redone, step_id, "update")
+        duration = _ms(time.monotonic() - started)
+        costs, self.costs = self.costs[mark:], self.costs[:mark]  # the part's, said by `_ended`
+        result.costs = costs
+        if status == "cancelled":
+            raise LabCancelled(result)
+        pageindex.forget(self._lang, removed, deps.lab_dir)
+        if entries:
+            pageindex.write_rebuilt(
+                self._lang,
+                entries,
+                model=model or "?",
+                tokens=tokens,
+                duration_ms=duration,
+                folder=deps.lab_dir,
+            )
+        result.output_text = say(
+            "update.tree_model",
+            redone=count(len(entries)),
+            failed=count(failed),
+            removed=count(gone),
+            model=model or "—",
+        )
+        result.facts.append((say("fact.tree"), say("tree.by_model", model=model or "—")))
         return result
 
     # -- the parts --
@@ -4310,11 +4988,33 @@ class RebuildRun(LabRun):
     made."""
 
     SUMMARY_PHASES = ("build",)
+    TARGETS = ("contexts", "pageindex")
+
+    def __init__(
+        self,
+        run_id: str,
+        question: str,
+        pipeline: Pipeline,
+        deps: LabDeps,
+        target: str = "contexts",
+    ) -> None:
+        super().__init__(run_id, question, pipeline, deps)
+        # V1.2 story 11: the contexts of the contextual chunking, or PageIndex's summaries.
+        self.target = target
+
+    def _rebuilt_stage(self) -> tuple[Stage, str]:
+        """The chain's stage the rebuild shows, and its kind in the events."""
+        if self.target == "pageindex":
+            context = self.pipeline.find("context")
+            assert context is not None  # `check_pipeline` keeps the fixed tail
+            return context, "section_tree"
+        stage = self.pipeline.find("chunking")
+        assert stage is not None  # `check_pipeline` keeps the fixed head
+        return stage, "chunking"
 
     def run(self) -> str:
         started = time.monotonic()
-        stage = self.pipeline.find("chunking")
-        assert stage is not None  # `check_pipeline` keeps the fixed head
+        stage, kind = self._rebuilt_stage()
         self._emit(
             "rag_lab_run_started",
             {
@@ -4322,11 +5022,11 @@ class RebuildRun(LabRun):
                 "stages": [
                     {
                         "stage_id": stage.id,
-                        "kind": "chunking",
+                        "kind": kind,
                         "option": stage.option,
                         "label_text": self._label(stage),
                         "option_label_text": self.deps.catalog.option_label(
-                            "chunking", stage.option
+                            stage.kind, stage.option
                         ),
                         "params": stage.params,
                     }
@@ -4348,8 +5048,9 @@ class RebuildRun(LabRun):
         return status
 
     def _rebuild(self, stage: Stage) -> str:
-        step_id, component = self._step(1), "rag_lab.chunking"
-        base = {"stage_id": stage.id, "kind": "chunking", "option": stage.option}
+        kind = self._rebuilt_stage()[1]
+        step_id, component = self._step(1), f"rag_lab.{kind}"
+        base = {"stage_id": stage.id, "kind": kind, "option": stage.option}
         self._emit(
             "rag_lab_stage_started",
             base | {"phase_label": self._text("stage.running", stage=self._label(stage))},
@@ -4360,7 +5061,10 @@ class RebuildRun(LabRun):
         started = time.monotonic()
         status, error_text, result = "ok", None, _Result(costs=[])
         try:
-            status, result = self._rewrite(stage, step_id, component, base)
+            if self.target == "pageindex":
+                status, result = self._rewrite_tree(step_id, component, base)
+            else:
+                status, result = self._rewrite(stage, step_id, component, base)
         except StageSkipped as skipped:
             status, error_text = "skipped", skipped.render(self._lang)
         except StageFailed as failed:
@@ -4373,6 +5077,53 @@ class RebuildRun(LabRun):
         duration = _ms(time.monotonic() - started)
         self._ended(step_id, component, base, status, result, error_text, duration, rss_before)
         return {"ok": "ok", "cancelled": "cancelled"}.get(status, "error")
+
+    def _rewrite_tree(
+        self, step_id: str, component: str, base: dict[str, Any]
+    ) -> tuple[str, _Result]:
+        """V1.2 story 11 (PageIndex): every summary of the tree (documents, sections) of the
+        chain's documents rewritten by the active model, node by node, into the data folder
+        (`method: llm`); the structure stays the corpus's. « Arrêter » keeps the earlier state:
+        nothing is written (the file is replaced whole or not at all)."""
+        deps, text, count = self.deps, self._text, self._int
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.contexts.no_model"))
+        copy = deps.work_copy if self._reads_work_copy() else None
+        documents = workcopy.documents(deps.content, deps.lang, copy)
+        nodes = [n for n in pageindex.build_tree(documents).values() if n.id != pageindex.ROOT_ID]
+        if not nodes:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        progress = self._progress(step_id, component, base)
+        began = time.monotonic()
+        status, entries, tokens, failed, model = self._rewrite_summaries(
+            nodes, step_id, "build", progress
+        )
+        if status == "ok" and entries:
+            pageindex.write_rebuilt(
+                deps.lang,
+                entries,
+                model=model or "?",
+                tokens=tokens,
+                duration_ms=_ms(time.monotonic() - began),
+                folder=deps.lab_dir,
+            )
+        result = _Result(
+            costs=[],  # the per-node costs are in the run's sum
+            input_text=text("tree.rebuild_input", nodes=self._count(len(nodes), "node")),
+            output_text=text(
+                "tree.rebuild_output",
+                done=count(len(entries)),
+                total=count(len(nodes)),
+                failed=count(failed),
+            ),
+            facts=[
+                (text("fact.model"), model or "—"),
+                (text("contexts.fact_rebuilt"), count(len(entries))),
+                (text("contexts.fact_kept"), count(failed)),
+                (text("contexts.fact_tokens"), count(tokens)),
+            ],
+        )
+        return status, result
 
     def _rewrite(
         self, stage: Stage, step_id: str, component: str, base: dict[str, Any]

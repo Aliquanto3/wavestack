@@ -321,7 +321,6 @@ architectures:
     regulatory:
       text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf den Modell-Cache, der den ganzen Korpus enthält ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das das Präfix erneut verarbeitet?'
 - id: agentic
-  story: 11
   hypotheses:
   - H5
   - H12
@@ -374,7 +373,6 @@ architectures:
     regulatory:
       text: 'Fragen, kein Urteil. DSGVO: welche Rechtsgrundlage, welche Datenminimierung und wie wird das Recht auf Löschung auf den Verlauf der Werkzeugschleife ausgeübt? AI Act: welche Einstufung je nach Verwendung? DORA oder NIS2: je nach Sektor der Organisation. Anbieterabhängigkeit: was verlässt die Werkstatt bei der Nutzung vom Modell, das die Auszüge in jeder Runde liest?'
 - id: pageindex
-  story: 11
   hypotheses:
   - H4
   - H12
