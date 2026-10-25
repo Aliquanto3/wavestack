@@ -66,7 +66,7 @@ def test_the_models_page_redirects_to_the_diagnostic(monkeypatch, tmp_path):
     assert response.headers["location"] == "/diagnostic"
     landed = client.get("/models")
     assert landed.status_code == 200 and str(landed.url).endswith("/diagnostic")
-    assert '<h1 data-i18n="diagnostic.title">Diagnostic et modèles</h1>' in landed.text
+    assert '<h1 data-i18n="diagnostic.title">Modèles</h1>' in landed.text
     assert client.get("/static/models.html").status_code == 404
 
 

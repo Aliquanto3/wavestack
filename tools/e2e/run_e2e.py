@@ -10788,11 +10788,11 @@ def s_model_catalog(r: Run) -> None:
     expect(page.locator("#cloud-models .model-card").first).to_be_visible(timeout=20_000)
     current = page.locator('.site-nav a[aria-current="page"]')
     r.check(
-        current.inner_text() == "🛠️ Diagnostic"
+        current.inner_text() == "🛠️ Modèles"
         and page.locator('.site-nav a[href="/models"]').count() == 0
-        and page.title() == "WaveStack — Diagnostic et modèles"
-        and page.locator("h1").inner_text() == "Diagnostic et modèles",
-        "« Tableau des modèles… » : la page « Diagnostic et modèles », « 🛠️ Diagnostic » courant",
+        and page.title() == "WaveStack — Modèles"
+        and page.locator("h1").inner_text() == "Modèles",
+        "« Tableau des modèles… » : la page « Modèles », « 🛠️ Modèles » courant",
         current.inner_text(),
     )
     page.goto(f"{r.stack.app_url}/models")
@@ -10988,10 +10988,10 @@ def _models_page_language(r: Run) -> None:
         r.check(
             page.url.endswith("/diagnostic")
             and _html_lang(r) == "en"
-            and (home, current) == ("Harness", "🛠️ Diagnostics")
+            and (home, current) == ("Harness", "🛠️ Models")
             and page.locator("#language-picker-code").inner_text() == "EN",
             "/diagnostic : « English » choisi, la page se recharge en anglais (barre commune "
-            "« Harness », « 🛠️ Diagnostics » courant, « EN »)",
+            "« Harness », « 🛠️ Models » courant, « EN »)",
             f"{page.url} · lang={_html_lang(r)} · {home} · {current}",
         )
     finally:

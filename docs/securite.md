@@ -25,7 +25,7 @@ Quelques mots utilisés ici :
 
 ## Page Sécurité et bouton Journal
 
-L'onglet **Sécurité** de la barre de navigation (`/security`, entre MCP et Diagnostic) est
+L'onglet **Sécurité** de la barre de navigation (`/security`, entre MCP et Modèles) est
 fait pour un RSSI. Il ne règle rien : les réglages restent dans l'Atelier MCP et dans la brique
 Garde-fous. La page montre, de haut en bas :
 

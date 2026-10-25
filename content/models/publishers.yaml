@@ -12,7 +12,7 @@
 # distillé garde l'architecture de sa base : `deepseek-r1:1.5b` est `qwen2` pour Ollama.
 #
 # Un fichier invalide ne plante rien : tous les modèles vont dans « Autres éditeurs », et la
-# page « Diagnostic et modèles » affiche la raison.
+# page « Modèles » affiche la raison.
 #
 # `logo` (lot 3 du 2026-10-04, facultatif) : un fichier de `src/wavestack/web/static/logos/`
 # (provenance et diffusion dans son `SOURCES.md`, copié par `scripts/crop_logos.py`). Sans

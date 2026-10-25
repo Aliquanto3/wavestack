@@ -65,7 +65,7 @@ common:
   links:
     pages: "Seiten von WaveStack"
     home: "Harness"
-    diagnostic: "🛠️ Diagnose"
+    diagnostic: "🛠️ Modelle"
     llm: "LLM"
     llm_title: "LLM-Werkstatt: das Innere des aktiven Modells (Tokens, Vektoren, Generierung Token für Token)"
     rag: "RAG"
@@ -378,11 +378,11 @@ main:
     prompts_label: "Vorgeschlagene Prompts"
   model:
     served_title: "Modell, bereitgestellt von {provider} auf diesem Arbeitsplatz ({url}): ein von WaveStack getrennter Prozess; der gesendete Text wird vom Harness erstellt."
-    local_title: "Lokales Modell {model}, auf diesem Arbeitsplatz. Klicken Sie, um die Diagnose zu öffnen."
+    local_title: "Lokales Modell {model}, auf diesem Arbeitsplatz. Klicken Sie, um die Seite Modelle zu öffnen."
     active_label: "Aktives Modell: {model}. {title}"
     list_unavailable: "Modellliste nicht verfügbar: neuer Versuch in einigen Sekunden."
     picker_title: "Modell wechseln: Die Unterhaltung bleibt erhalten."
-    open_diagnostic: "Diagnose öffnen"
+    open_diagnostic: "Seite Modelle öffnen"
     open_table: "Tabelle öffnen"
     choose: "Wählen…"
     load: "Laden"
@@ -988,7 +988,7 @@ main:
   panes:
     menu: "Bereiche"
     awaiting: "Eine menschliche Freigabe wartet auf Ihre Antwort: Bereich Nutzeransicht wieder einblenden"
-    diagnostic: "Diagnose"
+    diagnostic: "Modelle"
   projection:
     name: "Projektionsmodus"
     title: "Projektionsmodus: vergrößert alle Texte für den Saal; der Browser merkt es sich"
@@ -1375,8 +1375,8 @@ mcp:
   ask:
     question: "Frage"
     send: "An das Modell senden"
-    no_model: "Kein Modell geladen: Wählen Sie eines in der Diagnose."
-    no_tools: "Das aktive Modell ruft keine Tools auf: Wählen Sie in der Diagnose ein anderes."
+    no_model: "Kein Modell geladen: Wählen Sie eines auf der Seite Modelle."
+    no_tools: "Das aktive Modell ruft keine Tools auf: Wählen Sie auf der Seite Modelle ein anderes."
     unavailable: "„Durch das Modell“ nicht verfügbar: {reason}"
     local_line: "{model} · Lokal"
     cloud_line: "{model} · 🌐 NETZWERK · {provider}"
@@ -1604,8 +1604,8 @@ mcp:
     failure: "Fehler: {label}, {reason}"
 
 diagnostic:
-  page_title: "WaveStack — Diagnose und Modelle"
-  title: "Diagnose und Modelle"
+  page_title: "WaveStack — Modelle"
+  title: "Modelle"
   candidates_title: "💻 Erkannte lokale Modelle"
   cloud_title: "☁️ Cloud-Modelle"
   cloud_help: "Außerhalb des Arbeitsplatzes: Jeder Aufruf sendet den gesamten Kontext an den Anbieter."
