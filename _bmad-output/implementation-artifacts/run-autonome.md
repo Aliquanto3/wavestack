@@ -82,12 +82,17 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - (Avancée dans le run le 2026-10-25, décision d'Anaël.) Story d'outillage : accélérer les tests lents propres à Windows de `tests/test_model_servers.py` et `tests/test_context_window_setting.py` (11 à 33 s chacun sous Windows, absents du haut de la liste sous Ubuntu ; piste : connexion à un port fermé qui met ~2 s à échouer sous Windows). Gain mesuré attendu : ~2 min 30 de tests Windows. Décision d'Anaël du 2026-10-25.
 - Rafraîchir `test-durations-windows-latest.json` et `test-durations-ubuntu-latest.json` depuis les artefacts `test-durations-<os>-<groupe>` d'une CI récente (fusion des 4 fichiers par système), quand l'écart entre groupes dépasse ~2 min.
 
-## Prochaines étapes (mise à jour du 2026-10-25 17:20)
+## Prochaines étapes (mise à jour du 2026-10-25 17:55, avant /clear)
 
-1. #123 (12.12) : file_prs.py --methode merge en cours ; à la fusion, refusionner l'intégration dans 12.16 (worktree s16, revue faite 7e97f4c9 ; vérifier que les parties run.sN.rewrite / retry_<kind> / abstain de 12.12 apparaissent dans l'arbre), PR, fusion.
-2. 12.21 : téléchargement des modèles (ColPali ~5,9 Go, ColSmol ~1 Go) en cours dans ../wavestack-v12-s21 ; puis, poste libre de tout agent : `uv run --with fastembed==0.9.1 python tools/bench/v12s21_visual_search_bench.py measure --confirm-idle`, `report --write`, second avis, revue, PR.
-3. Correctif préexistant de 12.13 : _update_graph écrit avant la copie gardée et garde des extractions partielles si le modèle échoue (même règle que 12.12 : StageFailed, écriture après keep) ; petite PR vers l'intégration.
-4. Fin du lot V1.2 : PR integration/v1-2-atelier → main (merge), CI verte ; PR de version 1.5.0, tag annoté v1.5.0, release GitHub ; README.md à refaire (l'interface a changé avec les epics 13, 14 et 12 : onglet harnais, cache, atelier recherche documentaire à onglets, onglet « Modèles ») et démo docs/assets/wavestack-demo.gif + .mp4 à regénérer par tools/demo/compose.py (programme, modules et durées à jour), dans la PR d'intégration vers main ou une PR juste avant (demande d'Anaël du 2026-10-25) ; rapport de fin de run (fusionné, reporté, liste « à revoir », recettes d'Anaël) ; mémoire du projet ; suppression des worktrees ../wavestack-v12-s* en fin de run.
+État : toutes les stories de l'epic 12 sont fusionnées dans integration/v1-2-atelier (dernière : #125, f6a96cf), sauf 12.21 (revue faite, résultats commités, PR à ouvrir) ; plus aucun agent ni tâche de fond.
+
+1. Correctif du graphe (12.13), worktree ../wavestack-v12-graphfix, branche fix/v1-2-mise-a-jour-du-graphe, dd11fac3 : second avis fait, 1 medium à corriger avant PR : le test 1 de tests/test_rag_lab_graphrag.py:528-546 ne couvre pas l'échec à l'extraction (le texte ZEPHYR fait un seul passage sous rag_chunk_max_chars 700, donc le 2e appel est le résumé) ; un texte de plus de 700 caractères en deux paragraphes, échec au 2e appel d'extraction, assertion qu'aucun appel de résumé n'a lieu. Puis fusion de l'intégration (elle a avancé : #124, #125), PR vers l'intégration, file_prs.py --methode merge.
+2. 12.21, worktree ../wavestack-v12-s21, branche feat/v1-2-story-21-recherche-visuelle, 055c5ca5 (revue 15b01313, remesure de ColSmol commitée) : fusionner l'intégration, PR vers l'intégration, fusion. Verdict : ne tient pas (ColPali au plafond de 16 384 Mo ; ColSmol pic 6 098 Mo, requête 9 s, rappel@3 0,88). Pas de passe 2 de revue nécessaire (remesure seulement).
+3. Fin du lot V1.2 :
+   a. README.md à refaire (interface changée par les epics 13, 14, 12 : onglet harnais, cache, atelier recherche documentaire à onglets, onglet « Modèles ») et démo docs/assets/wavestack-demo.gif + .mp4 à regénérer par tools/demo/compose.py (programme, modules et durées à jour) ; captures de l'E2E qui montrent l'ancien libellé « Diagnostic » à regénérer ; demande d'Anaël.
+   b. PR integration/v1-2-atelier → main (merge), CI verte.
+   c. PR de version 1.5.0 (SemVer mineure), tag annoté v1.5.0, release GitHub avec notes (epic 12).
+   d. Rapport de fin de run (fusionné, reporté, liste « à revoir » du journal, recettes d'Anaël), mémoire du projet, suppression des worktrees ../wavestack-v12-* et ../wavestack-v12-modeles, ../wavestack-v12-graphfix.
 
 ## Journal
 
@@ -664,3 +669,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:48 · run · fusion · #124 MERGED dans integration/v1-2-atelier (onglet Modèles) via file_prs.py · 09b23d8
 - 2026-10-25 17:48 · 12.16 · CI · verte · ecaf9fc6
 - 2026-10-25 17:48 · 12.16 · fusion · #125 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · f6a96cf
+- 2026-10-25 17:51 · 12.21 · dev · remesure de ColSmol (17:47 → 17:50) : pic 6 098 Mo, indexation 9,7 s par page, requête médiane 8,97 s, rappel@3 0,88 sur 8 requêtes ; conclusion : ne tient pas (mémoire et latence) · 055c5ca5
+- 2026-10-25 17:51 · 13 · second-avis · correctif du graphe : 0 high, 1 medium (test 1 ne couvre pas l'échec à l'extraction), code conforme au schéma de RAPTOR · dd11fac3
+- 2026-10-25 17:51 · run · décision · /clear proposé à Anaël (aucune tâche de fond) ; reprise par « Prochaines étapes » · —
