@@ -1032,3 +1032,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-slm-b-appels-json-tool-call.md`
   summary: Servi par llama-server (architecture absente), SmolLM3 passe par la branche `qwen3` de `capabilities_for` (`by_template`) et reçoit `hermes` alors que son gabarit n'affiche pas l'appel passé ; appliquer la règle d'aller-retour à cette branche.
   evidence: Constaté par la revue du 2026-10-24 (Review Triage Log de la spec B). Antérieur à la story. Appliquer la sonde à la branche `qwen3` casse `tests/test_model_catalog.py::test_qwen_file`, dont le gabarit Qwen factice ne rend pas l'appel passé : il faut d'abord rendre cette fixture réaliste.
+
+- source_spec: `_bmad-output/specs/spec-wavestack-v1-2-atelier-recherche-documentaire/stories/6-decoupage-semantique.md`
+  summary: Late chunking (CAP-4, point ouvert 1) — non livré. Raison : il exige un embedding à contexte long (8 k tokens et plus, sorties par token avant le pooling) que les modèles fastembed de l'atelier ne donnent pas, et son téléchargement ne peut pas se faire la nuit. Modèle candidat : jina-embeddings-v2-small-en (8 192 tokens), à vérifier sur CPU. Vérification à faire : durée d'un document entier sur CPU, mémoire, et si l'adaptateur peut rendre les vecteurs par token. Source : Günther et al., arXiv 2409.04701 (à ouvrir et vérifier).
+  evidence: décision 1 du point de contrôle de la story 6 ; CAP-4 autorise « fait ou explicitement reporté ».

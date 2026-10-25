@@ -179,6 +179,12 @@ options:
   chunking:
     paragraphs:
       label_text: "Par paragraphes"
+    semantic:
+      label_text: "Par le sens (phrases)"
+    parent_child:
+      label_text: "Parent-enfant"
+    contextual:
+      label_text: "Avec contexte (contextual retrieval)"
   embedding:
     declared:
       label_text: "Modèle d'embedding de la brique RAG"
@@ -514,3 +520,43 @@ sheets:
     sources:
       - label_text: "Gao et al., Precise Zero-Shot Dense Retrieval without Relevance Labels (2022)"
         url: "https://arxiv.org/abs/2212.10496"
+
+# V1.2 story 6 (CAP-17): the sheet of each chunking option, in five blocks.
+  chunking.paragraphs:
+    purpose_text: "Couper chaque document en chunks en regroupant ses paragraphes tant qu'ils tiennent dans la taille maximale ; un paragraphe trop long est coupé en fin de phrase. C'est le découpage de la brique RAG."
+    when_text: "À utiliser comme point de départ : déterministe, sans modèle, rapide. À éviter quand un paragraphe mélange plusieurs sujets ou qu'une idée s'étale sur plusieurs paragraphes : le chunk ne suit alors pas le sens."
+    cost_text: "Aucun appel de modèle : un parcours du texte. Le coût de la chaîne vient ensuite du nombre de chunks à vectoriser, qui grandit quand la taille maximale diminue."
+    literature_text: "Le découpage selon la structure du texte (paragraphes, phrases) est le premier niveau que décrit Kamradt dans « 5 Levels of Text Splitting », avant des découpages plus fins. Les hypothèses du cadrage ne couvrent pas cette option : la fiche s'appuie sur cette source seule."
+    bench_text: ""
+    sources:
+      - label_text: "Kamradt, 5 Levels of Text Splitting"
+        url: "https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb"
+  chunking.semantic:
+    purpose_text: "Couper là où le sens change : les phrases sont vectorisées, et un chunk se termine quand la distance entre deux phrases voisines dépasse un seuil (ici le 80ᵉ centile des distances du corpus), sans jamais dépasser la taille maximale."
+    when_text: "À utiliser quand les paragraphes ne suivent pas les sujets (texte continu, notes). À éviter avec un corpus déjà bien structuré, ou sans modèle d'embedding utilisable : l'étape retombe alors sur les paragraphes et le dit."
+    cost_text: "Un embedding par phrase, en plus de celui des chunks, refait à chaque exécution (il n'est pas mis en cache) : quelques secondes sur CPU pour ce corpus. Les chunks obtenus ont des tailles inégales."
+    literature_text: "Kamradt propose ce découpage (comparer les vecteurs de phrases voisines, couper aux plus grands écarts) comme un niveau plus avancé que le découpage par structure ; LangChain en fait son SemanticChunker. Ces sources décrivent la méthode sans mesure sur un banc de recherche : le gain reste à mesurer sur ce corpus."
+    bench_text: ""
+    sources:
+      - label_text: "Kamradt, 5 Levels of Text Splitting"
+        url: "https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb"
+      - label_text: "LangChain, How to split text based on semantic similarity (SemanticChunker)"
+        url: "https://python.langchain.com/docs/how_to/semantic-chunker/"
+  chunking.parent_child:
+    purpose_text: "Chercher de petits chunks précis (les enfants, 300 caractères au plus) mais donner au modèle le chunk plus large dont ils sont issus (le parent) : on cherche fin, on lit large."
+    when_text: "À utiliser quand la bonne information tient en une phrase mais ne se comprend qu'avec son entourage. À éviter quand les parents sont déjà trop grands pour la fenêtre du modèle : le contexte reçoit des parents distincts, donc moins d'extraits différents que d'enfants trouvés."
+    cost_text: "Plus de vecteurs à calculer et à stocker (ici plus de deux fois plus d'enfants que de parents), aucun appel de modèle ; le prompt final est plus long, car il contient des parents entiers."
+    literature_text: "C'est le principe du ParentDocumentRetriever de LangChain : les petits morceaux sont indexés, le document parent est renvoyé. La documentation le présente comme un compromis entre des embeddings précis et un contexte suffisant, sans mesure publiée."
+    bench_text: ""
+    sources:
+      - label_text: "LangChain, How to use the Parent Document Retriever"
+        url: "https://python.langchain.com/docs/how_to/parent_document_retriever/"
+  chunking.contextual:
+    purpose_text: "Ajouter à chaque chunk un court contexte qui le situe dans son document, avant l'embedding et la recherche par mots-clés : un chunk qui dit « le délai est de 14 jours » porte alors aussi de quoi il parle."
+    when_text: "À utiliser quand les chunks perdent leur sujet une fois séparés de leur document. À éviter si le corpus ou le découpage change souvent : le contexte est lié au texte exact du chunk et périme avec lui. Les contextes livrés ici sont heuristiques (rang du chunk, titre, début du document), sans LLM ; le contextual retrieval proprement dit demande un LLM qui lit le document entier, ce que fait le bouton « Reconstruire »."
+    cost_text: "À la construction, un appel de modèle par chunk avec le document entier dans le prompt (rien de tel pour les contextes heuristiques livrés), puis des textes plus longs à vectoriser et à indexer ; à la question, aucun coût de plus."
+    literature_text: "Anthropic (2024) décrit le contextual retrieval : un modèle écrit pour chaque chunk un contexte à partir du document entier, ajouté avant l'embedding et l'index BM25. L'article rapporte moins d'échecs de recherche sur ses propres jeux de test, davantage encore avec BM25 puis un reranking : chiffres à vérifier à la source, non reproduits ici."
+    bench_text: ""
+    sources:
+      - label_text: "Anthropic, Introducing Contextual Retrieval (2024)"
+        url: "https://www.anthropic.com/news/contextual-retrieval"

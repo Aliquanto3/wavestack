@@ -198,6 +198,7 @@ from wavestack.models.servers import (
     open_engine,
 )
 from wavestack.rag import attack as rag_attack
+from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
@@ -10862,6 +10863,7 @@ class AppSession:
             "last_run": rag_lab.last_run(events),
             "last_update": rag_lab.last_update(events),
             "work_copy": self._rag_lab_work_copy(),
+            "contexts": self._rag_lab_contexts(),
             "questions": self._rag_lab_questions(),
             "session_state": {"state": state, "reason_text": reason_text},
             "seq": tip,
@@ -10926,6 +10928,10 @@ class AppSession:
         reason = rag_lab.validate_pipeline(pipeline, catalog)
         if reason is not None:
             raise SendRefused(reason)
+        chunking = pipeline.find("chunking")
+        if chunking is not None and chunking.option != "paragraphs":
+            # V1.2 story 6: a chunking by meaning, parent-child or contextual is not updated.
+            raise SendRefused(Message("session.rag_lab.update_chunking"))
         content = self._rag_content
         assert content is not None
         label = rag_lab._t(f"update.op.{operation}", self._language, doc=doc_id)
@@ -10956,6 +10962,100 @@ class AppSession:
             (before, after),
         )
         return run_id
+
+    def rebuild_rag_lab_contexts(self, pipeline: rag_lab.Pipeline | None = None) -> str:
+        """Intention `rag_lab_rebuild` (V1.2 story 6, CAP-4), class (b): accepted in `idle`
+        only, as a run of its own (`ctx{n}`): the contexts of the contextual chunking are
+        rewritten by the workshop's active model, one call per chunk, into the data folder.
+        Without a model: refused, with the reason. Returns the run's id."""
+        texts, error_text = self._rag_lab_content()
+        if texts is None:
+            raise SendRefused(error_text or Message("session.rag_lab.texts_unreadable"))
+        unavailable = self._rag_lab_unavailable()
+        if unavailable is not None:
+            raise SendRefused(unavailable)
+        catalog = self._rag_lab_catalog(texts)
+        pipeline = pipeline or catalog.default
+        reason = rag_lab.validate_pipeline(pipeline, catalog)
+        if reason is not None:
+            raise SendRefused(reason)
+        rebuild_blocked = self._rag_lab_rebuild_blocked()
+        if rebuild_blocked is not None:
+            raise SendRefused(rebuild_blocked)
+        label = rag_lab._t("contexts.run_label", self._language)
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            previous = self.reason_text
+            self._rag_labs += 1
+            run_id = f"{rag_lab.REBUILD_RUN_PREFIX}{self._rag_labs}"
+            cancel = self._cancel = CancelToken()
+            self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
+        self._emit_state()
+        self._executor.submit(
+            self._run_rag_lab,
+            run_id,
+            label,
+            pipeline,
+            texts,
+            catalog,
+            cancel,
+            previous,
+            rebuild=True,
+        )
+        return run_id
+
+    def reset_rag_lab_contexts(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/contexts/reset`: the contexts rebuilt in the data folder are
+        deleted, the shipped ones are read again (never `content/`). Refused while a run goes
+        on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_contexts.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def _rag_lab_rebuild_blocked(self) -> Message | None:
+        """Why the contexts cannot be rebuilt now (no model loaded in the workshop), or `None`."""
+        with self._lock:
+            engine = self._engine
+        if engine is None:
+            return Message("session.rag_lab.rebuild_no_model")
+        return None
+
+    def _rag_lab_contexts(self) -> dict[str, Any]:
+        """V1.2 story 6: what the page shows of the contexts of the contextual chunking: the
+        header of the file read (shipped or rebuilt), whether a rebuilt file exists, and why
+        « reconstruire » is not available now."""
+        book = rag_contexts.load_book(self._language, config.rag_lab_dir())
+        header = book.header
+        blocked = self._rag_lab_rebuild_blocked()
+        return {
+            "author": header.author if header else None,
+            "method": header.method if header else None,
+            "model": header.model if header else None,
+            "chunk_max_chars": header.chunk_max_chars if header else None,
+            "chunks": header.chunks if header else 0,
+            "tokens": header.tokens if header else 0,
+            "duration_ms": header.duration_ms if header else 0,
+            "summary_text": rag_lab._t(
+                "contexts.summary",
+                self._language,
+                mark=rag_lab.mark_text(header.author, header.method, header.model, self._language),
+                chunks=rag_lab.lang_int(header.chunks, self._language),
+                model=header.model,
+                tokens=rag_lab.lang_int(header.tokens, self._language),
+                duration=rag_lab.ms_text(header.duration_ms, self._language),
+            )
+            if header
+            else None,
+            "rebuilt": book.rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, self._language) if blocked else None,
+            "expected_text": self._t(
+                "session.rag_lab.rebuild_expected",
+                chunks=book.shipped.chunks if book.shipped else (header.chunks if header else 0),
+            ),
+        }
 
     def _rag_lab_unavailable(self) -> str | None:
         """Why no chain can run at all: the RAG brick's corpus and texts are unreadable."""
@@ -11044,6 +11144,7 @@ class AppSession:
         previous: str | None,
         update: tuple[workcopy.WorkCopy, workcopy.WorkCopy] | None = None,
         history: tuple[str, ...] = (),
+        rebuild: bool = False,
     ) -> None:
         """On the worker, in series with the turns and `_sync_rag`: a model the brick holds
         cannot be closed meanwhile. What the run loads is closed and freed at its end (AD-8),
@@ -11052,7 +11153,9 @@ class AppSession:
         lab_run: rag_lab.LabRun | None = None
         try:
             deps = self._rag_lab_deps(texts, catalog, cancel, loans, history)
-            if update is None:
+            if rebuild:
+                lab_run = rag_lab.RebuildRun(run_id, question, chain, deps)
+            elif update is None:
                 lab_run = rag_lab.LabRun(run_id, question, chain, deps)
             else:
                 lab_run = rag_lab.UpdateRun(run_id, question, chain, deps, *update)

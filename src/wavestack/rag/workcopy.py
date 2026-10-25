@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from wavestack import config
 from wavestack.messages import Message
-from wavestack.rag.corpus import _COMMENT, Chunk, RagContent, split_text
+from wavestack.rag.corpus import _COMMENT, Chunk, DocText, RagContent, chunk_documents
 
 OPERATIONS = ("add", "modify", "delete")
 ID_PATTERN = re.compile(r"^[a-z0-9_]+$")
@@ -146,24 +146,28 @@ def apply(
     return new
 
 
-def chunks(
-    content: RagContent, max_chars: int, lang: str, copy: WorkCopy | None = None
-) -> list[Chunk]:
-    """`chunk_corpus` of the corpus with the copy applied (the same text, the same splitting),
-    the added documents last."""
+def documents(content: RagContent, lang: str, copy: WorkCopy | None = None) -> list[DocText]:
+    """The documents of the corpus with the copy applied (their text as `chunks()` reads
+    it), the added documents last: what the other chunkings (semantic, parent-child) read."""
     copy = copy or WorkCopy()
-    out: list[Chunk] = []
+    out: list[DocText] = []
     for doc in content.documents:
         if not doc.active or doc.id in copy.deleted:
             continue
         raw = config.content_file(doc.file, lang).read_text(encoding="utf-8-sig")
         text = "\n\n".join([_COMMENT.sub("", raw), *copy.appended.get(doc.id, [])])
-        for position, piece in enumerate(split_text(text, max_chars), start=1):
-            out.append(Chunk(doc.id, doc.title_text, position, piece))
+        out.append(DocText(doc.id, doc.title_text, text))
     for doc_id, added in copy.added.items():
-        for position, piece in enumerate(split_text(added.text, max_chars), start=1):
-            out.append(Chunk(doc_id, added.title_text, position, piece))
+        out.append(DocText(doc_id, added.title_text, added.text))
     return out
+
+
+def chunks(
+    content: RagContent, max_chars: int, lang: str, copy: WorkCopy | None = None
+) -> list[Chunk]:
+    """`chunk_corpus` of the corpus with the copy applied (the same text, the same splitting),
+    the added documents last."""
+    return chunk_documents(documents(content, lang, copy), max_chars)
 
 
 def summary(content: RagContent, copy: WorkCopy) -> dict[str, object]:

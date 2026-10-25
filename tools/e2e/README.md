@@ -786,6 +786,11 @@ d'autres (story 21) :
   une question libre et une question sans passage le disent ; les trois cas « Où naît l'erreur »
   (`not_indexed`, `ranked_low`, `cut_by_budget`) se rejouent en un clic, chacun avec son étape
   fautive, sans aucun événement de l'atelier ; capture `63-atelier-rag-diagnostic.jpg`.
+- `rag_lab_chunking`, V1.2 story 6 (CAP-4), après `rag` et `rag_rerank` : les quatre options du
+  découpage ; « Parent-enfant » (les enfants listés dans le focus, chacun avec son parent) puis
+  « Avec contexte » (chaque contexte marqué « précalculé · heuristique, sans LLM ») ;
+  « Reconstruire » avec le faux modèle (contextes « reconstruits », méthode `llm`, relus après
+  rechargement), puis « Rétablir les contextes livrés » ; capture `64-atelier-rag-decoupage.jpg`.
 
 - `rag_lab_evaluate`, V1.2 story 15 (CAP-11), après `rag` et `rag_rerank` : l'onglet Évaluer sans
   exécution (bandeau « Démonstration, pas un banc : n = 10 questions, 2 architectures, 2 juges »

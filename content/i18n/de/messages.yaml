@@ -582,6 +582,9 @@ session:
     update_empty: "Titel und Text dürfen nicht leer sein."
     update_unknown_operation: "Unbekannte Operation: {op}."
     update_unknown_doc: "Das Dokument {doc} ist nicht in der Arbeitskopie des Korpus."
+    update_chunking: "Die Korpusaktualisierung wird nur für die Zerlegung nach Absätzen gemessen: Wählen Sie sie, oder stellen Sie die gelieferte Kette wieder her."
+    rebuild_no_model: "Kein Modell in der Werkstatt geladen: Laden Sie ein Modell, um die Kontexte neu zu schreiben."
+    rebuild_expected: "Ein Modellaufruf pro Ausschnitt ({chunks} bei der gelieferten Größe), je einige Sekunden auf der CPU: rechnen Sie mit mehreren Minuten. „Anhalten“ behält die bereits neu geschriebenen Kontexte."
     noun:
       embedding: Embedding-Modell
       reranking: Reranking-Modell
@@ -975,6 +978,15 @@ rag_lab:
     reordered_candidate:
       one: neu geordneter Kandidat
       other: neu geordnete Kandidaten
+    parent:
+      one: Elternteil
+      other: Eltern
+    child:
+      one: Kind
+      other: Kinder
+    sentence:
+      one: Satz
+      other: Sätze
   # A rank: « 1er », « 2ᵉ » (English: 1st, 2nd, 3rd, 4th; 21st, 22nd, 23rd).
   rank:
     first: "1."
@@ -1040,6 +1052,7 @@ rag_lab:
     output_tokens: Erzeugte Tokens
     embedded_as: Vektorisiert
     queries: Gesuchte Anfragen
+    children_read: Gelesene Kinder
   chunking:
     source_corpus: "dem Korpus (content/corpus), für diese Ausführung zerlegt"
     source_index: "dem Index des RAG-Bausteins (bei seiner Erstellung zerlegt)"
@@ -1053,6 +1066,39 @@ rag_lab:
     mean: Durchschnittliche Länge
     longest: Längster
     characters: "{n} Zeichen"
+    output_semantic: "{extracts}, dort getrennt, wo die Ähnlichkeit benachbarter Sätze abfällt ({sentences} eingebettet), höchstens {size} Zeichen, gelesen aus {source}."
+    output_parent_child: "{children} mit höchstens {child} Zeichen, indexiert; jedes liefert seinen Elternteil, unter {parents} mit höchstens {size} Zeichen, gelesen aus {source}."
+    output_contextual: "{extracts} mit höchstens {size} Zeichen, davon {with_context} mit ihrem Kontext, der vor der Einbettung und der lexikalischen Suche hinzugefügt wird, gelesen aus {source}."
+    parents: Eltern
+    child_max: Höchstgröße eines Kindes
+    sentences: Eingebettete Sätze
+    sentences_duration: Dauer der Satzeinbettung
+    with_context: Ausschnitte mit Kontext
+    without_context: Ausschnitte ohne Kontext
+    ignored_contexts: Ignorierte Kontexte
+    context_origin: Herkunft der Kontexte
+    no_contexts: kein Kontext
+    semantic_fallback: "Kein nutzbares Einbettungsmodell, um an Sätzen zu trennen ({reason}): Die Zerlegung fällt auf Absätze zurück."
+    contexts_unreadable: "Die Datei der gelieferten Kontexte ist nicht lesbar ({error}): Die Ausschnitte werden ohne Kontext indexiert."
+    contexts_stale: "{missing} ohne gültigen Kontext und {ignored} Kontexte ignoriert (ihr Fingerabdruck passt zu keinem Ausschnitt mehr: Größe geändert oder Arbeitskopie). „Neu aufbauen“ erzeugt sie bei der aktuellen Größe neu."
+    mark:
+      shipped: vorberechnet
+      rebuilt: neu aufgebaut
+      heuristic: "heuristisch, ohne LLM"
+      llm: "durch das Modell {model}"
+  contexts:
+    run_label: "Kontexte werden neu aufgebaut"
+    summary: "Gelesene Kontexte: {mark} · {chunks} Kontexte · Modell {model} · {tokens} geschriebene Tokens · aufgebaut in {duration}"
+    heuristic: "Ausschnitt {position}/{total} von „{title}“. Das Dokument beginnt mit: {first}"
+    no_model: "Kein Modell in der Werkstatt geladen: Die Kontexte können nicht neu geschrieben werden."
+    instruction: "Du ordnest einen Ausschnitt in das Dokument ein, aus dem er stammt. Schreibe einen kurzen Kontext, ein oder zwei Sätze auf Deutsch, der sagt, wovon das Dokument handelt und wo der Ausschnitt darin steht, damit man den Ausschnitt beim Suchen findet. Antworte nur mit dem Kontext, ohne Einleitung."
+    document: "Dokument „{title}“:\n{text}"
+    user: "Hier ist der Ausschnitt, der in dieses Dokument einzuordnen ist:\n{chunk}"
+    input: "{chunks}, einzuordnen in ihr gesamtes Dokument."
+    output: "{done} Kontexte von {total} neu geschrieben; {failed} Ausschnitte behalten ihren Kontext."
+    fact_rebuilt: Neu geschriebene Kontexte
+    fact_kept: Ausschnitte mit behaltenem Kontext
+    fact_tokens: Geschriebene Tokens
   embedding:
     brick_passages: "Passagen (Titel des Dokuments, dann Auszug): {passages}, bereits im Index des RAG-Bausteins vektorisiert, bei seiner Erstellung berechnet."
     brick_unusable: "Die Passagen werden hier nicht vektorisiert: Der Index des RAG-Bausteins ist nicht verwendbar (siehe Vektordatenbank)."
@@ -1133,9 +1179,11 @@ rag_lab:
     input: "Die Rangfolge des vorigen Schritts: {extracts}."
     empty: "Kein Auszug: Das Modell würde nur die Frage erhalten."
     kept: "{kept} von {total}"
+    parents_short: "{kept} verschiedene Eltern von {top_k} verlangten: Die {read} besten Kinder decken nicht mehr ab. Erhöhen Sie die Kandidaten der Suche, um mehr zu erhalten."
   costs:
     build_unknown: "Aufbaukosten für diesen vorberechneten Inhalt nicht aufgezeichnet: Bauen Sie ihn neu, um sie zu messen."
     generation_unpriced: "Kosten in Dollar nicht beziffert: Das Modell hat keinen deklarierten Preis."
+    contexts_measure: "Beim Aufbau der Kontexte aufgezeichnete Messung (Modell: {model}), nicht bei jedem Lauf neu gemacht."
   update:
     op:
       add: "Dokument {doc} hinzufügen"
