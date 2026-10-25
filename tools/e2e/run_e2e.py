@@ -14412,6 +14412,117 @@ def s_rag_lab(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_views(r: Run) -> None:
+    """V1.2 story 4 (CAP-9, CAP-2, vues.md), after `rag` and `rag_rerank`: the five tabs of
+    `/rag` (Construire by default, Évaluer, Attaquer and Fiches « à venir »), the selector of
+    prepared questions and its badge, a run pinned then run again (same question: same passages;
+    another question: the differences marked, the costs by time), the pin kept after a reload
+    (and `#compare` opening the tab). Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_lab_tabs(r)
+    finally:
+        page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
+        r.goto_app()
+
+
+def _rag_lab_tabs(r: Run) -> None:
+    page = r.page
+    page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
+    _goto_rag_lab(r)
+    page.locator("#rag-reset-chain").click()
+    tabs = page.locator('#rag-tabs [role="tab"]')
+    r.check(
+        tabs.all_inner_texts() == ["Construire", "Comparer", "Évaluer", "Attaquer", "Fiches"]
+        and page.locator('#rag-tab-build[aria-selected="true"]').count() == 1
+        and page.locator("#rag-panel-build").is_visible()
+        and page.locator("#rag-panel-compare").is_hidden()
+        and page.locator("#rag-run").count() == 1,
+        "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
+        str(tabs.all_inner_texts()),
+    )
+    for tab in ("evaluate", "attack", "sheets"):
+        page.click(f"#rag-tab-{tab}")
+        r.check(
+            "à venir" in page.locator(f"#rag-panel-{tab} .rag-soon").inner_text()
+            and page.locator("#rag-panel-build").is_hidden(),
+            f"onglet {tab} : vide, « à venir »",
+        )
+    page.click("#rag-tab-build")
+    expect(page.locator("#rag-panel-build")).to_be_visible()
+
+    # CAP-2: the selector fills the question and shows its type's badge.
+    questions = r.api("GET", "/api/rag_lab").json()["questions"]
+    first, second = questions[0], questions[1]
+    page.select_option("#rag-prepared", first["id"])
+    r.check(
+        page.input_value("#rag-question") == first["question_text"]
+        and page.locator("#rag-question-type").is_visible()
+        and page.locator("#rag-question-type").inner_text() != ""
+        and page.locator("#rag-prepared").input_value() == first["id"],
+        "question préparée : le sélecteur remplit la question et affiche le badge de type",
+        page.locator("#rag-question-type").inner_text(),
+    )
+    page.fill("#rag-question", "Une question libre")
+    r.check(
+        page.locator("#rag-prepared").input_value() == "" and page.locator("#rag-question-type").is_hidden(),
+        "question libre : sélecteur sur « Question libre », badge masqué",
+    )
+
+    # CAP-9: pin a run, run again, compare.
+    expect(page.locator("#rag-pin")).to_be_disabled()
+    _rag_lab_run(r, first["question_text"])
+    expect(page.locator("#rag-pin")).to_be_enabled(timeout=5000)
+    page.click("#rag-pin")
+    expect(page.locator("#rag-pin-status")).to_contain_text("Épinglée", timeout=5000)
+    _rag_lab_run(r, first["question_text"])
+    page.click("#rag-tab-compare")
+    cmp_box = page.locator("#rag-cmp")
+    expect(cmp_box.locator(".rag-cmp-row")).to_have_count(4, timeout=5000)
+    r.check(
+        cmp_box.locator('.rag-cmp-head[data-side="pinned"] h3').inner_text() == "Épinglée"
+        and cmp_box.locator('.rag-cmp-head[data-side="current"] h3').inner_text() == "Courante"
+        and first["question_text"] in cmp_box.locator('.rag-cmp-head[data-side="pinned"]').inner_text()
+        and "Mêmes passages" in cmp_box.locator('[data-role="search"]').inner_text()
+        and cmp_box.locator("[data-role=search] .rag-cmp-mark").count() == 0
+        and cmp_box.locator('[data-role="costs"] .rag-cmp-cost').count() == 6
+        and not cmp_box.locator(".rag-cmp-warning").count(),
+        "Comparer : colonnes Épinglée et Courante, mêmes passages pour la même question, 4 lignes",
+        cmp_box.inner_text()[:240],
+    )
+    r.shot("62-atelier-rag-comparer", full_page=True)
+
+    # Another question: the passages differ, the lost and added ones are marked.
+    page.click("#rag-tab-build")
+    _rag_lab_run(r, second["question_text"])
+    page.click("#rag-tab-compare")
+    expect(cmp_box.locator(".rag-cmp-warning")).to_be_visible(timeout=5000)
+    marks = cmp_box.locator("[data-role=search] .rag-cmp-mark").count()
+    r.check(
+        "diffèrent" in cmp_box.locator('[data-role="search"]').inner_text()
+        and marks > 0
+        and cmp_box.locator("[data-role=search].is-diff").count() == 1,
+        "Comparer : autre question, passages perdus et ajoutés marqués, avertissement",
+        f"{marks} marques",
+    )
+
+    # The pin survives a reload; `#compare` opens its tab.
+    page.goto(f"{r.stack.app_url}/rag#compare")
+    expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
+    expect(page.locator("#rag-panel-compare")).to_be_visible(timeout=5000)
+    expect(page.locator('#rag-cmp .rag-cmp-head[data-side="pinned"]')).to_contain_text(
+        first["question_text"], timeout=5000
+    )
+    r.check(
+        page.locator("#rag-unpin").is_visible() and page.locator("#rag-cmp-title").is_visible(),
+        "l'épingle survit au rechargement (et #compare ouvre l'onglet)",
+    )
+    page.click("#rag-unpin")
+    expect(page.locator('#rag-cmp .rag-cmp-head[data-side="pinned"]')).to_contain_text("Aucune exécution épinglée")
+
+
 def _downloads_text(count: int) -> str:
     """« 1 modèle à télécharger », « 2 modèles à télécharger » (ui.yaml, `rag.arch_downloads`)."""
     return f"{count} modèle{'s' if count > 1 else ''} à télécharger"
@@ -14738,12 +14849,12 @@ def _rag_lab(r: Run, errors: list[str]) -> None:
     )
     r.check(
         page.locator("nav.site-nav a[aria-current=page]").inner_text() == "RAG"
-        and page.title() == "WaveStack — Atelier RAG"
-        and page.locator("h1").inner_text().startswith("Atelier RAG")
+        and page.title() == "WaveStack — Atelier recherche documentaire"
+        and page.locator("h1").inner_text().startswith("Atelier recherche documentaire")
         and page.locator("select[data-theme-picker]").count() == 1
         and not page.locator("#rag-compare, #rag-chain-b, #rag-comparison").count()
         and not _site_nav_problems(r),
-        "/rag : barre commune entière, « RAG » courant, titre « Atelier RAG », plus de "
+        "/rag : barre commune entière, « RAG » courant, titre « Atelier recherche documentaire », plus de "
         "comparaison A/B",
     )
     generation = page.locator('#rag-seq [data-step="generation"]')
@@ -16275,6 +16386,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag", s_rag),
     ("rag_rerank", s_rag_rerank),
     ("rag_lab", s_rag_lab),
+    ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

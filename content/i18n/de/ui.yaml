@@ -1052,7 +1052,7 @@ llm:
   distribution_list: "Kandidaten des gewählten Tokens"
 
 rag:
-  page_title: "WaveStack — RAG-Werkstatt"
+  page_title: "WaveStack — Werkstatt Dokumentensuche"
   chain: "Kette {label}"
   rank:
     one: "Nr. {count}"

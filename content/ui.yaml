@@ -1065,7 +1065,7 @@ llm:
   distribution_list: "Candidats du token choisi"
 
 rag:
-  page_title: "WaveStack — Atelier RAG"
+  page_title: "WaveStack — Atelier recherche documentaire"
   chain: "Chaîne {label}"
   rank:
     one: "{count}er"
