@@ -1040,6 +1040,16 @@ class Config:
         except (TypeError, ValueError):
             return 0.8
 
+    @property
+    def compaction_max_tokens(self) -> int:
+        """V1.4 story 4 (CAP-5): the output bound of the compaction's summary, 64 to 512."""
+        return min(512, max(64, self._int("context", "compaction_max_tokens", default=256)))
+
+    @property
+    def compaction_keep(self) -> int:
+        """V1.4 story 4: the recent exchanges both strategies keep outside an overflow, 1 to 5."""
+        return min(5, max(1, self._int("context", "compaction_keep", default=2)))
+
     def _int(self, *path: str, default: int) -> int:
         try:
             return int(self.get(*path, default=default))

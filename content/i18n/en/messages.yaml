@@ -121,6 +121,8 @@ session:
       mcp_lab: "The MCP workshop occupied the engine's cache{why}."
       rag_lab: "The RAG workshop occupied the engine's cache for its generation{why}."
       cache_cleared: "The engine's cache was cleared on request (« Clear the cache » button): the whole context is read again."
+      compaction: "The old exchanges were summarized (compaction): the history changed, the engine reads the context again from the history."
+      sliding_window: "The oldest exchanges were removed (sliding window): the history changed, the engine reads the context again from the history."
     evicted:
       stateless: ": this engine cannot save the state of the main context"
       failed: ": saving or restoring the state of the main context failed"
@@ -149,6 +151,18 @@ session:
       compaction: "Compaction: summarise the old exchanges in a few lines."
       old_tool_results: Removal of old tool results.
       lazy_loading: "Lazy loading: load the tools' documentation only on demand."
+    choices:
+      compaction:
+        one: "summarize the oldest exchange in a few lines (one model call{duration})"
+        other: "summarize the {count} old exchanges in a few lines (one model call{duration})"
+      duration: ", ≈ {seconds} s locally"
+      sliding_window:
+        one: "keep only the recent exchanges (no call; the oldest one is removed)"
+        other: "keep only the recent exchanges (no call; the {count} oldest are removed)"
+      unavailable:
+        single: "A single exchange: nothing to remove."
+        too_few: "Not enough exchanges: the conversation already keeps only the most recent ones."
+        still_too_long: "Even so, the message and the turn's results would not fit: shorten the message or try another strategy."
   # AD-6: the name of a model capability a brick requires.
   capabilities:
     tool_call_parser: "tool calling ({parser})"
@@ -222,7 +236,30 @@ session:
       cloud: "No memory on this workstation: the model runs at {provider}."
       server: "Loaded by {provider}, in its own process, in this workstation's RAM: about {cost} counted by the budget."
       file: "Processor RAM, no graphics card: WaveStack went from {before} to {after}; the budget counts about {cost}. The weights, read with mmap, move into RAM at the first call."
+  compaction:
+    request: "Summarize our conversation so far."
+    label: "Summary (compaction)"
+    summarized:
+      one: "{count} exchange summarized (compaction)"
+      other: "{count} exchanges summarized (compaction)"
+    removed:
+      one: "{count} exchange removed (sliding window)"
+      other: "{count} exchanges removed (sliding window)"
+    # The oldest exchanges that did not fit in the summary call's transcript.
+    dropped:
+      one: "{count} oldest removed without a summary (transcript too long)"
+      other: "{count} oldest removed without a summary (transcript too long)"
+    failed: "The compaction failed."
+    unchanged: "The conversation stays as it was; no message is sent again."
+    transcript:
+      previous: "Previous summary:"
+      user: "User:"
+      assistant: "Assistant:"
+      tool: "[tool {name}: {chars} characters]"
   refused:
+    compact_empty: "No exchange to compact: the conversation is empty."
+    compact_short_memory: "The Short memory brick is off: there is no history to compact."
+    compact_stale: "This card is out of date: another turn, a clearing or a scenario came since."
     turn: "A turn is already in progress: wait for it to end or click “Stop”."
     no_model: "No model is loaded: finish the start-up diagnostics."
     nothing_to_replay: "No prompt to replay: send a message first."

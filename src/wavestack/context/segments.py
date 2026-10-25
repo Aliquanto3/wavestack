@@ -56,6 +56,8 @@ class Part(NamedTuple):
     group: str | None = None
     # Story 20: set on a compressed tool result or RAG excerpt; its segment carries it.
     compressed_from: CompressedFrom | None = None
+    # V1.4 story 4: a label of its own for its segment (the compaction's summary).
+    label: str | None = None
 
 
 class Joined(NamedTuple):
