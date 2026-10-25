@@ -73,7 +73,7 @@ context:
 - `src/wavestack/web/app.py` (`target`, route de rétablissement), `src/wavestack/trace/catalog.py` (`RagLabRaptor`, `RagLabFallback`).
 - `src/wavestack/rag/erasure.py`, `content/rag_erasure.yaml` ×3 -- `raptor` et `crag` disponibles ; `raptor_summaries` mesuré.
 - `content/rag_sheets.yaml` ×3, `content/rag_lab.yaml` ×3, `content/messages.yaml` ×3, `content/ui.yaml` ×3, `litterature.md`.
-- `src/wavestack/web/static/rag-raptor.js` (nouveau), `rag.html`, `rag.css`.
+- `src/wavestack/web/static/rag-raptor.js` (nouveau), `rag.html`, `rag.js` (ordre des préréglages dans une famille, D9) ; `tools/e2e/run_e2e.py`, `fake_local_server.py`, `README.md`.
 - Tests : `tests/test_rag_raptor.py`, `tests/test_rag_lab_raptor.py`, `tests/test_rag_lab_crag.py` (nouveaux) ; réalignés : `test_rag_lab_graphrag.py`, `test_rag_sheets.py`, `test_rag_erasure.py`. E2E `rag_lab_raptor_crag`.
 
 ## Tasks & Acceptance
@@ -112,10 +112,14 @@ context:
 6. **D6, aucune recherche web.** L'article étend la recherche au web pour les passages jugés faux ; l'atelier est hors ligne et son corpus fictif : le repli cherche de nouveau dans le même corpus, et la fiche, l'option et le focus le disent. Une option web demanderait un fournisseur, une clé et une règle de sortie : Reports.
 7. **D7, `fallback` est un type d'étape à part.** Il se voit dans la séquence et le focus, se compose à la main après n'importe quel filtre, et garde le filtre de la story 8 inchangé ; un réglage du filtre aurait caché le repli.
 8. **D8, abstention sans modèle.** « Je ne sais pas » est la réponse de l'atelier, pas du modèle : 0 token, la génération le dit, le contrôle d'ancrage est sauté (pas de réponse à ancrer).
+9. **D9, ordre dans les familles.** `PRESETS` ne grandit qu'à sa fin (raptor, crag après llm_wiki de la story 14) ; l'ordre de vues.md (RAPTOR entre PageIndex et GraphRAG, CRAG en dernier de Recherche) vient de `PRESET_FAMILIES`, que le catalogue envoie désormais (`preset_families[].presets`) et que `rag.js` suit pour dessiner chaque famille. *À revoir par Anaël.*
+10. **D10, mise à jour avec modèle.** Arbre reconstruit et modèle chargé : un appel par nœud touché, écrit dans le fichier reconstruit (mesure ajoutée à l'en-tête) ; une erreur arrête les appels, le reste garde la règle. `forget` est appelé à la copie gardée (session) et par la mise à jour.
 
 ## Spec Change Log
 
-- 2026-10-25 : rédaction et développement (statut `review`), empilée sur la story 8 (76f6a095).
+- 2026-10-25 : rédaction et développement (statut `review`), empilée sur la story 8 (76f6a095), puis fusion d'`integration/v1-2-atelier` (12.8 revue, 12.14 LLM Wiki) : ajouts de la story 12 après ceux de la 14 dans les listes partagées ; tests de listes passés en inclusion.
+- Mesures de l'arbre livré (règle telle qu'écrite, figées dans `tests/test_rag_raptor.py`) : passages fr 73, en 65, de 78 ; résumés 27, 27, 37 sur 3 niveaux ; fichiers 23, 22 et 28 Ko ; construction ≈ 60 ms (≈ 300 ms au premier appel, imports compris). Sentinelle active : 3, 3, 2 résumés citent `ORN-7731-QZ`. `q_global_rh` (fr) : un résumé de niveau 2 parmi les 5 nœuds.
+- Écarts de forme assumés : aucune nouvelle règle CSS (le module `rag-raptor.js` reprend les styles de la carte du graphe) ; captures E2E `93-atelier-rag-raptor.jpg`, `94-atelier-rag-crag.jpg` (89 et 90 étaient prises). Sources primaires RAPTOR (arXiv 2401.18059) et CRAG (arXiv 2401.15884) ouvertes sur arXiv (titres et résumés lus) et ajoutées à `litterature.md`.
 
 ## Reports
 
