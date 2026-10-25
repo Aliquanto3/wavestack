@@ -656,3 +656,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:34 · 12.21 · review · lancé (Opus ; correctif de l'entrée de requête, pas de mesure) ; remesure de ColSmol seul sur poste libre ensuite · 78ca191c
 - 2026-10-25 17:40 · 12.16 · dev · intégration fusionnée (12.12) sans conflit ; test des parties du repli CRAG dans l'arbre ; 484 tests, E2E 157/157 et 87/87 · ecaf9fc6
 - 2026-10-25 17:40 · 12.16 · PR · #125 ouverte vers integration/v1-2-atelier ; fusion après #124 (onglet Modèles), refusion si conflit · ecaf9fc6
+- 2026-10-25 17:45 · 12.21 · review · passe 1 : intégration fusionnée ; 1 high (test du rapport sur le rejeu des résultats) et 4 medium corrigés (requête ColSmol avec image factice non nulle, appel réel ~8,3 s ; pic mémoire selon la règle du banc 12.2 ; candidat au plafond = « ne tient pas » ; deferred-work avec verdict et pistes), 4 low ; ColSmol pic 6 118 Mo (privée) / 4 244 Mo (ensemble de travail) : ne tient pas ; 70 tests · 15b01313
+- 2026-10-25 17:45 · 12.21 · décision · à revoir : seuils sans source, corpus fr seul, 12 pages et 8 requêtes, plafond 16 384 Mo, licence Gemma, entrées ColSmol construites à la main, ColQwen2.5 écarté · 15b01313
+- 2026-10-25 17:45 · 12.21 · report · remesure de ColSmol seul (requêtes) sur poste libre, après le correctif du graphe · 15b01313
