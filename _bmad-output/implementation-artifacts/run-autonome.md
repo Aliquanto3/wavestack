@@ -661,3 +661,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:45 · 12.21 · report · remesure de ColSmol seul (requêtes) sur poste libre, après le correctif du graphe · 15b01313
 - 2026-10-25 17:47 · 13 · dev · correctif de _update_graph fait (StageFailed graph.update_model_error ×3, écriture et forget dans after_keep) ; 2 tests, test_rag_lab_graphrag 34 verts, E2E 86/86 (hors ligne, réseau GitHub coupé un moment) ; second avis lancé · dd11fac3
 - 2026-10-25 17:47 · 12.21 · dev · remesure de ColSmol seul lancée (hors ligne, aucun agent qui teste) · 15b01313
+- 2026-10-25 17:48 · run · fusion · #124 MERGED dans integration/v1-2-atelier (onglet Modèles) via file_prs.py · 09b23d8
+- 2026-10-25 17:48 · 12.16 · CI · verte · ecaf9fc6
+- 2026-10-25 17:48 · 12.16 · fusion · #125 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · f6a96cf
