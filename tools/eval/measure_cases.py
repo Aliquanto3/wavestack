@@ -1,9 +1,10 @@
 """Measures the provided agent cases on the local model and proposes their `max_model_calls`.
 
-    uv run python tools/eval/measure_cases.py [--runs 3] [--cases id1 id2] [--model x.gguf]
+    uv run python tools/eval/measure_cases.py [--runs {1,3}] [--cases id1 id2] [--model x.gguf]
                                               [--json out.json]
 
-Each case is played `--runs` times in a row on the local model; the proposed cap is the
+Each case is played `--runs` times in a row on the local model, by the session's executor of
+agent cases (`session.agent_eval`, one run of one case and k tries); the proposed cap is the
 largest number of model calls seen on the passed tries, plus one (none when no try passed: a
 loop to the step limit must not become the cap). An error on one try is recorded and the
 measure goes on. The tool never writes `content/agent_cases.yaml`
@@ -23,12 +24,10 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from case_player import play_case  # noqa: E402
-
 CONTRACT_CAPPED = {"h5_refuse_sans_rappel": 2}  # the cap that forbids the call again (contract)
 DEFAULT_RUNS = 3
+RUNS = (1, 3)  # the tries of a run (SPEC: k ∈ {1, 3})
+TIMEOUT_SECONDS = 900.0  # a try on the local model, at most
 
 
 @dataclass
@@ -55,28 +54,40 @@ class CaseMeasure:
         return max(ok) + 1
 
 
-def measure(session, cases, runs: int = DEFAULT_RUNS, lang: str = "fr") -> list[CaseMeasure]:  # noqa: ANN001
-    """Plays each case `runs` times, one after the other, and checks it each time."""
-    from wavestack.agent_eval.checks import verify
-
+def measure(session, cases, runs: int = DEFAULT_RUNS) -> list[CaseMeasure]:  # noqa: ANN001
+    """Plays each case `runs` times (one run of k tries), one case after the other, and
+    reads each try's model calls and verdict. A run that fails is recorded, the measure
+    goes on."""
     results = []
     for case in cases:
         measure_ = CaseMeasure(case.id, case.max_model_calls)
         results.append(measure_)
-        window = session.configured_window
-        if case.window is not None and case.window != window:
+        started = time.monotonic()
+        try:
+            run_id = session.agent_eval.start([case.id], runs)
+            run = session.agent_eval.wait(run_id, timeout=TIMEOUT_SECONDS * runs)
+        except Exception as exc:  # noqa: BLE001 - one case's error must not stop the measure
+            measure_.errors.append(f"{type(exc).__name__}: {exc}")
+            if session.agent_eval.running:  # a timeout: the run stops before the next case
+                session.stop()
+                session.agent_eval.join(60.0)
+            continue
+        (result,) = run.cases
+        if result.not_run_reason == "window":
+            window = session.configured_window
             measure_.skipped = f"non mesurable ici (fenêtre {case.window}, courante {window})"
             continue
-        for _ in range(runs):
-            started = time.monotonic()
-            try:
-                verdict = verify(case, play_case(session, case), lang)
-            except Exception as exc:  # noqa: BLE001 - one try's error must not stop the measure
-                measure_.errors.append(f"{type(exc).__name__}: {exc}")
-                continue
-            measure_.seconds.append(round(time.monotonic() - started, 1))
-            measure_.calls.append(verdict.model_calls)
-            measure_.passed.append(verdict.passed)
+        played = [t for t in result.trials if t.status != "not_run"]
+        seconds = round((time.monotonic() - started) / max(1, len(played)), 1)
+        for trial in played:
+            measure_.calls.append(trial.model_calls)
+            measure_.passed.append(trial.status == "passed")
+            measure_.seconds.append(seconds)
+        if run.error_text:
+            measure_.errors.append(run.error_text)
+        else:
+            not_played = [t for t in result.trials if t.status == "not_run"]
+            measure_.errors.extend(t.reason_text or t.not_run_reason or "" for t in not_played)
     return results
 
 
@@ -140,7 +151,7 @@ def _model_path(arg: str | None) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--runs", type=int, default=DEFAULT_RUNS)
+    parser.add_argument("--runs", type=int, choices=RUNS, default=DEFAULT_RUNS)
     parser.add_argument("--cases", nargs="*", help="ids of the cases to play (default: all)")
     parser.add_argument("--model", help="path of the .gguf (default: the local model)")
     parser.add_argument("--json", dest="json_path", help="writes the measures to this file")
