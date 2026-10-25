@@ -581,3 +581,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 14:53 · 12.2 · PR · #119 ouverte vers integration/v1-2-atelier (résultats du banc et correctif du juge), file_prs.py --methode merge lancé · 61cf5a5
 - 2026-10-25 14:53 · 12.13 · review · lancé (Opus ; 12.13 entre avant 12.14) · 6bb7616
 - 2026-10-25 14:53 · 12.8 · report · dev lancé après la fusion de #119 (rapport du banc dans l'intégration) · —
+- 2026-10-25 15:00 · 12.2 · CI · verte · 61cf5a5
+- 2026-10-25 15:00 · 12.2 · fusion · #119 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; banc réel complet, critères 6 et 8 mesurés · 132bbf3
+- 2026-10-25 15:00 · 12.2 · attente humaine · done_checkpoint : relire le rapport du banc (seuils du filtre sans source, H7 sur un seul article, Strands écarté, SLM juge non viable) · —
+- 2026-10-25 15:00 · 12.8 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; worktree ../wavestack-v12-s8 depuis l'intégration 132bbf3 ; cascade SLM juge en option « non validée », désactivée par défaut) · 132bbf3
