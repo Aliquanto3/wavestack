@@ -71,6 +71,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - Une story dont le dev a commité sans rapport : relancer la chaîne à partir de `second-avis` sur son dernier commit.
 - Fusions par `scripts/file_prs.py` du kit (vérifie `MERGED`), puis journal. Sur `integration/v1-2-atelier` : `--methode merge` (les branches V1.2 sont empilées ; un squash recrée des conflits dans la story suivante).
 - Fin de lot : PR de version (SemVer mineure), tag annoté, release GitHub ; V1.3 dès la fusion de 13.6, V1.4 dès celle de 14.4.
+- E2E : `TEMP` et `TMP` en chemin long (`C:SERSTILISATEURAPPDATAocaltemp`) ; un `temp` en nom court 8.3 peut faire �chouer `rag` (� index non construit �) et tous les sc�narios en aval (constat de 12.7).
 - Fin de run : `rapport-nuit-2026-10-25.md` (fusionné, bloqué, reporté, liste « à revoir », tests manuels du matin), mémoire du projet, suppression des worktrees.
 
 ## Après le run
@@ -380,3 +381,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:22 · 12.18 · attente humaine · décision : corriger « story 14 » en « story 18 » dans projet_orion.md (corpus livré, empreintes) · —
 - 2026-10-25 09:23 · 12.15 · CI · verte après une relance · 9c9adf2
 - 2026-10-25 09:23 · 12.15 · fusion · #108 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · b3246b2
+- 2026-10-25 09:24 · 12.7 · dev · fini ; 16 critères (10 sauté : extra compression absent), 4890 tests ciblés verts, E2E 168/168 et --no-headroom 54/54 ; 12.6 et intégration fusionnées · a652ed4
+- 2026-10-25 09:24 · 12.7 · décision · à revoir : libellés « Budget de contexte (tokens) », « Ordre des passages (extrémités d'abord) », « Compression (Headroom) » ; extrait formaté entier compressé ; avertissements concaténés ; citations des fiches à relire · a652ed4
+- 2026-10-25 09:24 · 12.7 · second-avis · lancé · a652ed4
+- 2026-10-25 09:24 · 12.10 · dev · lancé (phase spec, empilé sur 12.7, worktree ../wavestack-v12-s10) · a652ed4
