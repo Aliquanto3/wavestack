@@ -553,7 +553,7 @@ Vérifications ajoutées aux scénarios existants :
   `/rag`, sept cartes dans l'ordre (Découpage, Embedding, Base vectorielle, Recherche,
   Reranking, Construction du contexte, Génération), les options « Faux embedding (e2e) »,
   « sqlite-vec » et « Faux reranker (e2e) », chaque carte expliquée, la génération sur
-  `--color-ink-fill`, l'onglet « RAG » courant et le titre « Atelier RAG », contrastes AA en clair et en sombre
+  `--color-ink-fill`, l'onglet « RAG » courant et le titre « Atelier recherche documentaire », contrastes AA en clair et en sombre
   (`_contrast_sweep`) ; capture `55-atelier-rag-chaine.jpg` ; (3) « Combien de jours de
   télétravail par semaine ? » puis « Lancer la chaîne » : une paire `started`/`ended` par étape
   exécutée, les statuts vus au fil de l'eau (`MutationObserver`) passent par « en cours » puis
@@ -758,3 +758,18 @@ d'autres (story 21) :
 | `[jeté]` (finition V1, `POST /v1/messages` seulement) | `message_start` porte `input_transformations` (`thinking_dropped`, `prefix_binding_mismatch`, chemin `messages.1.content.0`) : le fournisseur dit avoir jeté un raisonnement ; recopié dans la tâche du sous-agent comme ` [lent]` |
 | `[sans-usage]` | réponse sans `usage` en fin de flux (tokens estimés par WaveStack) |
 | `[reranker-en-panne]` | (lu par le faux reranker de `wavestack_e2e.py`, pas par le faux modèle) le reranking lève, l'étape « Reranking » est en erreur |
+
+- `rag_lab`, suite V1.2 story 3 (CAP-8, `_rag_lab_costs`) : sur la chaîne livrée, un run remplit les
+  cartes « Construction » (« mesuré à la construction » sur l'index précalculé) et « Requête » (5
+  lignes : tokens, durée, dollars, énergie, gCO₂e), les deux périmètres de mesure restent dits ;
+  « Modifier », « Supprimer » puis « Ajouter un document » mesurent une mise à jour sur la copie de
+  travail (`rag_lab/work_corpus/fr.json` du dossier de données, `git status` inchangé), un refus
+  (identifiant pris) dit sa raison, la carte et la copie survivent au rechargement, un run lit
+  alors la copie (le Chunking le dit), « Revenir à l'état livré » supprime la copie ; capture `60-atelier-rag-couts.jpg`.
+
+- `rag_lab_views`, V1.2 story 4 (CAP-9, CAP-2), après `rag` et `rag_rerank` : les cinq onglets de
+  `/rag` (Construire par défaut, Évaluer, Attaquer et Fiches « à venir »), le sélecteur de questions
+  préparées et son badge, une exécution épinglée puis relancée (même question : mêmes passages ;
+  autre question : passages perdus et ajoutés marqués, avertissement), les coûts B/U/Q des deux
+  colonnes, l'épingle conservée après rechargement (`/rag#compare` ouvre l'onglet) ; capture
+  `62-atelier-rag-comparer.jpg`.

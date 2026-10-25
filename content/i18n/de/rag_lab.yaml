@@ -1,7 +1,7 @@
 # German translation of content/rag_lab.yaml (languages 4/5, AD-19): same keys, same stage,
 # option and param ids, same placeholders.
 
-title_text: "RAG-Werkstatt: die RAG-Architektur zum Ausprobieren"
+title_text: "Werkstatt Dokumentensuche: die Suchmaschinen-Architektur zum Ausprobieren"
 intro_text: >-
   Ein RAG (Retrieval-Augmented Generation: Das Modell antwortet anhand von Passagen, die in
   Dokumenten gefunden wurden) arbeitet in zwei Phasen. Die Indexierung (Build) zerlegt den
@@ -363,3 +363,91 @@ presets:
       und ordnet sie neu: genauer, langsamer. Nur das Retrieval-Segment kehrt zu dem der
       ausgelieferten Kette zurück: Ihre Einstellungen für Chunking, Embedding, Vector store und
       Prompt bleiben erhalten.
+
+# V1.2 story 3 (CAP-8): the costs in three times and the work copy's buttons.
+costs:
+  title_text: "Kosten in drei Zeiten"
+  hint_text: "Jede Zeit wird einzeln gemessen: den Index aufbauen, ein Dokument aktualisieren, eine Frage beantworten. Embedding- und Reranking-Modelle sowie die Indexierung werden mitgezählt, wie die Generierung."
+  perimeters_text: "Zwei Messbereiche: lokal wird nur der verbrauchte Strom gezählt (kWh × Netzintensität, ohne die Herstellung des Rechners); in der Cloud ist es der Lebenszyklus von EcoLogits (Strom der Server und ein Teil ihrer Herstellung). Die beiden Zahlen sind nicht vergleichbar."
+  build_text: "Aufbau"
+  build_help_text: "Den ganzen Korpus zerlegen, vektorisieren und indexieren, einmal."
+  update_text: "Aktualisierung"
+  update_help_text: "Ein Dokument hinzufügen, ändern oder löschen und den Index nachziehen."
+  query_text: "Anfrage"
+  query_help_text: "Jede Frage: Frage vektorisieren, suchen, neu ordnen, generieren."
+  tokens_text: "Tokens (geschätzt)"
+  duration_text: "Dauer"
+  usd_text: "Dollar"
+  gco2e_text: "gCO₂e"
+  energy_text: "Energie"
+  measured_at_build_text: "beim Aufbau gemessen"
+  not_measured_text: "nicht gemessen"
+  partial_text: "Teilsumme, eine Untergrenze: Für einen Teil gibt es keinen gemessenen Fußabdruck, oder der Lauf endete vorzeitig."
+  local_free_text: "lokal: nichts wird berechnet"
+  build_empty_text: "Starten Sie die Kette, um den Aufbau zu messen."
+  query_empty_text: "Starten Sie die Kette, um eine Anfrage zu messen."
+  update_empty_text: "Mit Hinzufügen, Ändern oder Löschen eines Dokuments messen Sie eine Aktualisierung."
+  update_running_text: "Aktualisierung wird gemessen…"
+  copy_title_text: "Arbeitskopie des Korpus"
+  copy_help_text: "Die drei Schaltflächen wirken auf eine Kopie des Korpus in {path}, nie auf den Ordner content/ des Repositorys. Solange die Kopie vom gelieferten Korpus abweicht, liest die Kette sie (der Schritt Chunking nennt seine Quelle); « Zurück zum gelieferten Stand » löscht sie."
+  copy_clean_text: "Die Kopie entspricht dem gelieferten Korpus."
+  copy_changed_text: "Kopie geändert: {added} hinzugefügt, {modified} geändert, {deleted} gelöscht."
+  add_doc_text: "Dokument hinzufügen"
+  modify_doc_text: "Dokument ändern (Absatz anhängen)"
+  delete_doc_text: "Dokument löschen"
+  reset_copy_text: "Zurück zum gelieferten Stand"
+  doc_label_text: "Dokument"
+  id_label_text: "Kennung (a-z, 0-9, _)"
+  doc_title_label_text: "Titel"
+  doc_body_label_text: "Text"
+  modify_hint_text: "Der Text wird dem Dokument als letzter Absatz angehängt."
+  apply_text: "Messen"
+  cancel_text: "Abbrechen"
+  update_of_text: "Zuletzt gemessene Aktualisierung"
+
+# V1.2 Story 4: die Ansichts-Tabs, die vorbereitete Frage, der Vergleich zweier Läufe.
+tabs:
+  label_text: "Ansichten der Werkstatt"
+  build_text: "Aufbauen"
+  compare_text: "Vergleichen"
+  evaluate_text: "Bewerten"
+  attack_text: "Angreifen"
+  sheets_text: "Steckbriefe"
+  soon_text: "{name}: folgt."
+prepared:
+  label_text: "Vorbereitete Frage"
+  free_text: "Freie Frage"
+  types:
+    factual_text: "Faktenfrage"
+    multi_hop_text: "Mehrstufig"
+    global_text: "Übergreifend"
+    no_answer_text: "Ohne Antwort"
+    temporal_text: "Zeitlich"
+    cross_lingual_text: "Sprachübergreifend"
+    follow_up_text: "Nachfrage"
+compare:
+  title_text: "Zwei Läufe vergleichen"
+  hint_text: "Pinnen Sie einen Lauf im Tab Aufbauen, starten Sie die Kette erneut (andere Architektur, andere Einstellung) und lesen Sie dann die Unterschiede: Passagen, Antwort, Kosten. Keine geschriebene Zusammenfassung."
+  pin_text: "Diesen Lauf anpinnen"
+  pin_wait_text: "Starten Sie die Kette: ein beendeter Lauf lässt sich anpinnen."
+  unpin_text: "Lösen"
+  pinned_status_text: "Angepinnt: {question}"
+  pinned_text: "Angepinnt"
+  current_text: "Aktuell"
+  empty_pin_text: "Kein Lauf angepinnt."
+  empty_current_text: "Kein beendeter Lauf zum Vergleichen."
+  need_pin_text: "Pinnen Sie den aktuellen Lauf an (Tab Aufbauen) und starten Sie die Kette mit einer anderen Einstellung erneut."
+  need_current_text: "Starten Sie die Kette, um den aktuellen Lauf zu erhalten."
+  other_question_text: "Die beiden Läufe haben nicht dieselbe Frage: der Unterschied kann daher stammen."
+  at_text: "um {time}"
+  search_text: "Suche"
+  context_text: "Kontext"
+  answer_text: "Antwort"
+  costs_text: "Kosten (Aufbau, Aktualisierung, Anfrage)"
+  prompt_text: "Endgültiger Prompt"
+  no_answer_text: "Keine Antwort erzeugt."
+  none_text: "Keine Passage."
+  same_text: "Dieselben Passagen in derselben Reihenfolge."
+  differs_text: "Die Passagen unterscheiden sich."
+  lost_text: "verloren"
+  added_text: "hinzugefügt"

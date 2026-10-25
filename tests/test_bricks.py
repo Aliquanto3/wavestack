@@ -244,6 +244,7 @@ def _fake(brick_id: str, requires: list[str] | None = None) -> BrickDeclaration:
         id=brick_id,
         category="harness",
         group="acts",
+        subsystem="tools",
         requires=requires or [],
         components=[component],
     )
@@ -275,6 +276,7 @@ def test_duplicate_or_reserved_ids_are_refused():
         id="core",
         category="harness",
         group="acts",
+        subsystem="tools",
         components=[Component(id="core.harness", kind="fake", hosting="local_process")],
     )
     with pytest.raises(ValueError, match="duplicate"):
@@ -284,6 +286,7 @@ def test_duplicate_or_reserved_ids_are_refused():
             id="a",
             category="harness",
             group="acts",
+            subsystem="tools",
             components=[Component(id="b.x", kind="f", hosting="local_file")],
         )
 
@@ -416,7 +419,9 @@ def test_edge_to_an_undrawn_node_is_dropped(monkeypatch):
         hosting="local_process",
         edges_to=["core.harness", "file.rag_index"],
     )
-    brick = BrickDeclaration(id="audit", category="harness", group="acts", components=[component])
+    brick = BrickDeclaration(
+        id="audit", category="harness", group="acts", subsystem="tools", components=[component]
+    )
     session = AppSession(config.Config(values={}), bricks=[brick])
     mark = get_journal().last_seq()
 
@@ -602,7 +607,7 @@ def test_panel_groups_must_be_contiguous_reads_first():
     def brick(brick_id: str, group: str) -> BrickDeclaration:
         component = Component(id=f"{brick_id}.part", kind="fake", hosting="local_process")
         return BrickDeclaration(
-            id=brick_id, category="context", group=group, components=[component]
+            id=brick_id, category="context", group=group, subsystem="memory", components=[component]
         )
 
     check_panel_groups(BRICKS)

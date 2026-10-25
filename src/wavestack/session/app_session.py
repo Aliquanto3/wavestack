@@ -33,10 +33,11 @@ from pathlib import Path, PurePosixPath
 from typing import Any, NamedTuple
 
 import httpx
+import yaml
 from mcp.shared.exceptions import MCPError
 from pydantic import SecretStr
 
-from wavestack import config
+from wavestack import config, greenops
 from wavestack import memory as memory_file
 from wavestack.bricks.contract import (
     BrickContent,
@@ -148,6 +149,7 @@ from wavestack.models.capabilities import (
     tool_call_tags,
 )
 from wavestack.models.cloud_api import create_cloud_engine
+from wavestack.models.cloud_base import emit_spend, reset_conversation_spend
 from wavestack.models.embedding import Embedder
 from wavestack.models.engine import (
     DEFAULT_SAMPLING,
@@ -194,7 +196,14 @@ from wavestack.models.servers import (
 )
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
-from wavestack.rag.corpus import Chunk, RagContent, chunk_corpus, load_rag_content
+from wavestack.rag import workcopy
+from wavestack.rag.corpus import (
+    Chunk,
+    RagContent,
+    chunk_corpus,
+    load_rag_content,
+    load_rag_questions,
+)
 from wavestack.rag.retriever import Excerpt, SqliteVecRetriever
 from wavestack.scenarios import EMPTY_PROGRAM, ScenariosContent, load_scenarios
 from wavestack.session import llm_lab
@@ -1641,6 +1650,9 @@ class AppSession:
                     "label_text": self._label(brick.id),
                     "category": brick.category,
                     "group": brick.group,
+                    "subsystem": brick.subsystem,
+                    "roles": list(brick.roles),
+                    "sensor_kind": brick.sensor_kind,
                     "category_text": content.category_text if content else brick.category,
                     "hosting_text": content.hosting_text if content else "",
                     "explanation_text": self._explanation(content),
@@ -6348,9 +6360,21 @@ class AppSession:
             self._last = None  # nothing left to replay (story 9b)
             self._memory_snapshot = None  # N1: the next conversation reads the memory again
             self._cache_cause = "reset"
+            spend_reset = reset_conversation_spend(self.cfg.eur_per_usd)
         self._journal().emit("conversation_cleared", {})
+        self._emit_spend_reset(spend_reset)
         self._emit_architecture()
         self._refresh_preview()
+
+    def _emit_spend_reset(self, touched: bool) -> None:
+        """V1.3 CAP-3: the bilan's « Cette conversation » restarts with the conversation (reset
+        under `_lock` with `_history`, so a turn starting just after keeps its calls); the
+        session's column stays (only a relaunch resets it). Emitted when it held something."""
+        if touched:
+            journal = self._journal()
+            emit_spend(
+                self.cfg.eur_per_usd, lambda spend: journal.emit("consumption_updated", spend)
+            )
 
     def clear_cache(self) -> None:
         """V1.3 story 3 (CAP-4), class (b): the local engine's context memory emptied, the
@@ -6696,8 +6720,10 @@ class AppSession:
                 apply()
                 after = set(self._mcp_enabled) if "mcp" in self._wanted else set()
                 self._active_scenario = scenario_id
+                spend_reset = reset_conversation_spend(self.cfg.eur_per_usd)
             journal = self._journal()
             journal.emit("conversation_cleared" if scenario_id else "harness_reset", {})
+            self._emit_spend_reset(spend_reset)
             if scenario_id is None or restore_memory:  # FR-39; story 21, a module's start
                 self._restore_memory()
         self._emit_armed()
@@ -7014,9 +7040,12 @@ class AppSession:
         stopped = False
         embedder, refusal = self._build_embedder(model)
         meta = None
+        built_ms, built_impact = 0, None
         if refusal is not None:
             failed = refusal
         else:
+            # Started once the embedder is there: a refused build leaves no tracker running.
+            probe = greenops.Probe(lambda: self._local_meter.start(machine=False))
             try:
                 meta = rag_index.build_index(
                     content,
@@ -7036,6 +7065,17 @@ class AppSession:
                 failed = exc
             finally:
                 self._close_embedder(embedder, None)
+                built_ms, built_impact = probe.stop()
+        if meta is not None:  # V1.2 story 3 (CAP-8): the build's cost, kept next to the index
+            tokens = sum(
+                config.estimate_tokens(rag_index.passage_text(c), self.cfg.chars_per_token)
+                for c in chunk_corpus(content, self.cfg.rag_chunk_max_chars, lang)
+            )
+            rag_lab.write_build_cost(
+                rag_lab.brick_costs_path(path),
+                "embedding",
+                greenops.StageCost("build", "embedding", tokens, built_ms, 0.0, built_impact),
+            )
         with self._lock:
             self._download_cancel = None
         with scoped(brick="rag", component=RAG_INDEX):  # the card shows a failure (AD-1)
@@ -7521,6 +7561,7 @@ class AppSession:
                         self.cfg.eur_per_usd,
                         lambda spend: journal.emit("consumption_updated", spend),
                         compression_saved_usd=saved_usd,
+                        in_conversation=current().turn_id is not None,
                     )
         if first and state.rag_excerpts:
             state = replace(state, rag_excerpts=tuple(excerpts), rag_compressed=tuple(was))
@@ -8693,7 +8734,9 @@ class AppSession:
             rate = kv_fields.get("kv_prompt_per_second")
             if rate:
                 kv_time_saved_s = kv_fields["kv_cache_tokens"] / rate
-            self._count_impact(impact, kv_time_saved_s)
+            # V1.3 CAP-3: its cache cells join the bilan (not a call refused before any output).
+            counted = None if reason == "error" and first_at is None else cache_cells
+            self._count_impact(impact, kv_time_saved_s, counted)
             # Story 7 (CAP-7): this call's own tokens, for the sub-agent's dedicated line
             # (within a turn only, like `_count_impact`: the labs have none).
             if current().turn_id is not None:
@@ -8949,13 +8992,18 @@ class AppSession:
             "gco2e_max": sum(i.gco2e_max for i in impacts),
         }
 
-    def _count_impact(self, impact: Impact, kv_time_saved_s: float | None = None) -> None:
+    def _count_impact(
+        self,
+        impact: Impact,
+        kv_time_saved_s: float | None = None,
+        cache: dict[str, Any] | None = None,
+    ) -> None:
         """GreenOps: a local call's estimated footprint joins the session's registry (then
         `consumption_updated`) and, within a turn, the turn's sums; a local call costs
         nothing. Story 9 (CAP-7): `kv_time_saved_s` (the call's own KV-cache reuse, when the
         engine said one) joins the running total too, even without an estimated footprint."""
         estimated = impact.estimated
-        if not estimated and kv_time_saved_s is None:
+        if not estimated and kv_time_saved_s is None and cache is None:
             return
         if estimated and current().turn_id is not None:  # the « LLM nu » screen has no turn
             self._turn_impacts.append(impact)
@@ -8966,6 +9014,8 @@ class AppSession:
             lambda spend: journal.emit("consumption_updated", spend),
             impact=impact if estimated else None,
             kv_time_saved_s=kv_time_saved_s,
+            cache=cache,
+            in_conversation=current().turn_id is not None,
         )
 
     def consumption(self) -> dict[str, Any] | None:
@@ -10348,9 +10398,102 @@ class AppSession:
             "content_error_text": error_text,
             "unavailable_text": self._rag_lab_unavailable(),
             "last_run": rag_lab.last_run(events),
+            "last_update": rag_lab.last_update(events),
+            "work_copy": self._rag_lab_work_copy(),
+            "questions": self._rag_lab_questions(),
             "session_state": {"state": state, "reason_text": reason_text},
             "seq": tip,
         }
+
+    def _rag_lab_questions(self) -> list[dict[str, str]]:
+        """V1.2 story 4 (CAP-2): the prepared questions of `content/rag_questions.yaml` (story
+        1) in the session's language, for the page's selector. A missing or invalid file gives
+        none (the page keeps the free question): the content's own test is what fails. A
+        follow-up question needs its earlier turns, which the workshop has not: left out."""
+        try:
+            questions = load_rag_questions(self._language)
+        except (OSError, ValueError, yaml.YAMLError):
+            return []
+        return [
+            {"id": q.id, "type": q.type, "question_text": q.question_text}
+            for q in questions
+            if not q.history
+        ]
+
+    def _rag_lab_work_copy(self) -> dict[str, Any] | None:
+        """V1.2 story 3 (CAP-8): the work copy of the corpus the update buttons act on: where
+        it lives, what it changes, the documents it holds (`None`: no corpus)."""
+        content = self._rag_content
+        if content is None:
+            return None
+        copy = workcopy.load(self._language)
+        return workcopy.summary(content, copy) | {
+            "path": str(workcopy.path(self._language)),
+            "operations": list(workcopy.OPERATIONS),
+        }
+
+    def reset_rag_lab_copy(self) -> dict[str, Any] | None:
+        """`POST /api/rag_lab/copy/reset`: back to the shipped corpus, the work copy deleted
+        (never `content/`). Refused while a run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            workcopy.reset(self._language)
+        return self._rag_lab_work_copy()
+
+    def update_rag_lab(
+        self,
+        operation: str,
+        doc_id: str,
+        title_text: str = "",
+        text: str = "",
+        pipeline: rag_lab.Pipeline | None = None,
+    ) -> str:
+        """Intention `rag_lab_update` (V1.2 story 3, CAP-8), accepted in `idle` only as a
+        run: one operation (add, modify, delete one document) is applied to the work copy of
+        the corpus, and what the chain would redo is measured (`UpdateRun`, events under the
+        id `upd{n}`). The copy is kept when the measure ends in `ok`. Returns the run's id."""
+        texts, error_text = self._rag_lab_content()
+        if texts is None:
+            raise SendRefused(error_text or Message("session.rag_lab.texts_unreadable"))
+        unavailable = self._rag_lab_unavailable()
+        if unavailable is not None:
+            raise SendRefused(unavailable)
+        catalog = self._rag_lab_catalog(texts)
+        pipeline = pipeline or catalog.default
+        reason = rag_lab.validate_pipeline(pipeline, catalog)
+        if reason is not None:
+            raise SendRefused(reason)
+        content = self._rag_content
+        assert content is not None
+        label = rag_lab._t(f"update.op.{operation}", self._language, doc=doc_id)
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            # Read under the lock, once `idle`: the copy an earlier update saved is the base.
+            before = workcopy.load(self._language)
+            try:
+                after = workcopy.apply(content, before, operation, doc_id, title_text, text)
+            except workcopy.UpdateRefused as refused:
+                raise SendRefused(refused.reason) from refused
+            previous = self.reason_text
+            self._rag_labs += 1
+            run_id = f"{rag_lab.UPDATE_RUN_PREFIX}{self._rag_labs}"
+            cancel = self._cancel = CancelToken()
+            self.state, self.reason_text = "rag_lab", _RAG_LAB_FR
+        self._emit_state()
+        self._executor.submit(
+            self._run_rag_lab,
+            run_id,
+            label,
+            pipeline,
+            texts,
+            catalog,
+            cancel,
+            previous,
+            (before, after),
+        )
+        return run_id
 
     def _rag_lab_unavailable(self) -> str | None:
         """Why no chain can run at all: the RAG brick's corpus and texts are unreadable."""
@@ -10425,6 +10568,7 @@ class AppSession:
         catalog: rag_lab.Catalog,
         cancel: CancelToken,
         previous: str | None,
+        update: tuple[workcopy.WorkCopy, workcopy.WorkCopy] | None = None,
     ) -> None:
         """On the worker, in series with the turns and `_sync_rag`: a model the brick holds
         cannot be closed meanwhile. What the run loads is closed and freed at its end (AD-8),
@@ -10432,32 +10576,14 @@ class AppSession:
         loans = rag_lab.Loans(self._load_registry)
         lab_run: rag_lab.LabRun | None = None
         try:
-            content = self._rag_content
-            model = self._rag_model
-            index_error = None
-            if model is not None and content is not None:
-                index_error = self._rag_index_state(model, content)[1]
-            assert content is not None  # checked when the intention was accepted
-            deps = rag_lab.LabDeps(
-                content=content,
-                texts=texts,
-                catalog=catalog,
-                shipped_chunk_max_chars=self.cfg.rag_chunk_max_chars,
-                brick_index=self._rag_index_path(),
-                brick_index_error=index_error,
-                lab_dir=config.rag_lab_dir(),
-                embedder=lambda option: self._rag_lab_embedder(option, loans),
-                identity=self._rag_lab_identity,
-                importer=self._rag_lab_import,
-                reranker=lambda option: self._rag_lab_reranker(option, loans),
-                cancelled=lambda: cancel.cancelled,
-                emit=self._rag_lab_emit,
-                rss=self._rss_now,
-                lang=self._language,
-                generator=lambda ask: self._rag_lab_generate(ask, cancel),
-            )
-            lab_run = rag_lab.LabRun(run_id, question, chain, deps)
-            lab_run.run()
+            deps = self._rag_lab_deps(texts, catalog, cancel, loans)
+            if update is None:
+                lab_run = rag_lab.LabRun(run_id, question, chain, deps)
+            else:
+                lab_run = rag_lab.UpdateRun(run_id, question, chain, deps, *update)
+            outcome = lab_run.run()
+            if update is not None and outcome == "ok":
+                workcopy.save(update[1], self._language)  # kept only when it was measured
         except Exception as exc:  # noqa: BLE001 - AD-16: the state still comes back
             with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
                 self._error(
@@ -10482,6 +10608,44 @@ class AppSession:
             with self._lock:
                 self._cancel = None
             self._set_state("idle", previous)
+
+    def _rag_lab_deps(
+        self,
+        texts: rag_lab.RagLabContent,
+        catalog: rag_lab.Catalog,
+        cancel: CancelToken,
+        loans: rag_lab.Loans,
+    ) -> rag_lab.LabDeps:
+        """What a run of the workshop (a chain, or the measure of an update) is given."""
+        content = self._rag_content
+        model = self._rag_model
+        index_error = None
+        if model is not None and content is not None:
+            index_error = self._rag_index_state(model, content)[1]
+        assert content is not None  # checked when the intention was accepted
+        return rag_lab.LabDeps(
+            content=content,
+            texts=texts,
+            catalog=catalog,
+            shipped_chunk_max_chars=self.cfg.rag_chunk_max_chars,
+            brick_index=self._rag_index_path(),
+            brick_index_error=index_error,
+            lab_dir=config.rag_lab_dir(),
+            embedder=lambda option: self._rag_lab_embedder(option, loans),
+            identity=self._rag_lab_identity,
+            importer=self._rag_lab_import,
+            reranker=lambda option: self._rag_lab_reranker(option, loans),
+            cancelled=lambda: cancel.cancelled,
+            emit=self._rag_lab_emit,
+            rss=self._rss_now,
+            lang=self._language,
+            generator=lambda ask: self._rag_lab_generate(ask, cancel),
+            # V1.2 story 3 (CAP-8): the embedding, reranking and indexing run in this process.
+            meter=lambda: self._local_meter.start(machine=False),
+            estimate_tokens=lambda t: config.estimate_tokens(t, self.cfg.chars_per_token),
+            # The chain reads the work copy while it differs from the shipped corpus.
+            work_copy=workcopy.load(self._language),
+        )
 
     def _rag_lab_emit(
         self, kind: str, payload: dict[str, Any], step_id: str, component: str
@@ -10628,6 +10792,24 @@ class AppSession:
             if call is not None:
                 got.answer_text = call.get("text") or ""
                 got.output_tokens = int(call.get("output_tokens") or 0)
+                # V1.2 story 3 (CAP-8): what the call measured of itself.
+                got.duration_ms = call.get("duration_ms")
+                priced = call.get("cost_in_usd") is not None or call.get("cost_out_usd") is not None
+                if priced:
+                    got.cost_usd = float(call.get("cost_in_usd") or 0) + float(
+                        call.get("cost_out_usd") or 0
+                    )
+                elif cloud is None:
+                    got.cost_usd = 0.0  # a local model bills nothing
+                if call.get("energy_wh_min") is not None and call.get("gco2e_min") is not None:
+                    got.impact = Impact(
+                        str(call.get("impact_method") or ""),
+                        None,
+                        call["energy_wh_min"],
+                        call.get("energy_wh_max", call["energy_wh_min"]),
+                        call["gco2e_min"],
+                        call.get("gco2e_max", call["gco2e_min"]),
+                    )
             else:
                 got.output_tokens = produced
             return got

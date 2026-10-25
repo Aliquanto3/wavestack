@@ -46,3 +46,5 @@ recette-scenarios-2b.json
 .claude/cost-kit/.blocages
 /mesures-couts/
 
+# The E2E failure captures (run_e2e.py, `echec-<scenario>.jpg`): local diagnostics, never shipped
+tools/e2e/screenshots/echec-*.jpg

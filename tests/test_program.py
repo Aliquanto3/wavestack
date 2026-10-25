@@ -46,14 +46,18 @@ FR38 = [
 ]
 # The exceptions written at the top of content/scenarios.yaml (AD-9): shown in their own
 # module, never carried into the next ones (story 27: the RAG joins the reasoning, D5).
-NEVER_CARRIED = {"reasoning", "rag"}
+NEVER_CARRIED = {"reasoning", "rag", "subagent"}
 # The phrases the first scenario of each later module uses to say so (one of them).
 NEVER_CARRIED_FR = {
     "reasoning": ("sauf le raisonnement", "sans le raisonnement"),
     "rag": ("sauf le raisonnement et le RAG", "sans le raisonnement ni le RAG"),
+    "subagent": ("sans le sous-agent",),
 }
 # Variants of a module's first scenario (a sub-option): the same bricks.
 VARIANTS = {"network_tools": "native_tools", "rag_rerank": "rag", "mcp_lazy": "mcp_full"}
+# A hook a later module's first scenario leaves off, and the phrase that says so (V1.4-2: H3's
+# mission rules would overflow the window at compression's second prompt).
+HOOKS_NOT_CARRIED_FR = {"h3": "sans l'injection de contexte (H3)"}
 LAUNCH_HOOKS = {"h1", "h2", "h3"}  # `hooks` absent: the launch values (story 8)
 # Lot B (B3): without `WAVESTACK_TEST_GGUF`, the test session estimates 2 characters per
 # token, calibrated on the target PC (`mcp_full`: 3 204 tokens by Qwen3.5's tokenizer, 1 530
@@ -160,7 +164,11 @@ def test_first_scenario_of_each_module_has_the_previous_modules_bricks():
         expected = before - NEVER_CARRIED
         assert expected <= set(first.bricks), (first_id, expected - set(first.bricks))
         if "hooks" in first.bricks:  # the hooks shown before stay active
-            assert hooks_before <= set(first.hooks or LAUNCH_HOOKS), first_id
+            for hook in hooks_before - set(first.hooks or LAUNCH_HOOKS):
+                assert HOOKS_NOT_CARRIED_FR.get(hook, "no exception") in first.description_text, (
+                    first_id,
+                    hook,
+                )
         if "mcp" in before and "mcp" in first.bricks:  # lazy loading, to keep room
             assert first.mcp_lazy, first_id
         for brick in NEVER_CARRIED & before:  # the instructions say which brick stays off
@@ -175,7 +183,7 @@ def test_first_scenario_of_each_module_has_the_previous_modules_bricks():
                 hooks_before |= set(scenario.hooks or LAUNCH_HOOKS)
 
 
-def test_reasoning_and_rag_stay_in_their_module_and_variants_keep_their_bricks():
+def test_never_carried_bricks_stay_in_their_module_and_variants_keep_their_bricks():
     content = _content()
     # No module start after the one that introduces them carries them (story 27, D5); the
     # later scenarios of a module, the transverse and business ones set their bricks freely.

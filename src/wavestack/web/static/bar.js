@@ -194,6 +194,7 @@ function renderSpendPanel() {
   }
   const detail = $("bar-spend-detail");
   if (detail) detail.textContent = detailSentence(c);
+  renderCacheBilan(c);
 }
 
 function savingsBar(label, amount, scale) {
@@ -218,6 +219,199 @@ function savingsBar(label, amount, scale) {
   value.textContent = money(amount);
   row.append(name, track, value);
   return row;
+}
+
+// ---------- V1.3 CAP-3: the cache bilan, « Cette conversation » and « Depuis le lancement » ----------
+
+// The ring's posts, in the order of agent-cost-kit's bilan; each has its own CSS class (the
+// `--color-segment-*` tokens, light and dark) and its text key.
+const RING_POSTS = ["read", "write_5m", "write_1h", "fresh", "out"];
+const RING_TEXT = { read: "read", write_5m: "write_5m", write_1h: "write_1h", fresh: "uncached", out: "out" };
+const RING_GAP = 1; // units of the 100-unit circumference left between two segments
+
+// One cache cell of a column, as text: exact, partial (a mix of declared and undeclared
+// calls, never a sum shown as exact), « non déclaré » (never 0) or « sans objet » (a local
+// call has no uncached part).
+function cellText(cell, tokens, notApplicable) {
+  const declared = cell.declared ?? 0;
+  const undeclared = cell.undeclared ?? 0;
+  const count = numberFormat({}).format(tokens);
+  if (declared === 0 && undeclared === 0) {
+    return t(notApplicable ? "common.bar.spend.cache.not_applicable" : "common.bar.spend.cache.none");
+  }
+  if (declared === 0) return t("common.bar.spend.cache.undeclared");
+  if (undeclared === 0) return t("common.bar.spend.cache.value_exact", { tokens: count });
+  return t("common.bar.spend.cache.value_partial", { tokens: count, declared, total: declared + undeclared });
+}
+
+// « Beaucoup d'écriture : le cache se perd »: the conversation's writes, the cache's priming
+// (its first declared write) left out, exceed its reads; exact sums on both sides only.
+function writeSignal(col) {
+  const { read, write } = col.cache;
+  if (!(write.declared > 0) || write.undeclared > 0 || read.undeclared > 0) return false;
+  return write.tokens - (col.cold_write_tokens ?? 0) > read.tokens;
+}
+
+function ringNode(col) {
+  const box = document.createElement("div");
+  box.className = "bar-ring";
+  const title = document.createElement("h4");
+  title.textContent = t("common.bar.spend.cache.ring_title");
+  box.append(title);
+  const total = RING_POSTS.reduce((sum, post) => sum + Math.max(0, col.ring[post] ?? 0), 0);
+  if (!(col.ring_calls > 0) || !(total > 0)) {
+    const none = document.createElement("p");
+    none.className = "bar-flyout-note";
+    none.textContent = t("common.bar.spend.cache.ring_none");
+    box.append(none);
+  } else {
+    const posts = RING_POSTS.filter((post) => post !== "write_1h" || col.ring[post] > 0);
+    const share = (post) => (100 * Math.max(0, col.ring[post] ?? 0)) / total;
+    const postName = (post) => t(`common.bar.spend.cache.${RING_TEXT[post]}`);
+    const biggest = posts.reduce((a, b) => (share(b) > share(a) ? b : a));
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 42 42");
+    svg.setAttribute("class", "bar-ring-svg");
+    svg.setAttribute("role", "img");
+    svg.setAttribute(
+      "aria-label",
+      t("common.bar.spend.cache.ring_label", { post: postName(biggest), percent: String(Math.round(share(biggest))) }),
+    );
+    const circle = (cls, dash, offset) => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("class", cls);
+      c.setAttribute("cx", "21");
+      c.setAttribute("cy", "21");
+      c.setAttribute("r", "15.9155");
+      c.setAttribute("fill", "none");
+      if (dash) c.setAttribute("stroke-dasharray", dash);
+      if (offset !== undefined) c.setAttribute("stroke-dashoffset", String(offset));
+      return c;
+    };
+    svg.append(circle("bar-ring-track"));
+    const shown = posts.filter((post) => share(post) > 0);
+    let start = 0;
+    for (const post of shown) {
+      const length = share(post);
+      const gap = shown.length > 1 ? Math.min(RING_GAP, length) : 0;
+      svg.append(circle(`bar-ring-seg bar-ring-${post}`, `${length - gap} ${100 - length + gap}`, 25 - start));
+      start += length;
+    }
+    const legend = document.createElement("ul");
+    legend.className = "bar-ring-legend";
+    for (const post of posts) {
+      const item = document.createElement("li");
+      const dot = document.createElement("i");
+      dot.className = `bar-ring-dot bar-ring-${post}`;
+      dot.setAttribute("aria-hidden", "true");
+      const label = document.createElement("span");
+      label.textContent = t("common.bar.spend.cache.ring_item", {
+        post: postName(post),
+        amount: money(col.ring[post] ?? 0),
+        percent: String(Math.round(share(post))),
+      });
+      item.append(dot, label);
+      legend.append(item);
+    }
+    box.append(svg, legend);
+  }
+  if (col.unpriced_calls > 0) {
+    const note = document.createElement("p");
+    note.className = "bar-flyout-note";
+    note.textContent = t("common.bar.spend.cache.ring_unpriced", {
+      calls: t("common.count.call", { count: col.unpriced_calls }),
+    });
+    box.append(note);
+  }
+  return box;
+}
+
+function cacheColumn(title, col, withSignal, showOneHour) {
+  const section = document.createElement("section");
+  section.className = "bar-cache-col";
+  const head = document.createElement("h3");
+  head.textContent = title;
+  section.append(head);
+  if (!(col.cache_calls > 0) && !(col.ring_calls > 0)) {
+    const empty = document.createElement("p");
+    empty.className = "bar-flyout-note";
+    empty.textContent = t("common.bar.spend.cache.empty");
+    section.append(empty);
+    return section;
+  }
+  const cells = col.cache;
+  const list = document.createElement("dl");
+  list.className = "bar-cache-cells";
+  const row = (name, text) => {
+    const dt = document.createElement("dt");
+    dt.textContent = t(`common.bar.spend.cache.${name}`);
+    const dd = document.createElement("dd");
+    dd.className = "number";
+    dd.textContent = text;
+    list.append(dt, dd);
+  };
+  row("read", cellText(cells.read, cells.read.tokens, false));
+  // The 5 min write is the write less its 1 h part (a provider without detail: all 5 min).
+  row("write_5m", cellText(cells.write, Math.max(0, cells.write.tokens - cells.write_1h.tokens), false));
+  if (showOneHour) row("write_1h", cellText(cells.write_1h, cells.write_1h.tokens, false));
+  row("uncached", cellText(cells.uncached, cells.uncached.tokens, col.cache_calls > 0));
+  section.append(list);
+  if (withSignal && writeSignal(col)) {
+    const signal = document.createElement("p");
+    signal.className = "bar-cache-signal";
+    signal.setAttribute("role", "status");
+    signal.textContent = t("common.bar.spend.cache.signal");
+    section.append(signal);
+  }
+  const lines = [];
+  if (col.cache_priced_calls > 0) {
+    lines.push(
+      t("common.bar.spend.cache.without_cache", {
+        amount: money(col.total_usd + col.cache_saved_usd),
+        calls: t("common.count.call", { count: col.cache_priced_calls }),
+      }),
+    );
+  }
+  if (col.kv_time_saved_s > 0) {
+    lines.push(t("common.bar.spend.cache.time_saved", { seconds: kvSeconds(col.kv_time_saved_s) }));
+  } else if (col.local_read_calls > 0) {
+    lines.push(t("common.bar.spend.cache.time_unmeasured"));
+  }
+  for (const line of lines) {
+    const note = document.createElement("p");
+    note.className = "bar-flyout-note";
+    note.textContent = line;
+    section.append(note);
+  }
+  section.append(ringNode(col));
+  return section;
+}
+
+function renderCacheBilan(c) {
+  const anchor = $("bar-spend-detail");
+  if (!anchor) return;
+  let host = $("bar-cache-bilan");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "bar-cache-bilan";
+    host.className = "bar-cache-bilan";
+    anchor.after(host);
+  }
+  const conversation = c.conversation;
+  const counted = (col) => col && (col.cache_calls > 0 || col.ring_calls > 0);
+  host.hidden = !counted(c) && !counted(conversation);
+  if (host.hidden) return host.replaceChildren();
+  const showOneHour = (c.cache?.write_1h?.declared ?? 0) > 0 || (conversation?.cache?.write_1h?.declared ?? 0) > 0;
+  const title = document.createElement("h3");
+  title.className = "bar-cache-title";
+  title.textContent = t("common.bar.spend.cache.title");
+  const columns = document.createElement("div");
+  columns.className = "bar-cache-cols";
+  if (conversation) {
+    columns.append(cacheColumn(t("common.bar.spend.cache.conversation"), conversation, true, showOneHour));
+  }
+  columns.append(cacheColumn(t("common.bar.spend.cache.launch"), c, false, showOneHour));
+  host.replaceChildren(title, columns);
 }
 
 // ---------- « Journal » ----------

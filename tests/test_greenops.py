@@ -435,7 +435,9 @@ def test_without_the_extra_a_local_turn_ends_and_gives_the_command():
     (ended,) = events["model_call_ended"]
     assert "energy_wh_min" not in ended and "impact_method" not in ended
     assert "uv sync --extra greenops" in ended["impact_note_text"]
-    assert "consumption_updated" not in events and session.consumption() is None
+    # V1.3 CAP-3: no footprint, no cost; only the call's cache cells are counted.
+    (spend,) = events["consumption_updated"]
+    assert spend["impact_calls"] == 0 and spend["calls"] == 0 and spend["cache_calls"] == 1
 
 
 @pytest.mark.parametrize("engine", ["llama_server", "ollama"])
@@ -563,7 +565,9 @@ def test_a_failed_measure_never_stops_the_turn(codecarbon):
     (ended,) = events["model_call_ended"]
     assert "energy_wh_min" not in ended
     assert "CodeCarbon n'a pas rendu de mesure" in ended["impact_note_text"]
-    assert "consumption_updated" not in events
+    # V1.3 CAP-3: no footprint; only the call's cache cells are counted.
+    (spend,) = events["consumption_updated"]
+    assert spend["impact_calls"] == 0 and spend["cache_calls"] == 1
 
 
 def test_a_broken_codecarbon_install_is_said_once(monkeypatch):

@@ -76,8 +76,8 @@ l'empreinte estimées sont dans le bouton **Dépense** de la barre de navigation
 
 ## Programme de formation
 
-Le sélecteur de scénario de la barre du bas liste six modules, dans l'ordre des briques, soit
-5 h 15 au total, à répartir sur plusieurs séances :
+Le sélecteur de scénario de la barre du bas liste sept modules, dans l'ordre des briques, soit
+6 h au total, à répartir sur plusieurs séances :
 
 | Module | Durée | Scénarios |
 |---|---|---|
@@ -86,7 +86,8 @@ Le sélecteur de scénario de la barre du bas liste six modules, dans l'ordre de
 | 3. RAG | 60 min | RAG, RAG avec reranking, RAG injecté ou recherche agentique |
 | 4. MCP | 45 min | documentation complète, lazy loading |
 | 5. Skills et hooks | 60 min | skills, Caveman, hooks |
-| 6. Sous-agent et compression | 60 min | sous-agent, compression du contexte |
+| 6. Sous-agent | 45 min | sous-agent |
+| 7. Contexte long et carte | 45 min | compression du contexte, carte du harnais |
 
 Lancer le premier scénario d'un module active les briques des modules précédents et restaure la
 mémoire globale de démonstration : on peut reprendre la formation à n'importe quel module, dans
@@ -364,6 +365,7 @@ Le lien **« RAG »** de la barre de navigation ouvre l'Atelier RAG (page `/rag`
 RAG, dessinée pièce par pièce, puis exécutée sur une question, étape par étape. C'est un bac à
 sable : la brique RAG de l'atelier (ses réglages, son index, ses modèles) ne change pas.
 
+- **Atelier recherche documentaire, onglets et comparaison.** La page `/rag` porte désormais ce titre (le lien de la barre reste « RAG »). Cinq onglets : **Construire** (la page décrite ci-dessous), **Comparer**, et **Évaluer**, **Attaquer**, **Fiches** (« à venir »). Un sélecteur de **question préparée** (jeu de questions du corpus Exemplia, avec le badge de son type) remplit la question. **« Épingler cette exécution »** garde l'exécution terminée (elle survit au rechargement) ; l'onglet Comparer la pose à côté de l'exécution courante : recherche, contexte, réponse, coûts de construction, de mise à jour et de requête, les passages perdus ou ajoutés et les chiffres qui diffèrent marqués, sans synthèse rédigée. Deux exécutions successives, pas de voie B.
 - **Trois vues.** À gauche la **séquence** des étapes, en deux temps : « BUILD · Indexing »
   (Documents, Chunking, Embedding des chunks, Indexing dans le vector store, puis Lexical
   indexing quand la chaîne a BM25), fait une fois pour
@@ -750,4 +752,34 @@ n'arrête jamais un tour : l'appel n'a pas d'empreinte, avec la raison.
 de la séance dans le panneau du bouton **Dépense** de la barre de navigation
 (« 🍃 0,12 g CO₂e »), la phrase entière dans l'infobulle. Comme la dépense, ce total compte les
 tours, le sous-agent, « Tester » et l'Atelier LLM, et seul un relancement le remet à zéro.
-L'embedding et le reranker du RAG ne sont pas comptés.
+Le total de la séance ne compte pas l'embedding, le reranking ni l'indexation de l'Atelier
+RAG : ils s'affichent dans les trois cartes de coûts de l'atelier (ci-dessous), à côté de la
+génération.
+
+**Coûts en trois temps (Atelier RAG).** Sous la séquence, trois cartes donnent, pour la chaîne
+affichée, les tokens, la durée, les dollars et les gCO₂e (avec l'énergie) de :
+- la **construction** : découper, vectoriser (embedding) et indexer (base vectorielle, index
+  BM25) tout le corpus, une fois ;
+- la **mise à jour** : ajouter, modifier ou supprimer un document, puis remettre l'index à jour ;
+- la **requête** : vectoriser la question, chercher, reclasser (reranking), générer.
+
+L'embedding, le reranking et l'indexation sont des modèles et des calculs locaux : 0 $ (rien
+n'est facturé), l'énergie vient de CodeCarbon (extra `greenops`, sinon « non mesuré ») et les
+tokens sont estimés par les caractères, hors la génération. Un contenu **précalculé** (l'index
+livré dans `data/`, les vecteurs d'un cache de l'atelier) n'est pas recalculé à chaque exécution :
+la carte montre alors le coût **mesuré à la construction**, marqué comme tel, relu dans le
+fichier `rag_index.cost.json` voisin de l'index (écrit par `scripts/build_rag_index.py` et par
+« Construire l'index ») ou dans le dossier du cache. Sans ce fichier, le coût est dit non
+enregistré, jamais inventé. Une somme dont une partie n'a pas d'empreinte est dite partielle.
+
+**Ajouter, Modifier, Supprimer un document.** Les trois boutons agissent sur une **copie de
+travail** du corpus, `rag_lab/work_corpus/<langue>.json` dans le dossier de données, jamais sur
+`content/` du dépôt. « Modifier » ajoute le texte saisi au document comme dernier paragraphe.
+Seuls les passages nouveaux ou modifiés sont vectorisés ; l'index vectoriel et l'index BM25 sont
+reconstruits en entier (les index de l'atelier ne se mettent pas à jour vecteur par vecteur).
+Tant que la copie diffère du corpus livré, les exécutions de la chaîne la lisent, pour voir
+l'effet de la mise à jour sur les réponses : l'étape Chunking dit sa source (la copie de travail)
+et l'index précalculé de la brique n'est alors pas utilisé. « Revenir à l'état livré » supprime
+la copie. Une somme dont une partie n'a pas d'empreinte, ou d'une exécution arrêtée avant la fin,
+est une borne basse, dite partielle. Les deux périmètres de mesure (local : l'électricité consommée seulement ;
+cloud : le cycle de vie d'EcoLogits) restent signalés sous les cartes.

@@ -281,6 +281,11 @@ def test_stop_during_the_generation_keeps_the_partial_answer(index):
     assert generation["status"] == "cancelled" and generation["prompt_text"]
     assert generation["output_text"] and set(generation["output_text"]) == {"x"}
     assert len(generation["output_text"]) < 400
+    # V1.2 story 3: the call was sent, its cost is kept; the run's sum is a lower bound.
+    (cost,) = generation["costs"]
+    assert cost["phase"] == "query" and cost["tokens"] > 0
+    ended_run = next(e.payload for e in events if e.kind == "rag_lab_run_ended")
+    assert all(s["partial"] for s in ended_run["cost_summary"])
     assert run_status(events) == "cancelled"
     assert session.state == "idle" and session._cancel is None
 

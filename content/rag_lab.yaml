@@ -2,7 +2,7 @@
 # (wavestack.rag.lab.RagLabContent). Un fichier invalide : la page reste servie et dit
 # pourquoi. `{…}` : une valeur que la session ou la page place.
 
-title_text: "Atelier RAG : l'architecture RAG à manipuler"
+title_text: "Atelier recherche documentaire : l'architecture de recherche à manipuler"
 intro_text: >-
   Un RAG (Retrieval-Augmented Generation : le modèle répond à partir de passages retrouvés
   dans des documents) fonctionne en deux temps. L'indexation (build) découpe une fois pour
@@ -362,3 +362,91 @@ presets:
       les réordonne : plus juste, plus lent. Seul le segment de récupération revient à celui de
       la chaîne livrée : les réglages du Chunking, de l'Embedding, du vector store et du prompt
       restent les vôtres.
+
+# V1.2 story 3 (CAP-8): the costs in three times and the work copy's buttons.
+costs:
+  title_text: "Coûts en trois temps"
+  hint_text: "Chaque temps se mesure à part : construire l'index, mettre à jour un document, répondre à une question. Les modèles d'embedding et de reranking et l'indexation sont comptés, comme la génération."
+  perimeters_text: "Deux périmètres de mesure : en local, seule l'électricité consommée est comptée (kWh × intensité du réseau, sans la fabrication du poste) ; en cloud, c'est le cycle de vie d'EcoLogits (électricité des serveurs et part de leur fabrication). Les deux chiffres ne sont pas comparables."
+  build_text: "Construction"
+  build_help_text: "Découper, vectoriser et indexer tout le corpus, une fois."
+  update_text: "Mise à jour"
+  update_help_text: "Ajouter, modifier ou supprimer un document, puis remettre l'index à jour."
+  query_text: "Requête"
+  query_help_text: "Chaque question : vectoriser la question, chercher, reclasser, générer."
+  tokens_text: "Tokens (estimés)"
+  duration_text: "Durée"
+  usd_text: "Dollars"
+  gco2e_text: "gCO₂e"
+  energy_text: "Énergie"
+  measured_at_build_text: "mesuré à la construction"
+  not_measured_text: "non mesuré"
+  partial_text: "Somme partielle, minorante : une partie n'a pas d'empreinte mesurée, ou l'exécution s'est arrêtée avant la fin."
+  local_free_text: "local : rien n'est facturé"
+  build_empty_text: "Lancez la chaîne pour mesurer la construction."
+  query_empty_text: "Lancez la chaîne pour mesurer une requête."
+  update_empty_text: "Utilisez Ajouter, Modifier ou Supprimer un document pour mesurer une mise à jour."
+  update_running_text: "Mesure de la mise à jour en cours…"
+  copy_title_text: "Copie de travail du corpus"
+  copy_help_text: "Les trois boutons agissent sur une copie du corpus, rangée dans {path}, jamais sur le dossier content/ du dépôt. Tant que la copie diffère du corpus livré, la chaîne la lit (l'étape Chunking dit sa source) ; « Revenir à l'état livré » la supprime."
+  copy_clean_text: "La copie est identique au corpus livré."
+  copy_changed_text: "Copie modifiée : {added} ajouté(s), {modified} modifié(s), {deleted} supprimé(s)."
+  add_doc_text: "Ajouter un document"
+  modify_doc_text: "Modifier un document (ajouter un paragraphe)"
+  delete_doc_text: "Supprimer un document"
+  reset_copy_text: "Revenir à l'état livré"
+  doc_label_text: "Document"
+  id_label_text: "Identifiant (a-z, 0-9, _)"
+  doc_title_label_text: "Titre"
+  doc_body_label_text: "Texte"
+  modify_hint_text: "Le texte est ajouté au document comme dernier paragraphe."
+  apply_text: "Mesurer"
+  cancel_text: "Annuler"
+  update_of_text: "Dernière mise à jour mesurée"
+
+# V1.2 story 4 : les onglets de vue, la question préparée, la comparaison de deux exécutions.
+tabs:
+  label_text: "Vues de l'atelier"
+  build_text: "Construire"
+  compare_text: "Comparer"
+  evaluate_text: "Évaluer"
+  attack_text: "Attaquer"
+  sheets_text: "Fiches"
+  soon_text: "{name} : à venir."
+prepared:
+  label_text: "Question préparée"
+  free_text: "Question libre"
+  types:
+    factual_text: "Factuelle"
+    multi_hop_text: "Multi-sauts"
+    global_text: "Globale"
+    no_answer_text: "Sans réponse"
+    temporal_text: "Temporelle"
+    cross_lingual_text: "Interlingue"
+    follow_up_text: "Suivi"
+compare:
+  title_text: "Comparer deux exécutions"
+  hint_text: "Épinglez une exécution dans l'onglet Construire, relancez la chaîne (autre architecture, autre réglage), puis lisez les écarts : passages, réponse, coûts. Pas de synthèse rédigée."
+  pin_text: "Épingler cette exécution"
+  pin_wait_text: "Lancez la chaîne : une exécution terminée peut être épinglée."
+  unpin_text: "Désépingler"
+  pinned_status_text: "Épinglée : {question}"
+  pinned_text: "Épinglée"
+  current_text: "Courante"
+  empty_pin_text: "Aucune exécution épinglée."
+  empty_current_text: "Aucune exécution terminée à comparer."
+  need_pin_text: "Épinglez l'exécution courante (onglet Construire), puis relancez la chaîne avec un autre réglage."
+  need_current_text: "Lancez la chaîne pour obtenir l'exécution courante."
+  other_question_text: "Les deux exécutions n'ont pas la même question : l'écart peut venir d'elle."
+  at_text: "à {time}"
+  search_text: "Recherche"
+  context_text: "Contexte"
+  answer_text: "Réponse"
+  costs_text: "Coûts (construction, mise à jour, requête)"
+  prompt_text: "Prompt final"
+  no_answer_text: "Pas de réponse générée."
+  none_text: "Aucun passage."
+  same_text: "Mêmes passages, dans le même ordre."
+  differs_text: "Les passages diffèrent."
+  lost_text: "perdu"
+  added_text: "ajouté"

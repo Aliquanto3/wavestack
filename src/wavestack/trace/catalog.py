@@ -491,6 +491,55 @@ class ModelCallEndedPayload(BaseModel):
     kv_prompt_per_second: float | None = None
 
 
+class CacheCellTotal(BaseModel):
+    """V1.3 CAP-3: one cache cell summed over a column's calls: the declared values (0
+    included), how many calls declared it, how many did not (never summed as 0)."""
+
+    tokens: int = 0
+    declared: int = 0
+    undeclared: int = 0
+
+
+class CacheTotals(BaseModel):
+    read: CacheCellTotal = CacheCellTotal()
+    write: CacheCellTotal = CacheCellTotal()
+    write_1h: CacheCellTotal = CacheCellTotal()
+    uncached: CacheCellTotal = CacheCellTotal()
+
+
+class RingUsd(BaseModel):
+    """The cost by post of a column's priced calls (the ring « où part l'argent »)."""
+
+    read: float = 0.0
+    write_5m: float = 0.0
+    write_1h: float = 0.0
+    fresh: float = 0.0
+    out: float = 0.0
+
+
+class SpendColumn(BaseModel):
+    """V1.3 CAP-3: « Cette conversation », the same totals as the session's (the flat fields
+    of `ConsumptionUpdatedPayload`), for the calls of the conversation's turns; reset with it."""
+
+    total_in_usd: float = 0.0
+    total_out_usd: float = 0.0
+    total_usd: float = 0.0
+    calls: int = 0
+    approx: bool = False
+    cache_saved_usd: float = 0.0
+    compression_saved_usd: float = 0.0
+    kv_time_saved_s: float = 0.0
+    saved_calls: int = 0
+    cache: CacheTotals = CacheTotals()
+    cache_calls: int = 0
+    cache_priced_calls: int = 0
+    local_read_calls: int = 0
+    cold_write_tokens: int = 0
+    ring: RingUsd = RingUsd()
+    ring_calls: int = 0
+    unpriced_calls: int = 0
+
+
 class ConsumptionUpdatedPayload(BaseModel):
     """FinOps: the session's API spend after a paid call (turns, sub-agent, « Tester », « LLM
     nu »), in dollars; reset by a relaunch only. `approx`: one of its calls was estimated.
@@ -518,6 +567,17 @@ class ConsumptionUpdatedPayload(BaseModel):
     compression_saved_usd: float = 0.0
     kv_time_saved_s: float = 0.0
     saved_calls: int = 0  # priced economies counted above (0: nothing measured)
+    # V1.3 CAP-3 (bilan consolidé): the session's cache cells, ring and counters (« Depuis le
+    # lancement », the flat fields above), and « Cette conversation » in `conversation`.
+    cache: CacheTotals = CacheTotals()
+    cache_calls: int = 0  # calls whose cache cells are counted
+    cache_priced_calls: int = 0  # calls whose cache saving is priced (`cache_saved_usd`)
+    local_read_calls: int = 0  # local calls that read from the engine's context memory
+    cold_write_tokens: int = 0  # the first declared write (priming), out of the write signal
+    ring: RingUsd = RingUsd()
+    ring_calls: int = 0
+    unpriced_calls: int = 0  # counted calls with no declared price, out of the ring
+    conversation: SpendColumn = SpendColumn()
 
 
 class SpecialTokenNeutralizedPayload(BaseModel):
@@ -641,6 +701,10 @@ class BrickState(BaseModel):
     id: str
     label_text: str
     category: Literal["prompt", "context", "harness"]
+    # V1.4-2: the brick's place on the harness map (declared in the registry, not translated).
+    subsystem: str | None = None
+    roles: list[str] = []
+    sensor_kind: str | None = None
     # Story 33: « Ce que le modèle lit » (`reads`) or « Ce que le harnais fait » (`acts`).
     group: Literal["reads", "acts"] | None = None
     category_text: str
@@ -1430,6 +1494,43 @@ class RagLabItem(BaseModel):
     sources: list[RagLabSource] = []
 
 
+class RagLabCost(BaseModel):
+    """V1.2 story 3 (CAP-8): what one part of a stage cost, in one of the three times
+    (`phase`: `build`, `update` or `query`): tokens, duration, dollars and footprint (min and
+    max, the method's range). `measured_at_build`: read back from the record of the build,
+    not measured by this run. A figure `None` was not measured (`note_text` says why)."""
+
+    phase: Literal["build", "update", "query"]
+    kind: str
+    tokens: int | None = None
+    duration_ms: int | None = None
+    usd: float | None = None
+    energy_wh_min: float | None = None
+    energy_wh_max: float | None = None
+    gco2e_min: float | None = None
+    gco2e_max: float | None = None
+    impact_method: str | None = None
+    measured_at_build: bool = False
+    note_text: str | None = None
+
+
+class RagLabCostSummary(BaseModel):
+    """The sum of one phase's `RagLabCost`s (each figure: the sum of those known)."""
+
+    phase: Literal["build", "update", "query"]
+    parts: int = 0
+    tokens: int | None = None
+    duration_ms: int | None = None
+    usd: float | None = None
+    energy_wh_min: float | None = None
+    energy_wh_max: float | None = None
+    gco2e_min: float | None = None
+    gco2e_max: float | None = None
+    partial: bool = False  # a part has no footprint: the sums are lower bounds
+    measured_at_build: bool = False  # a part is the build's record, not this run's measure
+    note_text: str | None = None
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1456,12 +1557,16 @@ class RagLabStageEndedPayload(BaseModel):
     # B2 (2026-10-05): the part of the stage run apart (« index »: BM25's index, at BUILD;
     # its `kind` « lexical_index »), `None` for the stage itself.
     part: str | None = None
+    # V1.2 story 3 (CAP-8): what the stage cost, by time (build, update, query).
+    costs: list[RagLabCost] = []
 
 
 class RagLabRunEndedPayload(BaseModel):
     run_id: str
     status: Literal["ok", "error", "cancelled"]
     duration_ms: int
+    # V1.2 story 3 (CAP-8): the run's costs by time (an update run: `update` only).
+    cost_summary: list[RagLabCostSummary] = []
 
 
 # ---------- the MCP workshop, context `mcp_lab` (story 6 of 2026-09-30; lot 4, AD-27) ----------

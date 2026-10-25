@@ -589,7 +589,11 @@ def test_the_vectors_cache_is_read_again_and_rebuilt_when_the_size_changes(index
     assert len(ended(first, "context")["items"]) == 2
     folders = list(config.rag_lab_dir().iterdir())
     assert len(folders) == 1
-    assert {p.name for p in folders[0].iterdir()} == {"chunks.json", "vectors.f32"}
+    assert {p.name for p in folders[0].iterdir()} == {
+        "chunks.json",
+        "vectors.f32",
+        "build_costs.json",
+    }
     second = run(session, QUESTION, b)
     assert "relus du cache" in ended(second, "embedding")["output_text"]
     assert ended(second, "vector_search")["items"] == ended(first, "vector_search")["items"]

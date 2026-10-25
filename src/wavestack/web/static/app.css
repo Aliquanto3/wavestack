@@ -4799,6 +4799,90 @@ body > .site-nav {
   margin: 0;
 }
 
+/* V1.4-2: the harness map, a full-screen variant of the audit dialog. */
+.harness-map-dialog {
+  width: calc(100vw - 2 * var(--spacing-pane-padding));
+  max-width: none;
+  height: calc(100vh - 2 * var(--spacing-pane-padding));
+  max-height: none;
+}
+
+.harness-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.harness-map-body {
+  flex: 1;
+  overflow: auto;
+}
+
+.harness-map-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-2);
+  margin: var(--spacing-2) 0;
+}
+
+.harness-map-box {
+  padding: var(--spacing-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+}
+
+.harness-map-box-title {
+  margin: 0 0 var(--spacing-1);
+  font-size: var(--typography-body-font-size);
+}
+
+.harness-map-brick {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 2px 0;
+}
+
+.harness-map-brick.is-off {
+  opacity: 0.45;
+}
+
+.harness-map-name {
+  flex: 1;
+}
+
+.harness-map-discipline {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-discipline-harness);
+}
+
+.harness-map-discipline[data-discipline="prompt"] {
+  background: var(--color-discipline-prompt);
+}
+
+.harness-map-discipline[data-discipline="context"] {
+  background: var(--color-discipline-context);
+}
+
+.harness-map-core {
+  margin: var(--spacing-1) 0 0;
+  font-style: italic;
+}
+
+.harness-map-foot {
+  padding: var(--spacing-1) var(--spacing-pane-padding);
+}
+
+@media (max-width: 640px) {
+  .harness-map-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---------- V1.3 story 2: the last call's cache, beside the context bar ---------- */
 
 /* A light track on the ink bar, like the context bar; the bar stays at every width, its

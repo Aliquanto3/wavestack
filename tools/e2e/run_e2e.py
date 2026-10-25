@@ -14449,6 +14449,120 @@ def s_rag_lab(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_views(r: Run) -> None:
+    """V1.2 story 4 (CAP-9, CAP-2, vues.md), after `rag` and `rag_rerank`: the five tabs of
+    `/rag` (Construire by default, Évaluer, Attaquer and Fiches « à venir »), the selector of
+    prepared questions and its badge, a run pinned then run again (same question: same passages;
+    another question: the differences marked, the costs by time), the pin kept after a reload
+    (and `#compare` opening the tab). Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_lab_tabs(r)
+    finally:
+        page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
+        r.goto_app()
+
+
+def _rag_lab_tabs(r: Run) -> None:
+    page = r.page
+    page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
+    _goto_rag_lab(r)
+    page.locator("#rag-reset-chain").click()
+    tabs = page.locator('#rag-tabs [role="tab"]')
+    r.check(
+        tabs.all_inner_texts() == ["Construire", "Comparer", "Évaluer", "Attaquer", "Fiches"]
+        and page.locator('#rag-tab-build[aria-selected="true"]').count() == 1
+        and page.locator("#rag-panel-build").is_visible()
+        and page.locator("#rag-panel-compare").is_hidden()
+        and page.locator("#rag-run").count() == 1,
+        "onglets : Construire · Comparer · Évaluer · Attaquer · Fiches, Construire par défaut",
+        str(tabs.all_inner_texts()),
+    )
+    for tab in ("evaluate", "attack", "sheets"):
+        page.click(f"#rag-tab-{tab}")
+        r.check(
+            "à venir" in page.locator(f"#rag-panel-{tab} .rag-soon").inner_text()
+            and page.locator("#rag-panel-build").is_hidden(),
+            f"onglet {tab} : vide, « à venir »",
+        )
+    page.click("#rag-tab-build")
+    expect(page.locator("#rag-panel-build")).to_be_visible()
+
+    # CAP-2: the selector fills the question and shows its type's badge.
+    questions = r.api("GET", "/api/rag_lab").json()["questions"]
+    first, second = questions[0], questions[1]
+    page.select_option("#rag-prepared", first["id"])
+    r.check(
+        page.input_value("#rag-question") == first["question_text"]
+        and page.locator("#rag-question-type").is_visible()
+        and page.locator("#rag-question-type").inner_text() != ""
+        and page.locator("#rag-prepared").input_value() == first["id"],
+        "question préparée : le sélecteur remplit la question et affiche le badge de type",
+        page.locator("#rag-question-type").inner_text(),
+    )
+    page.fill("#rag-question", "Une question libre")
+    r.check(
+        page.locator("#rag-prepared").input_value() == ""
+        and page.locator("#rag-question-type").is_hidden(),
+        "question libre : sélecteur sur « Question libre », badge masqué",
+    )
+
+    # CAP-9: pin a run, run again, compare.
+    _rag_lab_run(r, first["question_text"])
+    expect(page.locator("#rag-pin")).to_be_enabled(timeout=5000)
+    page.click("#rag-pin")
+    expect(page.locator("#rag-pin-status")).to_contain_text("Épinglée", timeout=5000)
+    _rag_lab_run(r, first["question_text"])
+    page.click("#rag-tab-compare")
+    cmp_box = page.locator("#rag-cmp")
+    expect(cmp_box.locator(".rag-cmp-row")).to_have_count(4, timeout=5000)
+    r.check(
+        cmp_box.locator('.rag-cmp-head[data-side="pinned"] h3').inner_text() == "Épinglée"
+        and cmp_box.locator('.rag-cmp-head[data-side="current"] h3').inner_text() == "Courante"
+        and first["question_text"]
+        in cmp_box.locator('.rag-cmp-head[data-side="pinned"]').inner_text()
+        and "Mêmes passages" in cmp_box.locator('[data-role="search"]').inner_text()
+        and cmp_box.locator("[data-role=search] .rag-cmp-mark").count() == 0
+        and cmp_box.locator('[data-role="costs"] .rag-cmp-cost').count() == 6
+        and not cmp_box.locator(".rag-cmp-warning").count(),
+        "Comparer : colonnes Épinglée et Courante, mêmes passages pour la même question, 4 lignes",
+        cmp_box.inner_text()[:240],
+    )
+    r.shot("62-atelier-rag-comparer", full_page=True)
+
+    # Another question: the passages differ, the lost and added ones are marked.
+    page.click("#rag-tab-build")
+    _rag_lab_run(r, second["question_text"])
+    page.click("#rag-tab-compare")
+    expect(cmp_box.locator(".rag-cmp-warning")).to_be_visible(timeout=5000)
+    marks = cmp_box.locator("[data-role=search] .rag-cmp-mark").count()
+    r.check(
+        "diffèrent" in cmp_box.locator('[data-role="search"]').inner_text()
+        and marks > 0
+        and cmp_box.locator("[data-role=search].is-diff").count() == 1,
+        "Comparer : autre question, passages perdus et ajoutés marqués, avertissement",
+        f"{marks} marques",
+    )
+
+    # The pin survives a reload; `#compare` opens its tab.
+    page.goto(f"{r.stack.app_url}/rag#compare")
+    expect(page.locator("body[data-rag-ready]")).to_be_attached(timeout=10_000)
+    expect(page.locator("#rag-panel-compare")).to_be_visible(timeout=5000)
+    expect(page.locator('#rag-cmp .rag-cmp-head[data-side="pinned"]')).to_contain_text(
+        first["question_text"], timeout=5000
+    )
+    r.check(
+        page.locator("#rag-unpin").is_visible() and page.locator("#rag-cmp-title").is_visible(),
+        "l'épingle survit au rechargement (et #compare ouvre l'onglet)",
+    )
+    page.click("#rag-unpin")
+    expect(page.locator('#rag-cmp .rag-cmp-head[data-side="pinned"]')).to_contain_text(
+        "Aucune exécution épinglée"
+    )
+
+
 def _downloads_text(count: int) -> str:
     """« 1 modèle à télécharger », « 2 modèles à télécharger » (ui.yaml, `rag.arch_downloads`)."""
     return f"{count} modèle{'s' if count > 1 else ''} à télécharger"
@@ -14775,12 +14889,13 @@ def _rag_lab(r: Run, errors: list[str]) -> None:
     )
     r.check(
         page.locator("nav.site-nav a[aria-current=page]").inner_text() == "RAG"
-        and page.title() == "WaveStack — Atelier RAG"
-        and page.locator("h1").inner_text().startswith("Atelier RAG")
+        and page.title() == "WaveStack — Atelier recherche documentaire"
+        and page.locator("h1").inner_text().startswith("Atelier recherche documentaire")
         and page.locator("select[data-theme-picker]").count() == 1
         and not page.locator("#rag-compare, #rag-chain-b, #rag-comparison").count()
         and not _site_nav_problems(r),
-        "/rag : barre commune entière, « RAG » courant, titre « Atelier RAG », plus de "
+        "/rag : barre commune entière, « RAG » courant, titre « Atelier recherche "
+        "documentaire », plus de "
         "comparaison A/B",
     )
     generation = page.locator('#rag-seq [data-step="generation"]')
@@ -14978,6 +15093,7 @@ def _rag_lab(r: Run, errors: list[str]) -> None:
     _rag_lab_alt(r)
     _rag_lab_hybrid(r)
     _rag_lab_presets(r)
+    _rag_lab_costs(r)
 
     # (6) Lot 5c-1: the main page's journal reads the workshop's events (one chain per run,
     # no lane): a summary per stage ended, its name read in `rag_lab_run_started`'s stages.
@@ -15764,6 +15880,116 @@ def _set_stage(r: Run, kind: str, option: str | None = None, **params: int) -> N
         field.dispatch_event("change")
 
 
+def _rag_lab_costs(r: Run) -> None:
+    """V1.2 story 3 (CAP-8), in Composer on the shipped chain: a run fills the Construction
+    and Requête cards (tokens, durée, dollars, énergie, gCO₂e; « mesuré à la construction » on
+    the precomputed index), the two measurement scopes stay said; « Modifier un document »,
+    « Ajouter un document » and « Supprimer un document » measure an update on the work copy
+    (a file of the data folder, never the repository), « Revenir à l'état livré » deletes it."""
+    page = r.page
+    status_before = _git_status()
+    copy_file = r.stack.data_dir / "rag_lab" / "work_corpus" / "fr.json"
+    page.locator("#rag-reset-chain").click()
+    _rag_lab_run(r, compose=True)
+    cards = page.locator("#rag-cost-cards .rag-cost-card")
+    expect(cards).to_have_count(3, timeout=5000)
+    build, update, query = (
+        page.locator(f'#rag-cost-cards [data-phase="{p}"]') for p in ("build", "update", "query")
+    )
+    expect(query.locator(".rag-cost-row")).to_have_count(5, timeout=5000)
+    r.check(
+        build.locator(".rag-cost-badge").count() == 1
+        and "mesuré à la construction" in build.inner_text()
+        and build.locator(".rag-cost-row").count() == 5
+        and "0 $" in query.inner_text()
+        and "Deux périmètres de mesure" in page.locator("#rag-cost-perimeters").inner_text()
+        and "Mise à jour" in update.inner_text(),
+        "coûts : Construction (mesuré à la construction), Mise à jour, Requête (5 lignes)",
+        build.inner_text()[:200],
+    )
+    r.shot("60-atelier-rag-couts", full_page=True)
+
+    def measure(operation: str) -> dict[str, Any]:
+        seq = r.ev.mark()
+        page.locator(f'#rag-copy button[data-op="{operation}"]').click()
+        expect(page.locator("#rag-copy-form")).to_be_visible()
+        return {"seq": seq}
+
+    # Modifier: a paragraph appended to a document, measured on the copy.
+    seq = measure("modify")["seq"]
+    page.select_option("#rag-copy-doc", "teletravail")
+    page.fill("#rag-copy-body", "Une règle de plus sur le télétravail, mesurée par l'atelier.")
+    page.click("#rag-copy-apply")
+    ended = r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+    expect(page.locator("#rag-copy-form")).to_be_hidden(timeout=5000)
+    expect(update.locator(".rag-cost-row")).to_have_count(5, timeout=5000)
+    r.check(
+        ended["payload"]["run_id"].startswith("upd")
+        and ended["payload"]["cost_summary"][0]["phase"] == "update"
+        and "Modification du document teletravail" in update.inner_text()
+        and copy_file.is_file()
+        and "1 modifié" in page.locator("#rag-copy-info").inner_text()
+        and _git_status() == status_before,
+        "Modifier : mise à jour mesurée sur la copie de travail, dépôt intact",
+        f"{update.inner_text()[:160]} · {_git_status()[:100]}",
+    )
+    # Supprimer: nothing to embed, the indexes are rebuilt.
+    seq = measure("delete")["seq"]
+    page.select_option("#rag-copy-doc", "teletravail")
+    page.click("#rag-copy-apply")
+    r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+    expect(update.locator(".rag-cost-op")).to_contain_text(
+        "Suppression du document teletravail", timeout=5000
+    )
+    # Ajouter: a new document.
+    seq = measure("add")["seq"]
+    page.fill("#rag-copy-id", "doc_atelier")
+    page.fill("#rag-copy-title", "Document d'atelier")
+    page.fill("#rag-copy-body", "Un document neuf, ajouté à la copie de travail.")
+    page.click("#rag-copy-apply")
+    r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+    expect(update.locator(".rag-cost-op")).to_contain_text(
+        "Ajout du document doc_atelier", timeout=5000
+    )
+    # A refusal says why and changes nothing (a deleted document may come back: not a refusal).
+    measure("add")
+    page.fill("#rag-copy-id", "doc_atelier")
+    page.fill("#rag-copy-title", "Titre")
+    page.fill("#rag-copy-body", "Texte")
+    page.click("#rag-copy-apply")
+    expect(page.locator("#rag-copy-error")).to_contain_text("existe déjà", timeout=5000)
+    page.click("#rag-copy-cancel")
+    # After a reload: the last update's card and the copy are still there.
+    _goto_rag_lab(r)
+    expect(page.locator('#rag-cost-cards [data-phase="update"] .rag-cost-op')).to_contain_text(
+        "doc_atelier", timeout=5000
+    )
+    r.check(
+        "1 ajouté" in page.locator("#rag-copy-info").inner_text()
+        and "1 supprimé" in page.locator("#rag-copy-info").inner_text(),
+        "après rechargement : carte Mise à jour et copie de travail relues",
+        page.locator("#rag-copy-info").inner_text()[:200],
+    )
+    # Review (2026-10-25): while the copy differs from the shipped corpus, the chain reads it.
+    _, seq = _rag_lab_run(r, compose=True)
+    chunking = _stage_ended(r, seq, "chunking").get("output_text") or ""
+    r.check(
+        "copie de travail" in chunking,
+        "la chaîne lit la copie de travail tant qu'elle diffère du corpus livré (Chunking le dit)",
+        chunking[:200],
+    )
+    # Revenir à l'état livré.
+    page.click("#rag-copy-reset")
+    expect(page.locator("#rag-copy-reset")).to_be_hidden(timeout=5000)
+    r.check(
+        not copy_file.exists()
+        and "identique au corpus livré" in page.locator("#rag-copy-info").inner_text()
+        and _git_status() == status_before,
+        "Revenir à l'état livré : la copie de travail est supprimée, le dépôt est intact",
+        page.locator("#rag-copy-info").inner_text()[:200],
+    )
+
+
 def _rag_lab_compare(r: Run) -> None:
     """Increment 2, one chain since lot 5a (the A/B comparison is gone from the page): the
     exhaustive search in memory, 300 characters, `top_k` 2; two runs (computed, then read from
@@ -15985,6 +16211,73 @@ def s_bar_panels(r: Run) -> None:
     r.goto_app()
 
 
+def _cache_bilan_columns(r: Run) -> dict[str, str]:
+    """V1.3 story 4: opens « Dépense », reads the cache bilan's two columns (title -> text),
+    closes it again (Échap)."""
+    page = r.page
+    panel = page.locator("#bar-spend-panel")
+    if not panel.is_visible():
+        page.locator("#bar-spend-toggle").click()
+    expect(panel).to_be_visible(timeout=3000)
+    expect(page.locator("#bar-cache-bilan .bar-cache-col")).to_have_count(2, timeout=5000)
+    columns = {
+        col.locator("h3").inner_text(): col.inner_text()
+        for col in page.locator("#bar-cache-bilan .bar-cache-col").all()
+    }
+    page.keyboard.press("Escape")
+    expect(panel).to_be_hidden(timeout=3000)
+    return columns
+
+
+def s_cache_bilan(r: Run) -> None:
+    """V1.3 story 4 (CAP-3): the bilan's two columns on the fake model (a provider with no
+    `prompt_tokens_details` and no price: « non déclaré » cells, never 0; the exact local
+    sums are `tests/test_cache_bilan.py`'s). After two
+    questions, « Cette conversation » and « Depuis le lancement » show their reads and writes
+    (the uncached part has no meaning locally); « Vider la conversation » empties the first
+    column and leaves the second as it was."""
+    r.goto_app()
+    r.wait_idle()
+    seq = r.ev.mark()
+    r.page.click("#clear-conversation")
+    r.ev.wait("conversation_cleared", seq, timeout=10)
+    r.send("Bonjour, comment ça va ?")
+    r.send("Bonjour, comment ça va ?")
+    columns = _cache_bilan_columns(r)
+    conversation = columns.get("Cette conversation", "")
+    launch = columns.get("Depuis le lancement", "")
+    r.check(
+        list(columns) == ["Cette conversation", "Depuis le lancement"],
+        "bilan du cache : deux colonnes, « Cette conversation » puis « Depuis le lancement »",
+        str(list(columns)),
+    )
+    r.check(
+        "Lecture cache" in conversation
+        and "Écriture cache 5 min" in conversation
+        and "Non caché" in conversation
+        and conversation.count("non déclaré") == 3
+        and "Hors anneau : 2 appels sans prix déclaré" in conversation,
+        "Cette conversation : le faux fournisseur ne détaille pas son cache, trois cases « non "
+        "déclaré » (jamais 0), deux appels hors anneau",
+        conversation.replace("\n", " | "),
+    )
+    r.check(
+        "Rien de compté" not in launch and "Lecture cache" in launch,
+        "Depuis le lancement : les cases du cache sont comptées aussi",
+        launch.replace("\n", " | "),
+    )
+    seq = r.ev.mark()
+    r.page.click("#clear-conversation")
+    r.ev.wait("conversation_cleared", seq, timeout=10)
+    after = _cache_bilan_columns(r)
+    r.check(
+        "Rien de compté" in after.get("Cette conversation", "")
+        and after.get("Depuis le lancement") == launch,
+        "après « Vider la conversation » : conversation à zéro, lancement inchangé",
+        str(after).replace("\n", " | "),
+    )
+
+
 # A journal of the session as `/api/security_journal` would give it after flux 1's GitHub
 # merge refusal (ux/EXPERIENCE.md, étape 4) : the RSSI's row (étape 7), the fusion refused by
 # the WaveStack policy, explicit about what never reached GitHub.
@@ -16072,6 +16365,63 @@ def s_security_page(r: Run) -> None:
         download.suggested_filename,
     )
     r.goto_app()
+
+
+def s_harness_map(r: Run) -> None:
+    """V1.4 story 2: the harness map opens from the instructions of `harness_map` and from the
+    bricks panel, places every brick in the 7 subsystems, greys a switched-off brick, and
+    closes by Escape or « Fermer » with the focus back on its opener."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    r.launch("harness_map")
+    dialog = page.locator("#harness-map-dialog")
+    # From the scenario's instructions: the popover's button, then Escape.
+    page.locator("#scenario-info").click()
+    page.locator("#scenario-harness-map").click()
+    expect(dialog).to_be_visible(timeout=5000)
+    boxes = dialog.locator(".harness-map-box")
+    r.check(boxes.count() == 7, "carte : 7 sous-systèmes", str(boxes.count()))
+    placed = dialog.locator(".harness-map-brick")
+    r.check(
+        placed.count() == len(r.bricks()), "carte : chaque brique est placée", str(placed.count())
+    )
+    off = {k for k, b in r.bricks().items() if not (b["wanted"] and b["available"])}
+    greyed = set(
+        page.eval_on_selector_all(".harness-map-brick.is-off", "ns => ns.map(n => n.dataset.brick)")
+    )
+    r.check(
+        bool(off) and greyed == off,
+        "carte : les briques éteintes sont grisées",
+        f"{off} / {greyed}",
+    )
+    text = dialog.inner_text()
+    r.check(
+        "2609.00006" in text and "Böckeler" in text,
+        "carte : les sources sont citées",
+    )
+    r.check(
+        "Outils et actions" in text and "Sécurité et permissions" in text,
+        "carte : libellés du papier (Tools & actions, Safety & permissions)",
+    )
+    page.keyboard.press("Escape")
+    expect(dialog).to_be_hidden(timeout=5000)
+    r.check(
+        page.evaluate("document.activeElement && document.activeElement.id") == "scenario-info",
+        "Échap : le focus revient au bouton « i » de la consigne",
+    )
+    # From the bricks panel: the foot button, then « Fermer ».
+    page.locator("#harness-map-open").click()
+    expect(dialog).to_be_visible(timeout=5000)
+    r.check(
+        page.evaluate("document.activeElement && document.activeElement.id") == "harness-map-close",
+        "ouverture : le focus est sur « Fermer »",
+    )
+    page.locator("#harness-map-close").click()
+    expect(dialog).to_be_hidden(timeout=5000)
+    r.check(
+        page.evaluate("document.activeElement && document.activeElement.id") == "harness-map-open",
+        "« Fermer » : le focus revient au bouton du panneau des briques",
+    )
 
 
 def s_rag_agentic(r: Run) -> None:
@@ -16240,9 +16590,11 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_rerank", s_rag_rerank),
     ("rag_agentic", s_rag_agentic),
     ("rag_lab", s_rag_lab),
+    ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),
+    ("harness_map", s_harness_map),
     ("busy_and_stop", s_busy_and_stop),
     ("reload_and_reset", s_reload_and_reset),
     ("language", s_language),
@@ -16266,6 +16618,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("llm_loop", s_llm_loop),  # lot 6 of 2026-10-04: the model's loop in three stages
     ("relaunch", s_relaunch),
     ("bar_panels", s_bar_panels),  # story 9 (V1.1 vague 2): the barre commune's two flyouts
+    ("cache_bilan", s_cache_bilan),  # V1.3 story 4 (CAP-3): the bilan's two columns
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
     ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
 ]
