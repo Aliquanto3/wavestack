@@ -299,6 +299,66 @@ class CostTexts(_Strict):
     update_of_text: str = Field(min_length=1)
 
 
+class TabTexts(_Strict):
+    """V1.2 story 4 (vues.md): the view tabs of the page."""
+
+    label_text: str = Field(min_length=1)
+    build_text: str = Field(min_length=1)
+    compare_text: str = Field(min_length=1)
+    evaluate_text: str = Field(min_length=1)
+    attack_text: str = Field(min_length=1)
+    sheets_text: str = Field(min_length=1)
+    soon_text: str = Field(min_length=1)  # `{name}`: the tab, not yet built
+
+
+class QuestionTypeTexts(_Strict):
+    factual_text: str = Field(min_length=1)
+    multi_hop_text: str = Field(min_length=1)
+    global_text: str = Field(min_length=1)
+    no_answer_text: str = Field(min_length=1)
+    temporal_text: str = Field(min_length=1)
+    cross_lingual_text: str = Field(min_length=1)
+    follow_up_text: str = Field(min_length=1)
+
+
+class PreparedTexts(_Strict):
+    """V1.2 story 4 (CAP-2): the prepared-question selector."""
+
+    label_text: str = Field(min_length=1)
+    free_text: str = Field(min_length=1)
+    types: QuestionTypeTexts
+
+
+class CompareTexts(_Strict):
+    """V1.2 story 4 (CAP-9): the pin and the comparison of two runs."""
+
+    title_text: str = Field(min_length=1)
+    hint_text: str = Field(min_length=1)
+    pin_text: str = Field(min_length=1)
+    pin_wait_text: str = Field(min_length=1)
+    unpin_text: str = Field(min_length=1)
+    pinned_status_text: str = Field(min_length=1)  # `{question}`
+    pinned_text: str = Field(min_length=1)
+    current_text: str = Field(min_length=1)
+    empty_pin_text: str = Field(min_length=1)
+    empty_current_text: str = Field(min_length=1)
+    need_pin_text: str = Field(min_length=1)
+    need_current_text: str = Field(min_length=1)
+    other_question_text: str = Field(min_length=1)
+    at_text: str = Field(min_length=1)  # `{time}`
+    search_text: str = Field(min_length=1)
+    context_text: str = Field(min_length=1)
+    answer_text: str = Field(min_length=1)
+    costs_text: str = Field(min_length=1)
+    prompt_text: str = Field(min_length=1)
+    no_answer_text: str = Field(min_length=1)
+    none_text: str = Field(min_length=1)
+    same_text: str = Field(min_length=1)
+    differs_text: str = Field(min_length=1)
+    lost_text: str = Field(min_length=1)
+    added_text: str = Field(min_length=1)
+
+
 class RagLabContent(_Strict):
     """`content/rag_lab.yaml`: every French text of the page, a text per kind of stage, per
     option and per setting."""
@@ -371,6 +431,9 @@ class RagLabContent(_Strict):
     reset_chain_text: str = Field(min_length=1)
     unavailable_text: str = Field(min_length=1)
     costs: CostTexts
+    tabs: TabTexts
+    prepared: PreparedTexts
+    compare: CompareTexts
     status: StatusTexts
     columns: ColumnTexts
     stages: dict[str, StageText]

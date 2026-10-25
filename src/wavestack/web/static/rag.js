@@ -27,6 +27,7 @@ import { feedBar } from "./bar.js";
 const $ = (id) => document.getElementById(id);
 const quote = (value) => t("common.format.quote", { text: value });
 
+// What the tabs' files (`rag-<tab>.js`) read of the common code: see `registerTab`.
 const store = {
   content: null,
   catalog: null,
@@ -51,6 +52,9 @@ const store = {
   update: null, // the last update run: { runId, label, ended, summary }
   workCopy: null, // the corpus's work copy (where it lives, what it changes, its documents)
   copyOp: null, // the operation whose form is open: add, modify or delete
+  tab: "build", // V1.2 story 4: the view tab shown
+  questions: [], // V1.2 story 4: the prepared questions (CAP-2), from `GET /api/rag_lab`
+  mounted: false, // V1.2 story 4: the page is ready, the tabs' `mount` hooks ran
 };
 
 // ---------- small helpers ----------
@@ -1385,6 +1389,7 @@ function applyEnvelope(envelope) {
   renderRun();
   renderCosts();
   renderBusy();
+  everyTab("render");
 }
 
 // A run whose end never came (WaveStack failed between two events) while the session is
@@ -1735,6 +1740,75 @@ function renderBusy() {
   renderCopyControls();
 }
 
+// ---------- V1.2 story 4: the view tabs (vues.md) ----------
+// The shell is common; each tab's code lives in its own file (`rag-<tab>.js`), which registers
+// its hooks here: `mount` (once, the page ready), `render` (the data or the texts changed),
+// `show` (its tab opened), `envelope` (a journal event, `replaying` while the last run is read).
+
+const tabModules = {};
+const tabHook = (id, hook, ...args) => tabModules[id]?.[hook]?.(...args);
+const everyTab = (hook, ...args) => Object.keys(tabModules).forEach((id) => tabHook(id, hook, ...args));
+
+// A tab's file registers itself once; a tab arriving after the page is ready is mounted at once.
+export function registerTab(id, hooks) {
+  tabModules[id] = hooks;
+  if (store.mounted) {
+    hooks.mount?.();
+    hooks.render?.();
+  }
+}
+
+const TAB_IDS = ["build", "compare", "evaluate", "attack", "sheets"];
+
+function tabFromHash() {
+  const id = location.hash.replace(/^#/, "");
+  return TAB_IDS.includes(id) ? id : "build";
+}
+
+function setTab(tab, { focus = false } = {}) {
+  if (!TAB_IDS.includes(tab)) tab = "build";
+  store.tab = tab;
+  for (const button of document.querySelectorAll("#rag-tabs [data-tab]")) {
+    const on = button.dataset.tab === tab;
+    button.setAttribute("aria-selected", String(on));
+    button.tabIndex = on ? 0 : -1;
+    if (on && focus) button.focus();
+  }
+  for (const id of TAB_IDS) {
+    const panel = $(`rag-panel-${id}`);
+    if (panel) panel.hidden = id !== tab;
+  }
+  history.replaceState(null, "", tab === "build" ? location.pathname + location.search : `#${tab}`);
+  if (tab === "build") redraw(); // the views were hidden: drawn again
+  tabHook(tab, "show");
+}
+
+function renderTabs() {
+  for (const button of document.querySelectorAll("#rag-tabs [data-tab]")) {
+    button.textContent = text(`tabs.${button.dataset.tab}_text`);
+  }
+  $("rag-tabs").setAttribute("aria-label", text("tabs.label_text"));
+  for (const id of ["evaluate", "attack", "sheets"]) {
+    $(`rag-panel-${id}`).querySelector(".rag-soon").textContent = text("tabs.soon_text", { name: text(`tabs.${id}_text`) });
+  }
+}
+
+function wireTabs() {
+  const buttons = [...document.querySelectorAll("#rag-tabs [data-tab]")];
+  for (const button of buttons) {
+    button.addEventListener("click", () => setTab(button.dataset.tab));
+    button.addEventListener("keydown", (event) => {
+      const at = buttons.indexOf(button);
+      const to = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: buttons.length - 1 }[event.key];
+      if (to === undefined) return;
+      event.preventDefault();
+      const next = buttons[(to + buttons.length) % buttons.length];
+      setTab(next.dataset.tab, { focus: true });
+    });
+  }
+  window.addEventListener("hashchange", () => setTab(tabFromHash()));
+}
+
 function renderContent() {
   for (const node of document.querySelectorAll("[data-text]")) {
     const value = text(node.dataset.text);
@@ -1745,6 +1819,8 @@ function renderContent() {
     $("rag-intro").textContent = store.content.intro_text;
     $("rag-question").placeholder = store.content.question_placeholder_text;
     $("rag-modes").setAttribute("aria-label", store.content.modes_label_text);
+    renderTabs();
+    everyTab("render");
   }
 }
 
@@ -1856,6 +1932,7 @@ async function refresh() {
   store.defaultPipeline = body.default_pipeline;
   store.unavailable = body.unavailable_text;
   store.session = body.session_state;
+  store.questions = body.questions ?? [];
   const alert = $("rag-content-error");
   alert.hidden = !body.content_error_text;
   alert.textContent = body.content_error_text || "";
@@ -1881,6 +1958,7 @@ async function refresh() {
   renderResults();
   renderCosts();
   renderCopy();
+  everyTab("render");
   if (store.catalog) validateChains();
   renderBusy();
   return body;
@@ -1927,6 +2005,11 @@ async function main() {
   const question = $("rag-question");
   question.value = stored(QUESTION_KEY) ?? (text("default_question_text") || "");
   question.addEventListener("input", () => keep(QUESTION_KEY, question.value));
+  wireTabs();
+  store.mounted = true;
+  everyTab("mount");
+  everyTab("render");
+  setTab(tabFromHash());
   question.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !$("rag-run").disabled) runChain();
   });
@@ -1949,3 +2032,5 @@ async function main() {
 }
 
 main();
+
+export { $, el, text, quote, fmtInt, keep, stored, store, costFigures, QUESTION_KEY };

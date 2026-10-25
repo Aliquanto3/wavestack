@@ -2,7 +2,7 @@
 # (wavestack.rag.lab.RagLabContent). Un fichier invalide : la page reste servie et dit
 # pourquoi. `{…}` : une valeur que la session ou la page place.
 
-title_text: "Atelier RAG : l'architecture RAG à manipuler"
+title_text: "Atelier recherche documentaire : l'architecture de recherche à manipuler"
 intro_text: >-
   Un RAG (Retrieval-Augmented Generation : le modèle répond à partir de passages retrouvés
   dans des documents) fonctionne en deux temps. L'indexation (build) découpe une fois pour
@@ -403,3 +403,50 @@ costs:
   apply_text: "Mesurer"
   cancel_text: "Annuler"
   update_of_text: "Dernière mise à jour mesurée"
+
+# V1.2 story 4 : les onglets de vue, la question préparée, la comparaison de deux exécutions.
+tabs:
+  label_text: "Vues de l'atelier"
+  build_text: "Construire"
+  compare_text: "Comparer"
+  evaluate_text: "Évaluer"
+  attack_text: "Attaquer"
+  sheets_text: "Fiches"
+  soon_text: "{name} : à venir."
+prepared:
+  label_text: "Question préparée"
+  free_text: "Question libre"
+  types:
+    factual_text: "Factuelle"
+    multi_hop_text: "Multi-sauts"
+    global_text: "Globale"
+    no_answer_text: "Sans réponse"
+    temporal_text: "Temporelle"
+    cross_lingual_text: "Interlingue"
+    follow_up_text: "Suivi"
+compare:
+  title_text: "Comparer deux exécutions"
+  hint_text: "Épinglez une exécution dans l'onglet Construire, relancez la chaîne (autre architecture, autre réglage), puis lisez les écarts : passages, réponse, coûts. Pas de synthèse rédigée."
+  pin_text: "Épingler cette exécution"
+  pin_wait_text: "Lancez la chaîne : une exécution terminée peut être épinglée."
+  unpin_text: "Désépingler"
+  pinned_status_text: "Épinglée : {question}"
+  pinned_text: "Épinglée"
+  current_text: "Courante"
+  empty_pin_text: "Aucune exécution épinglée."
+  empty_current_text: "Aucune exécution terminée à comparer."
+  need_pin_text: "Épinglez l'exécution courante (onglet Construire), puis relancez la chaîne avec un autre réglage."
+  need_current_text: "Lancez la chaîne pour obtenir l'exécution courante."
+  other_question_text: "Les deux exécutions n'ont pas la même question : l'écart peut venir d'elle."
+  at_text: "à {time}"
+  search_text: "Recherche"
+  context_text: "Contexte"
+  answer_text: "Réponse"
+  costs_text: "Coûts (construction, mise à jour, requête)"
+  prompt_text: "Prompt final"
+  no_answer_text: "Pas de réponse générée."
+  none_text: "Aucun passage."
+  same_text: "Mêmes passages, dans le même ordre."
+  differs_text: "Les passages diffèrent."
+  lost_text: "perdu"
+  added_text: "ajouté"
