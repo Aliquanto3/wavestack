@@ -128,3 +128,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 22:17 · 15.5 · second-avis · 1 high (eval_fail : heure demandée sans get_datetime), 4 medium (« un cas par brique » faux ; exemple « Non lancé » irréalisable ; plafond pré-rempli présenté comme mesuré ; vérification négative seule), 2 low · 088b1683
 - 2026-10-25 22:17 · 15.5 · review · lancé (Opus) · —
 - 2026-10-25 22:25 · 15.5 · review · prête hors vérification des libellés de 4b (1 high, 4 medium, 2 low corrigés ; pas de spec de story : revue consignée ici) · acef9326
+- 2026-10-25 22:28 · 15.3 · CI · verte (8/8) après rebase · 435739b9
+- 2026-10-25 22:28 · 15.3 · fusion · #139 MERGED dans main (squash) · ffd2d60e
