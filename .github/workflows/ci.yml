@@ -26,7 +26,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --locked
+      # V1.2 story 16: the `otel` extra (five pure-Python wheels) so its export tests run
+      - run: uv sync --locked --extra otel
       - if: matrix.group == 1  # lint once per OS, not in every group
         run: uv run ruff check .
       - if: matrix.group == 1

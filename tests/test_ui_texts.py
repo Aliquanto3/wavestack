@@ -242,9 +242,9 @@ def test_i18n_names_the_links_by_their_address_the_brand_aside():
         for lang, bar in bars.items()
     }
     assert shown == {
-        "fr": ["Harnais", "LLM", "RAG", "MCP", "🛠️ Diagnostic"],
-        "en": ["Harness", "LLM", "RAG", "MCP", "🛠️ Diagnostics"],
-        "de": ["Harness", "LLM", "RAG", "MCP", "🛠️ Diagnose"],
+        "fr": ["Harnais", "LLM", "RAG", "MCP", "🛠️ Modèles"],
+        "en": ["Harness", "LLM", "RAG", "MCP", "🛠️ Models"],
+        "de": ["Harness", "LLM", "RAG", "MCP", "🛠️ Modelle"],
     }
 
 

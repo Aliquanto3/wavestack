@@ -44,7 +44,7 @@ sinon le script essaie `/opt/pw-browsers/chromium`. Code de sortie 1 si une vér
 Les captures (JPEG) sont réécrites dans `tools/e2e/screenshots/`.
 
 Pour explorer à la main : `uv run python tools/e2e/stack.py` lance le faux modèle et WaveStack
-(adresse affichée), puis choisissez « Faux fournisseur (e2e) » au diagnostic. Le réseau sortant
+(adresse affichée), puis choisissez « Faux fournisseur (e2e) » sur la page Modèles. Le réseau sortant
 y est coupé comme pendant le parcours ; `--network` garde les proxys du poste, pour joindre les
 vrais services.
 
@@ -133,13 +133,13 @@ avertissement cloud dans la page (« Annuler » ne change rien, « Utiliser ce m
 chronomètre dans la barre haute et en fin de Vue humain, envoi et sélecteur désactivés avec la
 raison, conversation gardée, appel envoyé avec le nouveau modèle, lignes « Modèle : … », rejeu
 joué par le nouveau modèle, « Comparer » avec le modèle de chaque colonne, puis retour au
-premier modèle par « Choisir » au diagnostic, issue exacte « wavestack-fake est actif. », jamais
+premier modèle par « Choisir » sur la page Modèles, issue exacte « wavestack-fake est actif. », jamais
 « relancez WaveStack pour l'utiliser ». Capture :
 `22-changement-de-modele.jpg`.
 
 ## Serveur local déjà lancé (story 18)
 
-Le scénario `local_server` : au diagnostic, le modèle du faux
+Le scénario `local_server` : sur la page Modèles, le modèle du faux
 llama-server est listé (« Local », adresse, mémoire, « Choisir ») et celui du faux Ollama est
 incompatible, sans « Choisir » (GGUF introuvable) ; plus de mention « palier 2 ». Dans le
 sélecteur de la barre haute, le modèle servi est choisi puis chargé (« Préparation du modèle
@@ -399,8 +399,8 @@ Vérifications ajoutées aux scénarios existants :
   prix « — » sans `pricing`) ; dans le groupe Qwen, le faux Ollama (0.6B) avant le faux llama-server
   (taille inconnue) ; chaque modèle commence par « 🏠 Local · » ou « ☁️ RÉSEAU · » (story 5 de la V1.1) ; « Tableau des
   modèles et de leurs capacités… » puis « Autre fichier ou clé API… » en dernier. « Ouvrir le
-  tableau » mène à `/models` : onglet « 🛠️ Diagnostic » courant, aucun onglet « Modèles »,
-  « 🛠️ Diagnostic » vers `/diagnostic` (mêmes onglets) ; lignes du faux llama-server (Qwen, outils « oui », « activable »,
+  tableau » mène à `/models` : onglet « 🛠️ Modèles » courant,
+  « 🛠️ Modèles » vers `/diagnostic` (mêmes onglets) ; lignes du faux llama-server (Qwen, outils « oui », « activable »,
   « 4 096 tokens »), de R (« toujours »), de `wavestack-fake` (« jamais », « actif »), du faux
   Ollama (« inconnu », raison « introuvable » visible), « RÉSEAU » sur chaque ligne cloud,
   étiquette sur le jeton jaune, un en-tête par groupe du sélecteur. Puis R activé depuis le
@@ -716,9 +716,9 @@ haut) :
 
 - `diagnostic` : sur `/`, `<title>` « WaveStack — Atelier Harnais », un seul `h1` masqué
   (`.sr-only`) et l'onglet « Harnais » courant ; `model_catalog` : `/diagnostic` titré
-  « Diagnostic et modèles », lien `#models-link` vers `/models`.
+  « Modèles », lien `#models-link` vers `/models`.
 - `themes`, `mcp_lab`, `rag_lab`, `llm_screen` : la barre commune à cinq onglets
-  (`Harnais · LLM · RAG · MCP · 🛠️ Diagnostic`), titres et `h1` complets des ateliers.
+  (`Harnais · LLM · RAG · MCP · 🛠️ Modèles`), titres et `h1` complets des ateliers.
 - `forced_native` : le « ? » d'« Actions forcées » ouvre son aide, ancrée sous le bouton, encore
   ouverte après un nouveau rendu du panneau.
 - `gemini_shape`, `local_server`, `priced_estimate` : la dépense sur trois lignes (« Dépense
@@ -786,6 +786,11 @@ d'autres (story 21) :
   une question libre et une question sans passage le disent ; les trois cas « Où naît l'erreur »
   (`not_indexed`, `ranked_low`, `cut_by_budget`) se rejouent en un clic, chacun avec son étape
   fautive, sans aucun événement de l'atelier ; capture `63-atelier-rag-diagnostic.jpg`.
+- `rag_lab_tree`, V1.2 story 16 (CAP-12), après `rag` et `rag_rerank` : l'arbre des étapes de
+  la dernière exécution dans son volet repliable (la course, ses étapes avec leur durée, l'appel
+  de modèle sous l'étape qui l'a fait), autant de nœuds que `steps` de `rag_lab_run_ended` ; sans
+  `[otel] endpoint`, pas de bouton d'export, la note dit que rien ne sort et aucun
+  `outbound_request` ; capture `92-atelier-rag-arbre.jpg`.
 - `rag_lab_chunking`, V1.2 story 6 (CAP-4), après `rag` et `rag_rerank` : les quatre options du
   découpage ; « Parent-enfant » (les enfants listés dans le focus, chacun avec son parent) puis
   « Avec contexte » (chaque contexte marqué « précalculé · heuristique, sans LLM ») ;

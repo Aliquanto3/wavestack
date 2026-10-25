@@ -8,6 +8,7 @@ the envelope.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -50,7 +51,7 @@ class OutboundHeader(BaseModel):
 
 
 class OutboundRequestPayload(BaseModel):
-    origin: Literal["brick", "diagnostic", "download", "model"]
+    origin: Literal["brick", "diagnostic", "download", "model", "otel"]  # otel: V1.2 story 16
     method: str
     url: str
     # Story 23: the headers sent (AD-15); empty for events traced before them.
@@ -66,7 +67,7 @@ class OutboundResponsePayload(BaseModel):
     outside the loopback range, with its headers in the order received. Outside
     `PUBLIC_RESPONSE_HEADERS` and the quota prefixes, each value is « [masqué] »."""
 
-    origin: Literal["brick", "diagnostic", "download", "model"]
+    origin: Literal["brick", "diagnostic", "download", "model", "otel"]  # otel: V1.2 story 16
     method: str
     url: str
     status: int
@@ -1958,12 +1959,39 @@ class RagLabStageEndedPayload(BaseModel):
     wiki: RagLabWiki | None = None  # V1.2 story 14
 
 
+class RagLabStep(BaseModel):
+    """V1.2 story 16 (CAP-12): one node of a run's tree of steps, read from the journal by
+    `trace/tree.py`: the run, a stage (`step_id` « run.sN »), a part of a stage run apart
+    (« run.sN.index ») or a model call (the events of its stage's step; `id` « step.cK »).
+    Durations in ms and tokens as the events measured them (`None`: not measured). No text
+    of the question, the passages or the answer: only names, figures and statuses."""
+
+    id: str
+    parent: str | None = None
+    kind: Literal["run", "stage", "part", "model_call"]
+    name: str
+    stage_kind: str | None = None
+    option: str | None = None
+    model: str | None = None  # a model call: the model's id, and its provider
+    provider: str | None = None
+    status: str
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    duration_ms: int | None = None
+    input_tokens: int | None = None  # the model calls' (a stage: the sum of its calls')
+    output_tokens: int | None = None
+    tokens: int | None = None  # a stage without a call: the tokens its costs counted
+    children: list[RagLabStep] = []
+
+
 class RagLabRunEndedPayload(BaseModel):
     run_id: str
     status: Literal["ok", "error", "cancelled"]
     duration_ms: int
     # V1.2 story 3 (CAP-8): the run's costs by time (an update run: `update` only).
     cost_summary: list[RagLabCostSummary] = []
+    # V1.2 story 16 (CAP-12): the run's tree of steps (`None`: an older journal).
+    steps: RagLabStep | None = None
 
 
 # ---------- the MCP workshop, context `mcp_lab` (story 6 of 2026-09-30; lot 4, AD-27) ----------

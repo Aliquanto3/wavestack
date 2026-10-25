@@ -672,6 +672,11 @@ def compute_memory_budget(mode: str, cap_mb: int, ratio: float) -> MemoryBudget:
     )
 
 
+# V1.2 story 16 (CAP-12): model keys `[otel] auth_env` may never name (the decision's
+# `rag.decision.KEY_ENV`, the Hub token); the cloud entries' `key_env` are added at read time.
+_MODEL_KEY_ENVS = frozenset({"OPENROUTER_API_KEY", "HF_TOKEN"})
+
+
 @dataclass(frozen=True)
 class Config:
     """Merged configuration: wavestack.toml defaults overridden by settings.json."""
@@ -697,7 +702,58 @@ class Config:
     def allowed_hosts(self) -> list[str]:
         """AD-15: the configured hosts, plus the host of every enabled cloud model."""
         hosts = list(self.get("net", "allowed_hosts", default=[]))
-        return hosts + [m.host for m in self.cloud_models[0] if m.host not in hosts]
+        hosts += [m.host for m in self.cloud_models[0] if m.host not in hosts]
+        # V1.2 story 16 (CAP-12): the OTLP collector's host, allowed only by its URL set.
+        otel = self.otel_endpoint
+        otel_host = urlsplit(otel).hostname if otel else None
+        return hosts + [otel_host] if otel_host and otel_host not in hosts else hosts
+
+    @property
+    def otel_endpoint(self) -> str | None:
+        """V1.2 story 16 (CAP-12): `[otel] endpoint`, the OTLP/HTTP collector's URL (a
+        Langfuse, a Phoenix). `None` when unset, empty or not an http(s) URL with a host:
+        nothing leaves the workstation then."""
+        value = self.get("otel", "endpoint", default="")
+        if not isinstance(value, str) or not value.strip():
+            return None
+        value = value.strip()
+        try:
+            parts = urlsplit(value)
+            host = parts.hostname
+        except ValueError:
+            return None
+        if parts.scheme not in ("http", "https") or not host or parts.username:
+            return None
+        if parts.query or parts.fragment:  # no token in the URL: `auth_env` carries it
+            return None
+        return value
+
+    @property
+    def otel_capture_content(self) -> bool:
+        """`[otel] capture_content`: the question, the prompts and the answers in the spans
+        (the GenAI conventions' opt-in content). Off unless set to `true` exactly."""
+        return self.get("otel", "capture_content", default=False) is True
+
+    @property
+    def otel_auth_env(self) -> str | None:
+        """`[otel] auth_env`: the environment variable whose value is the collector's
+        `Authorization` header (Langfuse's Basic key). A name, never the value; `None` when
+        unset, not a valid variable name, or the name of a model's key: a cloud entry's
+        `key_env`, `OPENROUTER_API_KEY` (the decision), `HF_TOKEN`, any `…_API_KEY` (never a
+        cloud model's key sent to the collector)."""
+        value = self.get("otel", "auth_env", default="")
+        valid = isinstance(value, str) and value.isascii() and value.replace("_", "A").isalnum()
+        if not valid or value[0].isdigit():
+            return None
+        raw = self.get("cloud", "models", default=[])
+        entries = raw if isinstance(raw, list) else []
+        model_keys = {
+            str(e["key_env"]).upper() for e in entries if isinstance(e, dict) and e.get("key_env")
+        }
+        name = value.upper()
+        if name in _MODEL_KEY_ENVS or name in model_keys or name.endswith("_API_KEY"):
+            return None
+        return value
 
     @property
     def net_contact(self) -> str:

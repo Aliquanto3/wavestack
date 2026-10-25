@@ -2311,3 +2311,46 @@ body.rag-page {
   color: var(--color-ink);
 }
 
+
+/* V1.2 story 16 (CAP-12): the run's tree of steps and its OTLP export (rag-tree.js). */
+.rag-tree {
+  margin-top: 1rem;
+}
+.rag-tree > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.rag-tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--color-line);
+}
+.rag-tree ul.rag-tree-root {
+  padding-left: 0;
+  border-left: none;
+}
+.rag-tree-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+  padding: 0.15rem 0;
+}
+.rag-tree-name {
+  font-weight: 600;
+}
+.rag-tree-node.is-model_call > .rag-tree-line .rag-tree-name::before {
+  content: "↳ ";
+}
+.rag-tree-figure {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-soft);
+}
+.rag-tree-node[data-status="error"] > .rag-tree-line .rag-tree-figure:last-child,
+.rag-tree-node[data-status="cancelled"] > .rag-tree-line .rag-tree-figure:last-child {
+  color: var(--color-danger);
+}
+.rag-tree-otel {
+  margin-top: 0.75rem;
+}

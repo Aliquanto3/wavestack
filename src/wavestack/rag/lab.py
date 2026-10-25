@@ -713,6 +713,25 @@ class CompareTexts(_Strict):
     added_text: str = Field(min_length=1)
 
 
+class TreeTexts(_Strict):
+    """V1.2 story 16 (CAP-12): the tree of the run's steps and its OTLP export (Build tab)."""
+
+    title_text: str = Field(min_length=1)
+    hint_text: str = Field(min_length=1)
+    empty_text: str = Field(min_length=1)
+    tokens_text: str = Field(min_length=1)  # « {input} → {output} tokens »
+    tokens_count_text: str = Field(min_length=1)  # « {count} tokens »
+    length_text: str = Field(min_length=1)  # a model call stopped by its reserve
+    otel_missing_text: str = Field(min_length=1)
+    otel_unset_text: str = Field(min_length=1)
+    otel_ready_text: str = Field(min_length=1)
+    otel_content_text: str = Field(min_length=1)
+    export_text: str = Field(min_length=1)
+    export_running_text: str = Field(min_length=1)
+    export_done_text: str = Field(min_length=1)
+    export_failed_text: str = Field(min_length=1)
+
+
 class RagLabContent(_Strict):
     """`content/rag_lab.yaml`: every French text of the page, a text per kind of stage, per
     option and per setting."""
@@ -802,6 +821,7 @@ class RagLabContent(_Strict):
     preset_families: dict[str, PresetFamilyText]  # V1.2 story 10
     # V1.2 story 5 (CAP-17): « kind.option » -> its sheet.
     sheets: dict[str, SheetText] = {}
+    tree: TreeTexts  # V1.2 story 16 (CAP-12)
 
     @model_validator(mode="after")
     def _every_kind_option_and_setting(self) -> RagLabContent:
@@ -2239,6 +2259,20 @@ class _Chain:
     def ranked(self) -> list[Item] | None:
         """The list the next stage works on: the last one made."""
         return self.lists[-1] if self.lists else None
+
+
+_STEP = re.compile(r"^[^.]+\.s\d+(\.|$)")
+
+
+def parent_step(step_id: str | None) -> str | None:
+    """V1.2 story 16 (CAP-12): the step that holds `step_id`, read from the ids the chain's
+    engine gives (`LabRun._step`): a stage (« run.sN ») is the run's, a part or any sub-step
+    (« run.sN.index », « run.sN.x.y ») its stage's (or sub-step's). Generic: any stage a chain
+    adds inherits it. `None` for the run itself and for an id outside a chain (« rag_lab »,
+    « rag_lab.cag », « judge3 »)."""
+    if not step_id or not _STEP.match(step_id):
+        return None
+    return step_id.rsplit(".", 1)[0]
 
 
 class LabRun:
