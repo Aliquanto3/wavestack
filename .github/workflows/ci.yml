@@ -17,7 +17,6 @@ jobs:
         # shortcut: no macOS, the abetlen CPU index has no llama-cpp-python wheel for it
         os: [windows-latest, ubuntu-latest]
         group: [1, 2, 3, 4]
-        group: [1, 2, 3, 4]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     env:
