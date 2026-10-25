@@ -55,7 +55,7 @@ MAX_LEVELS = 3  # the levels of summaries above the passages
 SUMMARY_MAX_CHARS = 400  # a summary's characters (the rule's sentences, a model's)
 TOP_NODES = 5  # the nodes the collapsed-tree search keeps for the context
 MIN_WORD_CHARS = 3
-CODE_BONUS = 1.0  # a sentence citing a code (`ORN-7731-QZ`) first: the fact a question asks
+CODE_BONUS = 1.0  # a sentence citing a code (`TLV-7731-QZ`) first: the fact a question asks
 DIGITS = 9  # the similarities are rounded: equal on every system, ties broken by order
 ELLIPSIS = "…"
 

@@ -15395,8 +15395,7 @@ def s_rag_lab_rights(r: Run) -> None:
             and "à reconstruire" in row("contexts").inner_text()
             and "à reconstruire" in row("raptor_summaries").inner_text()
             and "à recharger" in row("cag_cache").inner_text()
-            and "illustratif" in row("graph_communities").inner_text()
-            and "cas construit" in row("graph_communities").inner_text(),
+            and "à reconstruire" in row("graph_communities").inner_text(),
             "suppression : chunks et BM25 effacés, dérivés à reconstruire, caches à recharger",
         )
         r.check(
@@ -15405,12 +15404,15 @@ def s_rag_lab_rights(r: Run) -> None:
             "question sur le code : plus de passage, mais les copies contiennent encore le code",
         )
         page.locator('#rag-era-rebuild [data-architecture="graphrag"]').click()
-        expect(row("graph_communities")).to_contain_text("non mesuré", timeout=10_000)
+        # GraphRAG (story 13) measures its places: rebuilt in memory, the code is gone.
+        expect(row("graph_communities")).to_contain_text("avec le code : 0", timeout=10_000)
         r.check(
-            "effacé (illustratif, non mesuré)" in row("graph_entities").inner_text()
+            "effacé" in row("graph_communities").inner_text()
+            and "effacé" in row("graph_entities").inner_text()
+            and "avec le code : 0" in row("graph_entities").inner_text()
             and "à reconstruire" in row("wiki_pages").inner_text()
             and "Remise en conformité" in page.inner_text("#rag-era-costs"),
-            "reconstruction de GraphRAG : ses endroits « effacé (illustratif, non mesuré) », "
+            "reconstruction de GraphRAG : ses endroits mesurés effacés (0 avec le code), "
             "les autres inchangés, coût en mots",
         )
         page.locator("#rag-era-sentinel").uncheck()

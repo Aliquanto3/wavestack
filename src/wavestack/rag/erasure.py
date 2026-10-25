@@ -1,7 +1,7 @@
 """V1.2 story 18 (CAP-14): the « Effacement » card of the Attack tab.
 
 Pure and read only (AD-1: the figures are the session's, the page draws them). The sentinel
-document of the shipped corpus (`projet_orion`, inactive in `rag.yaml`, code `ORN-7731-QZ`) is
+document of the shipped corpus (`projet_talvane`, inactive in `rag.yaml`, code `TLV-7731-QZ`) is
 activated in the request's state only: the corpus in memory is the active shipped documents plus
 the sentinel, chunked as the workshop chunks them. The shipped corpus, `rag.yaml`, the shipped
 contexts, the index and the work copy are never read for writing.

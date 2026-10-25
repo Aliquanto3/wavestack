@@ -2,15 +2,15 @@
 # die Sentinel überlebt, und konstruierte Inhalte der Ableitungen, die noch nicht existieren. IDs,
 # Löschmodi, Herkunft und Stories sind in den drei Sprachen gleich; nur die Texte unterscheiden sich.
 #
-# Der Code ORN-7731-QZ ist fiktiv (ausgelieferter Text des Sentinel-Dokuments). Ein "gemessener" Ort
+# Der Code TLV-7731-QZ ist fiktiv (ausgelieferter Text des Sentinel-Dokuments). Ein "gemessener" Ort
 # wird hier ohne Modell nachgebaut; ein "konstruierter" Ort ist für die Demonstration geschrieben,
 # als illustrativ markiert, mit der Story, die ihn ersetzt (10 bis 14). Keine Kosten- oder
 # Dauerangabe: die Wiederherstellung der Konformität wird in Worten gesagt.
 
 chunk_max_chars: 700
 top_k: 3
-doc_id: projet_orion
-code: ORN-7731-QZ
+doc_id: projet_talvane
+code: TLV-7731-QZ
 
 architectures:
   - id: dense
@@ -133,7 +133,7 @@ places:
     architectures: [cag]
     label_text: "Prompt-Cache (CAG)"
     unit_text: "Zwischengespeicherte Präfixe"
-    text: "Zwischengespeichertes Präfix: der ganze vorgeladene Korpus, einschließlich des Sentinel-Dokuments und seines Codes ORN-7731-QZ."
+    text: "Zwischengespeichertes Präfix: der ganze vorgeladene Korpus, einschließlich des Sentinel-Dokuments und seines Codes TLV-7731-QZ."
     rebuilt_text: "Zwischengespeichertes Präfix: der ganze vorgeladene Korpus, ohne das Sentinel-Dokument."
   - id: long_context_prefix
     erase_mode: reload
@@ -144,7 +144,7 @@ places:
     architectures: [long_context]
     label_text: "Zwischengespeichertes Präfix des langen Kontexts"
     unit_text: "Zwischengespeicherte Präfixe"
-    text: "Zwischengespeichertes Präfix: der ganze in den Prompt gelegte Korpus, einschließlich des Codes ORN-7731-QZ des Sentinel-Dokuments."
+    text: "Zwischengespeichertes Präfix: der ganze in den Prompt gelegte Korpus, einschließlich des Codes TLV-7731-QZ des Sentinel-Dokuments."
     rebuilt_text: "Zwischengespeichertes Präfix: der ganze in den Prompt gelegte Korpus, ohne das Sentinel-Dokument."
   - id: source
     erase_mode: none

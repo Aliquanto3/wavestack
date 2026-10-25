@@ -139,7 +139,7 @@ def test_an_inactive_document_is_not_chunked():
     chunks = chunk_corpus(content, 700)
     chunked_ids = {c.doc_id for c in chunks}
     inactive = {doc.id for doc in content.documents if not doc.active}
-    assert inactive == {"faq_mots_de_passe", "projet_orion"}
+    assert inactive == {"faq_mots_de_passe", "projet_talvane"}
     assert not inactive & chunked_ids
 
 

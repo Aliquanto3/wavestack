@@ -130,7 +130,7 @@ def test_astreinte_and_the_crisis_cell_are_entities(graphs):
 
 def test_the_trapped_and_sentinel_documents_stay_out_until_activated(graphs):
     kg = graphs["fr"]
-    for doc in ("faq_mots_de_passe", "projet_orion"):
+    for doc in ("faq_mots_de_passe", "projet_talvane"):
         assert not [p for p in kg.passages if p.startswith(f"{doc}#")]
         assert not [e for e in kg.entities.values() if any(m.startswith(doc) for m in e.mentions)]
     content = load_rag_content("fr")
@@ -138,9 +138,9 @@ def test_the_trapped_and_sentinel_documents_stay_out_until_activated(graphs):
         update={"documents": [d.model_copy(update={"active": True}) for d in content.documents]}
     )
     kg = g.build_graph(read_documents(active, "fr"), "fr", SIZE)
-    code = kg.entities["orn-7731-qz"]
-    assert code.name == "ORN-7731-QZ" and code.type == "code"
-    assert {m.split("#")[0] for m in code.mentions} == {"projet_orion"}
+    code = kg.entities["tlv-7731-qz"]
+    assert code.name == "TLV-7731-QZ" and code.type == "code"
+    assert {m.split("#")[0] for m in code.mentions} == {"projet_talvane"}
     assert any(p.startswith("faq_mots_de_passe#") for p in kg.passages)
 
 

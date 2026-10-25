@@ -3,7 +3,7 @@
 # identifiants, modes d'effacement, provenances et stories sont communs aux trois langues ; seuls
 # les textes diffèrent (surcouches `content/i18n/{en,de}/rag_erasure.yaml`).
 #
-# Le code ORN-7731-QZ est fictif (texte livré du document sentinelle). Un endroit « mesuré » se
+# Le code TLV-7731-QZ est fictif (texte livré du document sentinelle). Un endroit « mesuré » se
 # reconstruit ici sans modèle ; un endroit « construit » est écrit par le développeur pour la
 # démonstration, marqué illustratif, avec la story qui le remplacera (10 à 14). Aucun chiffre de
 # coût ni de durée : la remise en conformité se dit en mots (colonne « Mise à jour (U) » de
@@ -11,8 +11,8 @@
 
 chunk_max_chars: 700
 top_k: 3
-doc_id: projet_orion
-code: ORN-7731-QZ
+doc_id: projet_talvane
+code: TLV-7731-QZ
 
 architectures:
   - id: dense
@@ -135,7 +135,7 @@ places:
     architectures: [cag]
     label_text: "Cache de prompt (CAG)"
     unit_text: "Préfixes en cache"
-    text: "Préfixe en cache : tout le corpus préchargé, dont le document sentinelle et son code ORN-7731-QZ."
+    text: "Préfixe en cache : tout le corpus préchargé, dont le document sentinelle et son code TLV-7731-QZ."
     rebuilt_text: "Préfixe en cache : tout le corpus préchargé, sans le document sentinelle."
   - id: long_context_prefix
     erase_mode: reload
@@ -146,7 +146,7 @@ places:
     architectures: [long_context]
     label_text: "Préfixe en cache du contexte long"
     unit_text: "Préfixes en cache"
-    text: "Préfixe en cache : le corpus entier mis dans le prompt, dont le code ORN-7731-QZ du document sentinelle."
+    text: "Préfixe en cache : le corpus entier mis dans le prompt, dont le code TLV-7731-QZ du document sentinelle."
     rebuilt_text: "Préfixe en cache : le corpus entier mis dans le prompt, sans le document sentinelle."
   - id: source
     erase_mode: none

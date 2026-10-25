@@ -83,7 +83,9 @@ def test_the_shipped_wiki_measured_on_the_corpus(lang):
     findings = wiki.lint(book, docs, lang)
     assert len(findings) <= 2 and {f.code for f in findings} <= {"orphan_page"}
     # The trapped document and the sentinel, inactive, are in no page.
-    assert not [p for p in book.listed() if {"faq_mots_de_passe", "projet_orion"} & set(p.sources)]
+    assert not [
+        p for p in book.listed() if {"faq_mots_de_passe", "projet_talvane"} & set(p.sources)
+    ]
 
 
 def test_the_french_wiki_has_the_concepts_of_the_crisis_questions():

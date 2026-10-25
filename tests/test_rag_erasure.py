@@ -28,7 +28,7 @@ from wavestack.web.app import create_app
 
 LANGS = ("fr", "en", "de")
 CONTENT = config.repo_root() / "content"
-CODE = "ORN-7731-QZ"
+CODE = "TLV-7731-QZ"
 AVERAGE = re.compile(r"\b(mean|average|avg|mrr|recall_at_k|aggregates?)\b", re.IGNORECASE)
 STORY_OF = {
     "long_context": 10,
@@ -116,7 +116,7 @@ def test_start_the_measured_places_hold_the_code(lang):
     assert body["corpus"]["sentinel_passages"] == 2
     assert [p["position"] for p in body["results"]["ranking"]] == [2, 1]
     assert [p["rank"] for p in body["results"]["ranking"]] == [1, 2]
-    assert {r["doc_id"] for r in body["results"]["ranking"]} == {"projet_orion"}
+    assert {r["doc_id"] for r in body["results"]["ranking"]} == {"projet_talvane"}
 
 
 @pytest.mark.parametrize("lang", LANGS)
@@ -294,7 +294,7 @@ def test_nothing_is_written_nor_changed(lang):
         return snapshot_bytes(*roots)
 
     before = files()
-    assert next(d for d in content.documents if d.id == "projet_orion").active is False
+    assert next(d for d in content.documents if d.id == "projet_talvane").active is False
     session.rag_lab_erasure_texts()
     for step, rebuilt in (
         ("start", []),
@@ -307,7 +307,7 @@ def test_nothing_is_written_nor_changed(lang):
     assert workcopy.load(lang) == work
     shipped = (CONTENT / "rag.yaml").read_text(encoding="utf-8")
     assert re.search(
-        r"id: projet_orion[^\n]*\n[^\n]*\n[^\n]*\n\s+audience: all\n\s+active: false", shipped
+        r"id: projet_talvane[^\n]*\n[^\n]*\n[^\n]*\n\s+audience: all\n\s+active: false", shipped
     )
 
 
@@ -342,7 +342,7 @@ def test_the_three_languages_mirror_each_other(lang):
         assert t.label_text != f.label_text
         if f.text:
             assert CODE in (t.text or "") and CODE not in (t.rebuilt_text or "")
-    assert (tr.chunk_max_chars, tr.top_k, tr.doc_id, tr.code) == (700, 3, "projet_orion", CODE)
+    assert (tr.chunk_max_chars, tr.top_k, tr.doc_id, tr.code) == (700, 3, "projet_talvane", CODE)
 
 
 @pytest.mark.parametrize("lang", LANGS)

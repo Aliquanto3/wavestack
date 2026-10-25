@@ -18,7 +18,7 @@ from wavestack.rag.corpus import DocText, chunk_documents, load_rag_content, rea
 
 LANGS = ("fr", "en", "de")
 SIZE = 700
-CODE = "ORN-7731-QZ"
+CODE = "TLV-7731-QZ"
 # Measured on the shipped corpus with the rule as written (story 12).
 LEAVES = {"fr": 73, "en": 65, "de": 78}
 NODES = {"fr": 27, "en": 27, "de": 37}
@@ -47,7 +47,7 @@ def trees() -> dict[str, r.Tree]:
 def with_sentinel(lang: str) -> list[DocText]:
     content = load_rag_content(lang)
     docs = [
-        d.model_copy(update={"active": True}) if d.id == "projet_orion" else d
+        d.model_copy(update={"active": True}) if d.id == "projet_talvane" else d
         for d in content.documents
     ]
     return read_documents(content.model_copy(update={"documents": docs}), lang)
@@ -101,7 +101,7 @@ def test_the_audience_is_the_most_restrictive_of_the_passages(trees):
 
 def test_inactive_documents_are_absent_and_the_sentinel_reaches_the_summaries():
     shipped = r.build_tree(shipped_docs("fr")[1], "fr", SIZE)
-    assert not any(p.doc_id in ("projet_orion", "faq_mots_de_passe") for p in shipped.leaves)
+    assert not any(p.doc_id in ("projet_talvane", "faq_mots_de_passe") for p in shipped.leaves)
     for lang in LANGS:
         tree = r.build_tree(with_sentinel(lang), lang, SIZE)
         held = [n for n in tree.nodes.values() if CODE in n.summary_text]
