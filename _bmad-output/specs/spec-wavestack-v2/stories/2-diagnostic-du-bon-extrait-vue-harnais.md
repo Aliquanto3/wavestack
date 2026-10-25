@@ -2,7 +2,7 @@
 title: 'V2 (2/6) : diagnostic du bon extrait dans la vue harnais'
 type: 'feature'
 created: '2026-10-01'
-status: 'draft'
+status: 'absorbed'
 size: 'L'
 context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-v2/SPEC.md'
@@ -10,7 +10,7 @@ context:
   - '{project-root}/_bmad-output/planning-artifacts/architecture/architecture-agentic-harness-training-demo-2026-09-23/ARCHITECTURE-SPINE.md'
 ---
 
-> Brouillon non déclenché. Dépend de la story 1.
+> Absorbée par la V1.2, story 9 (CAP-10, `spec-wavestack-v1-2-atelier-recherche-documentaire/stories/9-diagnostic-du-bon-extrait.md`). Brouillon conservé pour mémoire.
 
 ## Intent
 

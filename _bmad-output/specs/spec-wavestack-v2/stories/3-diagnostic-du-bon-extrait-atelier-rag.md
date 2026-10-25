@@ -2,14 +2,14 @@
 title: "V2 (3/6) : diagnostic du bon extrait dans l'Atelier RAG"
 type: 'feature'
 created: '2026-10-01'
-status: 'draft'
+status: 'absorbed'
 size: 'M'
 context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-v2/SPEC.md'
   - '{project-root}/_bmad-output/specs/spec-wavestack-v2/brownfield.md'
 ---
 
-> Brouillon non déclenché. Dépend des stories 1 et 2.
+> Absorbée par la V1.2, story 9 (CAP-10, `spec-wavestack-v1-2-atelier-recherche-documentaire/stories/9-diagnostic-du-bon-extrait.md`). Brouillon conservé pour mémoire.
 
 ## Intent
 

@@ -13,6 +13,7 @@
 - id: "2"
   title: "V2 (2/6) : diagnostic du bon extrait dans la vue harnais"
   description: >-
+    Absorbée par la V1.2, story 9 (CAP-10) ; l'énoncé d'origine suit.
     Pour un tour lancé depuis une question du jeu, calculer avant la génération où est le bon
     extrait et quelle étape l'a perdu, puis l'afficher dans Orchestration et Contexte LLM
     (CAP-2). Taille L.
@@ -26,6 +27,7 @@
 - id: "3"
   title: "V2 (3/6) : diagnostic du bon extrait dans l'Atelier RAG"
   description: >-
+    Absorbée par la V1.2, story 9 (CAP-10) ; l'énoncé d'origine suit.
     Suivre le bon extrait d'étape en étape dans l'Atelier RAG, compter les tokens de l'étape
     contexte et nommer dans la synthèse A/B la chaîne qui le place le plus haut (CAP-3).
     Taille M.
@@ -38,6 +40,7 @@
 - id: "4"
   title: "V2 (4/6) : module « Où naît l'erreur d'un RAG »"
   description: >-
+    Absorbée par la V1.2, story 9 (CAP-10) ; l'énoncé d'origine suit.
     Écrire le module V2 et ses scénarios, au moins trois cas d'échec localisés à des étapes
     différentes, rattachés aux questions du jeu, en trois langues (CAP-4). Taille S à M.
   spec_checkpoint: true

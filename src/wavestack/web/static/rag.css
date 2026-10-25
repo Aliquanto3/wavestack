@@ -1498,3 +1498,41 @@ body.rag-page {
 .rag-cmp-prompt .rag-prompt {
   white-space: pre-wrap;
 }
+
+/* V1.2 story 9 (CAP-10): the rank of the expected passage at each stage, the stage at fault. */
+.rag-diag-passage {
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  overflow-wrap: anywhere;
+}
+
+.rag-diag-steps {
+  margin: var(--spacing-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rag-diag-steps li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  align-items: baseline;
+  padding-left: var(--spacing-2);
+  border-left: 4px solid transparent;
+}
+
+.rag-diag-steps li.is-fault {
+  border-left-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.rag-diag-verdict {
+  font-weight: 600;
+}
+
+#rag-case {
+  margin-top: var(--spacing-3);
+}
