@@ -61,7 +61,7 @@ context:
 - `src/wavestack/rag/contexts.py` (nouveau) -- modèle et validation de `rag_contexts.yaml`, empreintes, lecture (dossier de données d'abord, `content/` ensuite, entrée par entrée), constructeur heuristique (utilisé par `tools/build_rag_contexts.py`), écriture des contextes reconstruits sous `config.rag_lab_dir() / "contexts" / f"{lang}.yaml"`, remise aux livrés.
 - `src/wavestack/session/app_session.py`, `src/wavestack/web/app.py` -- intention `POST /api/intentions/rag_lab_rebuild` (classe (b), acceptée en `idle` seulement, comme `rag_lab_update`), route `POST /api/rag_lab/contexts/reset` (comme `/api/rag_lab/copy/reset`) ; `trace/catalog.py` -- `chunks` (liste bornée) et `chunks_total` sur `RagLabStageEndedPayload`.
 - `src/wavestack/web/static/rag.js`, `rag.css`, `rag.html` -- liste des chunks dans le focus (parent, contexte marqué), boutons « reconstruire » et « rétablir les contextes livrés » dans le focus de l'étape `contextual`.
-- `content/rag_contexts.yaml` (+ `content/i18n/{en,de}/`), `tools/build_rag_contexts.py` (construction hors ligne, heuristique par défaut, `--model` pour un vrai modèle), `content/rag_lab.yaml` ×3, `content/messages.yaml` (+ surcouches), `content/ui.yaml`.
+- `content/rag_contexts.yaml` (+ `content/i18n/{en,de}/`), `tools/build_rag_contexts.py` (construction hors ligne, heuristique seulement : l'option `--model` est retirée, écart accepté à la revue, voir Reports), `content/rag_lab.yaml` ×3, `content/messages.yaml` (+ surcouches), `content/ui.yaml`.
 - `tests/test_rag_lab_chunking.py`, `tests/test_rag_contexts.py`, scénario E2E `rag_lab_chunking` (`tools/e2e/run_e2e.py`), `docs/guide.md`, `_bmad-output/implementation-artifacts/deferred-work.md`.
 
 ## Tasks & Acceptance
@@ -115,7 +115,7 @@ Prises le 2026-10-25 à la place d'Anaël, sous les contraintes du projet (SLM s
 
 ## Reports
 
-- Tâche humaine optionnelle, non bloquante : regénérer `content/rag_contexts.yaml` (et en, de) avec un vrai modèle local (`uv run python tools/build_rag_contexts.py --model <id>`, ou le bouton « reconstruire » puis copie du fichier du dossier de données), relire quelques contextes, et vérifier que la méthode passe à `llm` dans l'en-tête et au focus. Repli enregistré : contextes heuristiques (décision 2).
+- Tâche humaine optionnelle, non bloquante : regénérer `content/rag_contexts.yaml` (et en, de) avec un vrai modèle local (bouton « reconstruire » puis copie du fichier du dossier de données `rag_lab_dir()/contexts/{lang}.yaml` vers `content/`, en remettant `author: shipped` ; `tools/build_rag_contexts.py` n'a pas d'option `--model`, écart à la spec accepté par l'orchestrateur à la revue : aucun moteur testable la nuit sans modèle, la voie du bouton couvre le besoin), relire quelques contextes, et vérifier que la méthode passe à `llm` dans l'en-tête et au focus. Repli enregistré : contextes heuristiques (décision 2).
 - Vérification à faire sur le PC cible, modèle réel : durée d'une reconstruction complète (environ 73 chunks en fr) et qualité des contextes avec Qwen3.5 2B ; elle n'est pas mesurée la nuit.
 - Décisions à revoir par Anaël : décisions 1 à 8 ci-dessus, en particulier la forme du contexte heuristique (2) et le refus de la mise à jour hors `paragraphs` (8).
 - Sources des fiches (Anthropic « Introducing Contextual Retrieval » 2024 ; Kamradt « 5 levels of text splitting » ou LangChain SemanticChunker ; LangChain ParentDocumentRetriever ; Günther 2409.04701 pour le late chunking reporté) citées sans accès réseau, à ouvrir et vérifier (`litterature.md` demande une source primaire ouverte).
@@ -132,3 +132,18 @@ Tranchés : voir « Décisions du point de contrôle ».
 5. `parent_child` : taille des enfants et définition du parent. Recommandation : parent = chunk `paragraphs` à `chunk_max_chars`, enfants = groupes de phrases jusqu'à 300 caractères, constantes de `lab.py`.
 6. Où écrire les contextes reconstruits ? Recommandation : le dossier de données (à côté du cache des vecteurs), lu en priorité sur `content/`, avec un bouton « rétablir les contextes livrés ».
 7. Combien de chunks le focus montre-t-il ? Recommandation : les 20 premiers, total dit, texte tronqué à 300 caractères, contexte sur sa propre ligne.
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu f2b6040)
+
+Base : origin/main fusionnée (#104), #105 (12.5) pas encore fusionnée. Conflit sur une capture E2E (01b) résolu côté main.
+
+- Important, medium, second avis 1 : l'en-tête des contextes reconstruits ne décrivait que le dernier run alors que les entrées fusionnent les précédentes (coût et compte faux). Corrigé : `write_rebuilt` cumule tokens et durée, compte toutes les entrées, nomme chaque modèle (`a + b`) ; un fichier à une autre taille est remplacé entier. `rebuild_expected` lit le compte du fichier livré (taille livrée), plus celui du fichier reconstruit. Test `test_a_rebuilt_header_covers_every_entry_kept`.
+- Important, medium, second avis 2 : `parent_child` peut rendre moins de `top_k` parents quand les meilleurs enfants partagent un parent, sans le dire. Corrigé : avertissement `context.parents_short` (fr, en, de) avec le conseil d'augmenter les candidats ; pas d'élargissement implicite de la recherche (la page montre ce que la recherche a rendu). Avec la chaîne livrée (8 candidats, `top_k` 3), le cas reste rare.
+- Nit, low, second avis 3 : test parent-enfant renforcé (borne `top_k` lue de la chaîne, avertissement sinon) et test dédié au cas des parents partagés (20 candidats, `top_k` 20). Corrigé.
+- Nit, low, second avis 4 : `tools/build_rag_contexts.py` sans `--model`. Spec mise en accord (Code Map, Reports), écart accepté par l'orchestrateur.
+- Nit, low, second avis 5 : repli de `semantic` sur `paragraphs` gardait la clé de cache `semantic` (vecteurs en double). Corrigé : clé de `paragraphs`.
+- Nit, low, second avis 6 : `gap >= threshold` coupe davantage sur distances égales au seuil. Rejeté : avec des vecteurs réels les égalités exactes sont exceptionnelles, et `gap > floor` évite déjà de tout couper quand toutes les distances sont égales.
+- Complexité : 0 constat (liste du focus bornée à `FOCUS_CHUNKS_MAX`, fusion des entrées par dictionnaire).
+

@@ -342,6 +342,16 @@ main:
     clear_cache: "Cache leeren"
     clear_cache_cloud: "Der Cache eines Cloud-Anbieters lässt sich nicht leeren: Er läuft auf dessen Seite ab."
     clear_cache_no_answer: "WaveStack antwortet nicht: Der Cache wurde nicht geleert."
+    compact: "Kompaktieren"
+    compact_menu:
+      compaction: "Kompaktierung: die alten Austausche zusammenfassen (ein Modellaufruf)"
+      sliding_window: "Gleitendes Fenster: nur die letzten {keep} Austausche behalten"
+    compact_disabled:
+      turn: "Ein Durchgang läuft: warten Sie sein Ende ab, um zu kompaktieren."
+      empty: "Kein Austausch zu kompaktieren: die Unterhaltung ist leer."
+      short_memory: "Der Baustein Kurzzeitgedächtnis ist aus: es gibt keinen Verlauf zu kompaktieren."
+    compact_no_answer: "WaveStack antwortet nicht: die Strategie wurde nicht angewendet."
+    compaction_title: "Zusammenfassung (Kompaktierung)"
     tools_used: "In dieser Runde abgefragte Tools:"
     tools_used_title: "Schritt „{tool}“ in der Orchestrierung ansehen"
   composer:
@@ -540,6 +550,11 @@ main:
       title: "Kontext überschritten — der Modellaufruf wurde nicht gesendet"
       figures: "{used} / {usable} Tokens"
       strategies: "In der Produktion könnte ein Harness"
+      continue: "Weiter mit:"
+      others: "Weitere Strategien (hier nicht gezeigt):"
+      buttons:
+        compaction: "Kompaktieren"
+        sliding_window: "Gleitendes Fenster"
     rag:
       query: "Suchanfrage"
       placement: "Platzierung: {placement}"
@@ -595,6 +610,8 @@ main:
       mcp_lab: "MCP-Werkstatt"
       rag_lab: "RAG-Werkstatt"
       cache_cleared: "Cache geleert"
+      compaction: "Kompaktierung"
+      sliding_window: "gleitendes Fenster"
     hook_decisions:
       allow: "durchgelassen"
       modify: "geändert"
@@ -683,6 +700,7 @@ main:
     rows:
       overflow: "Kontext überschritten"
       sub_overflow: "Kontext des Sub-Agenten überschritten"
+      compaction: "Zusammenfassung der Kompaktierung"
       catalog: "Beschreibt die Tools"
       reinject: "Speist das Ergebnis ein"
       reinject_body: "Dem Kontext dieses Aufrufs hinzugefügte Tool-Ergebnisse: {tokens} Tokens."

@@ -254,15 +254,27 @@ def write_rebuilt(
     duration_ms: int,
     folder: Path | None = None,
 ) -> Path:
-    """Keep the contexts a rebuild wrote, over those an earlier rebuild kept (by document and
-    sha256), in the data folder; never `content/`."""
+    """Keep the contexts a rebuild wrote, over those an earlier rebuild kept at the same chunk
+    size (by document and sha256), in the data folder; never `content/`. The header covers
+    every entry of the file: `chunks` counts them, `tokens` and `duration_ms` add this
+    rebuild's to the earlier ones kept, `model` names each model that wrote some. An earlier
+    file at another chunk size is replaced whole (its header could not describe both)."""
     path = rebuilt_path(lang, folder)
     kept: dict[tuple[str, str], ContextEntry] = {}
+    earlier: ContextsFile | None = None
     if path.is_file():
         try:
-            kept = {(e.doc_id, e.sha256): e for e in _read(path).entries}
+            earlier = _read(path)
         except (OSError, ValueError, yaml.YAMLError):
-            kept = {}
+            earlier = None
+    if earlier is not None and earlier.chunk_max_chars == chunk_max_chars and earlier.entries:
+        kept = {(e.doc_id, e.sha256): e for e in earlier.entries}
+        models = [m for m in earlier.model.split(" + ") if m]
+        if model not in models:
+            models.append(model)
+        model = " + ".join(models)
+        tokens += earlier.tokens
+        duration_ms += earlier.duration_ms
     for entry in entries:
         kept[(entry.doc_id, entry.sha256)] = entry
     file = ContextsFile(
@@ -270,7 +282,7 @@ def write_rebuilt(
         method="llm",
         model=model,
         chunk_max_chars=chunk_max_chars,
-        chunks=len(entries),
+        chunks=len(kept),
         tokens=tokens,
         duration_ms=duration_ms,
         entries=list(kept.values()),

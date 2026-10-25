@@ -171,6 +171,14 @@
                 <span data-i18n="main.chat.show_reasoning">Afficher le raisonnement</span>
               </label>
               <button type="button" id="replay-last" class="pane-text-action" data-i18n="main.chat.replay_last">Rejouer le dernier prompt</button>
+              <div class="compact-menu" id="compact-menu">
+                <button type="button" id="compact-conversation" class="pane-text-action" aria-haspopup="true" aria-expanded="false" aria-controls="compact-menu-panel"><span data-i18n="main.chat.compact">Compacter</span> ▾</button>
+                <div id="compact-menu-panel" class="compact-menu-panel" role="group" aria-labelledby="compact-conversation" hidden>
+                  <button type="button" class="compact-menu-item" data-strategy="compaction"><span class="compact-menu-text"></span><span class="compact-menu-reason" hidden></span></button>
+                  <button type="button" class="compact-menu-item" data-strategy="sliding_window"><span class="compact-menu-text"></span><span class="compact-menu-reason" hidden></span></button>
+                  <p id="compact-menu-error" class="compact-error" role="alert" hidden></p>
+                </div>
+              </div>
               <button type="button" id="clear-conversation" class="pane-text-action" data-i18n="main.chat.clear">Vider la conversation</button>
               <button type="button" id="clear-cache" class="pane-text-action" data-i18n="main.chat.clear_cache">Vider le cache</button>
               <button type="button" class="pane-focus" data-action="focus" title="Mode focus" data-i18n-title="common.panes.focus" aria-label="Mode focus" data-i18n-aria-label="common.panes.focus">⛶</button>

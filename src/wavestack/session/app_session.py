@@ -207,7 +207,7 @@ from wavestack.rag.corpus import (
 )
 from wavestack.rag.retriever import Excerpt, SqliteVecRetriever
 from wavestack.scenarios import EMPTY_PROGRAM, ScenariosContent, load_scenarios
-from wavestack.session import llm_lab
+from wavestack.session import compaction, llm_lab
 from wavestack.session.effects import (
     ArmConsumed,
     AuditAppend,
@@ -462,6 +462,9 @@ class Exchange(NamedTuple):
     # their signature), verbatim, and the entry that produced them, the only one they go to.
     thinking: tuple[dict[str, Any], ...] = ()
     thinking_for: str | None = None
+    # V1.4 story 4 (CAP-5): the compaction's summary, at the head of the history (`user`: the
+    # summary's request, `text`: the summary).
+    summary: bool = False
 
 
 class _TokenTap:
@@ -888,6 +891,9 @@ class AppSession:
         # Story 26: the prompt read rate measured by model label (tokens a second), on a local
         # or served call that evaluated at least `READ_MIN_TOKENS` tokens.
         self._read_tps: dict[str, float] = {}
+        # V1.4 story 4: the generation rate measured by model label, for the compaction's
+        # estimated duration (tokens a second).
+        self._gen_tps: dict[str, float] = {}
         self._read_warm = False  # a call was made since the last load: the next one measures
         self._labels: SegmentLabels | None = None
         self._turns = 0
@@ -1103,6 +1109,10 @@ class AppSession:
         self._cache_cleared = False  # V1.3 story 3: « Vider le cache » since the last call
         self._cache_evicted: str | None = None
         self._last_status: str | None = None
+        # V1.4 story 4 (CAP-5): the last turn refused by a main-context overflow with an
+        # exchange to compact, and the strategies computed then (`compaction.Plan`).
+        self._overflowed: str | None = None
+        self._overflow_plans: dict[str, compaction.Plan] = {}
         self._turn_called = False  # the running turn made a main call (`abandoned`)
         # FinOps: the running turn's cloud calls' costs (main and sub-agent), for `turn_ended`.
         self._turn_costs: list[CallCost] = []
@@ -1233,6 +1243,8 @@ class AppSession:
                 enabled = {f"skills.{skill}" for skill in self._skills_enabled}
             elif brick.id == "hooks":
                 enabled = {f"hooks.{hook}" for hook in self._hooks_enabled}
+            elif brick.id == "short_memory":  # V1.4 story 4: the summary call, never drawn
+                enabled = {c.id for c in brick.components if c.id != compaction.COMPONENT}
             elif brick.id == "rag":  # story 16: the reranker while its sub-option is enabled
                 enabled = {c.id for c in brick.components if c.id != RAG_RERANKER}
                 enabled |= {RAG_RERANKER} if self._rag_rerank else set()
@@ -2800,6 +2812,12 @@ class AppSession:
         if evaluated < READ_MIN_TOKENS or prompt_ms <= 0 or self._model_name is None:
             return
         self._read_tps[self._model_name] = evaluated / (prompt_ms / 1000)
+
+    def _note_gen_rate(self, output_tokens: int, gen_ms: int) -> None:
+        """V1.4 story 4: the active local model's generation rate, from a call that produced
+        at least 16 tokens, for the compaction's estimated duration."""
+        if output_tokens >= 16 and gen_ms > 0 and self._model_name is not None:
+            self._gen_tps[self._model_name] = output_tokens / (gen_ms / 1000)
 
     def _kv_per_token(self, active: ModelChoice) -> int | None:
         """The KV cache's bytes per token of the active local model: the probe's reading,
@@ -4534,7 +4552,11 @@ class AppSession:
         if "short_memory" in state.effective:
             for ex in state.history:
                 memory = ("short_memory", "short_memory.history")
-                user = [Part(SegmentKind.HISTORY, ex.user, *memory)]
+                label = None
+                if ex.summary:  # V1.4 story 4: the compaction's summary, labelled as such
+                    memory = ("short_memory", compaction.COMPONENT)
+                    label = self._t("session.compaction.label")
+                user = [Part(SegmentKind.HISTORY, ex.user, *memory, label=label)]
                 if ex.injection:  # H3's text stays before its message
                     user.insert(0, Part(SegmentKind.HISTORY, ex.injection, *memory))
                 messages.append({"role": "user", "content": user})
@@ -4555,7 +4577,7 @@ class AppSession:
                     # content nor calls, which Mistral refuses (400, measured): it is left
                     # out, the user's message kept (two user messages in a row are accepted).
                     continue
-                text = Part(SegmentKind.HISTORY, ex.text, *memory)
+                text = Part(SegmentKind.HISTORY, ex.text, *memory, label=label)
                 messages.append(
                     self._as_produced(text, ex.reasoning, wrap)
                     if wrap is not None
@@ -4823,6 +4845,20 @@ class AppSession:
         """AD-9: the next-turn gauge, rendered without any message. Runs on the worker."""
         if self._engine is None:
             return  # no model: nothing to preview
+        try:
+            payload = self._preview_payload()
+        except Exception as exc:  # noqa: BLE001 - AD-16
+            self._error(
+                Message("session.preview.error.message"),
+                exc,
+                Message("session.preview.error.effect"),
+            )
+            return
+        self._journal().emit("context_preview", payload)
+        self._emit_compaction_state()  # V1.4 story 4: « Compacter ▾ » follows the history
+
+    def _preview_payload(self) -> dict[str, Any]:
+        """The next-turn gauge's payload (`_emit_preview`), on the worker."""
         state = self.build_turn_state()
         state = replace(state, injection=self._preview_injection(state))
         if "rag" in state.effective:  # AD-9: the excerpts at their declared maximum
@@ -4834,16 +4870,8 @@ class AppSession:
                     [(i, c.title_text, c.text) for i, c in enumerate(longest, start=1)]
                 ),
             )
-        try:
-            _, payload = self._render(state, "", None)
-        except Exception as exc:  # noqa: BLE001 - AD-16
-            self._error(
-                Message("session.preview.error.message"),
-                exc,
-                Message("session.preview.error.effect"),
-            )
-            return
-        self._journal().emit("context_preview", payload)
+        _, payload = self._render(state, "", None)
+        return payload
 
     def _refresh_preview(self) -> None:
         """Class (a) settings: a change of configuration abandons the prefill (E122-b: what
@@ -5022,13 +5050,18 @@ class AppSession:
         conversational state that preceded that turn (AD-17), with the current configuration."""
         return self._start(None)
 
-    def _start(self, message: str | None) -> str:
-        """Starts a turn: `message`, or the replay of the last turn when `None`."""
+    def _start(self, message: str | None, chained: bool = False) -> str:
+        """Starts a turn: `message`, or the replay of the last turn when `None`. V1.4 story 4:
+        `chained`, the refused message sent again after a strategy, from the `turn` state
+        that strategy holds (its MCP connections were waited for by `compact`)."""
         replay_of = None
-        self._wait_mcp_connections()  # #5: the tools this turn freezes include theirs
+        if not chained:
+            self._wait_mcp_connections()  # #5: the tools this turn freezes include theirs
         with self._memory_lock, self._lock:  # never while a drawer write or a reset runs
-            if self.state != "idle" or self._engine is None or self.reason_text:
+            held = chained and self.state == "turn"
+            if self._engine is None or (not held and (self.state != "idle" or self.reason_text)):
                 raise SendRefused(self._refusal_reason())
+            self._overflowed, self._overflow_plans = None, {}  # V1.4 story 4
             if message is None:
                 if self._last is None:
                     raise SendRefused(Message("session.refused.nothing_to_replay"))
@@ -6363,6 +6396,7 @@ class AppSession:
             self._last = None  # nothing left to replay (story 9b)
             self._memory_snapshot = None  # N1: the next conversation reads the memory again
             self._cache_cause = "reset"
+            self._overflowed, self._overflow_plans = None, {}  # V1.4 story 4: card stale
             spend_reset = reset_conversation_spend(self.cfg.eur_per_usd)
         self._journal().emit("conversation_cleared", {})
         self._emit_spend_reset(spend_reset)
@@ -6378,6 +6412,399 @@ class AppSession:
             emit_spend(
                 self.cfg.eur_per_usd, lambda spend: journal.emit("consumption_updated", spend)
             )
+
+    # ---------- V1.4 story 4 (CAP-5): compaction and sliding window ----------
+
+    def _overflow_choices(
+        self, main: tuple[TurnState, str, list[dict[str, Any]]] | None
+    ) -> dict[str, Any]:
+        """The main chat's clickable strategies at an overflow (`choices`, empty without an
+        exchange or with the short memory off) and the other strategies' texts. Each
+        strategy keeps as many recent exchanges as the refused call holds with (rendered
+        again, `fits`); the plans are kept for `compact`."""
+        plans: dict[str, compaction.Plan] = {}
+        if main is not None and "short_memory" in main[0].effective and main[0].history:
+            state, message, steps = main
+            history = list(state.history)
+            n, bound = len(history), self.cfg.compaction_max_tokens
+            stub = Exchange("compaction", self._t("session.compaction.request"), "", "")
+            stub = stub._replace(summary=True)
+
+            def fits(k: int, compacted: bool) -> bool:
+                kept = history[n - k :] if k else []
+                if compacted:
+                    kept = [stub, *kept]
+                _, payload = self._render(replace(state, history=tuple(kept)), message, None, steps)
+                if payload["overflow"]:
+                    return False
+                return not compacted or payload["used"] + bound <= payload["usable"]
+
+            plans = compaction.compaction_plan(n, fits, self.cfg.compaction_keep, True)
+        if main is None:  # the sub-agent's or the summary's own: the main card stays
+            return {}
+        with self._lock:
+            self._overflowed = current().turn_id if plans else None
+            self._overflow_plans = plans
+            history = list(self._history)
+        if not plans:
+            return {}
+        return {
+            "choices": [self._choice(plan, history) for plan in plans.values()],
+            "other_strategies_text": [
+                self._t(f"session.overflow.strategies.{s}")
+                for s in _OVERFLOW_STRATEGIES
+                if s not in compaction.STRATEGIES
+            ],
+        }
+
+    def _choice(self, plan: compaction.Plan, history: list[Exchange]) -> dict[str, Any]:
+        """A `CompactionChoice`: its line, with the compaction's estimated duration."""
+        key = f"session.overflow.choices.{plan.strategy}"
+        if plan.strategy == "compaction":
+            duration = self._compaction_duration(history[: plan.removed])
+            detail = self._t(key, count=plan.removed, duration=duration)
+        else:
+            detail = self._t(key, count=plan.removed)
+        return {
+            "strategy": plan.strategy,
+            "available": plan.available,
+            "count": plan.removed,
+            "kept": plan.kept,
+            "detail_text": detail,
+            "reason_text": self._plan_reason(plan) if plan.reason else None,
+        }
+
+    def _plan_reason(self, plan: compaction.Plan) -> str:
+        return self._t(f"session.overflow.choices.unavailable.{plan.reason}")
+
+    def _transcript_labels(self) -> dict[str, str]:
+        """The transcript's labels; the tool's keeps its `{name}` and `{chars}` to fill."""
+        holes = {"name": "{name}", "chars": "{chars}"}
+        return {
+            k: self._t(f"session.compaction.transcript.{k}", **(holes if k == "tool" else {}))
+            for k in compaction.LABELS
+        }
+
+    def _compaction_duration(self, exchanges: list[Exchange]) -> str:
+        """« , ≈ 20 s en local »: the transcript read at the measured read rate, then the
+        summary's bound at the measured generation rate; empty without both, and in cloud."""
+        name = self._model_name
+        if self._cloud is not None or name is None:
+            return ""
+        read, gen = self._read_tps.get(name), self._gen_tps.get(name)
+        if not read or not gen:
+            return ""
+        text = "\n\n".join(compaction.transcript_entries(exchanges, self._transcript_labels()))
+        tokens = config.estimate_tokens(text, self.cfg.chars_per_token)
+        seconds = math.ceil(tokens / read + self.cfg.compaction_max_tokens / gen)
+        return self._t("session.overflow.choices.duration", seconds=self._n(seconds))
+
+    def _emit_compaction_state(self) -> None:
+        """`compaction_state`: the strategies of « Compacter ▾ », outside an overflow (keep
+        `compaction_keep` exchanges), out of any turn."""
+        with self._lock:
+            history = list(self._history)
+        plans = compaction.compaction_plan(len(history), None, self.cfg.compaction_keep, False)
+        choices = [self._choice(plan, history) for plan in plans.values()]
+        with scoped(turn_id=None, context_id=None, call_id=None, step_id=None, component=None):
+            self._journal().emit("compaction_state", {"choices": choices}, actor="harness")
+
+    def compact(self, strategy: str, resend_turn_id: str | None = None) -> None:
+        """Class (b), V1.4 story 4: applies `strategy` to the main chat's history; from an
+        overflow's card (`resend_turn_id`, the refused turn), the refused message is sent
+        again alone, as a new turn. Refused outside `idle`, with the short memory off,
+        without an exchange, on a stale card or an unavailable choice. The strategy runs on
+        the worker, the state `turn` meanwhile (a `send` is refused)."""
+        if strategy not in compaction.STRATEGIES:
+            raise SendRefused(Message("session.refused.compact_stale"))
+        if resend_turn_id is not None:
+            self._wait_mcp_connections()  # never on the worker: the resend's tools
+        effective = self._effective()
+        with self._memory_lock, self._lock:
+            if self.state != "idle" or self._engine is None or self.reason_text:
+                raise SendRefused(self._refusal_reason())
+            if "short_memory" not in effective:
+                raise SendRefused(Message("session.refused.compact_short_memory"))
+            if not self._history:
+                raise SendRefused(Message("session.refused.compact_empty"))
+            message = None
+            if resend_turn_id is not None:
+                last = self._last
+                if resend_turn_id != self._overflowed or last is None or last[0] != resend_turn_id:
+                    raise SendRefused(Message("session.refused.compact_stale"))
+                plan = self._overflow_plans[strategy]
+                message = last[1]  # the raw message: the resend passes the guardrails again
+            else:
+                n, keep = len(self._history), self.cfg.compaction_keep
+                plan = compaction.compaction_plan(n, None, keep, False)[strategy]
+            if not plan.available:
+                raise SendRefused(Message(f"session.overflow.choices.unavailable.{plan.reason}"))
+            turn_id = None
+            if strategy == "compaction":
+                self._turns += 1
+                turn_id = f"t{self._turns}"
+            cancel = self._cancel = CancelToken()
+            self.state, self.reason_text = "turn", _TURN_FR
+        self._emit_state()
+        self._abandon_prefill()
+        self._executor.submit(self._run_strategy, strategy, plan, message, cancel, turn_id)
+
+    def _run_strategy(
+        self,
+        strategy: str,
+        plan: compaction.Plan,
+        message: str | None,
+        cancel: CancelToken,
+        turn_id: str | None,
+    ) -> None:
+        """On the worker: the strategy, then the refused message again (`_start`, chained),
+        or back to `idle`."""
+        resent = False
+        try:
+            if strategy == "sliding_window":
+                applied = self._apply_sliding_window(plan, message is None)
+            else:
+                assert turn_id is not None
+                applied = self._run_compaction(turn_id, plan, message is None, cancel)
+            if applied and message is not None:
+                self._emit_architecture()
+                self._start(message, chained=True)
+                resent = True
+        except SendRefused:
+            # The model left meanwhile: nothing is sent, and the replay, which holds the
+            # history before the strategy, goes (it would bring that history back).
+            with self._lock:
+                self._last = None
+        except Exception as exc:  # noqa: BLE001 - AD-16: the session stays usable
+            self._error(
+                Message("session.compaction.failed"), exc, Message("session.compaction.unchanged")
+            )
+        finally:
+            if not resent:
+                with self._lock:
+                    self._cancel = None
+                self._set_state("idle")
+                self._emit_architecture()
+                self._refresh_preview()  # with `compaction_state`
+
+    def _history_compacted(
+        self,
+        strategy: str,
+        removed: list[Exchange],
+        kept: list[Exchange],
+        head: list[Exchange],
+        forget_last: bool,
+    ) -> tuple[list[str], int]:
+        """The history becomes `head + kept`; the next call's cache cause is the strategy's
+        (never an earlier one: the last structural change); the replay goes when nothing is
+        sent again; locally, the documentations read in a removed exchange are unloaded
+        (D16-b). Returns the removed turn ids and the preview's tokens before."""
+        before = self._preview_used(0)
+        with self._lock:
+            self._history[:] = [*head, *kept]
+            self._cache_cause = strategy
+            if forget_last:
+                self._last = None
+            self._overflowed, self._overflow_plans = None, {}
+            if self._cloud is None:
+                self._loaded_docs.intersection_update(compaction.kept_docs(kept, self._loaded_docs))
+        return [ex.turn_id for ex in removed], before
+
+    def _preview_used(self, default: int) -> int:
+        """The preview's tokens for `history_compacted`, `default` if it cannot be rendered:
+        the history is rewritten already, a failure here must not report the strategy as
+        failed (criterion 9: a failed strategy leaves the history unchanged)."""
+        try:
+            return int(self._preview_payload()["used"])
+        except Exception:  # noqa: BLE001 - the figure only
+            return default
+
+    def _apply_sliding_window(self, plan: compaction.Plan, forget_last: bool) -> bool:
+        """The `n - kept` oldest exchanges removed, without any call nor turn."""
+        with self._lock:
+            history = list(self._history)
+        cut = len(history) - plan.kept
+        removed, kept = history[:cut], history[cut:]
+        ids, before = self._history_compacted("sliding_window", removed, kept, [], forget_last)
+        after = self._preview_used(before)
+        with scoped(turn_id=None, context_id=None, call_id=None, step_id=None, component=None):
+            self._journal().emit(
+                "history_compacted",
+                {
+                    "strategy": "sliding_window",
+                    "removed_turn_ids": ids,
+                    "summary_text": None,
+                    "before_tokens": before,
+                    "after_tokens": after,
+                    "message_text": self._t("session.compaction.removed", count=len(ids)),
+                },
+                actor="harness",
+            )
+        return True
+
+    def _run_compaction(
+        self, turn_id: str, plan: compaction.Plan, forget_last: bool, cancel: CancelToken
+    ) -> bool:
+        """A harness turn (`kind = compaction`): one call of the active model summarizes the
+        `n - kept` oldest exchanges; completed, the summary heads the history. Any other
+        outcome leaves the history as it was."""
+        journal = self._journal()
+        started = time.monotonic()
+        self._turn_costs, self._turn_impacts, self._turn_call_tokens = [], [], []
+        self._call_ids.clear()
+        request = self._t("session.compaction.request")
+        with self._lock:
+            history = list(self._history)
+        cut = len(history) - plan.kept
+        removed, kept = history[:cut], history[cut:]
+        status = "error"
+        with scoped(turn_id=turn_id, context_id="main", trigger="user"):
+            try:
+                self._turn_seq = journal.emit(
+                    "turn_started",
+                    {
+                        "replay_of": None,
+                        "message": request,
+                        "active_model": self.active_model(),
+                        "kind": "compaction",
+                    },
+                    actor="harness",
+                ).seq
+                status, summary, dropped = self._summarize(turn_id, removed, cancel)
+                if status == "completed":
+                    head = [Exchange(turn_id, request, summary, "")._replace(summary=True)]
+                    ids, before = self._history_compacted(
+                        "compaction", removed, kept, head, forget_last
+                    )
+                    # The exchanges summarized, then those the transcript could not hold.
+                    told = self._t("session.compaction.summarized", count=len(ids) - dropped)
+                    if dropped:
+                        told += " · " + self._t("session.compaction.dropped", count=dropped)
+                    journal.emit(
+                        "history_compacted",
+                        {
+                            "strategy": "compaction",
+                            "removed_turn_ids": ids,
+                            "summary_text": summary,
+                            "before_tokens": before,
+                            "after_tokens": self._preview_used(before),
+                            "message_text": told,
+                        },
+                        actor="harness",
+                    )
+            except Exception as exc:  # noqa: BLE001 - AD-16
+                status = "error"
+                self._error(
+                    Message("session.compaction.failed"),
+                    exc,
+                    Message("session.compaction.unchanged"),
+                )
+            finally:
+                journal.emit(
+                    "turn_ended",
+                    {"status": status, "duration_ms": _ms(time.monotonic() - started)}
+                    | self._turn_cost()
+                    | self._turn_impact(),
+                )
+        return status == "completed"
+
+    def _summarize(
+        self, turn_id: str, exchanges: list[Exchange], cancel: CancelToken
+    ) -> tuple[str, str, int]:
+        """The summary call: `content/prompts/compaction.md` as its system message, the
+        transcript of `exchanges` (masked texts of the history, the oldest dropped from the
+        transcript when it does not hold), no tools, no reasoning, no hook, its output
+        bounded to `compaction_max_tokens`. Locally, the main context's engine state is
+        saved and restored around it, as the RAG workshop does. Returns `(status, text,
+        dropped)`, `dropped` the oldest exchanges left out of the transcript."""
+        entries = compaction.transcript_entries(exchanges, self._transcript_labels())
+        prompt = config.content_file("prompts/compaction.md", self._language)
+        instruction = prompt.read_text(encoding="utf-8").strip()
+        bound = self.cfg.compaction_max_tokens
+        call_id = f"{turn_id}.main.c1"
+        owner = ("short_memory", compaction.COMPONENT)
+        with scoped(
+            call_id=call_id,
+            step_id=f"{turn_id}.main.s1",
+            brick="short_memory",
+            component=compaction.COMPONENT,
+        ):
+            while True:
+                system = Part(SegmentKind.SYSTEM_PROMPT, instruction, *owner)
+                asked = Part(SegmentKind.HISTORY, "\n\n".join(entries), *owner)
+                messages = [
+                    {"role": "system", "content": [system]},
+                    {"role": "user", "content": [asked]},
+                ]
+                rendered, payload = self._render_summary(messages, call_id, bound)
+                if not payload["overflow"] or len(entries) <= 1:
+                    break
+                entries = entries[1:]  # the oldest leaves the transcript, not the history
+            self._journal().emit("context_rendered", payload)
+            if payload["overflow"]:
+                self._emit_overflow(payload, getattr(rendered, "raw_total", None))
+                return "overflow", "", 0
+            dropped = len(exchanges) - len(entries)
+            if self._cloud is None:
+                saved = self._save_main_state()
+                try:
+                    out = self._call_model(rendered, cancel, (), bound)
+                finally:
+                    self._lab_restore(saved, "compaction")
+            else:
+                out = self._call_model(rendered, cancel, (), bound)
+        text = (out.text or "").strip()
+        if out.status in ("completed", "limit") and text:
+            return "completed", text, dropped
+        return (out.status if out.status in ("cancelled", "limit") else "error"), "", 0
+
+    def _render_summary(
+        self, messages: list[dict[str, Any]], call_id: str, reserve: int
+    ) -> tuple[RenderedContext | RenderedChat, dict[str, Any]]:
+        """The summary call's context and gauge, as `_render` does for a turn's call."""
+        assert self._engine is not None and self._caps is not None and self._labels is not None
+        if self._cloud is None:
+            meta = self._engine.metadata()
+            template_vars: dict[str, Any] = {}
+            if self._caps.reasoning_variable:
+                template_vars[self._caps.reasoning_variable] = False
+            rendered = render_context(
+                self._engine,
+                self._caps.chat_template or "",
+                messages,
+                call_id=call_id,
+                special_tokens=meta.special_tokens,
+                bos_token=meta.bos_token,
+                eos_token=meta.eos_token,
+                add_generation_prompt=True,
+                **template_vars,
+                lang=self._language,
+            )
+            payload = gauge(
+                rendered.segments,
+                window=self._window,
+                reserve=reserve,
+                near_limit_ratio=self.cfg.near_limit_ratio,
+                labels=self._labels,
+                window_source=self._window_source,
+                categories=self._categories(),
+            )
+            return rendered, payload
+        entry, content = self._cloud, self._cloud_content
+        assert content is not None
+        chat = render_chat_body(
+            messages,
+            None,
+            call_id=call_id,
+            fields=chat_fields(entry, reserve, reasoning=False),
+            markers=self.cfg.cloud_markers,
+            estimate=lambda text: config.estimate_tokens(text, self.cfg.chars_per_token),
+            provider_label_text=content.provider_segment_text,
+            lang=self._language,
+            api=entry.api,
+        )
+        payload = self._chat_gauge(chat, round(chat.raw_total * self._ratio), "estimate", reserve)
+        return chat, payload
 
     def clear_cache(self) -> None:
         """V1.3 story 3 (CAP-4), class (b): the local engine's context memory emptied, the
@@ -6719,6 +7146,7 @@ class AppSession:
                 self._last = None  # nothing left to replay (story 9b)
                 self._memory_snapshot = None  # N1: the next conversation reads it again
                 self._cache_cause = "reset"
+                self._overflowed, self._overflow_plans = None, {}  # V1.4 story 4
                 self._armed.clear()
                 self._apply_launch_config()
                 apply()
@@ -7237,6 +7665,7 @@ class AppSession:
                 if way_back is None:
                     self._set_state("idle")
                 self._emit_window_state()  # story 26: the read rate this turn measured
+                self._emit_compaction_state()  # V1.4 story 4: « Compacter ▾ »
         if way_back is not None:  # out of the turn's scope: a load of its own
             self._run_way_back(*way_back)
 
@@ -7308,7 +7737,9 @@ class AppSession:
                 sent = len(steps)
                 journal.emit("context_rendered", payload)
                 if payload["overflow"]:
-                    self._emit_overflow(payload, getattr(rendered, "raw_total", None))
+                    self._emit_overflow(
+                        payload, getattr(rendered, "raw_total", None), (shown, message, list(steps))
+                    )
                     return "overflow", "", ""
                 if isinstance(rendered, RenderedContext):  # chat mode has no ids (AD-4)
                     self._check_reuse(rendered, previous)
@@ -8516,9 +8947,15 @@ class AppSession:
             return "system"
         return "history" if segments[index].kind in _CONVERSATION_KINDS else "template"
 
-    def _emit_overflow(self, payload: dict[str, Any], raw_used: int | None = None) -> None:
+    def _emit_overflow(
+        self,
+        payload: dict[str, Any],
+        raw_used: int | None = None,
+        main: tuple[TurnState, str, list[dict[str, Any]]] | None = None,
+    ) -> None:
         """`raw_used` (chat mode): the raw sum of the estimates, which decided the block
-        (AD-4), cited « ≈ »."""
+        (AD-4), cited « ≈ ». V1.4 story 4: `main`, the main chat's refused call (its state,
+        message and steps), whose strategies become clickable (`choices`)."""
         used, usable = payload["used"], payload["usable"]
         shown = f"≈ {self._n(raw_used)}" if raw_used is not None else self._n(used)
         tokens = dict.fromkeys(_OVERFLOW_CAUSES, 0)
@@ -8556,7 +8993,8 @@ class AppSession:
                 "strategies_text": [
                     self._t(f"session.overflow.strategies.{s}") for s in _OVERFLOW_STRATEGIES
                 ],
-            },
+            }
+            | self._overflow_choices(main),
         )
 
     def _compression_hint_fr(self) -> str:
@@ -8703,6 +9141,7 @@ class AppSession:
             evaluated = sum(known) if known else None
             if first_at is not None:  # story 26: the read of the first generation's prompt
                 self._note_read_rate(evaluations[0], _ms(first - started))
+                self._note_gen_rate(output_tokens, gen_ms)  # V1.4 story 4
             impact = measure.stop()  # GreenOps: its footprint, or why it has none...
             if reason == "error" and first_at is None:  # ...none for a call without output,
                 impact = Impact(impact.method)  # as a cloud call refused before any
@@ -10597,7 +11036,8 @@ class AppSession:
             "rebuilt": book.rebuilt is not None,
             "rebuild_blocked_text": render(blocked, self._language) if blocked else None,
             "expected_text": self._t(
-                "session.rag_lab.rebuild_expected", chunks=header.chunks if header else 0
+                "session.rag_lab.rebuild_expected",
+                chunks=book.shipped.chunks if book.shipped else (header.chunks if header else 0),
             ),
         }
 

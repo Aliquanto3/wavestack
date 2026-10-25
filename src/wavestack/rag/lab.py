@@ -2282,6 +2282,7 @@ class LabRun:
             lent = self._lend(chain, embedding.option)
         except (StageFailed, StageSkipped) as unusable:
             chain.chunks = paragraphs
+            chain.chunking_key = None  # the `paragraphs` chunks: their vectors, their cache
             result = self._chunking_result(chain, size, source)
             result.warning_text = text(
                 "chunking.semantic_fallback", reason=unusable.render(self._lang)
@@ -3131,7 +3132,17 @@ class LabRun:
         text = "\n\n".join([content.intro_text, *(i.text for i in items)]) if items else ""
         chain.context_text = text
         say = self._text
+        # Children sharing a parent: fewer than `top_k` parents among the candidates searched.
+        short = len(items) < min(top_k, len(ranked))
         return _Result(
+            warning_text=say(
+                "context.parents_short",
+                kept=self._int(len(items)),
+                top_k=self._int(top_k),
+                read=self._int(read),
+            )
+            if short
+            else None,
             input_text=say("context.input", extracts=self._count(len(ranked), "extract")),
             output_text=text or say("context.empty"),
             facts=[
