@@ -16252,6 +16252,63 @@ def s_security_page(r: Run) -> None:
     r.goto_app()
 
 
+def s_harness_map(r: Run) -> None:
+    """V1.4 story 2: the harness map opens from the instructions of `harness_map` and from the
+    bricks panel, places every brick in the 7 subsystems, greys a switched-off brick, and
+    closes by Escape or « Fermer » with the focus back on its opener."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    r.launch("harness_map")
+    dialog = page.locator("#harness-map-dialog")
+    # From the scenario's instructions: the popover's button, then Escape.
+    page.locator("#scenario-info").click()
+    page.locator("#scenario-harness-map").click()
+    expect(dialog).to_be_visible(timeout=5000)
+    boxes = dialog.locator(".harness-map-box")
+    r.check(boxes.count() == 7, "carte : 7 sous-systèmes", str(boxes.count()))
+    placed = dialog.locator(".harness-map-brick")
+    r.check(
+        placed.count() == len(r.bricks()), "carte : chaque brique est placée", str(placed.count())
+    )
+    off = {k for k, b in r.bricks().items() if not (b["wanted"] and b["available"])}
+    greyed = set(
+        page.eval_on_selector_all(".harness-map-brick.is-off", "ns => ns.map(n => n.dataset.brick)")
+    )
+    r.check(
+        bool(off) and greyed == off,
+        "carte : les briques éteintes sont grisées",
+        f"{off} / {greyed}",
+    )
+    text = dialog.inner_text()
+    r.check(
+        "2609.00006" in text and "Böckeler" in text,
+        "carte : les sources sont citées",
+    )
+    r.check(
+        "Outils et actions" in text and "Sécurité et permissions" in text,
+        "carte : libellés du papier (Tools & actions, Safety & permissions)",
+    )
+    page.keyboard.press("Escape")
+    expect(dialog).to_be_hidden(timeout=5000)
+    r.check(
+        page.evaluate("document.activeElement && document.activeElement.id") == "scenario-info",
+        "Échap : le focus revient au bouton « i » de la consigne",
+    )
+    # From the bricks panel: the foot button, then « Fermer ».
+    page.locator("#harness-map-open").click()
+    expect(dialog).to_be_visible(timeout=5000)
+    r.check(
+        page.evaluate("document.activeElement && document.activeElement.id") == "harness-map-close",
+        "ouverture : le focus est sur « Fermer »",
+    )
+    page.locator("#harness-map-close").click()
+    expect(dialog).to_be_hidden(timeout=5000)
+    r.check(
+        page.evaluate("document.activeElement && document.activeElement.id") == "harness-map-open",
+        "« Fermer » : le focus revient au bouton du panneau des briques",
+    )
+
+
 def s_rag_agentic(r: Run) -> None:
     """V1.4 story 3 (CAP-4): the RAG module's third scenario, 60 minutes in all; the tool
     `search_documents` is off at launch, ticked on the Tools card, then a search followed by a
@@ -16421,6 +16478,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),
+    ("harness_map", s_harness_map),
     ("busy_and_stop", s_busy_and_stop),
     ("reload_and_reset", s_reload_and_reset),
     ("language", s_language),

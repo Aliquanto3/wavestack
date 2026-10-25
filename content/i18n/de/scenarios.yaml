@@ -20,9 +20,12 @@ program:
   - title_text: Skills und Hooks
     duration_min: 60
     scenarios: [skills, caveman, hooks]
-  - title_text: Sub-Agent und Kompression
-    duration_min: 60
-    scenarios: [subagent, compression]
+  - title_text: Sub-Agent
+    duration_min: 45
+    scenarios: [subagent]
+  - title_text: Langer Kontext und Karte
+    duration_min: 45
+    scenarios: [compression, harness_map]
 
 transverse: [data_flows, soc, iam, sovereignty]
 
@@ -327,8 +330,9 @@ scenarios:
   compression:
     title_text: Komprimierung des Kontexts
     description_text: >-
-      Die Bausteine des Szenarios Sub-Agent bleiben aktiv, ohne den Sub-Agenten (und ohne
-      Denkprozess und RAG), und der Baustein Kompression kommt hinzu: Headroom kürzt große
+      Die Bausteine der vorigen Module bleiben aktiv (MCP im Lazy Loading), ohne den
+      Sub-Agenten, ohne Kontext-Injektion (H3) und ohne Denkprozess und RAG, und der Baustein
+      Kompression kommt hinzu: Headroom kürzt große
       Tool-Ergebnisse vor dem Modellaufruf. Schalten Sie zuerst die Kompression aus und
       senden Sie den ersten Prompt: Das Modell ruft read_file auf, und das
       Sicherungsprotokoll kommt vollständig in den Kontext. Liest es das Protokoll nicht,
@@ -351,12 +355,33 @@ scenarios:
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [read_file]
     mcp_lazy: true
+    restore_memory: true
     hooks: [h1, h2]
     prompts:
       - >-
         Rufe das Tool read_file für journal_serveur.log auf und sag mir dann, auf welchen
         schweren Fehler die Sicherung heute Nacht gestoßen ist.
       - Um wie viel Uhr wurde laut journal_serveur.log das Paket 12 kopiert?
+
+  harness_map:
+    title_text: Harness-Karte
+    description_text: >-
+      Die Kompressions-Bausteine bleiben aktiv, wie im vorigen Szenario. Hier gibt es keinen
+      Tool-Aufruf: Klicken Sie unter diesem Text (oder am Fuß des Baustein-Bereichs) auf
+      „Harness-Karte“, um die Karte zu öffnen. Jeder Baustein ist dort in eines der 7
+      Subsysteme eines Harness eingeordnet, mit seiner Rolle: Guide (er lenkt das Modell,
+      bevor es handelt), Sensor (er beobachtet und blockiert oder korrigiert, berechnet
+      durch eine Regel oder abgeleitet durch ein Modell) oder reine Fähigkeit. Suchen Sie
+      die Guides und Sensoren und dann das Subsystem ohne Baustein (die Agentenschleife),
+      das trotzdem im Kern des Harness existiert. Ein ausgeschalteter Baustein bleibt
+      eingeordnet, ausgegraut: Die Karte beschreibt das vollständige Harness. Esc oder
+      „Schließen“ schließt die Karte. Der vorgeschlagene Prompt ruft kein Tool auf.
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - Was ist in einem Satz ein Agenten-Harness?
 
   data_flows:
     title_text: Wohin gehen meine Daten?

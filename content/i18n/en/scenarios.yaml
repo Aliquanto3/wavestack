@@ -19,9 +19,12 @@ program:
   - title_text: Skills and hooks
     duration_min: 60
     scenarios: [skills, caveman, hooks]
-  - title_text: Sub-agent and compression
-    duration_min: 60
-    scenarios: [subagent, compression]
+  - title_text: Sub-agent
+    duration_min: 45
+    scenarios: [subagent]
+  - title_text: Long context and map
+    duration_min: 45
+    scenarios: [compression, harness_map]
 
 transverse: [data_flows, soc, iam, sovereignty]
 
@@ -305,8 +308,9 @@ scenarios:
   compression:
     title_text: Context compression
     description_text: >-
-      The bricks of the Sub-agent scenario stay on, without the sub-agent (nor the
-      reasoning or the RAG), and the Compression brick is added: Headroom shortens large
+      The bricks of the previous modules stay on (MCP in lazy loading), without the
+      sub-agent, without context injection (H3), and without the reasoning or the RAG, and the
+      Compression brick is added: Headroom shortens large
       tool results before the model call. First turn compression off and send the first
       prompt: the model calls read_file and the backup log enters the context in full. If
       it does not read the log, click “Force the call” on “File reading” in the Tools card
@@ -325,12 +329,31 @@ scenarios:
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [read_file]
     mcp_lazy: true
+    restore_memory: true
     hooks: [h1, h2]
     prompts:
       - >-
         Call the read_file tool on journal_serveur.log, then tell me what serious error
         last night's backup ran into.
       - In journal_serveur.log, at what time was batch 12 copied?
+
+  harness_map:
+    title_text: Harness map
+    description_text: >-
+      The compression bricks stay on, as in the previous scenario. No tool call here: click
+      “Harness map” under this text (or at the foot of the bricks panel) to open the map.
+      Each brick is placed in one of the 7 subsystems of a harness, with its role: guide (it
+      steers the model before it acts), sensor (it observes and blocks or corrects, computed
+      by a rule or inferred by a model) or plain capability. Spot the guides and sensors,
+      then the subsystem without a brick (the agent loop), which still exists in the harness
+      core. A switched-off brick stays placed, greyed out: the map describes the complete
+      harness. Escape or “Close” closes the map. The suggested prompt calls no tool.
+    bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
+    tools: [read_file]
+    mcp_lazy: true
+    hooks: [h1, h2]
+    prompts:
+      - In one sentence, what is an agent harness?
 
   data_flows:
     title_text: Where does my data go?

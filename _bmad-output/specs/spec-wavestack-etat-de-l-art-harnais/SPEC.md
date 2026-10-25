@@ -103,11 +103,11 @@ Aucune brique n'affiche plus une catégorie que la littérature contredit.
 
 - Le lot passe après la V1.3 et avant la story 2 de la V1.2 (décision d'Anaël du 2026-10-24). La PR #79 (corpus Exemplia enrichi) est fusionnée avant la story 3.
 - Sous-système et rôle sont déclarés dans le registre des briques (`bricks/registry.py`), comme `category`, et non dans `content/bricks/*.yaml` : donnée structurelle non traduite. Les libellés vont dans `ui.yaml`.
-- Le placement des briques et leurs rôles (`carte-du-harnais.md`) sont à valider au point de contrôle de la story 2.
+- Le placement des briques et leurs rôles (`carte-du-harnais.md`) sont validés au point de contrôle de la story 2 (revue du 2026-10-24).
 - Le résumé de compaction est stocké comme un échange marqué en tête de l'historique ; la fenêtre glissante retire les échanges les plus anciens jusqu'à tenir, en gardant au moins le dernier. À trancher au point de contrôle de la story 4.
 - Les causes `compaction` et `sliding_window` s'ajoutent à `PrefixCause` après celles de la V1.3.
 - Les stratégies cliquables n'apparaissent que si la branche active du chat principal a au moins un échange.
 
 ## Open Questions
 
-- Les libellés anglais exacts des 7 sous-systèmes sont-ils ceux de `carte-du-harnais.md` ? À vérifier sur arXiv 2609.00006 avant la traduction.
+Aucune.
