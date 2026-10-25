@@ -352,6 +352,19 @@ def test_a_small_window_greys_both_and_the_api_refuses_them(index, window):
     session.close()
 
 
+def test_the_validation_reads_the_window_again_once_it_changes(index):
+    """The validation's catalog (kept a few seconds) is read again for another window."""
+    session = lab(index, window=4096)
+    chain = preset(session, "long_context")
+    assert session.validate_rag_lab(chain)["valid"] is False
+    _, done = session.set_context_window(16384)
+    if done is not None:
+        done.result()
+    session.join()
+    assert session.validate_rag_lab(chain)["valid"] is True
+    session.close()
+
+
 @pytest.mark.parametrize(
     ("lang", "needed", "where"),
     [("en", "16,384", "“Window” selector"), ("de", "16.384", "Auswahl „Fenster“")],

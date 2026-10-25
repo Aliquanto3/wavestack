@@ -14797,7 +14797,8 @@ def _rag_lab_context(r: Run, headroom: bool) -> None:
         page.locator("#rag-reset-chain").click()
     select = _seq_row(r, "context").locator("select.rag-option")
     r.check(
-        select.locator("option").all_inner_texts()
+        # V1.2 story 10: the two options without an index, unavailable at 4 096, say so.
+        [t.removesuffix(" (indisponible)") for t in select.locator("option").all_inner_texts()]
         == [
             "Extraits numérotés (format de la brique RAG)",
             "Budget de contexte (tokens)",

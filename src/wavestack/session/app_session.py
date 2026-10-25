@@ -1051,6 +1051,9 @@ class AppSession:
         self._rag_lab_import_errors: dict[str, str] = {}
         # The catalog the validation of an edited chain reads (`_rag_lab_recent_catalog`).
         self._rag_lab_catalog_kept: tuple[float, Any, rag_lab.Catalog] | None = None
+        # V1.2 story 10: what that catalog was read for (the active model, the effective
+        # window): another one reads it again, whatever its age.
+        self._rag_lab_catalog_for: tuple[Any, ...] | None = None
         # V1.2 story 5: the questions the workshop ran, which `follow_up` reads as history.
         self._rag_lab_asked: list[str] = []
         # V1.2 story 10 (CAG): the workshop's one prefix state, and the one an update rebuilt,
@@ -11188,10 +11191,18 @@ class AppSession:
         the disk again each time. A run reads it afresh."""
         now = time.monotonic()
         kept = self._rag_lab_catalog_kept
-        if kept is not None and kept[1] is texts and now - kept[0] < RAG_LAB_CATALOG_TTL_S:
+        with self._lock:
+            read_for = (self._active, self._window)
+        if (
+            kept is not None
+            and kept[1] is texts
+            and now - kept[0] < RAG_LAB_CATALOG_TTL_S
+            and self._rag_lab_catalog_for == read_for
+        ):
             return kept[2]
         catalog = self._rag_lab_catalog(texts)
         self._rag_lab_catalog_kept = (now, texts, catalog)
+        self._rag_lab_catalog_for = read_for
         return catalog
 
     def validate_rag_lab(self, pipeline: rag_lab.Pipeline) -> dict[str, Any]:
