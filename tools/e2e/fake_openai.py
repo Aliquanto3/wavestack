@@ -344,6 +344,14 @@ def _plan(
 def _final_text(user: str, messages: list[dict[str, Any]], results: list[str]) -> str:
     low = user.lower()
     everything = all_text(messages)
+    if any(
+        m in system_text(messages)
+        for m in ("sous-questions simples", "simple sub-questions", "einfache Teilfragen")
+    ):
+        # V1.2 story 5: the workshop's decomposition (its own instruction), a question cut in two.
+        words = user.rstrip(" ?").split()
+        middle = max(1, len(words) // 2)
+        return " ".join(words[:middle]) + " ?\n" + " ".join(words[middle:]) + " ?"
     if "homme des cavernes" in everything and "harnais" in low:
         return _SHORT_HARNESS  # the Caveman skill's instructions are in the context
     asked = re.search(r"\blot (\d+)\b", user)

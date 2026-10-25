@@ -573,12 +573,16 @@ session:
     generation_active: "The workshop's active model: {model}"
     generation_no_model: "No model loaded in the workshop: the Generation step will be skipped. Load a model, then run the chain again."
     generation_stops: "The RAG workshop's generation stops; WaveStack remains usable."
+    query_no_model: "No model loaded in the workshop: the query understanding will be skipped and the question searched as typed. Load a model, then run the chain again."
     update_too_long: "Text too long: {max} characters at most."
     update_bad_id: "Invalid identifier: lowercase letters, digits and _ only."
     update_id_taken: "The identifier {doc} already exists in the corpus."
     update_empty: "The title and the text cannot be empty."
     update_unknown_operation: "Unknown operation: {op}."
     update_unknown_doc: "The document {doc} is not in the corpus's work copy."
+    update_chunking: "The corpus update is only measured for the paragraph chunking: choose it, or restore the shipped chain."
+    rebuild_no_model: "No model loaded in the workshop: load a model to rewrite the contexts."
+    rebuild_expected: "One model call per chunk ({chunks} at the shipped size), a few seconds each on CPU: expect several minutes. “Stop” keeps the contexts already rewritten."
     noun:
       embedding: embedding model
       reranking: reranking model
@@ -971,6 +975,15 @@ rag_lab:
     reordered_candidate:
       one: reordered candidate
       other: reordered candidates
+    parent:
+      one: parent
+      other: parents
+    child:
+      one: child
+      other: children
+    sentence:
+      one: sentence
+      other: sentences
   # A rank: « 1er », « 2ᵉ » (English: 1st, 2nd, 3rd, 4th; 21st, 22nd, 23rd).
   rank:
     first: "1st"
@@ -998,6 +1011,7 @@ rag_lab:
     out_of_bounds: "Step “{stage}”: {bounds}."
     bounds: "{setting} between {low} and {high} {unit}"
     too_few_candidates: "Step “{stage}”: {kept}, fewer than the {extracts} that the context must keep. Keep at least {candidates}, or keep fewer excerpts."
+    query_before: "Step “{stage}”: it produces the queries the searches run, so it must come before them. Move it before the searches."
   not_installed: "Unavailable: {library} is not installed. From the WaveStack folder: `{command}`, then restart WaveStack. Without `--extra compression`, Headroom would be removed."
   folder_held: "The folder {folder} cannot be deleted ({error}: {cause}): another program may be holding it open. Close it, or delete the rag_lab folder with WaveStack stopped."
   load_failed: "The {noun} {model} could not be loaded ({error}: {cause})."
@@ -1033,6 +1047,9 @@ rag_lab:
     score_reading: Score reading
     prompt_tokens: Prompt tokens
     output_tokens: Tokens produced
+    embedded_as: Embedded
+    queries: Queries searched
+    children_read: Children read
   chunking:
     source_corpus: "the corpus (content/corpus), split for this run"
     source_index: "the RAG brick's index (split when it was built)"
@@ -1046,6 +1063,39 @@ rag_lab:
     mean: Mean length
     longest: Longest
     characters: "{n} characters"
+    output_semantic: "{extracts} cut where the similarity between neighbouring sentences drops ({sentences} embedded), {size} characters at most, read from {source}."
+    output_parent_child: "{children} of {child} characters at most, indexed; each returns its parent, among {parents} of {size} characters at most, read from {source}."
+    output_contextual: "{extracts} of {size} characters at most, {with_context} with their context, added before the embedding and the lexical search, read from {source}."
+    parents: Parents
+    child_max: Maximum size of a child
+    sentences: Sentences embedded
+    sentences_duration: Duration of the sentence embedding
+    with_context: Chunks with a context
+    without_context: Chunks without a context
+    ignored_contexts: Contexts ignored
+    context_origin: Origin of the contexts
+    no_contexts: no context
+    semantic_fallback: "No usable embedding model to cut at sentences ({reason}): the chunking falls back to paragraphs."
+    contexts_unreadable: "The file of shipped contexts cannot be read ({error}): the chunks are indexed without a context."
+    contexts_stale: "{missing} without a valid context and {ignored} contexts ignored (their fingerprint no longer matches a chunk: size changed or work copy). “Rebuild” makes them again at the current size."
+    mark:
+      shipped: precomputed
+      rebuilt: rebuilt
+      heuristic: "heuristic, no LLM"
+      llm: "by the model {model}"
+  contexts:
+    run_label: "Rebuilding the contexts"
+    summary: "Contexts read: {mark} · {chunks} contexts · model {model} · {tokens} tokens written · built in {duration}"
+    heuristic: "Chunk {position}/{total} of “{title}”. The document begins with: {first}"
+    no_model: "No model loaded in the workshop: the contexts cannot be rewritten."
+    instruction: "You place a chunk in the document it comes from. Write a short context, one or two sentences in English, saying what the document is about and where the chunk sits in it, so that the chunk can be found by searching. Answer with the context alone, no introduction."
+    document: "Document “{title}”:\n{text}"
+    user: "Here is the chunk to place in this document:\n{chunk}"
+    input: "{chunks} to place in their whole document."
+    output: "{done} contexts rewritten out of {total}; {failed} chunks keep their context."
+    fact_rebuilt: Contexts rewritten
+    fact_kept: Chunks that kept their context
+    fact_tokens: Tokens written
   embedding:
     brick_passages: "Passages (document title, then excerpt): {passages}, already vectorised in the RAG brick's index, computed when it was built."
     brick_unusable: "The passages are not vectorised here: the RAG brick's index cannot be used (see Vector database)."
@@ -1126,9 +1176,11 @@ rag_lab:
     input: "The ranking of the previous step: {extracts}."
     empty: "No excerpt: the model would only receive the question."
     kept: "{kept} of {total}"
+    parents_short: "{kept} distinct parents of the {top_k} asked: the {read} best children cover no more. Raise the search's candidates to get more."
   costs:
     build_unknown: "Build cost not recorded for this precomputed content: rebuild it to measure it."
     generation_unpriced: "Cost in dollars not priced: the model has no declared price."
+    contexts_measure: "Measure recorded when the contexts were built (model: {model}), not made again at each run."
   update:
     op:
       add: "Adding the document {doc}"
@@ -1160,6 +1212,23 @@ rag_lab:
     cut: "Answer cut at {max} tokens: the output reserve of a workshop turn is reached."
     empty: "The model gave no answer."
     model_error: "The model failed during the generation: the event log says why."
+  query:
+    input: "Question: {question}."
+    input_history: "Earlier questions of the workshop: {history}."
+    unchanged: "No query produced: the question is searched as typed."
+    no_history: "No earlier question in this session: the question is searched as typed."
+    no_history_reason: "No earlier question in this session: ask a first question, then the follow-up. The question is searched as typed."
+    no_model: "No model loaded in the workshop: the query understanding is skipped and the question is searched as typed. Load a model, then run the chain again."
+    too_long: "The task's prompt exceeds the window ({window} tokens): nothing is sent to the model and the question is searched as typed."
+    model_error: "The model failed during the query understanding: the question is searched as typed; the event log says why."
+    empty: "The model gave nothing usable: the question is searched as typed."
+    as_passage: "as a passage of the corpus, not as a question"
+    follow_up_user: "Earlier questions:\n{history}\n\nFollow-up question: {question}"
+    instruction:
+      rewrite: "You rewrite a question for a search in a base of company documents. Answer with a single query, no explanation and no quotation marks: the words and precise terms the document sought would contain, in the language of the question."
+      decompose: "You break a complex question down into simple sub-questions, each searchable on its own in a base of company documents. Answer with at most {max} sub-questions, one per line, with no number and no explanation. If the question is already simple, answer with that question alone."
+      follow_up: "You rephrase the last question of a conversation so that it can be understood on its own, without the earlier exchanges: replace pronouns and implicit references with what they stand for. Answer with a single question, no explanation."
+      hyde: "You write, in one short paragraph, the plausible answer to the question, as if it were taken from a company document. It may contain factual errors: it only serves to find nearby passages. No introduction."
 
 # The LLM workshop (story 29, `session/llm_lab.py`): its figures and its diagram.
 llm_lab:

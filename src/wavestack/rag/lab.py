@@ -36,9 +36,18 @@ from wavestack.messages import KeyedError, Lazy, Message, join, msg, number, ren
 from wavestack.models.embedding import Embedder
 from wavestack.models.load_registry import LoadRegistry
 from wavestack.models.reranker import RerankCancelled, Reranker
+from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import index as rag_index
 from wavestack.rag import workcopy
-from wavestack.rag.corpus import Chunk, RagContent, chunk_corpus
+from wavestack.rag.corpus import (
+    Chunk,
+    DocText,
+    RagContent,
+    chunk_corpus,
+    chunk_documents,
+    chunk_parent_child,
+    chunk_semantic,
+)
 from wavestack.rag.index import exception_text
 from wavestack.rag.retriever import SqliteVecRetriever
 
@@ -47,6 +56,7 @@ KINDS = (
     "chunking",
     "embedding",
     "vector_store",
+    "query",
     "vector_search",
     "lexical_search",
     "fusion",
@@ -56,7 +66,8 @@ KINDS = (
 )
 # Increment 4: the retrieval segment, between the vector store and the context, in any order
 # (the chain's other stages are fixed); a stage of it is added before the context.
-RETRIEVAL = ("vector_search", "lexical_search", "fusion", "rerank")
+# V1.2 story 5 (CAP-3): the query understanding opens the segment, before the searches.
+RETRIEVAL = ("query", "vector_search", "lexical_search", "fusion", "rerank")
 SEARCHES = ("vector_search", "lexical_search")
 FIXED_HEAD = ("chunking", "embedding", "vector_store")
 FIXED_TAIL = ("context", "generation")
@@ -65,9 +76,14 @@ RRF_K = 60
 _WORD = re.compile(r"\w+")
 # Each kind's options, the shipped one first.
 OPTIONS: dict[str, tuple[str, ...]] = {
-    "chunking": ("paragraphs",),
+    # V1.2 story 6 (CAP-4): by the meaning of the sentences, small children indexed for a
+    # large parent returned, a short context added to each chunk.
+    "chunking": ("paragraphs", "semantic", "parent_child", "contextual"),
     "embedding": ("declared", "fastembed"),
     "vector_store": ("sqlite_vec", "memory", "faiss", "lancedb"),
+    # V1.2 story 5 (CAP-3): what is searched is no longer the question as typed. Each option
+    # asks the workshop's active model for the queries to search.
+    "query": ("rewrite", "decompose", "follow_up", "hyde"),
     "vector_search": ("cosine",),
     "lexical_search": ("bm25",),
     "fusion": ("rrf",),
@@ -79,6 +95,9 @@ OPTIONS: dict[str, tuple[str, ...]] = {
 # The settings of an option, by name.
 PARAMS: dict[tuple[str, str], tuple[str, ...]] = {
     ("chunking", "paragraphs"): ("chunk_max_chars",),
+    ("chunking", "semantic"): ("chunk_max_chars",),
+    ("chunking", "parent_child"): ("chunk_max_chars",),
+    ("chunking", "contextual"): ("chunk_max_chars",),
     ("vector_search", "cosine"): ("candidates",),
     ("lexical_search", "bm25"): ("candidates",),
     ("context", "excerpts"): ("top_k",),
@@ -88,6 +107,25 @@ BOUNDS: dict[str, tuple[int, int]] = {
     "candidates": (1, 20),
     "top_k": (1, 20),
 }
+# V1.2 story 5: the query understanding's bounds (characters of a query, queries of a
+# decomposition, previous questions read by `follow_up`, tokens the model may write).
+QUERY_MAX_CHARS = 300
+HYDE_MAX_CHARS = 800
+SUBQUERIES_MAX = 4
+HISTORY_MAX = 3
+QUERY_RESERVE = 256
+# The kinds whose every option has a component sheet (CAP-17) in `rag_lab.yaml`; each story
+# that adds options adds its kind here.
+SHEETED_KINDS = ("query", "chunking")
+# V1.2 story 6 (CAP-4): constants, not settings. `parent_child`: the characters of a child (the
+# parent is a `paragraphs` chunk); `semantic`: a chunk ends where the distance between two
+# neighbouring sentences passes this percentile of the corpus's; `contextual`: the tokens a
+# rebuilt context may take; the chunks the focus lists, and the characters of each it shows.
+CHILD_MAX_CHARS = 300
+SEMANTIC_PERCENTILE = 80
+CONTEXT_MAX_TOKENS = 128
+FOCUS_CHUNKS_MAX = 20
+FOCUS_CHUNK_CHARS = 300
 QUESTION_MAX = 500  # the characters of a question the workshop accepts
 STATUSES = ("ok", "error", "skipped", "cancelled", "not_run")
 EMBED_BATCH = 8  # passages embedded at a time: « Arrêter » and the progress between batches
@@ -158,6 +196,8 @@ STEPS: dict[str, SequenceStep] = {
     "embed_query": SequenceStep(
         "run", "embedding", own=False, reads=("question",), calls=("embedding_model",)
     ),
+    # V1.2 story 5: the queries the searches will run (the question, rewritten or split).
+    "query": SequenceStep("run", "query", reads=("question",), calls=("llm",)),
     "vector_search": SequenceStep("run", "vector_search", reads=("vector_store",)),
     "lexical_search": SequenceStep("run", "lexical_search", reads=("lexical_index", "question")),
     "fusion": SequenceStep("run", "fusion"),
@@ -311,6 +351,24 @@ class TabTexts(_Strict):
     soon_text: str = Field(min_length=1)  # `{name}`: the tab, not yet built
 
 
+class SourceText(_Strict):
+    label_text: str = Field(min_length=1)
+    url: str = Field(pattern=r"^https://")
+
+
+class SheetText(_Strict):
+    """V1.2 story 5 (CAP-17): the component sheet of an option, five blocks: what it is for,
+    when to use or avoid it, what it costs, what the literature says (with its sources, at
+    least one) and what the bench measured (empty while nothing is published)."""
+
+    purpose_text: str = Field(min_length=1)
+    when_text: str = Field(min_length=1)
+    cost_text: str = Field(min_length=1)
+    literature_text: str = Field(min_length=1)
+    bench_text: str = ""
+    sources: list[SourceText] = Field(min_length=1)
+
+
 class QuestionTypeTexts(_Strict):
     factual_text: str = Field(min_length=1)
     multi_hop_text: str = Field(min_length=1)
@@ -430,6 +488,7 @@ class RagLabContent(_Strict):
     remove_text: str = Field(min_length=1)
     reset_chain_text: str = Field(min_length=1)
     unavailable_text: str = Field(min_length=1)
+    queries_text: str = Field(min_length=1)  # V1.2 story 5: « Requêtes produites »
     costs: CostTexts
     tabs: TabTexts
     prepared: PreparedTexts
@@ -444,6 +503,8 @@ class RagLabContent(_Strict):
     groups: dict[str, GroupText]
     phases: dict[str, PhaseText]
     presets: dict[str, PresetText]
+    # V1.2 story 5 (CAP-17): « kind.option » -> its sheet.
+    sheets: dict[str, SheetText] = {}
 
     @model_validator(mode="after")
     def _every_kind_option_and_setting(self) -> RagLabContent:
@@ -472,6 +533,9 @@ class RagLabContent(_Strict):
             raise ValueError(f"options : il faut exactement {', '.join(OPTIONS)}")
         if set(self.params) != set(BOUNDS):
             raise ValueError(f"params : il faut exactement {', '.join(BOUNDS)}")
+        wanted = {f"{k}.{o}" for k in SHEETED_KINDS for o in OPTIONS[k]}
+        if set(self.sheets) != wanted:
+            raise ValueError(f"sheets : il faut exactement {', '.join(sorted(wanted))}")
         return self
 
 
@@ -610,6 +674,8 @@ class Catalog:
                     "label_text": text.label_text,
                     "explain_text": text.explain_text,
                     "movable": kind in RETRIEVAL,
+                    # V1.2 story 5: a stage added opens the retrieval segment, after this one.
+                    "insert_after": "vector_store" if kind == "query" else None,
                     "options": options,
                     # B1 (2026-10-05): the models to download from this stage, the figure the
                     # architecture's tile says (« 2 modèles à télécharger »).
@@ -807,6 +873,9 @@ def check_pipeline(
     rerank = next((s for s in segment if s.kind == "rerank"), None)
     if rerank is not None and position[rerank.id] < position[searches[0].id]:
         return text("rerank_before", stage=names["rerank"]), rerank.id
+    understanding = next((s for s in segment if s.kind == "query"), None)
+    if understanding is not None and position[understanding.id] > position[searches[0].id]:
+        return text("query_before", stage=names["query"]), understanding.id
     for stage in stages:
         label = names[stage.kind]
         state = catalog.options.get((stage.kind, stage.option))
@@ -931,6 +1000,17 @@ def agreed(key: str, n: int, lang: str) -> str:
     return _t(key, lang, count=1 if n == 1 else 2)
 
 
+def mark_text(author: str, method: str, model: str, lang: str) -> str:
+    """V1.2 story 6: where a context comes from, « précalculé · heuristique, sans LLM » or
+    « reconstruit · par le modèle X »."""
+    how = (
+        _t("chunking.mark.heuristic", lang)
+        if method == rag_contexts.HEURISTIC
+        else _t("chunking.mark.llm", lang, model=model)
+    )
+    return f"{_t(f'chunking.mark.{author}', lang)} · {how}"
+
+
 def count_text(n: int, noun: str, lang: str) -> str:
     """`count_fr` in `lang`: « 3 extraits », « 3 excerpts » (`rag_lab.noun.{noun}`)."""
     return f"{lang_int(n, lang)} {agreed(f'noun.{noun}', n, lang)}"
@@ -1007,10 +1087,23 @@ def folder_identity(folder: Path) -> tuple[int, str]:
     return size, digest.hexdigest()
 
 
-def cache_key(identity: dict[str, Any], chunk_max_chars: int, digest: str) -> str:
+def cache_key(
+    identity: dict[str, Any],
+    chunk_max_chars: int,
+    digest: str,
+    chunking: dict[str, str] | None = None,
+) -> str:
     """The folder of a corpus embedded by a model: the model's identity (id, dimensions, file
-    size and sha256), the chunk size and the chunks' digest."""
-    parts = {"embedder": identity, "chunk_max_chars": chunk_max_chars, "corpus": digest}
+    size and sha256), the chunk size and the chunks' digest. V1.2 story 6: `chunking`, for an
+    option other than `paragraphs` (its name, and for `contextual` the fingerprint of the
+    contexts applied): the text embedded is not the chunk's alone."""
+    parts: dict[str, Any] = {
+        "embedder": identity,
+        "chunk_max_chars": chunk_max_chars,
+        "corpus": digest,
+    }
+    if chunking:
+        parts["chunking"] = chunking
     return hashlib.sha256(json.dumps(parts, sort_keys=True).encode()).hexdigest()[:20]
 
 
@@ -1452,6 +1545,11 @@ class GenerationAsk:
     step_id: str
     progress: Callable[[int, int], None]
     cancelled: Callable[[], bool]
+    # V1.2 story 5 (CAP-3): a short task (the query understanding) instead of an answer: the
+    # system prompt is this instruction (never the brick's), no reasoning, and at most
+    # `reserve` tokens written.
+    instruction: str | None = None
+    reserve: int | None = None
 
 
 @dataclass
@@ -1514,6 +1612,9 @@ class LabDeps:
     # V1.2 story 3: the work copy of the corpus, read by the chain instead of the shipped
     # corpus when it changes something (`None` or empty: the shipped corpus).
     work_copy: workcopy.WorkCopy | None = None
+    # V1.2 story 5: the questions asked before in the session (oldest first), which the
+    # `follow_up` option reads as the conversation the workshop does not have.
+    history: Sequence[str] = ()
 
 
 @dataclass
@@ -1555,6 +1656,11 @@ class _Result:
     prompt_text: str | None = None
     # V1.2 story 3: what the stage cost, by time; `None`: the stage's duration, in its time.
     costs: list[StageCost] | None = None
+    # V1.2 story 5: the queries the query understanding produced, shown in the focus.
+    queries: list[str] = field(default_factory=list)
+    # V1.2 story 6: the chunking's first chunks, as the focus lists them, and how many in all.
+    chunks: list[dict[str, Any]] = field(default_factory=list)
+    chunks_total: int = 0
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -1569,6 +1675,9 @@ COST_PHASE = {
     "context": "query",
 }
 UPDATE_RUN_PREFIX = "upd"  # the id of an update run (`upd1`): its events are not the last run
+# V1.2 story 6: the id of a rebuild of the contexts (`ctx1`), apart from the runs as well.
+REBUILD_RUN_PREFIX = "ctx"
+APART_PREFIXES = (UPDATE_RUN_PREFIX, REBUILD_RUN_PREFIX)
 
 
 @dataclass
@@ -1581,6 +1690,10 @@ class _Chain:
     embedder: Embedder | None = None
     embedder_label: str = ""
     query_vector: list[float] | None = None
+    # V1.2 story 5: what the searches run; empty: the question as typed. `as_document`: the
+    # text is a hypothetical answer (HyDE), embedded as a passage is.
+    queries: list[str] = field(default_factory=list)
+    as_document: bool = False
     vectors: list[list[float]] | None = None  # the passages', when the store needs them
     key: str = ""  # the cache's folder of this corpus and model
     store: Any = None  # `MemoryStore`, `_SqliteStore`…
@@ -1590,6 +1703,15 @@ class _Chain:
     context: list[Item] = field(default_factory=list)
     context_text: str = ""
     status: str = "ok"
+    # V1.2 story 6: the chunking option, what identifies it in the cache's key (`None`:
+    # `paragraphs`), the parents of a `parent_child` chain (and each child's), the contexts of
+    # a `contextual` one, and the models already lent (a run loads each once).
+    option: str = "paragraphs"
+    chunking_key: dict[str, str] | None = None
+    parents: list[Chunk] = field(default_factory=list)
+    parent_of: list[int] = field(default_factory=list)
+    contexts: rag_contexts.Matched | None = None
+    lent: dict[str, Lent] = field(default_factory=dict)
 
     @property
     def ranked(self) -> list[Item] | None:
@@ -1756,7 +1878,7 @@ class LabRun:
             except StageFailed as failed:
                 status, error_text = "error", failed.render(self._lang)
                 if failed.soft:
-                    result = self._passed_on(chain, error_text)
+                    result = failed.result or self._passed_on(chain, error_text)
                 else:
                     chain.status, stopped = "error", True
                     result = failed.result or result
@@ -1868,6 +1990,9 @@ class LabRun:
                 "duration_ms": duration_ms,
                 "rss_bytes": rss,
                 "memory_text": memory_text,
+                "queries": result.queries,
+                "chunks": result.chunks,
+                "chunks_total": result.chunks_total,
             },
             step_id,
             component,
@@ -1903,6 +2028,8 @@ class LabRun:
             return self._embedding(chain, stage, progress)
         if stage.kind == "vector_store":
             return self._vector_store(chain, stage)
+        if stage.kind == "query":
+            return self._query(chain, stage, step_id, progress)
         if stage.kind == "vector_search":
             return self._vector_search(chain, stage)
         if stage.kind == "lexical_search":
@@ -1932,8 +2059,11 @@ class LabRun:
         its index serves, read only."""
         store = chain.pipeline.find("vector_store")
         embedding = chain.pipeline.find("embedding")
+        chunking = chain.pipeline.find("chunking")
         return (
-            store is not None
+            chunking is not None
+            and chunking.option == "paragraphs"  # V1.2 story 6: the index is the brick's chunks
+            and store is not None
             and store.option == "sqlite_vec"
             and embedding is not None
             and embedding.option == "declared"
@@ -1949,6 +2079,9 @@ class LabRun:
     def _chunking(self, chain: _Chain, stage: Stage) -> _Result:
         size = param(stage, "chunk_max_chars", self.deps.catalog)
         chain.chunk_max_chars = size
+        chain.option = stage.option
+        if stage.option != "paragraphs":
+            return self._chunking_other(chain, stage, size)
         source = self._text("chunking.source_corpus")
         chunks: list[Chunk] = []
         if self._uses_brick_index(chain) and self.deps.brick_index_error is None:
@@ -1972,6 +2105,20 @@ class LabRun:
         if not chunks:
             raise StageFailed(Message("rag_lab.chunking.no_chunks"))
         chain.chunks = chunks
+        return self._chunking_result(chain, size, source)
+
+    def _chunking_result(
+        self,
+        chain: _Chain,
+        size: int,
+        source: str,
+        output: str = "chunking.output",
+        facts: Sequence[tuple[str, str]] = (),
+        **output_kw: str,
+    ) -> _Result:
+        """The chunking stage's figures, whatever the option: documents, extracts, sizes, then
+        the option's own `facts`; V1.2 story 6: the first chunks, for the focus."""
+        chunks = chain.chunks
         docs = len({c.doc_id for c in chunks})
         longest = max(len(c.text) for c in chunks)
         mean = round(sum(len(c.text) for c in chunks) / len(chunks))
@@ -1987,23 +2134,199 @@ class LabRun:
                 declared=count(len(self.deps.content.documents)),
             ),
             output_text=text(
-                "chunking.output",
+                output,
                 extracts=self._count(len(chunks), "extract"),
                 size=count(size),
                 source=source,
+                **output_kw,
             ),
             facts=[
                 (text("chunking.max_size"), chars(size)),
                 (text("chunking.extracts"), count(len(chunks))),
                 (text("chunking.mean"), chars(mean)),
                 (text("chunking.longest"), chars(longest)),
+                *facts,
             ],
+            chunks=self._chunk_rows(chain),
+            chunks_total=len(chunks),
         )
+
+    def _cut(self, text: str) -> str:
+        return text if len(text) <= FOCUS_CHUNK_CHARS else text[: FOCUS_CHUNK_CHARS - 1] + "…"
+
+    def _mark(self, applied: rag_contexts.Applied) -> str:
+        return mark_text(applied.author, applied.method, applied.model, self._lang)
+
+    def _chunk_rows(self, chain: _Chain) -> list[dict[str, Any]]:
+        """The first `FOCUS_CHUNKS_MAX` chunks, as the focus lists them: their document and
+        rank, their text, their parent (`parent_child`), their context and its mark."""
+        rows: list[dict[str, Any]] = []
+        for i, chunk in enumerate(chain.chunks[:FOCUS_CHUNKS_MAX]):
+            row: dict[str, Any] = {
+                "doc_id": chunk.doc_id,
+                "title_text": chunk.title_text,
+                "position": chunk.position,
+                "text": self._cut(chunk.text),
+            }
+            if chain.parents:
+                parent = chain.parents[chain.parent_of[i]]
+                row["parent_position"] = parent.position
+                row["parent_text"] = self._cut(parent.text)
+            if chain.contexts is not None:
+                applied = chain.contexts.applied[i]
+                if applied is not None:
+                    row["context_text"] = self._cut(applied.context_text)
+                    row["context_label"] = self._mark(applied)
+            rows.append(row)
+        return rows
+
+    def _lend(self, chain: _Chain, option: str) -> Lent:
+        """The embedding model of the chain, lent once per run (the semantic chunking and the
+        Embedding stage share it)."""
+        if option not in chain.lent:
+            chain.lent[option] = self.deps.embedder(option)
+        return chain.lent[option]
+
+    def _chunking_other(self, chain: _Chain, stage: Stage, size: int) -> _Result:
+        """V1.2 story 6 (CAP-4): `semantic`, `parent_child` and `contextual` read the same
+        documents as `paragraphs` (the corpus, or the work copy), never the brick's index."""
+        text, count = self._text, self._int
+        copy = self.deps.work_copy if self._reads_work_copy() else None
+        documents = workcopy.documents(self.deps.content, self.deps.lang, copy)
+        source = self._text("chunking.source_work_copy" if copy else "chunking.source_corpus")
+        parents = chunk_documents(documents, size)
+        if not parents:
+            raise StageFailed(Message("rag_lab.chunking.no_chunks"))
+        option = stage.option
+        chain.chunking_key = {"option": option}
+        if option == "semantic":
+            return self._semantic(chain, documents, parents, size, source)
+        if option == "parent_child":
+            children, parent_of = chunk_parent_child(parents, CHILD_MAX_CHARS)
+            chain.chunks, chain.parents, chain.parent_of = children, parents, parent_of
+            return self._chunking_result(
+                chain,
+                size,
+                source,
+                "chunking.output_parent_child",
+                [
+                    (text("chunking.parents"), count(len(parents))),
+                    (text("chunking.child_max"), text("chunking.characters", n=CHILD_MAX_CHARS)),
+                ],
+                children=self._count(len(children), "child"),
+                child=count(CHILD_MAX_CHARS),
+                parents=self._count(len(parents), "parent"),
+            )
+        # contextual: the `paragraphs` chunks, each with the context of its fingerprint
+        book = rag_contexts.load_book(self.deps.lang, self.deps.lab_dir)
+        matched = rag_contexts.match(parents, book)
+        chain.chunks, chain.contexts = parents, matched
+        chain.chunking_key["contexts"] = matched.fingerprint
+        header = book.header
+        found = len(parents) - matched.missing
+        result = self._chunking_result(
+            chain,
+            size,
+            source,
+            "chunking.output_contextual",
+            [
+                (text("chunking.with_context"), count(found)),
+                (text("chunking.without_context"), count(matched.missing)),
+                (text("chunking.ignored_contexts"), count(matched.ignored)),
+                (
+                    text("chunking.context_origin"),
+                    self._mark(rag_contexts.Applied("", header.author, header.method, header.model))
+                    if header is not None
+                    else text("chunking.no_contexts"),
+                ),
+            ],
+            with_context=self._count(found, "extract"),
+        )
+        if book.error and book.shipped is None:
+            result.warning_text = text("chunking.contexts_unreadable", error=book.error)
+        elif matched.missing or matched.ignored:
+            result.warning_text = text(
+                "chunking.contexts_stale",
+                missing=self._count(matched.missing, "extract"),
+                ignored=count(matched.ignored),
+            )
+        # Built beforehand: what the build cost is the record of the file (never this run's).
+        if header is not None:
+            result.costs = [
+                StageCost(
+                    "build",
+                    "chunking",
+                    header.tokens,
+                    header.duration_ms,
+                    measured_at_build=True,
+                    note_text=Message("rag_lab.costs.contexts_measure", model=header.model),
+                )
+            ]
+        return result
+
+    def _semantic(
+        self,
+        chain: _Chain,
+        documents: Sequence[DocText],
+        paragraphs: list[Chunk],
+        size: int,
+        source: str,
+    ) -> _Result:
+        """Chunks cut where the similarity between neighbouring sentences drops, by the
+        embedding model of the chain; without a usable one, the `paragraphs` chunks and a
+        warning."""
+        text, count = self._text, self._int
+        embedding = chain.pipeline.find("embedding")
+        assert embedding is not None  # `check_pipeline` keeps the fixed head
+        try:
+            lent = self._lend(chain, embedding.option)
+        except (StageFailed, StageSkipped) as unusable:
+            chain.chunks = paragraphs
+            chain.chunking_key = None  # the `paragraphs` chunks: their vectors, their cache
+            result = self._chunking_result(chain, size, source)
+            result.warning_text = text(
+                "chunking.semantic_fallback", reason=unusable.render(self._lang)
+            )
+            return result
+        embedder: Embedder = lent.model
+
+        def embed(sentences: list[str]) -> list[list[float]]:
+            out: list[list[float]] = []
+            for at in range(0, len(sentences), EMBED_BATCH):
+                self._check()
+                out += embedder.embed_passages(sentences[at : at + EMBED_BATCH])
+            return out
+
+        started = time.monotonic()
+        probe = Probe(self.deps.meter)
+        try:
+            chunks, sentences = chunk_semantic(documents, embed, size, SEMANTIC_PERCENTILE)
+        finally:
+            cost = self._cost("build", "chunking", probe)
+        cost = replace(cost, tokens=sum(self.deps.estimate_tokens(c.text) for c in chunks))
+        chain.chunks = chunks
+        result = self._chunking_result(
+            chain,
+            size,
+            source,
+            "chunking.output_semantic",
+            [
+                (text("chunking.sentences"), count(sentences)),
+                (text("fact.model"), lent.label_text),
+                (
+                    text("chunking.sentences_duration"),
+                    ms_text(_ms(time.monotonic() - started), self._lang),
+                ),
+            ],
+            sentences=self._count(sentences, "sentence"),
+        )
+        result.costs = [cost]
+        return result
 
     def _embedding(
         self, chain: _Chain, stage: Stage, progress: Callable[[int, int], None]
     ) -> _Result:
-        lent = self.deps.embedder(stage.option)
+        lent = self._lend(chain, stage.option)
         embedder: Embedder = lent.model
         chain.embedder_label = lent.label_text
         self._check()
@@ -2028,7 +2351,7 @@ class LabRun:
         else:
             identity = self.deps.identity(stage.option)
             digest = rag_index.corpus_digest(chain.chunks)
-            chain.key = cache_key(identity, chain.chunk_max_chars, digest)
+            chain.key = cache_key(identity, chain.chunk_max_chars, digest, chain.chunking_key)
             folder = self.deps.lab_dir / chain.key
             vectors = read_vectors(folder, chain.chunks, embedder.dims)
             if vectors is not None:
@@ -2039,23 +2362,21 @@ class LabRun:
             else:
                 vectors = []
                 total = len(chain.chunks)
+                passages_of = self._passages(chain)
                 started = time.monotonic()
                 truncated = 0 if getattr(embedder, "max_tokens", None) else None
                 probe = Probe(self.deps.meter)
                 try:
                     for at in range(0, total, EMBED_BATCH):
                         self._check()
-                        batch = chain.chunks[at : at + EMBED_BATCH]
-                        vectors += embedder.embed_passages(
-                            [rag_index.passage_text(c) for c in batch]
-                        )
+                        vectors += embedder.embed_passages(passages_of[at : at + EMBED_BATCH])
                         # Lot 5c-1: the passages of this batch the model cut at `max_tokens`.
                         cut = getattr(embedder, "last_truncated", None)
                         known = truncated is not None and isinstance(cut, int)
                         truncated = truncated + cut if known else None
                         progress(min(at + EMBED_BATCH, total), total)
                 finally:
-                    built = self._cost("build", "embedding", probe, self._tokens(chain.chunks))
+                    built = self._cost("build", "embedding", probe, self._tokens(passages_of))
                 if len(vectors) != total or any(len(v) != embedder.dims for v in vectors):
                     raise StageFailed(Message("rag_lab.embedding.wrong_dims", dims=embedder.dims))
                 write_vectors(folder, chain.chunks, vectors, identity, truncated)
@@ -2108,8 +2429,17 @@ class LabRun:
         duration, impact = probe.stop()
         return StageCost(phase, kind, tokens, duration, 0.0, impact)
 
-    def _tokens(self, chunks: Sequence[Chunk]) -> int:
-        return sum(self.deps.estimate_tokens(rag_index.passage_text(c)) for c in chunks)
+    def _tokens(self, passages: Sequence[str]) -> int:
+        return sum(self.deps.estimate_tokens(p) for p in passages)
+
+    def _passages(self, chain: _Chain) -> list[str]:
+        """What is embedded and indexed for each chunk: its title and text, with its context
+        first when the chain is `contextual` (V1.2 story 6)."""
+        contexts = chain.contexts.contexts if chain.contexts is not None else None
+        return [
+            rag_index.passage_text(c, contexts[i] if contexts else "")
+            for i, c in enumerate(chain.chunks)
+        ]
 
     def _truncation(self, embedder: Embedder, truncated: int | None, total: int) -> str | None:
         """Lot 5c-1: « 3 chunks sur 29 dépassent 512 tokens, tronqués », a warning (never an
@@ -2265,16 +2595,121 @@ class LabRun:
             )
         raise StageFailed(Message("rag_lab.vector_store.unknown", option=stage.option))
 
+    def _query(
+        self, chain: _Chain, stage: Stage, step_id: str, progress: Callable[[int, int], None]
+    ) -> _Result:
+        """V1.2 story 5 (CAP-3): the workshop's active model turns the question into the
+        queries the searches run (`rewrite`: one, `decompose`: several, `follow_up`: one that
+        stands alone, `hyde`: a hypothetical answer). Without a model, without a previous
+        question for `follow_up`, or when the model gives nothing usable, the question goes on
+        as typed and the stage says why (skipped, or a warning); a failed call is a soft
+        failure."""
+        option, text = stage.option, self._text
+        history = [h for h in self.deps.history if h.strip()][-HISTORY_MAX:]
+        shown = text("query.input", question=self._quoted(self.question))
+        if option == "follow_up":
+            shown += " " + text(
+                "query.input_history", history=join([self._quoted(h) for h in history], self._lang)
+            )
+        unchanged = _Result(input_text=shown, output_text=text("query.unchanged"))
+        if option == "follow_up" and not history:
+            unchanged.output_text = text("query.no_history")
+            raise StageSkipped(Message("rag_lab.query.no_history_reason"), result=unchanged)
+        if self.deps.generator is None:
+            raise StageSkipped(Message("rag_lab.query.no_model"), result=unchanged)
+        self._check()
+        user = self.question
+        if option == "follow_up":
+            user = text(
+                "query.follow_up_user",
+                history="\n".join(f"- {h}" for h in history),
+                question=self.question,
+            )
+        ask = GenerationAsk(
+            context_text="",
+            question=user,
+            step_id=step_id,
+            progress=progress,
+            cancelled=self.deps.cancelled,
+            instruction=text(f"query.instruction.{option}", max=SUBQUERIES_MAX),
+            reserve=QUERY_RESERVE,
+        )
+        try:
+            got = self.deps.generator(ask)
+        except StageSkipped as skipped:
+            skipped.result = skipped.result or unchanged
+            raise
+        result = _Result(
+            input_text=shown,
+            output_text=text("query.unchanged"),
+            facts=[(text("fact.model"), got.model_label)],
+            prompt_text=got.prompt_text,
+        )
+        result.costs = [
+            StageCost(
+                "query",
+                "query",
+                got.prompt_tokens + got.output_tokens,
+                got.duration_ms,
+                got.cost_usd,
+                got.impact,
+                note_text=None
+                if got.cost_usd is not None or got.impact is not None
+                else Message("rag_lab.costs.generation_unpriced"),
+            )
+        ]
+        if got.status == "cancelled":
+            raise LabCancelled(result)
+        if got.status == "too_long":
+            result.costs = []
+            raise StageFailed(
+                Message("rag_lab.query.too_long", window=self._int(got.window)),
+                soft=True,
+                result=result,
+            )
+        if got.status not in ("completed", "limit"):
+            raise StageFailed(
+                got.error_text or Message("rag_lab.query.model_error"), soft=True, result=result
+            )
+        queries = parse_queries(option, got.answer_text)
+        if not queries:
+            result.warning_text = text("query.empty")
+            return result
+        chain.queries = queries
+        chain.as_document = option == "hyde"
+        result.queries = queries
+        if len(queries) == 1:
+            result.output_text = queries[0]
+        else:
+            result.output_text = "\n".join(f"{n}. {q}" for n, q in enumerate(queries, start=1))
+        result.facts.append((text("fact.queries"), self._int(len(queries))))
+        if option == "hyde":
+            result.facts.append((text("fact.embedded_as"), text("query.as_passage")))
+        return result
+
     def _vector_search(self, chain: _Chain, stage: Stage) -> _Result:
         if chain.store is None or chain.query_vector is None:
             raise StageFailed(Message("rag_lab.vector_search.no_store"))
         k = param(stage, "candidates", self.deps.catalog)
-        hits = chain.store.search(chain.query_vector, k)
+        if chain.queries:  # V1.2 story 5: the queries the query understanding produced
+            vectors = self._embed_queries(chain)
+            found = [chain.store.search(vector, k) for vector in vectors]
+            hits, sources = self._merged(chain, "vector_search", found, k)
+        else:
+            hits, sources = chain.store.search(chain.query_vector, k), {}
         items = []
         for rank, (chunk_id, score) in enumerate(hits, start=1):
             chunk = chain.chunks[chunk_id - 1]
             items.append(
-                Item(chunk_id, chunk.doc_id, chunk.title_text, chunk.text, score, rank=rank)
+                Item(
+                    chunk_id,
+                    chunk.doc_id,
+                    chunk.title_text,
+                    chunk.text,
+                    score,
+                    rank=rank,
+                    sources=sources.get(chunk_id, []),
+                )
             )
         chain.lists.append(items)
         chain.list_kinds.append("vector_search")
@@ -2294,9 +2729,55 @@ class LabRun:
             facts=[
                 (text("fact.requested"), self._int(k)),
                 (text("fact.found"), self._int(len(items))),
+                *self._queries_fact(chain),
             ],
             items=items,
         )
+
+    def _embed_queries(self, chain: _Chain) -> list[list[float]]:
+        """V1.2 story 5: the vector of each query, by the chain's embedding model; a
+        hypothetical answer (HyDE) is embedded as a passage is, not as a question."""
+        embedder = chain.embedder
+        if embedder is None:
+            raise StageFailed(Message("rag_lab.vector_search.no_store"))
+        queries = chain.queries
+        if chain.as_document:
+            vectors = embedder.embed_passages(queries)
+        else:
+            vectors = embedder.embed_queries(queries)
+        if len(vectors) != len(queries) or not all(any(v) for v in vectors):
+            raise StageFailed(Message("rag_lab.embedding.null_vector"))
+        return vectors
+
+    def _merged(
+        self, chain: _Chain, kind: str, found: list[list[tuple[int, float]]], k: int
+    ) -> tuple[list[tuple[int, float]], dict[int, list[dict[str, Any]]]]:
+        """V1.2 story 5: a search run once per query gives one list; with several queries the
+        lists are fused by reciprocal rank (as the Fusion stage does), the first `k` kept, and
+        each excerpt says where each query ranked it. One query: its list as it is."""
+        if len(found) == 1:
+            return found[0], {}
+        label = self.deps.texts.stages[kind].label_text
+        ranks = [{c: (r, sc) for r, (c, sc) in enumerate(hits, start=1)} for hits in found]
+        fused = rrf([[c for c, _ in hits] for hits in found])[:k]
+        sources = {
+            chunk_id: [
+                {
+                    "kind": kind,
+                    "label_text": f"{label} {n}",
+                    "rank": seen.get(chunk_id, (None, None))[0],
+                    "score": seen.get(chunk_id, (None, None))[1],
+                }
+                for n, seen in enumerate(ranks, start=1)
+            ]
+            for chunk_id, _ in fused
+        }
+        return [(c, round(score, 4)) for c, score in fused], sources
+
+    def _queries_fact(self, chain: _Chain) -> list[tuple[str, str]]:
+        if not chain.queries:
+            return []
+        return [(self._text("fact.queries"), self._int(len(chain.queries)))]
 
     def _rerank(self, chain: _Chain, stage: Stage, progress: Callable[[int, int], None]) -> _Result:
         candidates = chain.ranked
@@ -2430,7 +2911,7 @@ class LabRun:
         """B2: BM25's inverted index of the Chunks (`LexicalIndex`), kept for the search."""
         if not chain.chunks:
             raise StageFailed(Message("rag_lab.lexical_search.no_chunks"))
-        passages = [rag_index.passage_text(c) for c in chain.chunks]
+        passages = self._passages(chain)
         probe = Probe(self.deps.meter)
         try:
             built = chain.lexical = lexical_index(passages, self.deps.lang)
@@ -2475,23 +2956,38 @@ class LabRun:
         k = param(stage, "candidates", self.deps.catalog)
         if chain.lexical is None:  # its part not run (never in a chain run): built here
             self._lexical_index(chain)
-        scored = bm25_scores(chain.lexical, self.question, self.deps.lang)
-        found = sorted(
-            ((score, i + 1) for i, score in enumerate(scored) if score > 0),
-            key=lambda x: (-round(x[0], TIE_DIGITS), x[1]),
-        )[:k]
+        queries = chain.queries or [self.question]
+        per_query = []
+        for query in queries:
+            scored = bm25_scores(chain.lexical, query, self.deps.lang)
+            per_query.append(
+                [
+                    (chunk_id, round(score, 3))
+                    for score, chunk_id in sorted(
+                        ((score, i + 1) for i, score in enumerate(scored) if score > 0),
+                        key=lambda x: (-round(x[0], TIE_DIGITS), x[1]),
+                    )[:k]
+                ]
+            )
+        found, sources = self._merged(chain, "lexical_search", per_query, k)
         items = []
-        for rank, (score, chunk_id) in enumerate(found, start=1):
+        for rank, (chunk_id, score) in enumerate(found, start=1):
             chunk = chain.chunks[chunk_id - 1]
             items.append(
                 Item(
-                    chunk_id, chunk.doc_id, chunk.title_text, chunk.text, round(score, 3), rank=rank
+                    chunk_id,
+                    chunk.doc_id,
+                    chunk.title_text,
+                    chunk.text,
+                    score,
+                    rank=rank,
+                    sources=sources.get(chunk_id, []),
                 )
             )
         chain.lists.append(items)
         chain.list_kinds.append("lexical_search")
         text = self._text
-        terms = bm25_terms(self.question, self.deps.lang)
+        terms = [t for query in queries for t in bm25_terms(query, self.deps.lang)]
         words = ", ".join(self._quoted(w) for w in dict.fromkeys(terms))
         return _Result(
             input_text=text(
@@ -2503,6 +2999,7 @@ class LabRun:
             facts=[
                 (text("fact.requested"), self._int(k)),
                 (text("fact.found"), self._int(len(items))),
+                *self._queries_fact(chain),
             ],
             items=items,
         )
@@ -2567,8 +3064,10 @@ class LabRun:
         if ranked is None:
             raise StageFailed(Message("rag_lab.context.nothing"))
         top_k = param(stage, "top_k", self.deps.catalog)
-        kept = ranked[:top_k]
         content = self.deps.content
+        if chain.parents:
+            return self._context_parents(chain, ranked, top_k)
+        kept = ranked[:top_k]
         items = [
             Item(
                 c.chunk_id,
@@ -2594,6 +3093,64 @@ class LabRun:
                     say("fact.kept"),
                     say("context.kept", kept=self._int(len(items)), total=self._int(len(ranked))),
                 ),
+                (say("fact.characters"), self._int(len(text))),
+                (say("fact.placement"), content.placement_text),
+            ],
+            items=items,
+        )
+
+    def _context_parents(self, chain: _Chain, ranked: list[Item], top_k: int) -> _Result:
+        """V1.2 story 6: the children were searched, their parents are returned, once each,
+        in the order their best child ranks, `top_k` at most."""
+        content = self.deps.content
+        seen: set[int] = set()
+        items: list[Item] = []
+        read = 0
+        for child in ranked:
+            read += 1
+            parent_id = chain.parent_of[child.chunk_id - 1]
+            if parent_id in seen:
+                continue
+            seen.add(parent_id)
+            parent = chain.parents[parent_id]
+            rank = len(items) + 1
+            items.append(
+                Item(
+                    child.chunk_id,
+                    parent.doc_id,
+                    parent.title_text,
+                    content.excerpt(rank, parent.title_text, parent.text),
+                    child.score,
+                    rank=rank,
+                    before=child.rank,
+                    sources=child.sources,
+                )
+            )
+            if len(items) == top_k:
+                break
+        chain.context = items
+        text = "\n\n".join([content.intro_text, *(i.text for i in items)]) if items else ""
+        chain.context_text = text
+        say = self._text
+        # Children sharing a parent: fewer than `top_k` parents among the candidates searched.
+        short = len(items) < min(top_k, len(ranked))
+        return _Result(
+            warning_text=say(
+                "context.parents_short",
+                kept=self._int(len(items)),
+                top_k=self._int(top_k),
+                read=self._int(read),
+            )
+            if short
+            else None,
+            input_text=say("context.input", extracts=self._count(len(ranked), "extract")),
+            output_text=text or say("context.empty"),
+            facts=[
+                (
+                    say("fact.kept"),
+                    say("context.kept", kept=self._int(len(items)), total=self._int(len(ranked))),
+                ),
+                (say("fact.children_read"), self._int(read)),
                 (say("fact.characters"), self._int(len(text))),
                 (say("fact.placement"), content.placement_text),
             ],
@@ -2729,6 +3286,9 @@ class UpdateRun(LabRun):
         super().__init__(run_id, label_text, pipeline, deps)
         self.before, self.after = before, after
         self.state: dict[str, Any] = {}
+        # Called with the copy once measured, before `rag_lab_run_ended`: the page reloads the
+        # copy on that event, so it must already be saved (review of V1.2 story 5).
+        self.keep: Callable[[workcopy.WorkCopy], None] | None = None
 
     def _label_of(self, stage: Stage, kind: str) -> str:
         if kind == "lexical_index":
@@ -2782,8 +3342,13 @@ class UpdateRun(LabRun):
                 status = self._part(index, stage, kind, fn, status)
         except Exception:  # noqa: BLE001 - the run ends in error, `run_ended` all the same
             status = "error"
-        finally:
-            self.end(status, _ms(time.monotonic() - started))
+        if status == "ok" and self.keep is not None:
+            try:  # kept only when it was measured, and before the page reloads it
+                self.keep(self.after)
+            except Exception:
+                self.end("error", _ms(time.monotonic() - started))
+                raise  # the session says it (`session.rag_lab.interrupted`)
+        self.end(status, _ms(time.monotonic() - started))
         return status
 
     def _part(
@@ -2836,6 +3401,8 @@ class UpdateRun(LabRun):
         return (chunk.doc_id, chunk.title_text, chunk.text)
 
     def _update_chunking(self, stage: Stage) -> _Result:
+        if stage.option != "paragraphs":  # V1.2 story 6: the intention refuses it first
+            raise StageFailed(Message("session.rag_lab.update_chunking"))
         size = param(stage, "chunk_max_chars", self.deps.catalog)
         content, lang = self.deps.content, self.deps.lang
         before = workcopy.chunks(content, size, lang, self.before)
@@ -2863,6 +3430,10 @@ class UpdateRun(LabRun):
             ],
         )
 
+    @staticmethod
+    def _texts_of(chunks: Sequence[Chunk]) -> list[str]:
+        return [rag_index.passage_text(c) for c in chunks]
+
     def _vectors_of(self, embedder: Embedder, chunks: Sequence[Chunk]) -> list[list[float]]:
         out: list[list[float]] = []
         for at in range(0, len(chunks), EMBED_BATCH):
@@ -2888,7 +3459,9 @@ class UpdateRun(LabRun):
             try:
                 vectors = self._vectors_of(embedder, before)
             finally:
-                built = self._cost("build", "embedding", probe, self._tokens(before))
+                built = self._cost(
+                    "build", "embedding", probe, self._tokens(self._texts_of(before))
+                )
             write_vectors(folder, before, vectors, identity, None)
             write_build_cost(folder, "embedding", built)
             facts.append((self._text("update.fact_prepared"), count(len(before))))
@@ -2897,7 +3470,7 @@ class UpdateRun(LabRun):
         try:
             computed = self._vectors_of(embedder, new) if new else []
         finally:
-            cost = self._cost("update", "embedding", probe, self._tokens(new))
+            cost = self._cost("update", "embedding", probe, self._tokens(self._texts_of(new)))
         fresh = {self._key(c): v for c, v in zip(new, computed, strict=True)}
         state["vectors"] = [known.get(self._key(c)) or fresh[self._key(c)] for c in after]
         state["embedder"] = embedder
@@ -2980,6 +3553,182 @@ class UpdateRun(LabRun):
         )
 
 
+class RebuildRun(LabRun):
+    """V1.2 story 6 (CAP-4): the contexts of the `contextual` chunking rewritten by the
+    workshop's active model, as contextual retrieval describes it (the whole document and the
+    chunk in, a short context out), into the workshop's data folder (never `content/`). A run
+    of its own, id `ctx{n}`: `rag_lab_run_started`, one stage (the chunking, its progress in
+    chunks), `rag_lab_run_ended` with the `build` sum. A chunk the model fails on, or leaves
+    empty, keeps its context; « Arrêter » stops between two chunks and keeps the contexts
+    made."""
+
+    SUMMARY_PHASES = ("build",)
+
+    def run(self) -> str:
+        started = time.monotonic()
+        stage = self.pipeline.find("chunking")
+        assert stage is not None  # `check_pipeline` keeps the fixed head
+        self._emit(
+            "rag_lab_run_started",
+            {
+                "question": self.question,
+                "stages": [
+                    {
+                        "stage_id": stage.id,
+                        "kind": "chunking",
+                        "option": stage.option,
+                        "label_text": self._label(stage),
+                        "option_label_text": self.deps.catalog.option_label(
+                            "chunking", stage.option
+                        ),
+                        "params": stage.params,
+                    }
+                ],
+                "phase_label": self._text(
+                    "run.phase", running=self.deps.texts.running_text, question=self.question[:80]
+                ),
+            },
+            self.run_id,
+            "rag_lab",
+        )
+        status = "error"
+        try:
+            status = self._rebuild(stage)
+        except Exception:  # noqa: BLE001 - the run ends in error, `run_ended` all the same
+            status = "error"
+        finally:
+            self.end(status, _ms(time.monotonic() - started))
+        return status
+
+    def _rebuild(self, stage: Stage) -> str:
+        step_id, component = self._step(1), "rag_lab.chunking"
+        base = {"stage_id": stage.id, "kind": "chunking", "option": stage.option}
+        self._emit(
+            "rag_lab_stage_started",
+            base | {"phase_label": self._text("stage.running", stage=self._label(stage))},
+            step_id,
+            component,
+        )
+        rss_before = self.deps.rss()
+        started = time.monotonic()
+        status, error_text, result = "ok", None, _Result(costs=[])
+        try:
+            status, result = self._rewrite(stage, step_id, component, base)
+        except StageSkipped as skipped:
+            status, error_text = "skipped", skipped.render(self._lang)
+        except StageFailed as failed:
+            status, error_text = "error", failed.render(self._lang)
+        except Exception as exc:  # noqa: BLE001 - AD-16: a stage's failure, never a crash
+            status = "error"
+            error_text = self._text(
+                "stage.failed", error=type(exc).__name__, cause=exception_text(exc, self._lang)
+            )
+        duration = _ms(time.monotonic() - started)
+        self._ended(step_id, component, base, status, result, error_text, duration, rss_before)
+        return {"ok": "ok", "cancelled": "cancelled"}.get(status, "error")
+
+    def _rewrite(
+        self, stage: Stage, step_id: str, component: str, base: dict[str, Any]
+    ) -> tuple[str, _Result]:
+        deps, text, count = self.deps, self._text, self._int
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.contexts.no_model"))
+        size = param(stage, "chunk_max_chars", deps.catalog)
+        copy = deps.work_copy if self._reads_work_copy() else None
+        documents = workcopy.documents(deps.content, deps.lang, copy)
+        by_id = {d.doc_id: d for d in documents}
+        chunks = chunk_documents(documents, size)
+        if not chunks:
+            raise StageFailed(Message("rag_lab.chunking.no_chunks"))
+        progress = self._progress(step_id, component, base)
+        entries: list[rag_contexts.ContextEntry] = []
+        failed = tokens = 0
+        model = ""
+        status = "ok"
+        began = time.monotonic()
+        try:
+            for done, chunk in enumerate(chunks, start=1):
+                if deps.cancelled():
+                    status = "cancelled"
+                    break
+                document = by_id[chunk.doc_id]
+                ask = GenerationAsk(
+                    context_text=text(
+                        "contexts.document", title=document.title_text, text=document.text.strip()
+                    ),
+                    question=text("contexts.user", chunk=chunk.text),
+                    step_id=step_id,
+                    progress=lambda *_: None,
+                    cancelled=deps.cancelled,
+                    instruction=text("contexts.instruction"),
+                    reserve=CONTEXT_MAX_TOKENS,
+                )
+                got = deps.generator(ask)  # `StageSkipped` without a model: nothing was rewritten
+                model = got.model_label or model
+                self.costs.append(
+                    StageCost(
+                        "build",
+                        "chunking",
+                        got.prompt_tokens + got.output_tokens,
+                        got.duration_ms,
+                        got.cost_usd,
+                        got.impact,
+                        note_text=None
+                        if got.cost_usd is not None or got.impact is not None
+                        else Message("rag_lab.costs.generation_unpriced"),
+                    )
+                )
+                if got.status == "cancelled":
+                    status = "cancelled"
+                    break
+                context = (
+                    rag_contexts.clean_context(got.answer_text)
+                    if got.status in ("completed", "limit")
+                    else ""
+                )
+                if context:
+                    entries.append(
+                        rag_contexts.ContextEntry(
+                            doc_id=chunk.doc_id,
+                            position=chunk.position,
+                            sha256=rag_contexts.fingerprint(chunk.text),
+                            context_text=context,
+                        )
+                    )
+                    tokens += got.output_tokens or deps.estimate_tokens(context)
+                else:
+                    failed += 1  # soft: the chunk keeps its context
+                progress(done, len(chunks))
+        finally:
+            if entries:
+                rag_contexts.write_rebuilt(
+                    deps.lang,
+                    entries,
+                    model=model or "?",
+                    chunk_max_chars=size,
+                    tokens=tokens,
+                    duration_ms=_ms(time.monotonic() - began),
+                    folder=deps.lab_dir,
+                )
+        result = _Result(
+            costs=[],  # the per-chunk costs are in the run's sum
+            input_text=text("contexts.input", chunks=self._count(len(chunks), "extract")),
+            output_text=text(
+                "contexts.output",
+                done=count(len(entries)),
+                total=count(len(chunks)),
+                failed=count(failed),
+            ),
+            facts=[
+                (text("fact.model"), model or "—"),
+                (text("contexts.fact_rebuilt"), count(len(entries))),
+                (text("contexts.fact_kept"), count(failed)),
+                (text("contexts.fact_tokens"), count(tokens)),
+            ],
+        )
+        return status, result
+
+
 def _ms(seconds: float) -> int:
     return round(seconds * 1000)
 
@@ -3008,6 +3757,40 @@ STOP_WORDS_BY_LANG: dict[str, frozenset[str]] = {
         "wird wo zu zum zur".split()
     ),
 }
+
+
+_BULLET = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
+_QUOTES = " \t\"'«»“”„`"
+
+
+# A preamble the model adds (« Voici la question reformulée : »), alone on its line or before
+# the quoted query on the same line.
+_PREAMBLE_QUOTED = re.compile(r"^[^:«\"“]{1,80}:\s*[«\"“](.+?)[»\"”]\s*$")
+
+
+def _clean_line(line: str) -> str:
+    line = _BULLET.sub("", line).strip()
+    if line.endswith(":"):  # a preamble alone on its line, never a query
+        return ""
+    if quoted := _PREAMBLE_QUOTED.match(line):
+        line = quoted.group(1)
+    return line.strip(_QUOTES)
+
+
+def parse_queries(option: str, answer: str) -> list[str]:
+    """V1.2 story 5 (CAP-3): the queries in a model's answer to the query understanding.
+    A preamble (a line ending with a colon, or « … : » before a quoted query) is dropped.
+    `rewrite` and `follow_up`: the first non-empty line. `decompose`: one query per line,
+    bullets and numbers removed, duplicates dropped, `SUBQUERIES_MAX` kept. `hyde`: the whole
+    answer, one paragraph. Each is cut at its bound; nothing usable gives an empty list."""
+    lines = [c for line in answer.splitlines() if (c := _clean_line(line))]
+    if option == "hyde":
+        whole = " ".join(lines)
+        return [whole[:HYDE_MAX_CHARS].strip()] if whole else []
+    if option == "decompose":
+        unique = dict.fromkeys(line[:QUERY_MAX_CHARS].strip() for line in lines)
+        return list(unique)[:SUBQUERIES_MAX]
+    return [lines[0][:QUERY_MAX_CHARS].strip()] if lines else []
 
 
 def fold(text: str) -> str:
@@ -3118,7 +3901,7 @@ def last_run(envelopes: Sequence[Any]) -> list[dict[str, Any]]:
             i
             for i in range(len(envelopes) - 1, -1, -1)
             if envelopes[i].kind == "rag_lab_run_started"
-            and not str(envelopes[i].payload.get("run_id", "")).startswith(UPDATE_RUN_PREFIX)
+            and not str(envelopes[i].payload.get("run_id", "")).startswith(APART_PREFIXES)
         ),
         None,
     )

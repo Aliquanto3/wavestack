@@ -334,6 +334,13 @@ class RagLabUpdateIntention(BaseModel):
     pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
 
 
+class RagLabRebuildIntention(BaseModel):
+    """V1.2 story 6 (CAP-4): the contexts of the contextual chunking rewritten by the active
+    model, for the chain's chunk size (the shipped chain when absent)."""
+
+    pipelines: list[Pipeline] | None = Field(default=None, min_length=1, max_length=1)
+
+
 class RagLabValidateRequest(BaseModel):
     """Story 30, increment 4: the chain the page is editing, checked without running it
     (lot 5c-1: a list of one)."""
@@ -698,6 +705,30 @@ def create_app(
                     chain,
                 )
             }
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/intentions/rag_lab_rebuild")
+    def rag_lab_rebuild(intention: RagLabRebuildIntention) -> dict[str, str]:
+        """V1.2 story 6 (CAP-4), class (b): accepted in `idle` only; the contexts are rewritten
+        by the active model into the data folder (never `content/`), as a run `ctx{n}`.
+        Refused (no model, a chain refused): 409."""
+        try:
+            chain = intention.pipelines[0] if intention.pipelines else None
+            return {"run_id": app_session.rebuild_rag_lab_contexts(chain)}
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+
+    @app.post("/api/rag_lab/contexts/reset")
+    def rag_lab_contexts_reset() -> dict[str, object]:
+        """V1.2 story 6: the rebuilt contexts deleted, the shipped ones read again; 409 while a
+        run goes on."""
+        try:
+            return shown({"contexts": app_session.reset_rag_lab_contexts()})
         except SendRefused as refused:
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)

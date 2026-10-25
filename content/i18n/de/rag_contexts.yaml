@@ -1,0 +1,322 @@
+# Contexts of the contextual chunking (V1.2 story 6). Built by tools/build_rag_contexts.py,
+# not by hand: a context belongs to a chunk by the sha256 of its text.
+author: shipped
+method: heuristic
+model: heuristic
+chunk_max_chars: 700
+chunks: 78
+tokens: 4500
+duration_ms: 0
+entries:
+- doc_id: mots_de_passe
+  position: 1
+  sha256: ae1558306ed442388f134161d1b8aae1e5f967dbf3b1facc7813655afb84acd0
+  context_text: 'Ausschnitt 1/4 von „Passwortrichtlinie“. Das Dokument beginnt mit: Die Länge zählt mehr als die Komplexität: Empfohlen wird eine Passphrase aus vier oder fünf Wörtern ohne Bezug zueinander, zum Beispiel eine Folge zufällig gewählter Wörter, getrennt durch Bindestric…'
+- doc_id: mots_de_passe
+  position: 2
+  sha256: c06309e2e6db55701cc263d1012f6dc674210a6c85808546cb654a4e50456bd8
+  context_text: 'Ausschnitt 2/4 von „Passwortrichtlinie“. Das Dokument beginnt mit: Bei Exemplia hat ein Passwort für ein Benutzerkonto mindestens 14 Zeichen.'
+- doc_id: mots_de_passe
+  position: 3
+  sha256: 917b2cafb0dc06f65b629a128a7fa9e974aa3fd5cb4e81b2f7b63b2cec3f7b26
+  context_text: 'Ausschnitt 3/4 von „Passwortrichtlinie“. Das Dokument beginnt mit: Bei Exemplia hat ein Passwort für ein Benutzerkonto mindestens 14 Zeichen.'
+- doc_id: mots_de_passe
+  position: 4
+  sha256: 42b6e42415b56f8ebe35e046c07a9c82acb84421969a0c80bb92ffcaf79c8ac7
+  context_text: 'Ausschnitt 4/4 von „Passwortrichtlinie“. Das Dokument beginnt mit: Bei Exemplia hat ein Passwort für ein Benutzerkonto mindestens 14 Zeichen.'
+- doc_id: teletravail
+  position: 1
+  sha256: d64da747efda6350554a8199c810bdef85e1dc1d7769dc9c63288641d8fa3d2c
+  context_text: 'Ausschnitt 1/3 von „Vereinbarung zur Telearbeit“. Das Dokument beginnt mit: Praktikanten und Auszubildende sind auf 1 Tag pro Woche begrenzt, damit sie den Kontakt zu ihrem Betreuer halten.'
+- doc_id: teletravail
+  position: 2
+  sha256: f892b1093d717409ff4554f800b23fa3c35daef1bc318c8cb62a249cce2e4b7d
+  context_text: 'Ausschnitt 2/3 von „Vereinbarung zur Telearbeit“. Das Dokument beginnt mit: Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche in Telearbeit arbeiten.'
+- doc_id: teletravail
+  position: 3
+  sha256: ad3baf6c211398721d6ad025ad311e968de5a88d02f1d4752d5724cbca3c6aca
+  context_text: 'Ausschnitt 3/3 von „Vereinbarung zur Telearbeit“. Das Dokument beginnt mit: Alle Mitarbeitenden mit unbefristetem Vertrag können nach einer Einarbeitungszeit von 2 Monaten bis zu 3 Tage pro Woche in Telearbeit arbeiten.'
+- doc_id: classification
+  position: 1
+  sha256: 924ff8a6e228770c046c6ad4569c6ffb3495a9ce9b11633cfd29fd3ba594284e
+  context_text: 'Ausschnitt 1/4 von „Klassifizierung von Informationen“. Das Dokument beginnt mit: Ein Dokument ohne Kennzeichnung wird standardmäßig als Intern behandelt.'
+- doc_id: classification
+  position: 2
+  sha256: f1c0d2942d2d81db16a59462faaea49027cd1b40690c14a697a405a6e50797e5
+  context_text: 'Ausschnitt 2/4 von „Klassifizierung von Informationen“. Das Dokument beginnt mit: Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.'
+- doc_id: classification
+  position: 3
+  sha256: e45f9f20b1411f7fe3e3185bc1f424488db7bbddaeb04ba0b8c9776bf35c96eb
+  context_text: 'Ausschnitt 3/4 von „Klassifizierung von Informationen“. Das Dokument beginnt mit: Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.'
+- doc_id: classification
+  position: 4
+  sha256: fd4ecdd7c4920fa18d03ceb836d219b0adbbc6f05162b1f6307094bcbc5fe90b
+  context_text: 'Ausschnitt 4/4 von „Klassifizierung von Informationen“. Das Dokument beginnt mit: Jede Information, die Exemplia erzeugt oder erhält, trägt eine der folgenden 4 Klassifizierungsstufen: Öffentlich, Intern, Vertraulich und Geheim.'
+- doc_id: incidents
+  position: 1
+  sha256: b635540761d465853dea2d0d1dba8d035c5bc2044c7417a43e69a33669649db3
+  context_text: 'Ausschnitt 1/4 von „Sicherheitsvorfälle“. Das Dokument beginnt mit: Alle Mitarbeitenden, die einen Vorfall feststellen oder vermuten, melden ihn innerhalb von 30 Minuten dem Reaktionsteam CERT-Ex.'
+- doc_id: incidents
+  position: 2
+  sha256: 4e6698d4c0fb366560985b72500f0a254815f991cb6b409ee0c7bb35a2036ea9
+  context_text: 'Ausschnitt 2/4 von „Sicherheitsvorfälle“. Das Dokument beginnt mit: Ein Sicherheitsvorfall ist jedes Ereignis, das die Vertraulichkeit, Integrität oder Verfügbarkeit der Informationen von Exemplia bedroht: eine geöffnete Phishing-E-Mail, ein verlorener Laptop, ein en…'
+- doc_id: incidents
+  position: 3
+  sha256: fd084a97dbfcac0913068835ac07084d31f81522e0f193d27e8d05913e16a3b3
+  context_text: 'Ausschnitt 3/4 von „Sicherheitsvorfälle“. Das Dokument beginnt mit: Ein Sicherheitsvorfall ist jedes Ereignis, das die Vertraulichkeit, Integrität oder Verfügbarkeit der Informationen von Exemplia bedroht: eine geöffnete Phishing-E-Mail, ein verlorener Laptop, ein en…'
+- doc_id: incidents
+  position: 4
+  sha256: ee552153e09f8b11efe03e07e0f95ea6cff211d4f707489362e1fdc74482dd86
+  context_text: 'Ausschnitt 4/4 von „Sicherheitsvorfälle“. Das Dokument beginnt mit: Ein Sicherheitsvorfall ist jedes Ereignis, das die Vertraulichkeit, Integrität oder Verfügbarkeit der Informationen von Exemplia bedroht: eine geöffnete Phishing-E-Mail, ein verlorener Laptop, ein en…'
+- doc_id: donnees_personnelles
+  position: 1
+  sha256: cf03119673cf630b3e9f148a9a770e295c273241f21471992b929e7508e1a338
+  context_text: 'Ausschnitt 1/4 von „Aufbewahrung personenbezogener Daten“. Das Dokument beginnt mit: Das Verarbeitungsverzeichnis von Exemplia legt für jede Verarbeitung eine aktive Frist fest, in der die Abteilungen die Daten nutzen, und danach eine Archivierungsfrist, in der nur die Rechtsabteilun…'
+- doc_id: donnees_personnelles
+  position: 2
+  sha256: c9b38355df5eca9e584cfc0f1822cb6a4a9c68601961be9a12212ff7cc9da394
+  context_text: 'Ausschnitt 2/4 von „Aufbewahrung personenbezogener Daten“. Das Dokument beginnt mit: Personenbezogene Daten werden nur so lange aufbewahrt, wie es der Zweck erfordert, für den sie erhoben wurden.'
+- doc_id: donnees_personnelles
+  position: 3
+  sha256: cf88b3c5916eb3727a1dc8621499f1b82f28a8390000d19ce0eae597ac8264cd
+  context_text: 'Ausschnitt 3/4 von „Aufbewahrung personenbezogener Daten“. Das Dokument beginnt mit: Personenbezogene Daten werden nur so lange aufbewahrt, wie es der Zweck erfordert, für den sie erhoben wurden.'
+- doc_id: donnees_personnelles
+  position: 4
+  sha256: c94503615f97847b6f63617e201e58e36bd531441c62aa7e014791387ad92aca
+  context_text: 'Ausschnitt 4/4 von „Aufbewahrung personenbezogener Daten“. Das Dokument beginnt mit: Personenbezogene Daten werden nur so lange aufbewahrt, wie es der Zweck erfordert, für den sie erhoben wurden.'
+- doc_id: ia_generative
+  position: 1
+  sha256: 65adea320e1bda787d4534f44535658faf089d51a421d1247f763dab51315224
+  context_text: 'Ausschnitt 1/3 von „Nutzung generativer KI“. Das Dokument beginnt mit: Sie gelten für Chat-Assistenten, Bildgeneratoren und Tools zur Code-Vervollständigung.'
+- doc_id: ia_generative
+  position: 2
+  sha256: 57cab257d204208a5ab6c93d62b9baed08e1e826db3759d43399dbc8b0d600a8
+  context_text: 'Ausschnitt 2/3 von „Nutzung generativer KI“. Das Dokument beginnt mit: Exemplia fördert die Nutzung generativer künstlicher Intelligenz, um beim Verfassen, Zusammenfassen und Übersetzen Zeit zu sparen, unter Einhaltung dieser Leitlinien.'
+- doc_id: ia_generative
+  position: 3
+  sha256: 741678f930b244f35e1b952c1a0c2fccb8d4c33760eed1e0dde62cfe8eb15d80
+  context_text: 'Ausschnitt 3/3 von „Nutzung generativer KI“. Das Dokument beginnt mit: Exemplia fördert die Nutzung generativer künstlicher Intelligenz, um beim Verfassen, Zusammenfassen und Übersetzen Zeit zu sparen, unter Einhaltung dieser Leitlinien.'
+- doc_id: deplacements
+  position: 1
+  sha256: 84ea4f1fdfde910421341295d6b5fd3cfd3d93e4d6ba51f50ad59a50986f1891
+  context_text: 'Ausschnitt 1/4 von „Dienstreisen und Spesenabrechnungen“. Das Dokument beginnt mit: Eine Buchung außerhalb von Voyagex wird nur ausnahmsweise erstattet, mit schriftlicher Begründung.'
+- doc_id: deplacements
+  position: 2
+  sha256: 720afd562e7d8ea6b1f876d79168b868c87fe6fdc327dd1316aa77f47a66fe02
+  context_text: 'Ausschnitt 2/4 von „Dienstreisen und Spesenabrechnungen“. Das Dokument beginnt mit: Jede Dienstreise wird vorab von der Führungskraft im Buchungstool Voyagex genehmigt, das die folgenden Regeln automatisch anwendet.'
+- doc_id: deplacements
+  position: 3
+  sha256: cc4c07a14d64476ad9f2581aed9497ddcafd4096ed484fd54d593f905c06362c
+  context_text: 'Ausschnitt 3/4 von „Dienstreisen und Spesenabrechnungen“. Das Dokument beginnt mit: Jede Dienstreise wird vorab von der Führungskraft im Buchungstool Voyagex genehmigt, das die folgenden Regeln automatisch anwendet.'
+- doc_id: deplacements
+  position: 4
+  sha256: 3a49f5d9173323851017b8d3613a1e15a27d26c86d75d71772e745561f477eab
+  context_text: 'Ausschnitt 4/4 von „Dienstreisen und Spesenabrechnungen“. Das Dokument beginnt mit: Jede Dienstreise wird vorab von der Führungskraft im Buchungstool Voyagex genehmigt, das die folgenden Regeln automatisch anwendet.'
+- doc_id: sauvegardes
+  position: 1
+  sha256: 87bd1c1596ab6584d648380193aa060597128eb8b745cf521ef4ca93a48802db
+  context_text: 'Ausschnitt 1/4 von „Datensicherungen“. Das Dokument beginnt mit: Diese Regel gilt für die Dateiserver, die Datenbanken der Anwendungen und die E-Mail.'
+- doc_id: sauvegardes
+  position: 2
+  sha256: 53dad824488def18e8b27e22a66ea0c93fe68960ae21b2c430fc224b6a95747c
+  context_text: 'Ausschnitt 2/4 von „Datensicherungen“. Das Dokument beginnt mit: Die Daten von Exemplia folgen der 3-2-1-Regel: mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon 1 Kopie außerhalb des Hauptstandorts.'
+- doc_id: sauvegardes
+  position: 3
+  sha256: 9fa065d8dc89e111aa09e9d4d2dd60b5cac193179d7ef5425ece0a1592298792
+  context_text: 'Ausschnitt 3/4 von „Datensicherungen“. Das Dokument beginnt mit: Die Daten von Exemplia folgen der 3-2-1-Regel: mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon 1 Kopie außerhalb des Hauptstandorts.'
+- doc_id: sauvegardes
+  position: 4
+  sha256: 590f859d1588ec72c77148fb0f6564b9926cddc50b00eabd939bd7e732493be1
+  context_text: 'Ausschnitt 4/4 von „Datensicherungen“. Das Dokument beginnt mit: Die Daten von Exemplia folgen der 3-2-1-Regel: mindestens 3 Kopien aller Daten, auf 2 verschiedenen Datenträgern, davon 1 Kopie außerhalb des Hauptstandorts.'
+- doc_id: prestataires
+  position: 1
+  sha256: d95b74aafebbb4fc66b62b7def6007944aabb0bd27152f9a1bec1982a267091a
+  context_text: 'Ausschnitt 1/4 von „Sicherheitsrichtlinie für Dienstleister“. Das Dokument beginnt mit: Die Stufe wird vor der Vertragsunterzeichnung von der Dienstleister-Einheit festgelegt und jedes Jahr überprüft.'
+- doc_id: prestataires
+  position: 2
+  sha256: 456bb0e761191276807b37bae8bdf06f2768765e18bacd581af3394835c62df1
+  context_text: 'Ausschnitt 2/4 von „Sicherheitsrichtlinie für Dienstleister“. Das Dokument beginnt mit: Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die…'
+- doc_id: prestataires
+  position: 3
+  sha256: 46bce05656780fd143fd62d4c73dc54359d67b6afd12bf4b2c4ba1ce6adbabb2
+  context_text: 'Ausschnitt 3/4 von „Sicherheitsrichtlinie für Dienstleister“. Das Dokument beginnt mit: Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die…'
+- doc_id: prestataires
+  position: 4
+  sha256: cd2fd85a0f31dacbfcbc3a7e2488187cc03002ff8382a2095da30325cdc66552
+  context_text: 'Ausschnitt 4/4 von „Sicherheitsrichtlinie für Dienstleister“. Das Dokument beginnt mit: Exemplia ordnet jeden Dienstleister, der Unternehmensinformationen verarbeitet, einer von zwei Stufen zu: kritisch, wenn er Daten hostet oder auf das interne Netzwerk zugreift, oder standard für die…'
+- doc_id: clauses_contrats
+  position: 1
+  sha256: 659ace9754facfb957da7f071726e4aa6904b90648d6190dc83e38d83c559889
+  context_text: 'Ausschnitt 1/3 von „Sicherheitsklauseln der Verträge“. Das Dokument beginnt mit: Meldeklausel: Ein Dienstleister meldet Exemplia jeden Sicherheitsvorfall, der Daten oder Systeme von Exemplia betrifft, innerhalb von 24 Stunden nach dessen Entdeckung, auch im Zweifelsfall.'
+- doc_id: clauses_contrats
+  position: 2
+  sha256: cd985c5fd6d2a9d9d098846e5dc2c8477a2ad04e21fcc125187b432ed76a3462
+  context_text: 'Ausschnitt 2/3 von „Sicherheitsklauseln der Verträge“. Das Dokument beginnt mit: Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt.'
+- doc_id: clauses_contrats
+  position: 3
+  sha256: bb2753218f80d05cef1d5db5b73ef563d827cf81dc8687a30f4f974dcf8b2c51
+  context_text: 'Ausschnitt 3/3 von „Sicherheitsklauseln der Verträge“. Das Dokument beginnt mit: Dieses Muster ergänzt die Sicherheitsrichtlinie für Dienstleister: Es listet die Klauseln, die die Dienstleister-Einheit je nach Stufe des Dienstleisters in jeden Vertrag einfügt.'
+- doc_id: registre_sous_traitants
+  position: 1
+  sha256: 8bf991e104f95be72224e5dadc7c6814de4213cf2a4fadcc6844496332f17dca
+  context_text: 'Ausschnitt 1/4 von „Register der Unterauftragnehmer“. Das Dokument beginnt mit: NuageSud, Hosting der Buchhaltungsserver, Frankreich, kritischer Dienstleister.'
+- doc_id: registre_sous_traitants
+  position: 2
+  sha256: db4f5ee9c57c8fdd910235f0b69cb2723bbf4a85dc662c14b042b6ba813238ed
+  context_text: 'Ausschnitt 2/4 von „Register der Unterauftragnehmer“. Das Dokument beginnt mit: Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das La…'
+- doc_id: registre_sous_traitants
+  position: 3
+  sha256: 8b23eb047bcd05af8deb5262432e0dd6d1c9ec847e933856077dc928822f4913
+  context_text: 'Ausschnitt 3/4 von „Register der Unterauftragnehmer“. Das Dokument beginnt mit: Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das La…'
+- doc_id: registre_sous_traitants
+  position: 4
+  sha256: 57e6d15a42959300992466269a2e471c7346c5e3ecf5d09dbe789df6c2b4305d
+  context_text: 'Ausschnitt 4/4 von „Register der Unterauftragnehmer“. Das Dokument beginnt mit: Dieses von der Dienstleister-Einheit geführte und im Klauselmuster genannte Register listet jeden Unterauftragnehmer, den ein Dienstleister von Exemplia einsetzt: seinen Namen, seine Funktion, das La…'
+- doc_id: gestion_crise
+  position: 1
+  sha256: a36b8307196e685b7ab50b7c0f86c1e52f2b924bc77cd82222042f77238a2eaf
+  context_text: 'Ausschnitt 1/3 von „Krisenmanagementverfahren“. Das Dokument beginnt mit: Der Krisenstab tritt Tag und Nacht innerhalb von weniger als 2 Stunden zusammen, unter dem Vorsitz des Geschäftsführers oder, in dessen Abwesenheit, des diensthabenden Krisendirektors.'
+- doc_id: gestion_crise
+  position: 2
+  sha256: eb1f24cc604bf36e268e4c2f9ab9bad1b3ada9fad660b08eb421bc4917ef5a74
+  context_text: 'Ausschnitt 2/3 von „Krisenmanagementverfahren“. Das Dokument beginnt mit: Dieses Verfahren übernimmt vom Meldeverfahren für Vorfälle, sobald ein Vorfall der Stufe 3 erklärt wird oder mehrere Standorte von Exemplia gleichzeitig betroffen sind.'
+- doc_id: gestion_crise
+  position: 3
+  sha256: 1a37d5acdd9dceb5831fa7e1d2912eb4df579ceecf3816549b762ced7434c28b
+  context_text: 'Ausschnitt 3/3 von „Krisenmanagementverfahren“. Das Dokument beginnt mit: Dieses Verfahren übernimmt vom Meldeverfahren für Vorfälle, sobald ein Vorfall der Stufe 3 erklärt wird oder mehrere Standorte von Exemplia gleichzeitig betroffen sind.'
+- doc_id: astreinte
+  position: 1
+  sha256: a0852abee54cb11bfe7ead4a6ea04f89dcac585a1394ec4327ba4be7347e15bb
+  context_text: 'Ausschnitt 1/3 von „Anlage der Bereitschaftskontakte“. Das Dokument beginnt mit: Sicherheitsbereitschaft, zuerst zu kontaktieren bei jedem größeren Vorfall nachts oder am Wochenende: Die einheitliche Bereitschaftsnummer ist 06 07 08 09 10, gefolgt von einem Anrufbeantworter, der…'
+- doc_id: astreinte
+  position: 2
+  sha256: d3e4ca1c5150403c53806e497f3a0b800b07eb35a3f70e3b6dadf6e1869a504c
+  context_text: 'Ausschnitt 2/3 von „Anlage der Bereitschaftskontakte“. Das Dokument beginnt mit: Diese Anlage zum Krisenmanagementverfahren listet die Kontakte, die außerhalb der Geschäftszeiten, Tag und Nacht, je nach betroffenem Bereich zu erreichen sind.'
+- doc_id: astreinte
+  position: 3
+  sha256: 60c3a954173da8900ea4dca3230656746437f476a075746d791f75543628af2a
+  context_text: 'Ausschnitt 3/3 von „Anlage der Bereitschaftskontakte“. Das Dokument beginnt mit: Diese Anlage zum Krisenmanagementverfahren listet die Kontakte, die außerhalb der Geschäftszeiten, Tag und Nacht, je nach betroffenem Bereich zu erreichen sind.'
+- doc_id: charte_messagerie_v1
+  position: 1
+  sha256: 13759280059d51e77b85d18ff5d25e8a407bc8d5fa9133cb2a28ce69a7523b74
+  context_text: 'Ausschnitt 1/2 von „E-Mail-Richtlinie, Version 1 (2024)“. Das Dokument beginnt mit: Das berufliche Postfach von Exemplia ist ausschließlich der beruflichen Nutzung vorbehalten; eine gelegentliche private Nutzung wird nicht geduldet und kann zu einer Erinnerung durch die Führungskraf…'
+- doc_id: charte_messagerie_v1
+  position: 2
+  sha256: 8a2132477c93c7a00a923dbf72bc350ac7cc5021fe3eb8c218b786bb7cce96a5
+  context_text: 'Ausschnitt 2/2 von „E-Mail-Richtlinie, Version 1 (2024)“. Das Dokument beginnt mit: Diese Version der E-Mail-Richtlinie, gültig seit Januar 2024, wird durch Version 2 ersetzt: Sie wird hier als Archiv aufbewahrt, um frühere Entscheidungen nachvollziehen zu können.'
+- doc_id: charte_messagerie_v2
+  position: 1
+  sha256: 9a0a17d3ed845f4921af30e5a117672a6ef9406224bd65111e59ac33c1a4c617
+  context_text: 'Ausschnitt 1/2 von „E-Mail-Richtlinie, Version 2 (2026)“. Das Dokument beginnt mit: Januar 2026, nach dem in der zugehörigen Änderungsmitteilung beschriebenen Wechsel des E-Mail-Anbieters: Dies ist die aktuell gültige Version.'
+- doc_id: charte_messagerie_v2
+  position: 2
+  sha256: 1d3304d3a97665e80f90042a0698fd2df07dd27a8e1a1520e64f2592cbee01ba
+  context_text: 'Ausschnitt 2/2 von „E-Mail-Richtlinie, Version 2 (2026)“. Das Dokument beginnt mit: Diese Version ersetzt Version 1 seit dem 1.'
+- doc_id: note_changement_messagerie
+  position: 1
+  sha256: a24cc6f0989d6aa4ba2e9da199dd3ad0d52a797985e14d12c27d934518571301
+  context_text: 'Ausschnitt 1/3 von „Änderungsmitteilung zur Messaging-Umstellung“. Das Dokument beginnt mit: Januar 2026.'
+- doc_id: note_changement_messagerie
+  position: 2
+  sha256: dede1b082222d7af187c5e791461226b7d3a5ab3883dc716ae15d8da549fca33
+  context_text: 'Ausschnitt 2/3 von „Änderungsmitteilung zur Messaging-Umstellung“. Das Dokument beginnt mit: Diese Mitteilung erklärt den Übergang von Version 1 zu Version 2 der E-Mail-Richtlinie, gültig seit dem 1.'
+- doc_id: note_changement_messagerie
+  position: 3
+  sha256: a674942fff2e35aa64cdf0208c23d290696908edd43afacbf059aa54037bd42b
+  context_text: 'Ausschnitt 3/3 von „Änderungsmitteilung zur Messaging-Umstellung“. Das Dokument beginnt mit: Diese Mitteilung erklärt den Übergang von Version 1 zu Version 2 der E-Mail-Richtlinie, gültig seit dem 1.'
+- doc_id: rundschreiben_usb
+  position: 1
+  sha256: 22c6745521218b7fe0b79360d9649d65b948bf8f0086ee923a72e54aff7c9bc5
+  context_text: 'Ausschnitt 1/3 von „Rundschreiben zu USB-Speichermedien“. Das Dokument beginnt mit: Private USB-Speichermedien dürfen an keinem Arbeitsplatz der Zentrale angeschlossen werden.'
+- doc_id: rundschreiben_usb
+  position: 2
+  sha256: e33e654a791dd0e71e1fff377539c5d32a1eb07e6008e0268e6ae2698934a8b8
+  context_text: 'Ausschnitt 2/3 von „Rundschreiben zu USB-Speichermedien“. Das Dokument beginnt mit: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet.'
+- doc_id: rundschreiben_usb
+  position: 3
+  sha256: da54e5f6b11a183f1c06bbb2169c43dd0dd4dff76a6b5a64e4e8a8f3a42df8cc
+  context_text: 'Ausschnitt 3/3 von „Rundschreiben zu USB-Speichermedien“. Das Dokument beginnt mit: Dieses Rundschreiben der deutschen Zentrale von Exemplia in Frankfurt gilt nur für Mitarbeitende an diesem Standort; es existiert nur auf Deutsch, da das lokale Team in dieser Sprache arbeitet.'
+- doc_id: uk_visitor_badges
+  position: 1
+  sha256: 0274b80b9831c97f4a078e1a3a440d0d483fbe28ca12217c600174e533229cec
+  context_text: 'Ausschnitt 1/2 von „Besucherausweise der britischen Niederlassung (nur auf Englisch)“. Das Dokument beginnt mit: Every visitor to the Manchester office receives a dated visitor badge at reception, after showing a photo ID and signing the visitor register.'
+- doc_id: uk_visitor_badges
+  position: 2
+  sha256: 9a89d6b07c4567adbee8ecc0ce3c93afcfd42ebf6dc7e192521d066ca2608836
+  context_text: 'Ausschnitt 2/2 von „Besucherausweise der britischen Niederlassung (nur auf Englisch)“. Das Dokument beginnt mit: This policy applies only to Exemplia''s United Kingdom subsidiary, in Manchester; it exists in English only, as the local reception team works in that language.'
+- doc_id: plan_continuite_lyon
+  position: 1
+  sha256: 9cffef50791b8f3145020377654a1115e134a7a8c48545bd1095c27471e92e5a
+  context_text: 'Ausschnitt 1/2 von „Kontinuitätsplan des Standorts Lyon (nur auf Französisch)“. Das Dokument beginnt mit: Si le site principal de Lyon devient inaccessible, pour cause d''incendie, de panne électrique prolongée ou d''évacuation, le site de repli de Villeurbanne est activé dans les 4 heures qui suivent la d…'
+- doc_id: plan_continuite_lyon
+  position: 2
+  sha256: de022e5e6e8cac8c1f18b42a2afc33e49dbea729b6ad73469dad948d7faf6a23
+  context_text: 'Ausschnitt 2/2 von „Kontinuitätsplan des Standorts Lyon (nur auf Französisch)“. Das Dokument beginnt mit: Ce document concerne uniquement le site de Lyon d''Exemplia ; il n''existe qu''en français, car il relève d''une équipe locale qui travaille dans cette langue.'
+- doc_id: grille_remunerations
+  position: 1
+  sha256: b3e6d087618252dd3d5dc05c9c7ed1b934ec34249ab11caa1267927a1b05142b
+  context_text: 'Ausschnitt 1/3 von „Vergütungstabelle“. Das Dokument beginnt mit: Die Tabelle umfasst 5 Kategorien, von Kategorie A (Einstiegspositionen) bis Kategorie E (Geschäftsleitung), jede in 3 Stufen je nach Dauer im Amt unterteilt.'
+- doc_id: grille_remunerations
+  position: 2
+  sha256: 9e9dd177aa673f0f9af8bc940693873f9ae8c9f110d54277e9391e71179080cf
+  context_text: 'Ausschnitt 2/3 von „Vergütungstabelle“. Das Dokument beginnt mit: Dieses Dokument beschreibt die Vergütungsstruktur von Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung und der Geschäftsleitung vorbehalten.'
+- doc_id: grille_remunerations
+  position: 3
+  sha256: 4eacefcbd14b792a4ba1a2150c6f6be98447e6903cc39c231e37c0d4d3312976
+  context_text: 'Ausschnitt 3/3 von „Vergütungstabelle“. Das Dokument beginnt mit: Dieses Dokument beschreibt die Vergütungsstruktur von Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung und der Geschäftsleitung vorbehalten.'
+- doc_id: dossier_disciplinaire
+  position: 1
+  sha256: 0bb6cd2eae721c9059d56fedaa19d17d1146b727fd3504eac1709bb737717427
+  context_text: 'Ausschnitt 1/3 von „Disziplinarverfahren“. Das Dokument beginnt mit: Ein Verhaltensproblem oder ein Verstoß führt je nach Schwere zu einer dieser Maßnahmen: einer mündlichen Ermahnung, einer schriftlichen Abmahnung in der Personalakte, einer unbezahlten Suspendierung…'
+- doc_id: dossier_disciplinaire
+  position: 2
+  sha256: fe20b1ec8eda32869f367b1ec196c33e13fdc37cfa7bdbac4b4b612ca9f644d7
+  context_text: 'Ausschnitt 2/3 von „Disziplinarverfahren“. Das Dokument beginnt mit: Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung, der Geschäftsleitung und, bei einer eige…'
+- doc_id: dossier_disciplinaire
+  position: 3
+  sha256: a3124cac93dbf8e132bbc5a4c6ac250175800deb45f70969b3210fb668ef16de
+  context_text: 'Ausschnitt 3/3 von „Disziplinarverfahren“. Das Dokument beginnt mit: Dieses Dokument beschreibt die Schritte eines Disziplinarverfahrens bei Exemplia; es ist als vertraulich eingestuft, und der Zugang ist der Personalabteilung, der Geschäftsleitung und, bei einer eige…'
+- doc_id: entretiens_annuels
+  position: 1
+  sha256: e1b95024a8592ce6b4f5201fa4190ff1e612de52c304fd007be90ff2a9afc8d1
+  context_text: 'Ausschnitt 1/3 von „Verfahren der Jahresgespräche“. Das Dokument beginnt mit: Das Gespräch findet jedes Jahr im ersten Quartal statt, zwischen Januar und März.'
+- doc_id: entretiens_annuels
+  position: 2
+  sha256: a1a3613c45b93f901382e446ff9ca5cbf81176011fd28c848707098df60fe3f3
+  context_text: 'Ausschnitt 2/3 von „Verfahren der Jahresgespräche“. Das Dokument beginnt mit: Dieses Dokument beschreibt das Jahresgespräch von Exemplia, das von der direkten Führungskraft jeder Person geführt wird; es ist als Personaldokument eingestuft.'
+- doc_id: entretiens_annuels
+  position: 3
+  sha256: f392ed07775eb602e1ccb3f5f70f95ccb86748e8fcf56dea35f0d0bcd9bf911c
+  context_text: 'Ausschnitt 3/3 von „Verfahren der Jahresgespräche“. Das Dokument beginnt mit: Dieses Dokument beschreibt das Jahresgespräch von Exemplia, das von der direkten Führungskraft jeder Person geführt wird; es ist als Personaldokument eingestuft.'
+- doc_id: acces_physique
+  position: 1
+  sha256: d9c5c714d1ccaf4480501d4a63ce3a5623168b72d84dd24a36807008825fac88
+  context_text: 'Ausschnitt 1/3 von „Physischer Zugang zu den Räumlichkeiten“. Das Dokument beginnt mit: Ein persönliches Zugangsabzeichen, das jeder Person ab ihrem ersten Tag ausgestellt wird, gewährt Zugang zu den für ihre Stelle notwendigen Zonen.'
+- doc_id: acces_physique
+  position: 2
+  sha256: d38ddb2b0cf6c61c0642f731290e7324ec55b7ddc580bf22245c42f56254e18c
+  context_text: 'Ausschnitt 2/3 von „Physischer Zugang zu den Räumlichkeiten“. Das Dokument beginnt mit: Jeder Standort von Exemplia ist in 3 Zonen unterteilt: normal (Empfang, Großraumbüro), eingeschränkt (sensible Besprechungsräume, technische Räume) und gesichert (Serverraum, Krisenraum).'
+- doc_id: acces_physique
+  position: 3
+  sha256: 5e1f677e3e17cb0e6e1f99a3db228ec426ec8a021465e619f45b28e1cc10057c
+  context_text: 'Ausschnitt 3/3 von „Physischer Zugang zu den Räumlichkeiten“. Das Dokument beginnt mit: Jeder Standort von Exemplia ist in 3 Zonen unterteilt: normal (Empfang, Großraumbüro), eingeschränkt (sensible Besprechungsräume, technische Räume) und gesichert (Serverraum, Krisenraum).'
+- doc_id: revue_habilitations
+  position: 1
+  sha256: dfd82a7718e892e6f289294bd9747268628b308054fbe9ce75ce62ad2ca274d7
+  context_text: 'Ausschnitt 1/3 von „Überprüfung der Berechtigungen“. Das Dokument beginnt mit: Dieses Dokument legt die Regeln für ihre regelmäßige Überprüfung fest.'
+- doc_id: revue_habilitations
+  position: 2
+  sha256: f271de3be884c32cb18f2d7c819a45dd1dcdde672d7f052dc3d0a1c194db760c
+  context_text: 'Ausschnitt 2/3 von „Überprüfung der Berechtigungen“. Das Dokument beginnt mit: Eine Berechtigung ist ein Zugangsrecht zu einer Anwendung, einem gemeinsamen Ordner oder einer physischen Zone, wie in der Zugangsrichtlinie für Räumlichkeiten beschrieben.'
+- doc_id: revue_habilitations
+  position: 3
+  sha256: 54c31d942189dbe3464b89307b91f79a5e716c265efb1b93ea5de53d4b3e0d55
+  context_text: 'Ausschnitt 3/3 von „Überprüfung der Berechtigungen“. Das Dokument beginnt mit: Eine Berechtigung ist ein Zugangsrecht zu einer Anwendung, einem gemeinsamen Ordner oder einer physischen Zone, wie in der Zugangsrichtlinie für Räumlichkeiten beschrieben.'
+- doc_id: formation_securite
+  position: 1
+  sha256: b141113a2d35f56893b04694efbe5fa8a21cd7606c3bff31c0e5b0d7dc93d20b
+  context_text: 'Ausschnitt 1/2 von „Sicherheitsschulung“. Das Dokument beginnt mit: Neue Mitarbeitende absolvieren sie im ersten Monat; sie wird jedes Jahr für alle erneuert.'
+- doc_id: formation_securite
+  position: 2
+  sha256: 785ca5f844c620f0dc6e51bd6df06fdba39efb3a15f86125b219f8530a615f52
+  context_text: 'Ausschnitt 2/2 von „Sicherheitsschulung“. Das Dokument beginnt mit: Jede Person bei Exemplia nimmt an einer zweistündigen Online-Schulung zur Informationssicherheit teil und besteht anschließend einen Fragebogen mit mindestens 8 richtigen Antworten von 10, um sie zu…'

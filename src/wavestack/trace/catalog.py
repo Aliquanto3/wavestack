@@ -1571,6 +1571,20 @@ class RagLabCostSummary(BaseModel):
     note_text: str | None = None
 
 
+class RagLabChunk(BaseModel):
+    """V1.2 story 6 (CAP-4): a chunk as the chunking's focus lists it (its text cut), with its
+    parent (`parent_child`) or its context and the mark that says where it comes from."""
+
+    doc_id: str
+    title_text: str
+    position: int
+    text: str
+    parent_position: int | None = None
+    parent_text: str | None = None
+    context_text: str | None = None
+    context_label: str | None = None
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1599,6 +1613,11 @@ class RagLabStageEndedPayload(BaseModel):
     part: str | None = None
     # V1.2 story 3 (CAP-8): what the stage cost, by time (build, update, query).
     costs: list[RagLabCost] = []
+    # V1.2 story 5 (CAP-3): the queries the query understanding produced (empty elsewhere).
+    queries: list[str] = []
+    # V1.2 story 6 (CAP-4): the chunking's first chunks (bounded), and how many it made.
+    chunks: list[RagLabChunk] = []
+    chunks_total: int = 0
 
 
 class RagLabRunEndedPayload(BaseModel):

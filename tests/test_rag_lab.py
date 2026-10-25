@@ -957,7 +957,7 @@ def test_state_catalog_default_chain_and_last_run(index):
     assert [s["kind"] for s in stages] == list(rag_lab.KINDS)
     assert state["catalog"]["insert_before"] == "context"
     movable = {s["kind"] for s in stages if s["movable"]}
-    assert movable == {"vector_search", "lexical_search", "fusion", "rerank"}
+    assert movable == {"query", "vector_search", "lexical_search", "fusion", "rerank"}
     options = {s["kind"]: s["options"][0] for s in stages}
     assert options["embedding"]["label_text"] == "Faux embedding"
     assert options["rerank"]["label_text"] == "Faux reranker"

@@ -1148,6 +1148,15 @@ rag:
   arch_downloads_add:
     one: "{component}: {count} Modell zum Herunterladen; fügen Sie den Schritt {stage} hinzu, um es herunterzuladen"
     other: "{component}: {count} Modelle zum Herunterladen; fügen Sie den Schritt {stage} hinzu, um sie herunterzuladen"
+  # V1.2 story 6 (CAP-4): the chunks the chunking's focus lists, and the contexts' buttons.
+  chunks_shown: "Die ersten {shown} Ausschnitte von {total}"
+  chunk_title: "{title} · Ausschnitt {position}"
+  chunk_parent: "Elternteil (Ausschnitt {position}):"
+  chunk_context: "Kontext"
+  contexts_rebuild: "Mit dem aktiven Modell neu aufbauen"
+  contexts_reset: "Gelieferte Kontexte wiederherstellen"
+  contexts_progress: "Neuaufbau: {done} / {total} Ausschnitte"
+  contexts_failed: "Der Neuaufbau ist nicht gelungen: {reason}"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

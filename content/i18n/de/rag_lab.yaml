@@ -79,6 +79,7 @@ memory_text: "Speicher von WaveStack"
 last_run_text: "Letzte Ausführung"
 reset_chain_text: "Zurück zur ausgelieferten Kette"
 unavailable_text: "nicht verfügbar"
+queries_text: "Erzeugte Anfragen"
 add_text: "Komponente hinzufügen"
 add_button_text: "Hinzufügen"
 move_before_text: "Nach vorn"
@@ -165,12 +166,26 @@ stages:
       Antwort hängt davon ab, was die vorigen Schritte ihm geliefert haben. Hier antwortet das
       aktive Modell der Werkstatt, mit dem System-Prompt der Werkstatt und den Grenzen einer
       Runde (Ausgabereserve, Reasoning-Budget); die Antwort geht nicht in die Unterhaltung ein.
+  query:
+    label_text: "Query understanding"
+    explain_text: >-
+      Vor der Suche formuliert das aktive Modell der Werkstatt die Frage um, zerlegt sie in
+      Teilfragen, macht sie eigenständig verständlich oder erfindet eine plausible Antwort
+      (HyDE); die Suchen suchen dann diese Anfragen statt der Frage im Originalwortlaut. Jede
+      Anfrage kostet einen Modellaufruf, und ein Modell, das sich irrt, schließt die richtige
+      Antwort schon vor der Suche aus.
 
 # The name of each option; those naming a declared model take its label.
 options:
   chunking:
     paragraphs:
       label_text: "Nach Absätzen"
+    semantic:
+      label_text: "Nach Bedeutung (Sätze)"
+    parent_child:
+      label_text: "Eltern-Kind"
+    contextual:
+      label_text: "Mit Kontext (Contextual Retrieval)"
   embedding:
     declared:
       label_text: "Embedding-Modell des RAG-Bausteins"
@@ -205,6 +220,15 @@ options:
       label_text: "Aktives Modell der Werkstatt"
     not_run:
       label_text: "Nicht generieren"
+  query:
+    rewrite:
+      label_text: "Umformulierung der Frage"
+    decompose:
+      label_text: "Zerlegung in Teilfragen"
+    follow_up:
+      label_text: "Nachfrage eigenständig formuliert"
+    hyde:
+      label_text: "Hypothetisches Dokument (HyDE)"
 
 # The settings: their name and unit.
 params:
@@ -289,6 +313,10 @@ steps:
   generation:
     label_text: "Generation"
     action_text: "Die Antwort generieren"
+  query:
+    label_text: "Query understanding"
+    action_text: "Die zu suchenden Anfragen erzeugen"
+    note_text: "Die Werkstatt hat kein Gespräch: Die Nachfrage liest die früher in dieser Sitzung gestellten Fragen (höchstens drei)."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -451,3 +479,85 @@ compare:
   differs_text: "Die Passagen unterscheiden sich."
   lost_text: "verloren"
   added_text: "hinzugefügt"
+
+# V1.2 story 5 (CAP-17) : la fiche de chaque option de la compréhension de la requête, en cinq
+# blocs ; « bench_text » reste vide tant que le projet de banc ne publie rien.
+sheets:
+  query.rewrite:
+    purpose_text: "Die oft geschwätzige oder ungenaue Frage vor der Suche durch eine Anfrage ersetzen, die dem Vokabular der Dokumente ähnelt."
+    when_text: "Einsetzen, wenn die Fragen der Nutzer andere Wörter verwenden als der Korpus. Vermeiden, wenn die Frage schon präzise ist: Das Modell kann ihren Sinn ändern oder Begriffe hinzufügen, die nicht vorkommen."
+    cost_text: "Ein Modellaufruf (höchstens 256 geschriebene Tokens) vor der Suche; danach wird nur eine Anfrage gesucht, also keine zusätzliche Suche."
+    literature_text: "Ma et al. schlagen vor, zwischen Frage und Suchmaschine einen Umformulierungsschritt einzufügen (umschreiben, suchen, lesen), und berichten von Gewinnen bei Frage-Antwort-Aufgaben. Die Hypothesen der Rahmung decken diese Option nicht ab: Die Karte stützt sich allein auf diese Primärquelle."
+    bench_text: ""
+    sources:
+      - label_text: "Ma et al., Query Rewriting for Retrieval-Augmented Large Language Models (2023)"
+        url: "https://arxiv.org/abs/2305.14283"
+  query.decompose:
+    purpose_text: "Eine Mehrsprung-Frage in einfache Teilfragen zerlegen, jede für sich gesucht, ihre Listen per reziprokem Rang fusioniert."
+    when_text: "Einsetzen bei Fragen, die zwei oder mehr Dokumente brauchen. Vermeiden bei einer einfachen Sachfrage: Die Teilfragen entfernen sich von den richtigen Passagen und vervielfachen die Suchen."
+    cost_text: "Ein Modellaufruf, dann eine Suche pro Teilfrage (höchstens vier): Such- und Embedding-Zeit vervielfachen sich entsprechend, der endgültige Prompt behält seine Größe."
+    literature_text: "Press et al. messen eine „Kompositionalitätslücke“: Ein Modell beantwortet die Teilfragen, aber nicht die zusammengesetzte Frage, und das ausdrückliche Stellen der Teilfragen verkleinert sie. MultiHop-RAG zeigt, dass Mehrsprung für RAG-Systeme schwierig bleibt (Hypothese H10 der Rahmung: Die Lücke liegt zum Teil im Schlussfolgern und in der Synthese, nicht nur in der Suche)."
+    bench_text: ""
+    sources:
+      - label_text: "Press et al., Measuring and Narrowing the Compositionality Gap in Language Models (2022)"
+        url: "https://arxiv.org/abs/2210.03350"
+      - label_text: "Tang et Yang, MultiHop-RAG (2024)"
+        url: "https://arxiv.org/html/2401.15391"
+  query.follow_up:
+    purpose_text: "Eine Nachfrage („und für Praktikanten?“) ohne das Gespräch verständlich machen, indem sie mit den früheren Fragen umformuliert wird."
+    when_text: "Einsetzen im Gespräch, wo eine Suche mit der rohen Frage unpassende Passagen fände. Vermeiden ohne Verlauf: Die Option wird dann übersprungen. Hier hat die Werkstatt kein Gespräch; sie liest die letzten drei in der Sitzung gestellten Fragen."
+    cost_text: "Ein Modellaufruf, dessen Prompt die früheren Fragen enthält (nicht die Antworten); danach wird nur eine Anfrage gesucht."
+    literature_text: "Anantha et al. veröffentlichen QReCC, eine Sammlung von Gesprächsfragen und -antworten, und zeigen, dass das Umformulieren der Nachfrage vor der Suche die Suche in diesen Gesprächen verbessert. Die Hypothesen der Rahmung decken diese Option nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Anantha et al., Open-Domain Question Answering Goes Conversational via Question Rewriting (2020)"
+        url: "https://arxiv.org/abs/2010.04898"
+  query.hyde:
+    purpose_text: "Das Modell eine plausible Antwort schreiben lassen, auch wenn sie im Detail falsch ist, und dann die Passagen suchen, deren Vektor ihr nahe ist statt der Frage."
+    when_text: "Einsetzen, wenn eine kurze Frage den antwortenden Passagen kaum ähnelt. Vermeiden bei einem kleinen Modell, das themenfremde Fakten erfindet, oder wenn die Stichwortsuche genügt: Das erfundene Dokument führt die Suche in den eigenen Fehler."
+    cost_text: "Ein Modellaufruf, der einen Absatz schreibt (höchstens 256 Tokens), der teuerste der vier bei der Generierung; es wird eine Anfrage gesucht, vektorisiert wie eine Passage."
+    literature_text: "Gao et al. schlagen HyDE vor: Das Modell schreibt ein hypothetisches Dokument, der Encoder führt es zu echten Dokumenten zurück, und der Artikel berichtet von Gewinnen gegenüber einem unüberwachten dichten Retriever, ohne Relevanzlabels. Die Hypothesen der Rahmung decken diese Option nicht ab."
+    bench_text: ""
+    sources:
+      - label_text: "Gao et al., Precise Zero-Shot Dense Retrieval without Relevance Labels (2022)"
+        url: "https://arxiv.org/abs/2212.10496"
+
+# V1.2 story 6 (CAP-17): the sheet of each chunking option, in five blocks.
+  chunking.paragraphs:
+    purpose_text: "Jedes Dokument in Ausschnitte zerlegen, indem seine Absätze zusammengefasst werden, solange sie in die Höchstgröße passen; ein zu langer Absatz wird am Satzende getrennt. So zerlegt der RAG-Baustein."
+    when_text: "Als Ausgangspunkt geeignet: deterministisch, ohne Modell, schnell. Zu vermeiden, wenn ein Absatz mehrere Themen mischt oder sich ein Gedanke über mehrere Absätze erstreckt: Der Ausschnitt folgt dann nicht der Bedeutung."
+    cost_text: "Kein Modellaufruf: ein Durchlauf durch den Text. Die Kosten der Kette entstehen danach durch die Zahl der einzubettenden Ausschnitte, die mit sinkender Höchstgröße wächst."
+    literature_text: "Die Zerlegung nach der Textstruktur (Absätze, Sätze) ist die erste Stufe, die Kamradt in „5 Levels of Text Splitting“ beschreibt, vor feineren Zerlegungen. Die Hypothesen der Rahmung decken diese Option nicht ab: Das Datenblatt stützt sich allein auf diese Quelle."
+    bench_text: ""
+    sources:
+      - label_text: "Kamradt, 5 Levels of Text Splitting"
+        url: "https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb"
+  chunking.semantic:
+    purpose_text: "Dort trennen, wo sich die Bedeutung ändert: Die Sätze werden eingebettet, und ein Ausschnitt endet, wenn der Abstand zweier benachbarter Sätze eine Schwelle überschreitet (hier das 80. Perzentil der Abstände des Korpus), ohne je die Höchstgröße zu überschreiten."
+    when_text: "Geeignet, wenn Absätze den Themen nicht folgen (Fließtext, Notizen). Zu vermeiden bei einem bereits gut strukturierten Korpus oder ohne nutzbares Einbettungsmodell: Der Schritt fällt dann auf Absätze zurück und sagt es."
+    cost_text: "Eine Einbettung pro Satz zusätzlich zu der der Ausschnitte, bei jedem Lauf neu berechnet (nicht zwischengespeichert): einige Sekunden auf der CPU für diesen Korpus. Die Ausschnitte sind unterschiedlich groß."
+    literature_text: "Kamradt schlägt diese Zerlegung vor (Vektoren benachbarter Sätze vergleichen, an den größten Abständen trennen), als fortgeschrittenere Stufe als die Zerlegung nach Struktur; LangChain macht daraus seinen SemanticChunker. Diese Quellen beschreiben die Methode ohne Messung auf einem Suchbenchmark: Der Gewinn muss noch an diesem Korpus gemessen werden."
+    bench_text: ""
+    sources:
+      - label_text: "Kamradt, 5 Levels of Text Splitting"
+        url: "https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb"
+      - label_text: "LangChain, How to split text based on semantic similarity (SemanticChunker)"
+        url: "https://python.langchain.com/docs/how_to/semantic-chunker/"
+  chunking.parent_child:
+    purpose_text: "Kleine, präzise Ausschnitte durchsuchen (die Kinder, höchstens 300 Zeichen), dem Modell aber den größeren Ausschnitt geben, aus dem sie stammen (den Elternteil): fein suchen, weit lesen."
+    when_text: "Geeignet, wenn die richtige Information in einen Satz passt, aber nur mit ihrer Umgebung verständlich ist. Zu vermeiden, wenn die Eltern schon zu groß für das Fenster des Modells sind: Der Kontext erhält verschiedene Eltern, also weniger verschiedene Auszüge als gefundene Kinder."
+    cost_text: "Mehr Vektoren zu berechnen und zu speichern (hier mehr als doppelt so viele Kinder wie Eltern), kein Modellaufruf; der endgültige Prompt ist länger, da er ganze Eltern enthält."
+    literature_text: "Das ist das Prinzip des ParentDocumentRetriever von LangChain: Die kleinen Stücke werden indexiert, das Elterndokument wird zurückgegeben. Die Dokumentation stellt es als Kompromiss zwischen präzisen Einbettungen und ausreichendem Kontext dar, ohne veröffentlichte Messung."
+    bench_text: ""
+    sources:
+      - label_text: "LangChain, How to use the Parent Document Retriever"
+        url: "https://python.langchain.com/docs/how_to/parent_document_retriever/"
+  chunking.contextual:
+    purpose_text: "Jedem Ausschnitt einen kurzen Kontext hinzufügen, der ihn in seinem Dokument verortet, vor der Einbettung und der Stichwortsuche: Ein Ausschnitt, der „die Frist beträgt 14 Tage“ sagt, trägt dann auch, wovon er handelt."
+    when_text: "Geeignet, wenn Ausschnitte ihr Thema verlieren, sobald sie von ihrem Dokument getrennt sind. Zu vermeiden, wenn sich Korpus oder Zerlegung oft ändern: Der Kontext ist an den genauen Text des Ausschnitts gebunden und veraltet mit ihm. Die hier gelieferten Kontexte sind heuristisch (Rang des Ausschnitts, Titel, Anfang des Dokuments), ohne LLM; echtes Contextual Retrieval braucht ein LLM, das das ganze Dokument liest, was die Schaltfläche „Neu aufbauen“ tut."
+    cost_text: "Beim Aufbau ein Modellaufruf pro Ausschnitt mit dem ganzen Dokument im Prompt (nicht bei den gelieferten heuristischen Kontexten), dann längere Texte zum Einbetten und Indexieren; bei der Frage keine zusätzlichen Kosten."
+    literature_text: "Anthropic (2024) beschreibt Contextual Retrieval: Ein Modell schreibt für jeden Ausschnitt aus dem ganzen Dokument einen Kontext, der vor der Einbettung und dem BM25-Index hinzugefügt wird. Der Artikel berichtet weniger Suchfehler auf eigenen Testdaten, noch weniger mit BM25 und dann einem Reranking: Zahlen an der Quelle zu prüfen, hier nicht wiedergegeben."
+    bench_text: ""
+    sources:
+      - label_text: "Anthropic, Introducing Contextual Retrieval (2024)"
+        url: "https://www.anthropic.com/news/contextual-retrieval"

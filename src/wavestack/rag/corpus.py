@@ -6,7 +6,9 @@ serves the index script and the tests.
 
 from __future__ import annotations
 
+import math
 import re
+from collections.abc import Callable, Sequence
 from typing import Literal, NamedTuple
 
 import yaml
@@ -197,6 +199,36 @@ def split_text(text: str, max_chars: int) -> list[str]:
     return chunks
 
 
+class DocText(NamedTuple):
+    """A document of the corpus, read: its id, its title and its text (comment removed)."""
+
+    doc_id: str
+    title_text: str
+    text: str
+
+
+def read_documents(content: RagContent, lang: str = config.DEFAULT_LANGUAGE) -> list[DocText]:
+    """The active documents of the corpus, read in `lang` (its translation under
+    `content/i18n/{lang}/corpus/` when it exists, else the French file), in declared order."""
+    documents: list[DocText] = []
+    for doc in content.documents:
+        if not doc.active:  # story 1: the trapped and sentinel documents, by default
+            continue
+        path = config.content_file(doc.file, lang)
+        text = _COMMENT.sub("", path.read_text(encoding="utf-8-sig"))
+        documents.append(DocText(doc.id, doc.title_text, text))
+    return documents
+
+
+def chunk_documents(documents: Sequence[DocText], max_chars: int) -> list[Chunk]:
+    """Each document chunked by `split_text`, its chunks ranked from 1."""
+    chunks: list[Chunk] = []
+    for doc in documents:
+        for position, piece in enumerate(split_text(doc.text, max_chars), start=1):
+            chunks.append(Chunk(doc.doc_id, doc.title_text, position, piece))
+    return chunks
+
+
 def chunk_corpus(
     content: RagContent, max_chars: int, lang: str = config.DEFAULT_LANGUAGE
 ) -> list[Chunk]:
@@ -204,12 +236,120 @@ def chunk_corpus(
     Languages (4/5): each document in `lang`, its translation under
     `content/i18n/{lang}/corpus/` when it exists, else the French file; the titles are
     `content`'s (the caller reads `rag.yaml` in the same language)."""
-    chunks: list[Chunk] = []
-    for doc in content.documents:
-        if not doc.active:  # story 1: the trapped and sentinel documents, by default
+    return chunk_documents(read_documents(content, lang), max_chars)
+
+
+# ---------- V1.2 story 6 (CAP-4): sentences, semantic and parent-child chunking ----------
+
+
+def split_sentences(text: str) -> list[str]:
+    """The sentences of a text, in order: each paragraph (blank line) cut after a sentence's
+    end (`_SENTENCE_END`); a title line without a full stop is a sentence of its own."""
+    sentences: list[str] = []
+    for paragraph in (p.strip() for p in _BLANK_LINE.split(text.replace("\r\n", "\n"))):
+        start = 0
+        for match in _SENTENCE_END.finditer(paragraph):
+            piece = paragraph[start : match.end()].strip()
+            if piece:
+                sentences.append(piece)
+            start = match.end()
+        rest = paragraph[start:].strip()
+        if rest:
+            sentences.append(rest)
+    return sentences
+
+
+def _distance(a: Sequence[float], b: Sequence[float]) -> float:
+    """The cosine distance of two vectors (1 for a null one)."""
+    na, nb = math.sqrt(sum(x * x for x in a)), math.sqrt(sum(x * x for x in b))
+    if not na or not nb:
+        return 1.0
+    return 1.0 - sum(x * y for x, y in zip(a, b, strict=False)) / (na * nb)
+
+
+def percentile(values: Sequence[float], q: float) -> float:
+    """The `q`-th percentile (0 to 100) of `values`, linearly interpolated."""
+    ordered = sorted(values)
+    if not ordered:
+        return 0.0
+    position = (len(ordered) - 1) * q / 100
+    low = math.floor(position)
+    high = min(low + 1, len(ordered) - 1)
+    return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
+
+
+def _pack(sentences: Sequence[str], max_chars: int) -> list[str]:
+    """Sentences joined by a space while they fit in `max_chars`; a longer sentence is cut
+    at its last sentence end, else at the limit."""
+    pieces: list[str] = []
+    current = ""
+    for sentence in sentences:
+        if len(sentence) > max_chars:
+            if current:
+                pieces.append(current)
+                current = ""
+            pieces += _cut_long(sentence, max_chars)
             continue
-        path = config.content_file(doc.file, lang)
-        text = _COMMENT.sub("", path.read_text(encoding="utf-8-sig"))
-        for position, piece in enumerate(split_text(text, max_chars), start=1):
-            chunks.append(Chunk(doc.id, doc.title_text, position, piece))
-    return chunks
+        merged = f"{current} {sentence}" if current else sentence
+        if len(merged) <= max_chars:
+            current = merged
+        else:
+            pieces.append(current)
+            current = sentence
+    if current:
+        pieces.append(current)
+    return pieces
+
+
+def chunk_semantic(
+    documents: Sequence[DocText],
+    embed: Callable[[list[str]], list[list[float]]],
+    max_chars: int,
+    cut_percentile: float,
+) -> tuple[list[Chunk], int]:
+    """Semantic chunking: the sentences of each document are embedded (`embed`: one vector
+    per sentence), and a chunk ends where the distance between two neighbouring sentences is
+    at or above the `cut_percentile`-th percentile (and above the smallest) of every such
+    distance in the corpus; no chunk passes `max_chars`. Deterministic for a given
+    embedding. Returns the chunks and how many sentences were embedded."""
+    per_doc = [split_sentences(doc.text) for doc in documents]
+    flat = [s for sentences in per_doc for s in sentences]
+    vectors = embed(flat) if flat else []
+    distances: list[list[float]] = []
+    at = 0
+    for sentences in per_doc:
+        mine = vectors[at : at + len(sentences)]
+        at += len(sentences)
+        distances.append([_distance(a, b) for a, b in zip(mine, mine[1:], strict=False)])
+    every = [d for ds in distances for d in ds]
+    threshold, floor = percentile(every, cut_percentile), min(every, default=0.0)
+    chunks: list[Chunk] = []
+    for doc, sentences, gaps in zip(documents, per_doc, distances, strict=True):
+        groups: list[list[str]] = [[]]
+        for i, sentence in enumerate(sentences):
+            groups[-1].append(sentence)
+            if i < len(gaps) and gaps[i] >= threshold and gaps[i] > floor:
+                groups.append([])
+        position = 0
+        for group in groups:
+            for piece in _pack(group, max_chars):
+                position += 1
+                chunks.append(Chunk(doc.doc_id, doc.title_text, position, piece))
+    return chunks, len(flat)
+
+
+def chunk_parent_child(
+    parents: Sequence[Chunk], child_max_chars: int
+) -> tuple[list[Chunk], list[int]]:
+    """Parent-child chunking: each parent chunk cut into children of `child_max_chars` at
+    most (sentences grouped; a longer sentence cut at the limit), ranked from 1 in their
+    document. Returns the children and, for each, the index of its parent in `parents`."""
+    children: list[Chunk] = []
+    parent_of: list[int] = []
+    ranks: dict[str, int] = {}
+    for index, parent in enumerate(parents):
+        for piece in _pack(split_sentences(parent.text), child_max_chars):
+            ranks[parent.doc_id] = ranks.get(parent.doc_id, 0) + 1
+            children.append(Chunk(parent.doc_id, parent.title_text, ranks[parent.doc_id], piece))
+            parent_of.append(index)
+    return children, parent_of

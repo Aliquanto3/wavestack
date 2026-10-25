@@ -1164,6 +1164,15 @@ rag:
   arch_downloads_add:
     one: "{component} : {count} modèle à télécharger ; ajoutez l'étape {stage} pour le télécharger"
     other: "{component} : {count} modèles à télécharger ; ajoutez l'étape {stage} pour les télécharger"
+  # V1.2 story 6 (CAP-4): the chunks the chunking's focus lists, and the contexts' buttons.
+  chunks_shown: "{shown} premiers extraits sur {total}"
+  chunk_title: "{title} · extrait {position}"
+  chunk_parent: "Parent (extrait {position}) :"
+  chunk_context: "Contexte"
+  contexts_rebuild: "Reconstruire avec le modèle actif"
+  contexts_reset: "Rétablir les contextes livrés"
+  contexts_progress: "Reconstruction : {done} / {total} extraits"
+  contexts_failed: "La reconstruction n'a pas abouti : {reason}"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`); its
 # pedagogical texts are in mcp_lab.yaml.

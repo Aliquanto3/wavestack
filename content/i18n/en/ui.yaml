@@ -1148,6 +1148,15 @@ rag:
   arch_downloads_add:
     one: "{component}: {count} model to download; add the {stage} step to download it"
     other: "{component}: {count} models to download; add the {stage} step to download them"
+  # V1.2 story 6 (CAP-4): the chunks the chunking's focus lists, and the contexts' buttons.
+  chunks_shown: "First {shown} chunks out of {total}"
+  chunk_title: "{title} · chunk {position}"
+  chunk_parent: "Parent (chunk {position}):"
+  chunk_context: "Context"
+  contexts_rebuild: "Rebuild with the active model"
+  contexts_reset: "Restore the shipped contexts"
+  contexts_progress: "Rebuilding: {done} / {total} chunks"
+  contexts_failed: "The rebuild did not succeed: {reason}"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:
