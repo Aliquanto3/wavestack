@@ -1,7 +1,7 @@
 # English translation of content/rag_lab.yaml (languages 4/5, AD-19): same keys, same
 # stage, option and param ids, same placeholders. Validated by wavestack.rag.lab.RagLabContent.
 
-title_text: "RAG workshop: the RAG architecture to handle"
+title_text: "Document search workshop: the search architecture to handle"
 intro_text: >-
   A RAG (Retrieval-Augmented Generation: the model answers from passages found in
   documents) works in two phases. Indexing (build) splits the corpus, the set of documents to
@@ -394,3 +394,50 @@ costs:
   apply_text: "Measure"
   cancel_text: "Cancel"
   update_of_text: "Last update measured"
+
+# V1.2 story 4: the view tabs, the prepared question, the comparison of two runs.
+tabs:
+  label_text: "Workshop views"
+  build_text: "Build"
+  compare_text: "Compare"
+  evaluate_text: "Evaluate"
+  attack_text: "Attack"
+  sheets_text: "Sheets"
+  soon_text: "{name}: coming soon."
+prepared:
+  label_text: "Prepared question"
+  free_text: "Free question"
+  types:
+    factual_text: "Factual"
+    multi_hop_text: "Multi-hop"
+    global_text: "Global"
+    no_answer_text: "No answer"
+    temporal_text: "Temporal"
+    cross_lingual_text: "Cross-lingual"
+    follow_up_text: "Follow-up"
+compare:
+  title_text: "Compare two runs"
+  hint_text: "Pin a run in the Build tab, run the chain again (another architecture, another setting), then read the differences: passages, answer, costs. No written summary."
+  pin_text: "Pin this run"
+  pin_wait_text: "Run the chain: a finished run can be pinned."
+  unpin_text: "Unpin"
+  pinned_status_text: "Pinned: {question}"
+  pinned_text: "Pinned"
+  current_text: "Current"
+  empty_pin_text: "No run pinned."
+  empty_current_text: "No finished run to compare."
+  need_pin_text: "Pin the current run (Build tab), then run the chain again with another setting."
+  need_current_text: "Run the chain to get the current run."
+  other_question_text: "The two runs do not share a question: the difference may come from it."
+  at_text: "at {time}"
+  search_text: "Search"
+  context_text: "Context"
+  answer_text: "Answer"
+  costs_text: "Costs (build, update, query)"
+  prompt_text: "Final prompt"
+  no_answer_text: "No answer generated."
+  none_text: "No passage."
+  same_text: "Same passages, in the same order."
+  differs_text: "The passages differ."
+  lost_text: "lost"
+  added_text: "added"
