@@ -88,7 +88,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 2. 12.11 : `dev-story` phase 2, Opus, effort high, worktree s11, spec 3f8f1cd (fusionner l'intégration d'abord).
 3. 12.2 : `dev-story` phase spec, puis relecture : banc avec les 6 modèles de décision en ligne choisis par Anaël (journal) et les candidats locaux ; banc lancé seulement quand aucun agent ne tourne.
 4. Après 12.19 : 12.20 (architecture en MCP) et 12.19b (12 fiches de composant). Après 12.11 : 12.13 · 12.14, puis 12.16, puis 12.21. 12.8 et 12.12 après le rapport de 12.2.
-5. Vérifier que #112 (CLAUDE.md, base main) est fusionnée, sinon relancer `file_prs.py 112 --methode squash`.
+5. (Fait : #112 fusionnée, 42b5e37.)
 
 ## Journal
 
@@ -471,3 +471,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:05 · 12.19 · review · lancé (Opus ; fusion de l'intégration et contrat long_context / cag d'abord) · a6b5584
 - 2026-10-25 11:05 · 12.11 · dev · phase 2 (code) lancée (Opus, effort high ; fusion de l'intégration d'abord) · 3f8f1cd
 - 2026-10-25 11:07 · 12.2 · dev · lancé (phase spec, worktree ../wavestack-v12-s2 depuis l'intégration 7f24444) · 7f24444
+- 2026-10-25 11:07 · run · fusion · #112 MERGED dans main (CLAUDE.md, RAM) via file_prs.py · 42b5e37
