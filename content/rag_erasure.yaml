@@ -49,8 +49,7 @@ architectures:
     label_text: "RAPTOR"
     update_text: "refaire les résumés des branches touchées, puis ceux qui les résument."
   - id: graphrag
-    available: false
-    story: 13
+    available: true
     label_text: "GraphRAG simplifié"
     update_text: "ré-extraire les entités, fusionner, puis recalculer les communautés et leurs résumés."
   - id: llm_wiki
@@ -115,26 +114,18 @@ places:
     measured_on_text: "l'arbre heuristique recalculé en mémoire"
   - id: graph_communities
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "l'index réel de GraphRAG, story 13"
-    story: 13
+    measured: graph_communities
     architectures: [graphrag]
     label_text: "Résumés de communautés (GraphRAG)"
     unit_text: "Résumés"
-    text: "Communauté « Orion » : le projet Orion (code ORN-7731-QZ) et le document qui le décrit forment une communauté à part."
-    rebuilt_text: "Communautés : politiques internes, ressources humaines et sécurité ; aucune communauté consacrée au projet Orion."
+    measured_on_text: "les communautés du graphe heuristique recalculé en mémoire"
   - id: graph_entities
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "l'index réel de GraphRAG, story 13"
-    story: 13
+    measured: graph_entities
     architectures: [graphrag]
     label_text: "Entités et relations (GraphRAG)"
     unit_text: "Entités"
-    text: "Entité « Projet Orion » (code ORN-7731-QZ), relation « décrit » vers le document sentinelle."
-    rebuilt_text: "Entités : politiques, équipes et procédures d'Exemplia ; aucune entité pour le projet Orion."
+    measured_on_text: "les entités du graphe heuristique recalculé en mémoire"
   - id: wiki_pages
     erase_mode: rebuild
     provenance:

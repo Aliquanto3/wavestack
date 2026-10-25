@@ -205,6 +205,7 @@ from wavestack.rag import attack as rag_attack
 from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import erasure as rag_erasure
 from wavestack.rag import evaluation as rag_evaluation
+from wavestack.rag import graph as rag_graph
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
 from wavestack.rag import pageindex as rag_pageindex
@@ -389,6 +390,9 @@ _LAB_FR = Message("session.state.llm_lab")
 # Lot 4 of 2026-10-04 (AD-27): the slots of `ask_resource_text`, filled in one pass.
 _RESOURCE_SLOT = re.compile(r"\{(uri|content|question)\}")
 RAG_LAB_CATALOG_TTL_S = 5.0  # story 30: the validation's catalog, read again after this
+# V1.2 story 13: the graphs of GraphRAG kept (by corpus and files), the entities the card lists.
+RAG_LAB_GRAPHS_KEPT = 4
+GRAPH_CARD_ENTITIES = 30
 _RAG_LAB_FR = Message("session.state.rag_lab")
 _MCP_LAB_FR = Message("session.state.mcp_lab")  # story 6 of 2026-09-30
 # Story 10 (CAP-9, the page Sécurité's « Ce que le harnais ne protège pas »): one id per
@@ -1036,6 +1040,8 @@ class AppSession:
         # Story 30 (the RAG workshop): its runs, numbered over the session's life (`lab{n}`),
         # and its content error already traced (once per message).
         self._rag_labs = 0
+        # V1.2 story 13: GraphRAG's graphs built, by what they are built from (a few kept).
+        self._rag_lab_graphs: dict[str, tuple[rag_graph.Graph, int]] = {}
         # V1.2 story 15 (CAP-11), the Evaluate tab: the generating model of each finished run
         # (`run_id` -> label and family), the judges' verdicts kept by run, both bounded (the
         # oldest leaves), the last judgment's failure, and the local-model discovery (replaced
@@ -11075,9 +11081,8 @@ class AppSession:
         rebuild_blocked = self._rag_lab_rebuild_blocked()
         if rebuild_blocked is not None:
             raise SendRefused(rebuild_blocked)
-        label = rag_lab._t(
-            "tree.run_label" if target == "pageindex" else "contexts.run_label", self._language
-        )
+        labels = {"pageindex": "tree.run_label", "graph": "graph.run_label"}  # V1.2 story 13
+        label = rag_lab._t(labels.get(target, "contexts.run_label"), self._language)
         with self._lock:
             if self.state != "idle":
                 raise SendRefused(self._refusal_reason())
@@ -11110,6 +11115,117 @@ class AppSession:
             rag_pageindex.reset(self._language, config.rag_lab_dir())
         return self._rag_lab_contexts()
 
+    def reset_rag_lab_graph(self) -> dict[str, Any]:
+        """`POST /api/rag_lab/graph/reset` (V1.2 story 13): the graph rebuilt in the data
+        folder is deleted, the shipped graph is read again (never `content/`). Refused while a
+        run goes on."""
+        with self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            rag_graph.reset(self._language, config.rag_lab_dir())
+        return self._rag_lab_contexts()
+
+    def _rag_lab_graph(self, documents: Sequence[rag_lab.DocText]) -> tuple[rag_graph.Graph, int]:
+        """V1.2 story 13: GraphRAG's graph of `documents` and the milliseconds its construction
+        took, kept by what it is built from (the language, the documents of the work copy, the
+        shipped and rebuilt files): a few hundred Ko, built once per corpus."""
+        content = self._rag_content
+        assert content is not None  # checked when the intention was accepted
+        lang, size, folder = self._language, self.cfg.rag_chunk_max_chars, config.rag_lab_dir()
+        key = rag_lab.graph_key(lang, size, documents, folder)
+        kept = self._rag_lab_graphs.get(key)
+        if kept is None:
+            kept = rag_lab.graph_for(content, lang, size, documents, folder)
+            while len(self._rag_lab_graphs) >= RAG_LAB_GRAPHS_KEPT:
+                self._rag_lab_graphs.pop(next(iter(self._rag_lab_graphs)))
+            self._rag_lab_graphs[key] = kept
+        return kept
+
+    def _rag_lab_graph_card(self, blocked: Message | None) -> dict[str, Any] | None:
+        """V1.2 story 13: what the page's « Graphe » card shows: who built the graph read (the
+        shipped rule, or the model of a rebuild), its numbers, the stale evidence against the
+        work copy, the rebuild's measure or the labelled estimate, an accessible table of its
+        entities and communities (with their audience), and why « Reconstruire » is not
+        available now."""
+        content = self._rag_content
+        if content is None:
+            return None
+        lang = self._language
+        documents = workcopy.documents(content, lang, workcopy.load(lang))
+        kg, _ = self._rag_lab_graph(documents)
+        rebuilt = kg.rebuilt
+        mark = rag_lab.graph_mark(kg, lang)
+        estimate = rag_lab.graph_estimate(
+            kg, lambda t: config.estimate_tokens(t, self.cfg.chars_per_token), lang
+        )
+        community_of = kg.community_of()
+        degree = {e: 0 for e in kg.entities}
+        for rel in kg.relations.values():
+            degree[rel.source] += rel.weight
+            degree[rel.target] += rel.weight
+        top = sorted(kg.entities.values(), key=lambda e: (-degree[e.id], e.id))
+        say = lambda key, **kw: rag_lab._t(key, lang, **kw)  # noqa: E731
+        count = lambda n, noun: rag_lab.count_text(n, noun, lang)  # noqa: E731
+        return {
+            "author": "rebuilt" if rebuilt is not None else "shipped",
+            "method": "llm" if rebuilt is not None else rag_graph.HEURISTIC,
+            "model": rebuilt.model if rebuilt is not None else rag_graph.HEURISTIC,
+            "mark_text": mark,
+            "entities": len(kg.entities),
+            "relations": len(kg.relations),
+            "communities": len(kg.communities),
+            "isolated": kg.isolated,
+            "stale": kg.stale,
+            "tokens": rebuilt.tokens if rebuilt is not None else 0,
+            "duration_ms": rebuilt.duration_ms if rebuilt is not None else 0,
+            "calls": rebuilt.calls if rebuilt is not None else 0,
+            "summary_text": say(
+                "graph.summary",
+                mark=mark,
+                entities=count(len(kg.entities), "entity"),
+                relations=count(len(kg.relations), "relation"),
+                communities=count(len(kg.communities), "community"),
+                stale=rag_lab.lang_int(kg.stale, lang),
+            ),
+            "measure_text": say(
+                "graph.measure",
+                tokens=rag_lab.lang_int(rebuilt.tokens, lang),
+                calls=rag_lab.lang_int(rebuilt.calls or 0, lang),
+                duration=rag_lab.ms_text(rebuilt.duration_ms or 0, lang),
+            )
+            if rebuilt is not None
+            else None,
+            "rule_note_text": None if rebuilt is not None else say("graph.rule_note"),
+            "estimate": estimate,
+            "entity_rows": [
+                {
+                    "id": e.id,
+                    "name": e.name,
+                    "type": e.type,
+                    "mentions": len(e.mentions),
+                    "degree": degree[e.id],
+                    "audience": e.audience,
+                    "community": community_of.get(e.id),
+                }
+                for e in top[:GRAPH_CARD_ENTITIES]
+            ],
+            "community_rows": [
+                {
+                    "id": c.id,
+                    "size": len(c.entities),
+                    "entities": [kg.entities[e].name for e in c.entities][:8],
+                    "sources": c.sources,
+                    "audience": c.audience,
+                    "summary_text": c.summary_text,
+                    "summary_source": c.summary_source,
+                }
+                for c in kg.communities.values()
+            ],
+            "rebuilt": rebuilt is not None,
+            "rebuild_blocked_text": render(blocked, lang) if blocked else None,
+            "error_text": kg.error,
+        }
+
     def reset_rag_lab_contexts(self) -> dict[str, Any]:
         """`POST /api/rag_lab/contexts/reset`: the contexts rebuilt in the data folder are
         deleted, the shipped ones are read again (never `content/`). Refused while a run goes
@@ -11137,6 +11253,7 @@ class AppSession:
         blocked = self._rag_lab_rebuild_blocked()
         return {
             "pageindex": self._rag_lab_pageindex(blocked),
+            "graph": self._rag_lab_graph_card(blocked),  # V1.2 story 13
             "author": header.author if header else None,
             "method": header.method if header else None,
             "model": header.model if header else None,
@@ -11214,7 +11331,9 @@ class AppSession:
             return self._content_errors.get("rag") or Message("session.rag_lab.corpus_unreadable")
         return None
 
-    def run_rag_lab(self, question: str, pipeline: rag_lab.Pipeline | None = None) -> str:
+    def run_rag_lab(
+        self, question: str, pipeline: rag_lab.Pipeline | None = None, graph_mode: str = "local"
+    ) -> str:
         """Intention `rag_lab_run` (story 30, class b): accepted in `idle` only (a reason
         there, such as no model loaded, does not matter: the generation is then skipped, lot
         5c-3), switched to `rag_lab` under the lock in this call, then run on the worker;
@@ -11256,6 +11375,7 @@ class AppSession:
             cancel,
             previous,
             history=history,
+            graph_mode=graph_mode,  # V1.2 story 13: GraphRAG's mode, a choice of the page
         )
         return run_id
 
@@ -11304,6 +11424,7 @@ class AppSession:
         update: tuple[workcopy.WorkCopy, workcopy.WorkCopy] | None = None,
         history: tuple[str, ...] = (),
         rebuild: str | None = None,
+        graph_mode: str = "local",
     ) -> None:
         """On the worker, in series with the turns and `_sync_rag`: a model the brick holds
         cannot be closed meanwhile. What the run loads is closed and freed at its end (AD-8),
@@ -11311,7 +11432,7 @@ class AppSession:
         loans = rag_lab.Loans(self._load_registry)
         lab_run: rag_lab.LabRun | None = None
         try:
-            deps = self._rag_lab_deps(texts, catalog, cancel, loans, history)
+            deps = self._rag_lab_deps(texts, catalog, cancel, loans, history, graph_mode)
             if rebuild:  # V1.2 story 11: the contexts, or PageIndex's summaries
                 lab_run = rag_lab.RebuildRun(run_id, question, chain, deps, target=rebuild)
             elif update is None:
@@ -11608,6 +11729,7 @@ class AppSession:
         cancel: CancelToken,
         loans: rag_lab.Loans,
         history: tuple[str, ...] = (),
+        graph_mode: str = "local",
     ) -> rag_lab.LabDeps:
         """What a run of the workshop (a chain, or the measure of an update) is given."""
         content = self._rag_content
@@ -11653,6 +11775,9 @@ class AppSession:
             # around the agent's rounds and the descent's levels.
             reserve=self._reserve_of(self.build_turn_state()),
             model_scope=self._rag_lab_hold,
+            # V1.2 story 13: GraphRAG's mode, and its graph from the session's cache.
+            graph_mode=graph_mode,
+            graph=self._rag_lab_graph,
         )
 
     @contextmanager
@@ -11678,6 +11803,8 @@ class AppSession:
         """An update measured `ok`: the copy saved; V1.2 story 10, the prefix it rebuilt
         becomes the CAG entry (the chain reads this copy next: its next run is warm)."""
         workcopy.save(copy, self._language)
+        # V1.2 story 13: a deleted document's evidence leaves the rebuilt graph (story 18).
+        rag_graph.forget(self._language, list(copy.deleted), config.rag_lab_dir())
         with self._lock:
             if self._cag_pending is not None:
                 self._cag_cache, self._cag_pending = self._cag_pending, None

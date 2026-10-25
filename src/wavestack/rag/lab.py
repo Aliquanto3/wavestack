@@ -40,6 +40,7 @@ from wavestack.models.load_registry import LoadRegistry
 from wavestack.models.reranker import RerankCancelled, Reranker
 from wavestack.rag import agent_tools, pageindex, workcopy
 from wavestack.rag import contexts as rag_contexts
+from wavestack.rag import graph as rag_graph
 from wavestack.rag import index as rag_index
 from wavestack.rag.corpus import (
     Chunk,
@@ -105,6 +106,8 @@ OPTIONS: dict[str, tuple[str, ...]] = {
         "cached_corpus",
         "agent_loop",
         "section_tree",
+        # V1.2 story 13 (CAP-7): GraphRAG, a knowledge graph's entities, relations, communities.
+        "graph_search",
     ),
     # Lot 5c-3: the workshop's active model generates (the shipped one), or nothing is sent.
     "generation": ("active", "not_run"),
@@ -173,7 +176,9 @@ NO_INDEX_WINDOW = 16384
 # V1.2 story 11: the Context options that have no retrieval segment (they search by themselves
 # or read everything), and the bounds of the agentic search and of PageIndex's descent
 # (constants, no setting: the loop's rounds, the tokens a model's action may write).
-SEARCHLESS_OPTIONS = (*CORPUS_OPTIONS, "agent_loop", "section_tree")
+SEARCHLESS_OPTIONS = (*CORPUS_OPTIONS, "agent_loop", "section_tree", "graph_search")
+# V1.2 story 13: GraphRAG's two modes (a choice of the page, `graph_mode` of the request).
+GRAPH_MODES = ("local", "global")
 MAX_AGENT_ROUNDS = 6
 UNREADABLE_MAX = 2  # unreadable answers in a row that stop the loop
 AGENT_RESERVE = 128
@@ -182,6 +187,7 @@ AGENT_RESULT_MAX_TOKENS = agent_tools.AGENT_RESULT_MAX_TOKENS
 PAGEINDEX_BREADTH = pageindex.PAGEINDEX_BREADTH
 TREE_SUMMARY_MAX_CHARS = pageindex.TREE_SUMMARY_MAX_CHARS
 TREE_SOURCE_MAX_TOKENS = 1500  # what a summary's rewrite reads of a node's text
+GRAPH_RESERVE = 256  # V1.2 story 13: the tokens a graph's call may write (lines, points)
 PREVIEW_CHARS = 200  # the characters of a tool's result or a model's answer the event keeps
 STATUSES = ("ok", "error", "skipped", "cancelled", "not_run")
 EMBED_BATCH = 8  # passages embedded at a time: « Arrêter » and the progress between batches
@@ -213,6 +219,8 @@ COMPONENTS: dict[str, tuple[str, str, str | None]] = {
     # V1.2 story 11: the agent's tools on the corpus files, and PageIndex's tree of sections.
     "file_tools": ("models", "🛠️", None),
     "section_tree": ("data", "🌳", None),
+    # V1.2 story 13: GraphRAG's knowledge graph (entities, relations, communities).
+    "knowledge_graph": ("data", "🕸️", None),
 }
 
 
@@ -317,6 +325,24 @@ STEPS: dict[str, SequenceStep] = {
         calls=("llm",),
         options=("section_tree",),
     ),
+    # V1.2 story 13: GraphRAG's graph, built once from the documents (its cost: `build`), then
+    # queried at each question (the question's entities, or the communities' « map »).
+    "graph_build": SequenceStep(
+        "build",
+        "context",
+        own=False,
+        reads=("documents",),
+        writes=("knowledge_graph",),
+        options=("graph_search",),
+    ),
+    "graph_query": SequenceStep(
+        "run",
+        "context",
+        own=False,
+        reads=("knowledge_graph", "question"),
+        calls=("llm",),
+        options=("graph_search",),
+    ),
 }
 
 # ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
@@ -334,6 +360,7 @@ PRESETS: dict[str, tuple[tuple[str, str], ...]] = {
     # V1.2 story 11: no search segment either, the Context searches by itself.
     "agentic": (),
     "pageindex": (),
+    "graphrag": (),  # V1.2 story 13
 }
 # V1.2 story 10: the Context option a preset sets (the others keep the chain's Context).
 PRESET_CONTEXT: dict[str, str] = {
@@ -341,12 +368,13 @@ PRESET_CONTEXT: dict[str, str] = {
     "cag": "cached_corpus",
     "agentic": "agent_loop",  # V1.2 story 11
     "pageindex": "section_tree",
+    "graphrag": "graph_search",  # V1.2 story 13
 }
 # V1.2 story 10 (vues.md): the presets' families, drawn in this order; each preset is in one.
 # V1.2 story 11: « Structure » between « Recherche » and « Sans index » (the mock-up's order).
 PRESET_FAMILIES: dict[str, tuple[str, ...]] = {
     "search": ("dense", "hybrid", "rerank"),
-    "structure": ("pageindex",),
+    "structure": ("pageindex", "graphrag"),  # V1.2 story 13: GraphRAG after PageIndex
     "no_index": ("long_context", "cag", "agentic"),
 }
 
@@ -1862,6 +1890,11 @@ class LabDeps:
     # agent's rounds, the descent's levels): the main context's engine state saved once.
     reserve: int = 0
     model_scope: Callable[[], AbstractContextManager[Any]] = nullcontext
+    # V1.2 story 13: GraphRAG's mode (`local`, `global`), and the graph of the chain's
+    # documents with the milliseconds its construction took (the session's cache); `None`:
+    # built here.
+    graph_mode: str = "local"
+    graph: Callable[[Sequence[DocText]], tuple[rag_graph.Graph, int]] | None = None
 
 
 @dataclass
@@ -1935,6 +1968,7 @@ class _Result:
     # V1.2 story 11: the agent's rounds (`agent_loop`) and the descent's levels (`section_tree`).
     agent: dict[str, Any] | None = None
     tree: dict[str, Any] | None = None
+    graph: dict[str, Any] | None = None  # V1.2 story 13: GraphRAG's query (`graph_search`)
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -2292,6 +2326,7 @@ class LabRun:
                 "cache": result.cache,
                 "agent": result.agent,
                 "tree": result.tree,
+                "graph": result.graph,
             },
             step_id,
             component,
@@ -3374,6 +3409,8 @@ class LabRun:
             return self._context_agent(chain, step_id, tick)
         if stage.option == "section_tree":
             return self._context_tree(chain, step_id, tick)
+        if stage.option == "graph_search":  # V1.2 story 13
+            return self._context_graph(chain, step_id, tick)
         if stage.option in CORPUS_OPTIONS:
             return self._context_corpus(chain, stage)
         ranked = chain.ranked
@@ -3633,9 +3670,17 @@ class LabRun:
 
     # -- V1.2 story 11: searching without vectors (the agent's tools, PageIndex's tree) --
 
-    def _ask(self, step_id: str, instruction: str, context_text: str, question: str) -> Generated:
+    def _ask(
+        self,
+        step_id: str,
+        instruction: str,
+        context_text: str,
+        question: str,
+        reserve: int = AGENT_RESERVE,
+    ) -> Generated:
         """One short call of the active model (an action, a choice, a summary): its own
-        instruction, no reasoning, at most `AGENT_RESERVE` tokens written."""
+        instruction, no reasoning, at most `reserve` tokens written (`AGENT_RESERVE`; V1.2
+        story 13: `GRAPH_RESERVE` for the graph's calls)."""
         assert self.deps.generator is not None  # checked by the caller
         ask = GenerationAsk(
             context_text=context_text,
@@ -3644,7 +3689,7 @@ class LabRun:
             progress=lambda *_: None,
             cancelled=self.deps.cancelled,
             instruction=instruction,
-            reserve=AGENT_RESERVE,
+            reserve=reserve,
         )
         return self.deps.generator(ask)
 
@@ -3662,13 +3707,13 @@ class LabRun:
             else Message("rag_lab.costs.generation_unpriced"),
         )
 
-    def _room(self, *texts: str) -> int | None:
+    def _room(self, *texts: str, reserve: int = AGENT_RESERVE) -> int | None:
         """The estimated tokens a short call's prompt has left, `window − reserve` minus the
         texts it always sends; `None` when the window is unknown (no bound)."""
         if not self.deps.window:
             return None
         used = sum(self.deps.estimate_tokens(t) for t in texts)
-        return self.deps.window - AGENT_RESERVE - used
+        return self.deps.window - reserve - used
 
     @staticmethod
     def _preview(text: str) -> str:
@@ -4130,6 +4175,413 @@ class LabRun:
                     failed += 1
                 progress(done, len(nodes))
         return status, entries, tokens, failed, model
+
+    # -- V1.2 story 13 (CAP-7): GraphRAG's knowledge graph --
+
+    def _graph_of(self, documents: Sequence[DocText]) -> tuple[rag_graph.Graph, int]:
+        """The graph of the chain's documents and the milliseconds its construction took (the
+        session's cache keeps both, by language and corpus)."""
+        if self.deps.graph is not None:
+            return self.deps.graph(documents)
+        deps = self.deps
+        return graph_for(
+            deps.content, deps.lang, deps.shipped_chunk_max_chars, documents, deps.lab_dir
+        )
+
+    def _graph_build_cost(self, kg: rag_graph.Graph, built_ms: int) -> StageCost:
+        """The graph's construction, in `build`: the rule's, measured (no token); the model's,
+        read from the rebuilt file's header (its tokens, its duration)."""
+        if kg.rebuilt is not None:
+            return StageCost(
+                "build",
+                "graph_search",
+                kg.rebuilt.tokens,
+                kg.rebuilt.duration_ms,
+                None,
+                None,
+                measured_at_build=True,
+                note_text=Message("rag_lab.costs.graph_measure", model=kg.rebuilt.model),
+            )
+        return StageCost("build", "graph_search", 0, built_ms, 0.0, None)
+
+    def _graph_call(
+        self, step_id: str, instruction: str, source: str, user: str
+    ) -> tuple[Generated, bool]:
+        """One call of the graph (a question's entities, a « map », a passage's extraction, a
+        community's summary): `source` cut to hold in `window − reserve`."""
+        room = self._room(instruction, user, reserve=GRAPH_RESERVE)
+        cut = False
+        if source and room is not None and self.deps.estimate_tokens(source) > room:
+            source, cut = agent_tools.cut_to_tokens(source, max(room, 1), self.deps.estimate_tokens)
+        return self._ask(step_id, instruction, source, user, reserve=GRAPH_RESERVE), cut
+
+    @staticmethod
+    def _stopped(got: Generated) -> str | None:
+        if got.status in ("completed", "limit"):
+            return None
+        return got.status if got.status in ("cancelled", "too_long") else "error"
+
+    def _context_graph(
+        self, chain: _Chain, step_id: str, tick: Callable[[int, int], None]
+    ) -> _Result:
+        """`graph_search` (V1.2 story 13, CAP-7, GraphRAG): the knowledge graph of the chain's
+        documents (the work copy included), queried in the page's mode. Local: one call names
+        the question's entities (`ENTITIES: a, b`), the graph gives their neighbours and the
+        evidence passages of their relations. Global: the closest communities each go through
+        a « map » call (`POINTS: …` or `POINTS: NONE`); the generation is the « reduce ». No
+        audience filter (D7): each element says its own."""
+        deps, say, count = self.deps, self._text, self._int
+        copy = deps.work_copy if self._reads_work_copy() else None
+        docs = self._corpus_documents(copy)
+        source = say("chunking.source_work_copy" if copy else "chunking.source_corpus")
+        kg, built_ms = self._graph_of(docs)
+        mode = deps.graph_mode if deps.graph_mode in GRAPH_MODES else "local"
+        result = _Result(
+            input_text=say(
+                "graph.input",
+                entities=self._count(len(kg.entities), "entity"),
+                relations=self._count(len(kg.relations), "relation"),
+                communities=self._count(len(kg.communities), "community"),
+                documents=self._count(len(docs), "document"),
+                source=source,
+            ),
+            costs=[self._graph_build_cost(kg, built_ms)],
+        )
+        mark = graph_mark(kg, self._lang)
+        estimate = graph_estimate(kg, deps.estimate_tokens, self._lang)
+        result.facts = [
+            (say("fact.graph"), mark),
+            (say("fact.graph_mode"), say(f"graph.mode_{mode}")),
+            (say("fact.entities"), count(len(kg.entities))),
+            (say("fact.relations"), count(len(kg.relations))),
+            (say("fact.communities"), count(len(kg.communities))),
+            (say("fact.evidence_stale"), count(kg.stale)),
+        ]
+        if estimate is not None:
+            result.facts.append((say("fact.graph_estimate"), estimate["text"]))
+        payload: dict[str, Any] = {
+            "author": kg.header.author if kg.header else "shipped",
+            "method": kg.header.method if kg.header else rag_graph.HEURISTIC,
+            "model": kg.header.model if kg.header else rag_graph.HEURISTIC,
+            "mark_text": mark,
+            "rule_note_text": None if kg.rebuilt else say("graph.rule_note"),
+            "mode": mode,
+            "entities": len(kg.entities),
+            "relations": len(kg.relations),
+            "communities": len(kg.communities),
+            "isolated": kg.isolated,
+            "stale": kg.stale,
+            "estimate": estimate,
+            "asked": [],
+            "matched": [],
+            "neighbours": [],
+            "passages": [],
+            "ranked": [],
+            "calls": 0,
+            "answer_preview": "",
+            "stop": "no_model",
+            "warnings": [],
+        }
+        result.graph = payload
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.generation.no_model"), result=result)
+        warnings: list[tuple[str, str]] = []
+        with deps.model_scope():
+            if mode == "global":
+                stop, found, error = self._graph_global(
+                    kg, payload, result, step_id, tick, warnings
+                )
+            else:
+                stop, found, error = self._graph_local(kg, payload, result, step_id, tick, warnings)
+        if stop == "too_long":
+            warnings.append(("graph_too_long", say("agent.too_long")))
+        self._searchless_end(chain, result, self._searchless_items(found), warnings)
+        result.facts.append((say("fact.graph_calls"), count(payload["calls"])))
+        payload |= {"stop": stop, "warnings": [{"code": c, "text": t} for c, t in warnings]}
+        if stop == "cancelled":
+            raise LabCancelled(result)
+        if stop == "error":
+            raise StageFailed(error or Message("rag_lab.agent.model_error"), result=result)
+        return result
+
+    @staticmethod
+    def _entity_rows(kg: rag_graph.Graph, ids: Sequence[str]) -> list[dict[str, Any]]:
+        return [
+            {"id": e, "name": kg.entities[e].name, "audience": kg.entities[e].audience} for e in ids
+        ]
+
+    def _graph_local(
+        self,
+        kg: rag_graph.Graph,
+        payload: dict[str, Any],
+        result: _Result,
+        step_id: str,
+        tick: Callable[[int, int], None],
+        warnings: list[tuple[str, str]],
+    ) -> tuple[str, list[tuple[str, str, str, bool, dict[str, Any]]], Any]:
+        say = self._text
+        if self.deps.cancelled():
+            return "cancelled", [], None
+        instruction = say("graph.local_instruction", max=rag_graph.LOCAL_MAX_ENTITIES)
+        got, _ = self._graph_call(
+            step_id, instruction, "", say("graph.local_user", question=self.question)
+        )
+        result.costs.append(self._call_cost("query", "graph_search", got))  # type: ignore[union-attr]
+        payload["calls"] = 1
+        payload["answer_preview"] = self._preview(got.answer_text)
+        tick(1, 1)
+        if stop := self._stopped(got):
+            return stop, [], got.error_text
+        names = rag_graph.parse_entities(got.answer_text)
+        if names is None:
+            warnings.append(("graph_unreadable", say("graph.unreadable")))
+            return "unreadable", [], None
+        payload["asked"] = names
+        ids = rag_graph.match_entities(kg, names)
+        if not ids:
+            listed = join([self._quoted(n) for n in names], self._lang) or "—"
+            warnings.append(("no_entity_matched", say("graph.no_entity_matched", names=listed)))
+            return "none", [], None
+        pick = rag_graph.select_local(kg, ids)
+        payload["matched"] = self._entity_rows(kg, pick.entities)
+        payload["neighbours"] = self._entity_rows(kg, pick.neighbours)
+        backs: dict[str, list[str]] = {}
+        for rel in pick.relations:
+            pair = f"{kg.entities[rel.source].name} — {kg.entities[rel.target].name}"
+            for m in rel.evidence:
+                backs.setdefault(m, []).append(pair)
+        names_text = ", ".join(kg.entities[e].name for e in pick.entities)
+        neighbours_text = ", ".join(kg.entities[e].name for e in pick.neighbours) or "—"
+        found: list[tuple[str, str, str, bool, dict[str, Any]]] = [
+            (
+                "graph",
+                say("graph.entities_title"),
+                say("graph.entities_text", entities=names_text, neighbours=neighbours_text),
+                False,
+                {"kind": "graph_entities", "label_text": names_text, "rank": None, "score": None},
+            )
+        ]
+        for p in pick.passages:
+            source = {
+                "kind": "graph_search",
+                "label_text": p.id,
+                "rank": p.rank,
+                "score": None,
+                "audience": p.audience,
+            }
+            found.append((p.doc_id, p.title_text, p.text, False, source))
+            payload["passages"].append(
+                {
+                    "passage_id": p.id,
+                    "doc_id": p.doc_id,
+                    "rank": p.rank,
+                    "audience": p.audience,
+                    "relation_text": "; ".join(backs.get(p.id, [])[:3]),
+                    "chars": len(p.text),
+                    "preview": self._preview(p.text),
+                }
+            )
+        return "done", found, None
+
+    def _graph_global(
+        self,
+        kg: rag_graph.Graph,
+        payload: dict[str, Any],
+        result: _Result,
+        step_id: str,
+        tick: Callable[[int, int], None],
+        warnings: list[tuple[str, str]],
+    ) -> tuple[str, list[tuple[str, str, str, bool, dict[str, Any]]], Any]:
+        say, count = self._text, self._int
+        picks = rag_graph.select_global(kg, self.question, self._lang)
+        rows = [
+            {
+                "community_id": p.community.id,
+                "entities": p.names[:12],
+                "size": len(p.community.entities),
+                "sources": p.community.sources,
+                "audience": p.audience,
+                "score": p.score,
+                "summary_preview": self._preview(p.community.summary_text),
+                "answer_preview": "",
+                "kept": False,
+                "trimmed": False,
+                "prompt_tokens": 0,
+                "output_tokens": 0,
+            }
+            for p in picks
+        ]
+        payload["ranked"] = rows
+        if not picks:
+            warnings.append(("no_community_relevant", say("graph.no_community_relevant")))
+            return "none", [], None
+        instruction = say("graph.map_instruction")
+        user = say("graph.map_user", question=self.question)
+        found: list[tuple[str, str, str, bool, dict[str, Any]]] = []
+        stop, error, trimmed, unreadable = "done", None, 0, 0
+        for n, (pick, row) in enumerate(zip(picks, rows, strict=True), start=1):
+            if self.deps.cancelled():
+                stop = "cancelled"
+                break
+            passages = "\n\n".join(p.text for p in pick.passages)
+            source = say(
+                "graph.map_source",
+                id=pick.community.id,
+                sources=", ".join(pick.community.sources),
+                entities=", ".join(pick.names),
+                summary=pick.community.summary_text,
+                passages=passages,
+            )
+            got, cut = self._graph_call(step_id, instruction, source, user)
+            result.costs.append(self._call_cost("query", "graph_search", got))  # type: ignore[union-attr]
+            payload["calls"] += 1
+            trimmed += cut
+            row |= {
+                "trimmed": cut,
+                "answer_preview": self._preview(got.answer_text),
+                "prompt_tokens": got.prompt_tokens,
+                "output_tokens": got.output_tokens,
+            }
+            tick(n, len(picks))
+            if halt := self._stopped(got):
+                stop, error = halt, got.error_text
+                break
+            points = rag_graph.parse_points(got.answer_text)
+            if points is None:
+                unreadable += 1
+                continue
+            if not points:
+                continue
+            row["kept"] = True
+            title = say(
+                "graph.community_title",
+                id=pick.community.id,
+                sources=", ".join(pick.community.sources[:4]),
+            )
+            element = {
+                "kind": "graph_community",
+                "label_text": ", ".join(pick.community.sources),
+                "rank": n,
+                "score": None,
+                "audience": pick.audience,
+            }
+            found.append(("community", title, points, False, element))
+        if trimmed:
+            warnings.append(
+                ("graph_input_trimmed", say("graph.input_trimmed", count=count(trimmed)))
+            )
+        if unreadable:
+            warnings.append(
+                ("graph_unreadable", say("graph.map_unreadable", count=count(unreadable)))
+            )
+        if stop == "done" and not found:
+            warnings.append(("no_community_relevant", say("graph.no_community_relevant")))
+            stop = "none"
+        return stop, found, error
+
+    def _extract_by_model(
+        self,
+        passages: Sequence[rag_graph.Passage],
+        step_id: str,
+        phase: str,
+        kind: str,
+        progress: Callable[[int, int], None] = lambda *_: None,
+        total: int = 0,
+    ) -> dict[str, Any]:
+        """Each passage extracted by the active model (`ENTITY:` / `RELATION:`), one call each
+        (its cost in `phase`, added to the run's). A passage whose answer is unreadable keeps
+        the rule's extraction (`fallback`). Stops at « Arrêter »."""
+        say = self._text
+        out: dict[str, Any] = {
+            "status": "ok",
+            "extractions": {},
+            "fallback": 0,
+            "model": "",
+            "input": 0,
+            "output": 0,
+            "calls": 0,
+            "trimmed": 0,
+        }
+        instruction = say("graph.extract_instruction")
+        user = say("graph.extract_user")
+        for done, p in enumerate(passages, start=1):
+            if self.deps.cancelled():
+                out["status"] = "cancelled"
+                break
+            source = say("graph.extract_source", id=p.id, title=p.title_text, text=p.text)
+            got, cut = self._graph_call(step_id, instruction, source, user)
+            self.costs.append(self._call_cost(phase, kind, got))
+            out["calls"] += 1
+            out["trimmed"] += cut
+            out["model"] = got.model_label or out["model"]
+            out["input"] += got.prompt_tokens
+            out["output"] += got.output_tokens
+            if got.status == "cancelled":
+                out["status"] = "cancelled"
+                break
+            found = None if self._stopped(got) else rag_graph.parse_extraction(got.answer_text)
+            if found is None:
+                out["fallback"] += 1
+            else:
+                out["extractions"][p.id] = found
+            progress(done, total or len(passages))
+        return out
+
+    def _summarize_by_model(
+        self,
+        kg: rag_graph.Graph,
+        targets: Sequence[rag_graph.Community],
+        step_id: str,
+        phase: str,
+        kind: str,
+        progress: Callable[[int, int], None] = lambda *_: None,
+        start: int = 0,
+        total: int = 0,
+    ) -> dict[str, Any]:
+        """Each community's summary written by the active model, one call each; a community
+        the model fails on keeps the rule's summary (`failed`)."""
+        say = self._text
+        out: dict[str, Any] = {
+            "status": "ok",
+            "written": [],
+            "failed": 0,
+            "model": "",
+            "input": 0,
+            "output": 0,
+            "calls": 0,
+            "trimmed": 0,
+        }
+        instruction = say("graph.summary_instruction", max=rag_graph.COMMUNITY_SUMMARY_MAX_CHARS)
+        user = say("graph.summary_user")
+        for done, c in enumerate(targets, start=1):
+            if self.deps.cancelled():
+                out["status"] = "cancelled"
+                break
+            passages = rag_graph.key_passages(kg, c.entities, rag_graph.GLOBAL_KEY_PASSAGES + 1)
+            source = say(
+                "graph.summary_source",
+                entities=", ".join(kg.entities[e].name for e in c.entities),
+                passages="\n\n".join(p.text for p in passages),
+            )
+            got, cut = self._graph_call(step_id, instruction, source, user)
+            self.costs.append(self._call_cost(phase, kind, got))
+            out["calls"] += 1
+            out["trimmed"] += cut
+            out["model"] = got.model_label or out["model"]
+            out["input"] += got.prompt_tokens
+            out["output"] += got.output_tokens
+            if got.status == "cancelled":
+                out["status"] = "cancelled"
+                break
+            summary = "" if self._stopped(got) else rag_graph.clean_summary(got.answer_text)
+            if summary:
+                c.summary_text, c.summary_source = summary, "rebuilt"
+                out["written"].append(c.id)
+            else:
+                c.summary_text = c.summary_text or rag_graph.rule_summary(kg, c.entities)
+                out["failed"] += 1
+            progress(start + done, total or len(targets))
+        return out
 
     def _kept_fact(self, kept: int, total: int) -> tuple[str, str]:
         say = self._text
@@ -4597,6 +5049,8 @@ class UpdateRun(LabRun):
             return []  # V1.2 story 11: the agent reads the source at each question too
         if context is not None and context.option == "section_tree":
             return [(context, "section_tree", self._update_tree)]
+        if context is not None and context.option == "graph_search":  # V1.2 story 13
+            return [(context, "graph_search", self._update_graph)]
         if context is not None and context.option == "cached_corpus":
             return [(context, "cache_prefix", self._update_prefix)]
         chunking = pipeline.find("chunking")
@@ -4819,6 +5273,228 @@ class UpdateRun(LabRun):
         result.facts.append((say("fact.tree"), say("tree.by_model", model=model or "—")))
         return result
 
+    def _update_graph(self, stage: Stage) -> _Result:
+        """V1.2 story 13 (GraphRAG): the four parts of a graph's update. (a) Extraction of the
+        touched document alone (by the rule, with the frozen vocabulary; graph rebuilt by a model
+        and a model loaded: one call per passage of the document); (b) fusion: its evidence
+        replaced, the entities and relations left without evidence removed; (c) communities
+        computed again from the previous ones; (d) summaries rewritten only for the communities
+        whose fingerprint changed (by the rule, or one call each by the model)."""
+        deps, say, count = self.deps, self._text, self._int
+        lang, size = self._lang, deps.shipped_chunk_max_chars
+        before_docs = self._corpus_documents(self.before)
+        after_docs = self._corpus_documents(self.after)
+        if not after_docs:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        before = {d.doc_id: d for d in before_docs}
+        after = {d.doc_id: d for d in after_docs}
+        touched = [i for i, d in after.items() if i not in before or before[i].text != d.text]
+        removed = [i for i in before if i not in after]
+        audiences = graph_audiences(deps.content)
+        construction = self._corpus_documents(None)
+        shipped, rebuilt, _ = rag_graph.load_files(lang, deps.lab_dir)
+        # The graph in place before the operation, outside the cost (it was already built).
+        old = rag_graph.assemble(
+            before_docs,
+            lang,
+            size,
+            audiences=audiences,
+            construction=construction,
+            shipped=shipped,
+            rebuilt=rebuilt,
+        )
+        vocab = rag_graph.vocabulary(construction, lang, size)
+        by_model = rebuilt is not None and deps.generator is not None
+        step_id = f"{self.run_id}.graph"
+        mark = len(self.costs)
+        costs: list[StageCost] = []
+        out: dict[str, Any] = {}
+        # (a) extraction
+        redo = rag_graph.passages_of([after[i] for i in touched], size, audiences)
+        began = time.perf_counter()
+        if by_model and redo:
+            with deps.model_scope():
+                out = self._extract_by_model(redo, step_id, "update", "graph_extraction")
+            fresh = out["extractions"]
+            terms = rag_graph.terms_for(after_docs, vocab, lang, size)
+            for p in redo:
+                fresh.setdefault(p.id, rag_graph.extract(p.text, terms, lang))
+            costs += self.costs[mark:]
+            self.costs = self.costs[:mark]
+            if out["status"] == "cancelled":
+                raise LabCancelled(_Result(costs=costs))
+        else:
+            terms = rag_graph.terms_for(after_docs, vocab, lang, size)
+            fresh = {p.id: rag_graph.extract(p.text, terms, lang) for p in redo}
+            costs.append(StageCost("update", "graph_extraction", 0, _elapsed(began), 0.0, None))
+        extraction_note = Message(
+            "rag_lab.graph.part_extraction",
+            passages=count(len(redo)),
+            calls=count(out.get("calls", 0)),
+        )
+        if costs:
+            costs[0] = replace(costs[0], note_text=extraction_note)
+        else:
+            costs.append(
+                StageCost("update", "graph_extraction", 0, 0, 0.0, None, note_text=extraction_note)
+            )
+        # (b) fusion
+        began = time.perf_counter()
+        gone = set(touched) | set(removed)
+        extractions = {
+            pid: x for pid, x in old.extractions.items() if old.passages[pid].doc_id not in gone
+        } | fresh
+        passages = rag_graph.passages_of(after_docs, size, audiences)
+        kg = rag_graph.merge(passages, extractions)
+        kg.chunk_max_chars = size
+        kg.shipped, kg.rebuilt = shipped, rebuilt
+        changed_entities = _changed(
+            {e.id: e.mentions for e in old.entities.values()},
+            {e.id: e.mentions for e in kg.entities.values()},
+        )
+        changed_relations = _changed(
+            {k: r.evidence for k, r in old.relations.items()},
+            {k: r.evidence for k, r in kg.relations.items()},
+        )
+        costs.append(
+            StageCost(
+                "update",
+                "graph_merge",
+                0,
+                _elapsed(began),
+                0.0,
+                None,
+                note_text=Message(
+                    "rag_lab.graph.part_merge",
+                    entities=count(changed_entities),
+                    relations=count(changed_relations),
+                ),
+            )
+        )
+        # (c) communities, from the previous ones
+        began = time.perf_counter()
+        previous = [c.entities for c in old.communities.values()]
+        rag_graph.form_communities(kg, previous, (rebuilt, shipped), summarize=False)
+        known = {c.sha256 for c in old.communities.values()}
+        redone = [c for c in kg.communities.values() if c.sha256 not in known]
+        costs.append(
+            StageCost(
+                "update",
+                "graph_communities",
+                0,
+                _elapsed(began),
+                0.0,
+                None,
+                note_text=Message(
+                    "rag_lab.graph.part_communities",
+                    communities=count(len(kg.communities)),
+                    changed=count(len(redone)),
+                ),
+            )
+        )
+        # (d) summaries, of the communities whose fingerprint changed only
+        began = time.perf_counter()
+        summaries: dict[str, Any] = {"written": [], "failed": 0, "calls": 0}
+        if by_model and redone:
+            mark = len(self.costs)
+            with deps.model_scope():
+                summaries = self._summarize_by_model(
+                    kg, redone, step_id, "update", "graph_summaries"
+                )
+            part = self.costs[mark:]
+            self.costs = self.costs[:mark]
+            if summaries["status"] == "cancelled":
+                raise LabCancelled(_Result(costs=costs + part))
+        else:
+            for c in redone:
+                c.summary_text = c.summary_text or rag_graph.rule_summary(kg, c.entities)
+            part = [StageCost("update", "graph_summaries", 0, _elapsed(began), 0.0, None)]
+        for c in kg.communities.values():  # the untouched ones keep the rule's when unknown
+            c.summary_text = c.summary_text or rag_graph.rule_summary(kg, c.entities)
+        part[0] = replace(
+            part[0],
+            note_text=Message(
+                "rag_lab.graph.part_summaries",
+                rewritten=count(len(redone)),
+                total=count(len(kg.communities)),
+            ),
+        )
+        costs += part
+        # A deleted document leaves none of its evidence in the rebuilt file (story 18).
+        rag_graph.forget(lang, removed, deps.lab_dir)
+        if by_model:
+            self._keep_rebuilt(kg, out, summaries, costs)
+        facts = [
+            (say("fact.graph_part_extraction"), count(len(redo))),
+            (
+                say("fact.graph_part_merge"),
+                say(
+                    "graph.merge_fact",
+                    entities=count(changed_entities),
+                    relations=count(changed_relations),
+                ),
+            ),
+            (say("fact.graph_part_communities"), count(len(kg.communities))),
+            (
+                say("fact.graph_part_summaries"),
+                say(
+                    "graph.summaries_fact",
+                    rewritten=count(len(redone)),
+                    total=count(len(kg.communities)),
+                ),
+            ),
+            (say("fact.graph"), say("graph.by_model") if by_model else say("graph.by_rule")),
+        ]
+        return _Result(
+            input_text=say(
+                "update.graph_input",
+                documents=self._count(len(touched) + len(removed), "document"),
+            ),
+            output_text=" ".join(
+                render(c.note_text, lang) for c in costs if c.note_text is not None
+            ),
+            facts=facts,
+            costs=costs,
+        )
+
+    def _keep_rebuilt(
+        self,
+        kg: rag_graph.Graph,
+        extracted: dict[str, Any],
+        summaries: dict[str, Any],
+        costs: Sequence[StageCost],
+    ) -> None:
+        """An update of a graph rebuilt by a model: the model's extractions and summaries
+        written back into the rebuilt file, its measure added to the earlier one."""
+        earlier = kg.rebuilt
+        if earlier is None:
+            return
+        kept = [c.id for c in kg.communities.values() if c.summary_source == "rebuilt"]
+        models = [m for m in earlier.model.split(" + ") if m]
+        for model in (extracted.get("model"), summaries.get("model")):
+            if model and model not in models:
+                models.append(model)
+        file = rag_graph.to_file(
+            kg,
+            author="rebuilt",
+            model=" + ".join(models) or "?",
+            only_model=True,
+            summaries=kept,
+            measure={
+                "duration_ms": (earlier.duration_ms or 0) + sum(c.duration_ms or 0 for c in costs),
+                "input_tokens": (earlier.input_tokens or 0)
+                + extracted.get("input", 0)
+                + summaries.get("input", 0),
+                "output_tokens": (earlier.output_tokens or 0)
+                + extracted.get("output", 0)
+                + summaries.get("output", 0),
+                "calls": (earlier.calls or 0)
+                + extracted.get("calls", 0)
+                + summaries.get("calls", 0),
+            },
+        )
+        rag_graph.write_rebuilt(self._lang, file, self.deps.lab_dir)
+
     # -- the parts --
 
     @staticmethod
@@ -4988,7 +5664,7 @@ class RebuildRun(LabRun):
     made."""
 
     SUMMARY_PHASES = ("build",)
-    TARGETS = ("contexts", "pageindex")
+    TARGETS = ("contexts", "pageindex", "graph")  # V1.2 story 13: GraphRAG's graph
 
     def __init__(
         self,
@@ -5004,10 +5680,10 @@ class RebuildRun(LabRun):
 
     def _rebuilt_stage(self) -> tuple[Stage, str]:
         """The chain's stage the rebuild shows, and its kind in the events."""
-        if self.target == "pageindex":
+        if self.target in ("pageindex", "graph"):
             context = self.pipeline.find("context")
             assert context is not None  # `check_pipeline` keeps the fixed tail
-            return context, "section_tree"
+            return context, "section_tree" if self.target == "pageindex" else "graph_search"
         stage = self.pipeline.find("chunking")
         assert stage is not None  # `check_pipeline` keeps the fixed head
         return stage, "chunking"
@@ -5063,6 +5739,8 @@ class RebuildRun(LabRun):
         try:
             if self.target == "pageindex":
                 status, result = self._rewrite_tree(step_id, component, base)
+            elif self.target == "graph":  # V1.2 story 13
+                status, result = self._rebuild_graph(step_id, component, base)
             else:
                 status, result = self._rewrite(stage, step_id, component, base)
         except StageSkipped as skipped:
@@ -5122,6 +5800,100 @@ class RebuildRun(LabRun):
                 (text("contexts.fact_kept"), count(failed)),
                 (text("contexts.fact_tokens"), count(tokens)),
             ],
+        )
+        return status, result
+
+    def _rebuild_graph(
+        self, step_id: str, component: str, base: dict[str, Any]
+    ) -> tuple[str, _Result]:
+        """V1.2 story 13 (GraphRAG): the graph of the chain's documents extracted again by the
+        active model, passage by passage (`ENTITY:` / `RELATION:`), merged by name, its
+        communities computed again, then one summary per community; written into the data
+        folder (`method: llm`) at the end only: « Arrêter » keeps the earlier state. A passage
+        whose answer is unreadable keeps the rule's extraction (`graph_passages_fallback`)."""
+        deps, say, count = self.deps, self._text, self._int
+        if deps.generator is None:
+            raise StageSkipped(Message("rag_lab.contexts.no_model"))
+        lang, size = self._lang, deps.shipped_chunk_max_chars
+        copy = deps.work_copy if self._reads_work_copy() else None
+        documents = workcopy.documents(deps.content, deps.lang, copy)
+        passages = rag_graph.passages_of(documents, size, graph_audiences(deps.content))
+        if not passages:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        progress = self._progress(step_id, component, base)
+        shipped = rag_graph.load_files(lang, deps.lab_dir)[0]
+        planned = len(passages) + (len(shipped.communities) if shipped is not None else 0)
+        began = time.monotonic()
+        with deps.model_scope():
+            out = self._extract_by_model(
+                passages, step_id, "build", "graph_search", progress, planned
+            )
+            summaries: dict[str, Any] = {"status": "ok", "written": [], "failed": 0}
+            kg = None
+            if out["status"] == "ok":
+                terms = rag_graph.vocabulary(documents, lang, size).terms  # recomputed here
+                extractions = {
+                    p.id: out["extractions"].get(p.id) or rag_graph.extract(p.text, terms, lang)
+                    for p in passages
+                }
+                kg = rag_graph.merge(passages, extractions)
+                kg.chunk_max_chars = size
+                rag_graph.form_communities(kg, summarize=False)
+                targets = list(kg.communities.values())
+                summaries = self._summarize_by_model(
+                    kg,
+                    targets,
+                    step_id,
+                    "build",
+                    "graph_search",
+                    progress,
+                    len(passages),
+                    len(passages) + len(targets),
+                )
+        status = "cancelled" if "cancelled" in (out["status"], summaries["status"]) else "ok"
+        if status == "ok" and kg is not None:
+            file = rag_graph.to_file(
+                kg,
+                author="rebuilt",
+                model=out["model"] or summaries.get("model") or "?",
+                only_model=True,
+                summaries=summaries["written"],
+                measure={
+                    "duration_ms": _ms(time.monotonic() - began),
+                    "input_tokens": out["input"] + summaries.get("input", 0),
+                    "output_tokens": out["output"] + summaries.get("output", 0),
+                    "calls": out["calls"] + summaries.get("calls", 0),
+                },
+            )
+            rag_graph.write_rebuilt(lang, file, deps.lab_dir)
+        warnings = []
+        if out["fallback"]:
+            warnings.append(say("graph.passages_fallback", count=count(out["fallback"])))
+        trimmed = out["trimmed"] + summaries.get("trimmed", 0)
+        if trimmed:
+            warnings.append(say("graph.input_trimmed", count=count(trimmed)))
+        spent = (
+            out["input"] + out["output"] + summaries.get("input", 0) + summaries.get("output", 0)
+        )
+        result = _Result(
+            costs=[],  # the per-call costs are in the run's sum
+            input_text=say("graph.rebuild_input", passages=self._count(len(passages), "passage")),
+            output_text=say(
+                "graph.rebuild_output",
+                done=count(len(out["extractions"])),
+                total=count(len(passages)),
+                fallback=count(out["fallback"]),
+                summaries=count(len(summaries["written"])),
+                communities=count(len(kg.communities) if kg else 0),
+            ),
+            facts=[
+                (say("fact.model"), out["model"] or "—"),
+                (say("fact.graph_extracted"), count(len(out["extractions"]))),
+                (say("fact.graph_fallback"), count(out["fallback"])),
+                (say("fact.graph_summarized"), count(len(summaries["written"]))),
+                (say("contexts.fact_tokens"), count(spent)),
+            ],
+            warning_text=" ".join(warnings) or None,
         )
         return status, result
 
@@ -5225,6 +5997,76 @@ class RebuildRun(LabRun):
             ],
         )
         return status, result
+
+
+# ---------- V1.2 story 13 (CAP-7): GraphRAG's graph, as the run and the page read it ----------
+
+
+def graph_audiences(content: RagContent) -> dict[str, str]:
+    """Each document's audience (`RagContent`): an added document is everyone's."""
+    return {d.id: d.audience for d in content.documents}
+
+
+def _elapsed(began: float) -> int:
+    return max(1, math.ceil((time.perf_counter() - began) * 1000))
+
+
+def _changed(before: dict[Any, list[str]], after: dict[Any, list[str]]) -> int:
+    """The keys added, removed, or whose evidence changed."""
+    return sum(1 for k in set(before) | set(after) if before.get(k) != after.get(k))
+
+
+def graph_for(
+    content: RagContent, lang: str, size: int, documents: Sequence[DocText], folder: Path
+) -> tuple[rag_graph.Graph, int]:
+    """The graph of `documents` (the structure from them, the rebuilt file read first) and the
+    milliseconds its construction took. The vocabulary is the shipped corpus's (frozen)."""
+    began = time.perf_counter()
+    built = rag_graph.load_graph(
+        documents,
+        lang,
+        size,
+        audiences=graph_audiences(content),
+        construction=workcopy.documents(content, lang, None),
+        folder=folder,
+    )
+    return built, _elapsed(began)
+
+
+def graph_key(lang: str, size: int, documents: Sequence[DocText], folder: Path) -> str:
+    """What a graph is built from: the language, the passages' size, the documents' texts and
+    the shipped and rebuilt files (the session's cache is keyed by it)."""
+    digest = hashlib.sha256(f"{lang}\n{size}\n".encode())
+    for doc in documents:
+        digest.update(f"{doc.doc_id}\n{rag_contexts.fingerprint(doc.text)}\n".encode())
+    for path in (
+        config.content_file(rag_graph.GRAPH_FILE, lang),
+        rag_graph.rebuilt_path(lang, folder),
+    ):
+        digest.update((file_digest(path) if path.is_file() else "-").encode())
+    return digest.hexdigest()
+
+
+def graph_mark(kg: rag_graph.Graph, lang: str) -> str:
+    """« graphe livré, calculé par une règle, sans modèle » or « graphe reconstruit par le
+    modèle X »."""
+    if kg.rebuilt is not None:
+        return _t("graph.mark_rebuilt", lang, model=kg.rebuilt.model)
+    return _t("graph.mark_shipped", lang)
+
+
+def graph_estimate(
+    kg: rag_graph.Graph, estimate_tokens: Callable[[str], int], lang: str
+) -> dict[str, Any] | None:
+    """For a graph computed by the rule only: what an extraction by a model would need (a call
+    per passage, plus one per community; the passages' tokens by the session's counter).
+    Labelled an estimate, never measured, in no sum. `None` for a rebuilt graph."""
+    if kg.rebuilt is not None:
+        return None
+    calls = len(kg.passages) + len(kg.communities)
+    tokens = sum(estimate_tokens(p.text) for p in kg.passages.values())
+    text = _t("graph.estimate", lang, calls=lang_int(calls, lang), tokens=lang_int(tokens, lang))
+    return {"calls": calls, "input_tokens": tokens, "text": text}
 
 
 def _ms(seconds: float) -> int:

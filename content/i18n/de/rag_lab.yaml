@@ -229,6 +229,8 @@ options:
       label_text: "Agentische Suche (Werkzeuge auf den Dateien)"
     section_tree:
       label_text: "Abschnittsbaum (PageIndex)"
+    graph_search:
+      label_text: "Wissensgraph (GraphRAG)"
   generation:
     active:
       label_text: "Aktives Modell der Werkstatt"
@@ -357,6 +359,15 @@ steps:
     label_text: "Tree descent"
     action_text: "Das Modell wählt Ebene für Ebene die zu öffnenden Knoten"
     explain_text: "Auf jeder Ebene liest das Modell die nummerierte Liste der Kinder der behaltenen Knoten (Titel und Zusammenfassung) und antwortet CHOICE: 3, 7 (höchstens zwei) oder CHOICE: NONE. Ein Aufruf je Ebene: zwei beim mitgelieferten Korpus (die Dokumente, dann die Abschnitte). Der ganze Text der erreichten Abschnitte wird der Kontext."
+  # V1.2 story 13: GraphRAG's graph built once, then queried at each question.
+  graph_build:
+    label_text: "Graph building"
+    action_text: "Den Graphen der Entitäten, ihrer Beziehungen und ihrer Communities aufbauen"
+    explain_text: "GraphRAG baut einmal einen Wissensgraphen: die Entitäten des Korpus, ihre Beziehungen, ihre zusammengefassten Communities; jede Entität und Beziehung behält ihre Belege (die Passage und ihren Fingerabdruck). Der mitgelieferte Graph ist per Regel berechnet, ohne Modell (Schlüsselbegriffe, Abkürzungen, Codes, gemeinsames Vorkommen in einem Satz); « Neu aufbauen » lässt ihn vom aktiven Modell extrahieren, ein Aufruf pro Passage, dann einer pro Community. Eine Dokumentaktualisierung wiederholt seine Extraktion, die Zusammenführung, die Communities und nur die betroffenen Zusammenfassungen."
+  graph_query:
+    label_text: "Graph query"
+    action_text: "Das Modell nennt die Entitäten der Frage oder liest die nächsten Communities"
+    explain_text: "Im lokalen Modus liefert ein Aufruf die Entitäten der Frage (ENTITIES: a, b); der Graph verbindet sie mit ihren Nachbarn einen Schritt entfernt, und die Belegpassagen dieser Beziehungen werden zum Kontext. Im globalen Modus durchlaufen die drei der Frage nächsten Communities je einen « map »-Aufruf (POINTS: … oder POINTS: NONE); die Generierung übernimmt das « reduce ». Keine Zielgruppe wird gefiltert: Jedes Element nennt seine eigene."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -399,6 +410,9 @@ components:
   section_tree:
     label_text: "Abschnittsbaum"
     note_text: "Dokumente und Abschnitte, Titel und Zusammenfassungen"
+  knowledge_graph:
+    label_text: "Wissensgraph"
+    note_text: "Entitäten, Beziehungen, zusammengefasste Communities"
 
 groups:
   data:
@@ -464,6 +478,13 @@ presets:
       Keine Vektoren: ein Baum der Dokumente und ihrer Abschnitte, einmal aufgebaut, den das
       Modell Ebene für Ebene hinabsteigt und dabei Titel und Zusammenfassungen liest. Ein Baum
       zum Aufbauen und bei jeder Aktualisierung neu, wenige Aufrufe je Anfrage.
+  graphrag:
+    label_text: "GraphRAG"
+    explain_text: >-
+      Keine Vektoren: ein Graph der Entitäten des Korpus, ihrer Beziehungen und ihrer
+      zusammengefassten Communities, einmal aufgebaut. Lokal nennt das Modell die Entitäten der
+      Frage und liest die Belege ihrer Nachbarn; global liest es die nächsten Communities. Teuer
+      im Aufbau und in der Aktualisierung mit einem Modell, mehrere Aufrufe je Anfrage.
 # V1.2 story 10 (vues.md): the families of architectures, in the order of PRESET_FAMILIES.
 preset_families:
   search:
@@ -865,3 +886,20 @@ sheets:
         url: "https://github.com/VectifyAI/PageIndex"
       - label_text: "arXiv 2604.14222: PageIndex an 50 Fragen bewertet, Latenz ~1,7-fach"
         url: "https://arxiv.org/html/2604.14222v1"
+  context.graph_search:
+    purpose_text: "Ohne Vektoren in einem einmal aufgebauten Wissensgraphen suchen: die Entitäten des Korpus, ihre Beziehungen (mit ihren Belegpassagen) und ihre zusammengefassten Communities. Lokal liefern die Entitäten der Frage und ihre Nachbarn einen Schritt entfernt die Passagen des Kontexts; global durchlaufen die nächsten Communities je einen « map »-Aufruf."
+    when_text: "Für Multi-Hop-Fragen (zwei Verfahren, zwei Abteilungen verbinden) und globale Fragen (ein Überblick über ein Thema) auf einem stabilen Korpus. Zu vermeiden für einen einfachen Fakt: Er verliert bei einfachen Fakten, gewinnt bei Multi-Hop- und globalen Fragen. Ebenso zu vermeiden bei einem Korpus, der sich oft ändert: Graph und Zusammenfassungen sind neu zu machen."
+    cost_text: "Der Aufbau ist der Aufbau-Kostenpunkt: per Regel (mitgelieferter Graph) wenige Millisekunden und kein Token, daher ein billigerer Aufbau als dichtes RAG; per Modell (« Neu aufbauen ») ein Aufruf pro Passage, dann einer pro Community, weit teurer. Eine Aktualisierung wiederholt die Extraktion des Dokuments, die Zusammenführung, die Communities und die betroffenen Zusammenfassungen. Jede Anfrage kostet einen Aufruf (lokal) oder drei « map »-Aufrufe (global), dann die Generierung."
+    literature_text: "Hypothesen H2 und H13, gestützt: GraphRAG verliert bei einfachen Fakten, gewinnt bei komplexem Schließen, und eine globale Anfrage kostet ~377-mal ein Vektor-RAG (GraphRAG-Bench); es halluziniert bei unbeantwortbaren Fragen (arXiv 2502.11371); seine Aktualisierung kostet ~100-mal mehr (EraRAG). H12: Weniger als 0,05 % des Korpus zu vergiften senkt seine Genauigkeit von 95 % auf 50 % (arXiv 2508.04276). Der Aufbau und die lokale Abfrage der Werkstatt orientieren sich an LightRAG, vereinfacht; der mitgelieferte Graph ist per Regel berechnet, ohne Modell."
+    bench_text: ""
+    sources:
+      - label_text: "GraphRAG-Bench: GraphRAG verliert bei einfachen Fakten, globale Anfrage ~377-mal ein Vektor-RAG"
+        url: "https://arxiv.org/html/2506.05690v3"
+      - label_text: "arXiv 2502.11371: GraphRAG halluziniert bei unbeantwortbaren Fragen"
+        url: "https://arxiv.org/html/2502.11371v2"
+      - label_text: "arXiv 2508.04276: Weniger als 0,05 % des Korpus vergiftet senkt GraphRAG von 95 % auf 50 %"
+        url: "https://arxiv.org/abs/2508.04276"
+      - label_text: "EraRAG: Die Aktualisierung eines Graphen kostet ~100-mal mehr"
+        url: "https://arxiv.org/pdf/2506.20963v1.pdf"
+      - label_text: "LightRAG (Guo et al., 2024), Entitätsgraph mit lokaler oder globaler Abfrage: die Vorlage des Aufbaus"
+        url: "https://arxiv.org/abs/2410.05779"
