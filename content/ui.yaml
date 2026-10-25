@@ -83,6 +83,13 @@ common:
     mcp_title: "Atelier MCP : le protocole MCP à manipuler (poignée de main JSON-RPC, documentation des outils, appel)"
     security: "Sécurité"
     security_title: "Sécurité : matrice des risques, contrôles actifs, journal complet et limites du harnais"
+  glossary:
+    button: "Glossaire"
+    title: "Glossaire du harnais"
+    close: "Fermer"
+    search: "Chercher un terme"
+    empty: "Aucun terme ne correspond."
+    failed: "Le glossaire n'a pas pu être chargé."
   display:
     menu: "Affichage"
     theme: "Thème"

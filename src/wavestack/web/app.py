@@ -39,7 +39,7 @@ from pydantic import (
 )
 from starlette.routing import Route
 
-from wavestack import config
+from wavestack import config, glossary
 from wavestack.mcp import architecture_server  # V1.2 story 20
 from wavestack.messages import in_language, msg, render
 from wavestack.models import catalog
@@ -577,6 +577,23 @@ def create_app(
         """Languages (2/5): the interface's texts (`content/ui.yaml`) in the session's
         language, `{language, texts}`, read by `i18n.js` before the page's first render."""
         return app_session.ui_texts()
+
+    @app.get("/api/glossary")
+    def api_glossary() -> dict[str, object]:
+        """V1.5 story 6 (CAP-6): the harness glossary in the setting's language,
+        `{language, terms: [{key, term, definition}]}` in the order of the file, read by
+        `glossary.js`. An invalid translation gives French; an invalid French file, a 500."""
+        language = app_session.language
+        try:
+            terms = glossary.load_terms(language)
+        except (glossary.GlossaryError, OSError, ValueError):
+            if language == config.DEFAULT_LANGUAGE:
+                raise
+            language, terms = config.DEFAULT_LANGUAGE, glossary.load_terms("fr")
+        return {
+            "language": language,
+            "terms": [{"key": key, **entry} for key, entry in terms.items()],
+        }
 
     @app.get("/api/llm_lab")
     def api_llm_lab() -> dict[str, object]:

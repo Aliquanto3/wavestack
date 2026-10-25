@@ -1,0 +1,183 @@
+# Glossaire du harnais (lot V1.5, story 6, CAP-6). Ouvert depuis la navigation commune des
+# pages (glossary.js), lu par GET /api/glossary. Traductions : content/i18n/{en,de}/glossary.yaml
+# (mêmes clés). Ne pas confondre avec content/mcp_local/glossary.yaml, une donnée de
+# démonstration du serveur MCP local.
+#
+# Citer un terme depuis un texte de brique ou de scénario : [[g:clé]] ou [[g:clé|texte affiché]]
+# (clé = la clé ci-dessous, en minuscules et soulignés). L'interface en fait un lien qui ouvre
+# le glossaire sur ce terme ; tests/test_glossary.py vérifie que toute clé citée existe.
+terms:
+  agent:
+    term: "Agent"
+    definition: "Un modèle de langage placé dans une boucle : il lit le contexte, choisit de répondre ou d'appeler un outil, lit le résultat, et recommence jusqu'à avoir fini. L'agent lui-même tient en quelques lignes ; tout le reste est le harnais."
+  harness:
+    term: "Harnais"
+    definition: "Tout ce qui entoure le modèle pour en faire un agent utilisable : prompt système, mémoire, outils, RAG, MCP, skills, hooks, sous-agents, garde-fous et journal. WaveStack montre ces briques une à une."
+  llm:
+    term: "LLM (grand modèle de langage)"
+    definition: "Un modèle qui prédit le mot (le token) suivant d'un texte. Seul, il ne fait que continuer le texte reçu : il n'agit pas, ne se souvient de rien et ne sait rien de ce qui est postérieur à son entraînement."
+  slm:
+    term: "SLM (petit modèle de langage)"
+    definition: "Un modèle de quelques milliards de paramètres, assez léger pour tourner sur un processeur ordinaire. Ses réponses sont moins fiables que celles d'un grand modèle, ce qui rend les défauts du harnais bien visibles."
+  token:
+    term: "Token"
+    definition: "L'unité de texte que lit et produit le modèle : un mot, un morceau de mot ou un signe. Le coût, la vitesse et la taille de la fenêtre de contexte se comptent en tokens."
+  context_window:
+    term: "Fenêtre de contexte"
+    definition: "Le nombre maximal de tokens que le modèle peut lire en un appel : prompt système, historique, résultats d'outils et question. Au-delà, il faut retirer ou résumer quelque chose."
+  system_prompt:
+    term: "Prompt système"
+    definition: "Le texte que le harnais place en tête de chaque appel pour fixer le rôle, le ton et les règles du modèle. L'utilisateur ne le tape pas, mais le modèle le relit à chaque tour."
+  turn:
+    term: "Tour"
+    definition: "Un échange complet : la demande de l'utilisateur, puis tout ce que fait l'agent (appels d'outils compris) jusqu'à sa réponse finale. Le journal garde chaque tour."
+  agent_loop:
+    term: "Boucle de l'agent"
+    definition: "Le cycle appeler le modèle, exécuter les outils demandés, rendre les résultats au modèle, jusqu'à une réponse sans nouvel appel d'outil. Un plafond d'appels la borne."
+  reasoning:
+    term: "Raisonnement"
+    definition: "Une phase où le modèle écrit ses étapes avant de répondre. Elle améliore souvent la réponse, mais consomme des tokens de sortie et allonge le tour."
+  temperature:
+    term: "Température"
+    definition: "Le réglage qui rend le choix du token suivant plus ou moins aléatoire. À zéro, le modèle choisit toujours le plus probable ; plus haut, deux essais identiques peuvent différer."
+  sampling:
+    term: "Échantillonnage"
+    definition: "La manière de choisir le token suivant parmi les plus probables (température, top-k, top-p). C'est elle qui rend une même demande non déterministe."
+  hallucination:
+    term: "Hallucination"
+    definition: "Une réponse fausse énoncée avec assurance, parce que le modèle produit du texte plausible sans vérifier. Le RAG, les outils et les vérifications servent à la limiter."
+  quantization:
+    term: "Quantification"
+    definition: "Le stockage des poids du modèle sur moins de bits pour qu'il tienne en mémoire et tourne plus vite sur CPU, au prix d'une légère perte de qualité."
+  gguf:
+    term: "GGUF"
+    definition: "Le format de fichier des modèles quantifiés que lit le moteur local de WaveStack (llama.cpp). Un fichier GGUF contient les poids et leur description."
+  tool:
+    term: "Outil"
+    definition: "Une fonction que le harnais met à disposition du modèle (lire un fichier, interroger une API, calculer). Le modèle demande l'appel ; c'est le harnais qui l'exécute."
+  tool_call:
+    term: "Appel d'outil"
+    definition: "La demande, produite par le modèle, d'exécuter un outil avec des arguments. Le harnais la contrôle (garde-fous, confirmation) avant de l'exécuter."
+  tool_result:
+    term: "Résultat d'outil"
+    definition: "Ce que renvoie l'outil, ajouté au contexte pour que le modèle le lise au tour suivant de la boucle. Un gros résultat prend de la place dans la fenêtre."
+  mcp:
+    term: "MCP (Model Context Protocol)"
+    definition: "Un protocole ouvert qui décrit comment un harnais découvre et appelle des outils exposés par un serveur, quel que soit le langage du serveur. Les messages sont du JSON-RPC."
+  mcp_server:
+    term: "Serveur MCP"
+    definition: "Un programme qui expose des outils, des ressources ou des prompts selon le protocole MCP. Le harnais s'y connecte en client, liste ses outils puis les appelle."
+  lazy_loading:
+    term: "Chargement paresseux"
+    definition: "Ne donner au modèle que le nom et une courte description des outils, et ne charger la documentation complète que de ceux qu'il choisit. Cela économise de la fenêtre de contexte."
+  skill:
+    term: "Skill"
+    definition: "Un dossier d'instructions que le modèle charge à la demande, au lieu de les garder en permanence dans le prompt système. Seule sa description reste dans le contexte tant qu'il n'est pas utilisé."
+  hook:
+    term: "Hook"
+    definition: "Une règle que le harnais exécute à un moment précis (avant un appel d'outil, à la fin d'un tour…) : elle peut refuser, modifier ou enrichir ce qui passe, sans que le modèle le décide."
+  subagent:
+    term: "Sous-agent"
+    definition: "Un second agent, avec son propre contexte, auquel l'agent principal délègue une tâche. Il ne rend que sa réponse : son contexte ne pollue pas celui de l'agent principal."
+  orchestration:
+    term: "Orchestration"
+    definition: "La coordination de plusieurs appels de modèle ou agents : qui reçoit quelle tâche, avec quel contexte, et comment les résultats reviennent."
+  memory:
+    term: "Mémoire"
+    definition: "Des informations que le harnais conserve d'une séance à l'autre et réinjecte dans le contexte. Le modèle lui-même ne retient rien entre deux appels."
+  history:
+    term: "Historique"
+    definition: "Les messages des tours précédents, renvoyés au modèle à chaque appel pour qu'il suive la conversation. Il grossit à chaque tour et finit par remplir la fenêtre."
+  compaction:
+    term: "Compaction"
+    definition: "Remplacer le début de l'historique par un résumé quand la fenêtre se remplit. On gagne de la place, au prix de détails perdus."
+  compression:
+    term: "Compression du contexte"
+    definition: "Raccourcir les gros résultats d'outils et les extraits RAG avant l'appel au modèle. Ce qui est coupé est perdu pour lui."
+  headroom:
+    term: "Headroom"
+    definition: "La bibliothèque de compression que WaveStack utilise pour raccourcir le texte structuré (JSON, journaux) en gardant les lignes qui comptent."
+  caveman:
+    term: "Caveman"
+    definition: "Une consigne qui demande au modèle des réponses très courtes, pour réduire les tokens de sortie, donc la durée et le coût d'un tour."
+  prompt_cache:
+    term: "Cache de prompt"
+    definition: "La réutilisation par le fournisseur de la partie inchangée du début d'un prompt, facturée moins cher. Elle ne marche que si le début du contexte reste identique d'un appel à l'autre."
+  kv_cache:
+    term: "Cache KV"
+    definition: "Les calculs intermédiaires (clés et valeurs d'attention) que le moteur garde pour ne pas relire tout le contexte à chaque nouveau token. Modifier le début du contexte l'invalide."
+  rag:
+    term: "RAG (génération augmentée par la recherche)"
+    definition: "Chercher dans un corpus les extraits proches de la question, puis les donner au modèle avec elle, pour qu'il réponde à partir de documents plutôt que de sa seule mémoire."
+  chunk:
+    term: "Extrait (chunk)"
+    definition: "Un morceau de document, de taille limitée, découpé avant l'indexation. La qualité du découpage conditionne ce que la recherche peut retrouver."
+  embedding:
+    term: "Embedding (plongement)"
+    definition: "Un vecteur de nombres qui représente le sens d'un texte : deux textes proches par le sens ont des vecteurs proches."
+  vector_store:
+    term: "Base vectorielle"
+    definition: "Le stockage des embeddings des extraits, interrogé par similarité avec l'embedding de la question."
+  reranking:
+    term: "Reranking"
+    definition: "Un second tri, plus fin, des extraits trouvés par la recherche, avant de n'en garder que quelques-uns pour le modèle."
+  guardrail:
+    term: "Garde-fou"
+    definition: "Un contrôle du harnais, hors du modèle, qui bloque ou signale ce qui sort de la règle : outil interdit, fuite de donnée, hôte réseau non autorisé."
+  prompt_injection:
+    term: "Injection de prompt"
+    definition: "Une instruction cachée dans un document ou un résultat d'outil, que le modèle prend pour une consigne légitime. Le harnais limite ses effets, il ne peut pas les exclure."
+  confirmation:
+    term: "Confirmation humaine"
+    definition: "Un point d'arrêt où le harnais demande l'accord de l'utilisateur avant une action sensible, comme l'écriture d'un fichier."
+  journal:
+    term: "Journal"
+    definition: "Le registre ordonné de tout ce qui se passe dans la séance : appels au modèle, outils, hooks, refus. C'est lui que les vues relisent et sur lequel s'appuie l'évaluation."
+  envelope:
+    term: "Enveloppe"
+    definition: "Un événement du journal, avec son type, son numéro d'ordre et ses données. Les vérifications d'un cas d'agent se calculent sur les enveloppes d'un tour."
+  provenance:
+    term: "Provenance"
+    definition: "L'origine d'un cas d'agent : fourni avec WaveStack, issu d'une recette, ou tiré d'un tour raté de la séance."
+  replay:
+    term: "Rejeu"
+    definition: "Rejouer un tour ou un cas pour observer à nouveau le résultat. Dans WaveStack, le rejeu réexécute les outils : il ne relit pas le journal."
+  witness_replay:
+    term: "Rejeu témoin"
+    definition: "Un rejeu fait pour comparer, tour par tour, ce que donne le même scénario avant et après un changement, en gardant le tour d'origine comme témoin."
+  determinism:
+    term: "Déterminisme"
+    definition: "Une exécution qui redonne toujours le même résultat. Un modèle échantillonné ne l'est pas : une vérification doit donc s'appuyer sur ce qui est mesurable, pas sur une phrase exacte."
+  agent_case:
+    term: "Cas d'agent"
+    definition: "Une demande, une configuration et une liste de vérifications qui disent ce qu'un tour réussi doit avoir fait. Un cas peut échouer ; c'est ce qui le rend utile."
+  check:
+    term: "Vérification"
+    definition: "Une condition précise sur un tour (tel outil appelé, tel mot dans la réponse, aucun appel interdit), évaluée sans appeler de modèle. Un cas réussit quand toutes ses vérifications passent."
+  verdict:
+    term: "Verdict"
+    definition: "Le résultat de l'évaluation d'un cas : réussi ou échoué, avec la vérification fautive quand il échoue."
+  call_ceiling:
+    term: "Plafond d'appels"
+    definition: "Le nombre maximal d'appels de modèle ou d'outils qu'un tour peut faire avant que le harnais l'arrête. Un plafond se mesure sur des essais réels, il ne se devine pas."
+  budget_ceiling:
+    term: "Plafond de dépense"
+    definition: "Le montant maximal que la séance peut dépenser auprès d'un fournisseur de modèle ; le harnais refuse les appels au-delà."
+  demo:
+    term: "Démo"
+    definition: "Un exemple qui marche une fois, devant le public. Il montre ce qui est possible, pas ce qui est fiable."
+  benchmark:
+    term: "Banc d'essai"
+    definition: "Un ensemble fixe de cas rejoués à l'identique pour mesurer un agent et comparer deux configurations. Il répond à : est-ce fiable, et est-ce mieux qu'avant ?"
+  regression:
+    term: "Régression"
+    definition: "Un cas qui réussissait et qui échoue après un changement (modèle, prompt, outil). On la détecte en rejouant le banc d'essai avant et après."
+  pass_at_k:
+    term: "pass@k"
+    definition: "La part des cas qui réussissent au moins une fois en k essais. Elle mesure ce que l'agent sait faire quand on lui laisse plusieurs chances."
+  pass_hat_k:
+    term: "pass^k"
+    definition: "La part des cas qui réussissent à chacun des k essais. Elle mesure la fiabilité : c'est la valeur qui compte pour un agent qui doit marcher à tous les coups."
+  llm_judge:
+    term: "Juge LLM"
+    definition: "Un second modèle chargé de noter la réponse d'un premier. Pratique, mais lui aussi se trompe et varie d'un essai à l'autre ; WaveStack s'en passe et vérifie des faits du journal."

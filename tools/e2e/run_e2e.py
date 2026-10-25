@@ -17631,6 +17631,78 @@ SECURITY_FAKE_JOURNAL = {
 }
 
 
+def s_glossary(r: Run) -> None:
+    """V1.5 story 6 (CAP-6): the glossary opens from « Glossaire » in the navigation of each of
+    the six pages (40 to 60 terms, a search that filters, Escape closes and gives the focus
+    back), and a citation `[[g:key|text]]` in a text of the page becomes a button that opens
+    the glossary on that term (an unknown key stays plain text). The citation is written into
+    the page, as the briques' and scenarios' texts will be."""
+    page = r.page
+    page.set_viewport_size({"width": 1400, "height": 900})
+    for path in ("", "llm", "rag", "mcp", "security", "diagnostic"):
+        name = path or "index"
+        page.goto(f"{r.stack.app_url}/{path}")
+        toggle = page.locator("#glossary-toggle")
+        expect(toggle).to_be_visible(timeout=10_000)
+        r.check(toggle.inner_text() == "Glossaire", f"Glossaire ({name}) : le bouton de la barre")
+        toggle.click()
+        panel = page.locator("#glossary-panel")
+        expect(panel).to_be_visible(timeout=10_000)
+        expect(page.locator("#glossary-list dt").first).to_be_visible(timeout=10_000)
+        count = page.locator("#glossary-list dt").count()
+        r.check(40 <= count <= 60, f"Glossaire ({name}) : 40 à 60 termes", str(count))
+        r.check(
+            toggle.get_attribute("aria-expanded") == "true",
+            f"Glossaire ({name}) : le bouton se dit ouvert",
+        )
+        if path == "":
+            page.locator("#glossary-search").fill("plafond")
+            names = page.locator("#glossary-list dt").all_inner_texts()
+            r.check(
+                {"Plafond d'appels", "Plafond de dépense"} <= set(names) and len(names) < 10,
+                "Glossaire : la recherche « plafond » filtre les termes (noms et définitions)",
+                str(names),
+            )
+            page.locator("#glossary-search").fill("zzzz")
+            empty = page.locator(".glossary-empty").inner_text()
+            r.check(empty == "Aucun terme ne correspond.", "Glossaire : aucun résultat", empty)
+        page.keyboard.press("Escape")
+        r.check(not panel.is_visible(), f"Glossaire ({name}) : Échap le ferme")
+        r.check(
+            page.evaluate("() => document.activeElement?.id") == "glossary-toggle",
+            f"Glossaire ({name}) : le focus revient au bouton",
+        )
+
+    page.goto(f"{r.stack.app_url}/security")
+    expect(page.locator("#glossary-toggle")).to_be_visible(timeout=10_000)
+    page.wait_for_function("() => !!document.querySelector('#glossary-toggle')")
+    page.evaluate(
+        """() => {
+          const p = document.createElement("p");
+          p.id = "e2e-cite";
+          p.textContent = "Voir le [[g:call_ceiling|plafond]] et [[g:nope|rien]].";
+          document.body.appendChild(p);
+        }"""
+    )
+    cite = page.locator("#e2e-cite .glossary-cite")
+    expect(cite).to_have_count(1, timeout=10_000)
+    r.check(cite.inner_text() == "plafond", "Glossaire : la citation montre son texte")
+    r.check(
+        page.locator("#e2e-cite").inner_text() == "Voir le plafond et rien.",
+        "Glossaire : une clé inconnue reste du texte simple",
+        page.locator("#e2e-cite").inner_text(),
+    )
+    cite.click()
+    current = page.locator("#glossary-list dt.glossary-current")
+    expect(current).to_have_count(1, timeout=10_000)
+    r.check(
+        current.inner_text() == "Plafond d'appels",
+        "Glossaire : la citation ouvre le glossaire sur son terme",
+        current.inner_text(),
+    )
+    page.keyboard.press("Escape")
+
+
 def s_security_page(r: Run) -> None:
     """Story 10 (CAP-3, CAP-8, CAP-9): the page Sécurité, flux 1's temps fort (ux/EXPERIENCE.md,
     étapes 7-8) : the RSSI unfolds the fusion's refused row and reads « Envoyé à GitHub : non »,
@@ -19337,6 +19409,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("relaunch", s_relaunch),
     ("bar_panels", s_bar_panels),  # story 9 (V1.1 vague 2): the barre commune's two flyouts
     ("cache_bilan", s_cache_bilan),  # V1.3 story 4 (CAP-3): the bilan's two columns
+    ("glossary", s_glossary),  # V1.5 story 6 (CAP-6): le glossaire du harnais
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
     ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
     ("cache_module", s_cache_module),  # V1.3 story 6: le module « Cache »

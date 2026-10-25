@@ -74,6 +74,13 @@ common:
     mcp_title: "MCP-Werkstatt: das MCP-Protokoll zum Ausprobieren (JSON-RPC-Handshake, Dokumentation der Tools, Aufruf)"
     security: "Sicherheit"
     security_title: "Sicherheit: Risikomatrix, aktive Kontrollen, vollständiges Protokoll und die Grenzen des Harness"
+  glossary:
+    button: "Glossar"
+    title: "Glossar des Harness"
+    close: "Schließen"
+    search: "Begriff suchen"
+    empty: "Kein Begriff passt."
+    failed: "Das Glossar konnte nicht geladen werden."
   display:
     menu: "Anzeige"
     theme: "Farbschema"

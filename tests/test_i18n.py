@@ -256,6 +256,10 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert (
             tr["session.translation_invalid.message"] != fr["session.translation_invalid.message"]
         )
+    elif rel == "glossary.yaml":  # V1.5 story 6: the same keys in the same order
+        fr, tr = _yaml(rel, "fr")["terms"], _yaml(rel, lang)["terms"]
+        assert list(tr) == list(fr)
+        assert all(set(v) == {"term", "definition"} for v in tr.values())
     elif rel == "rag.yaml":  # languages (4/5): the same documents, their titles translated
         fr, tr = load_rag_content("fr"), load_rag_content(lang)
         assert [(d.id, d.file) for d in tr.documents] == [(d.id, d.file) for d in fr.documents]
