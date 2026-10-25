@@ -42,8 +42,10 @@ from wavestack.messages import in_language, msg, render
 from wavestack.models import catalog
 from wavestack.models.cloud_base import session_spend
 from wavestack.models.engine import SAMPLING_BOUNDS, Sampling
+from wavestack.rag import access as rag_access
 from wavestack.rag import attack as rag_attack
 from wavestack.rag import diagnosis as rag_diagnosis
+from wavestack.rag import erasure as rag_erasure
 from wavestack.rag import evaluation as rag_evaluation
 from wavestack.rag.lab import QUESTION_MAX, Pipeline
 from wavestack.session.app_session import (
@@ -834,6 +836,30 @@ def create_app(
         if found is None:
             raise HTTPException(status_code=404, detail="unknown scenario")
         return found
+
+    # ----- V1.2 story 18 (CAP-14, CAP-15): the Attack tab's Effacement and Droits cards -----
+
+    @app.get("/api/rag_lab/erasure")
+    def rag_lab_erasure_texts() -> dict[str, object]:
+        """V1.2 story 18: the card's texts and default state. Read only, no computation."""
+        return app_session.rag_lab_erasure_texts()
+
+    @app.post("/api/rag_lab/erasure")
+    def rag_lab_erasure(request: rag_erasure.ErasureRequest) -> dict[str, object]:
+        """V1.2 story 18: the places where the sentinel survives, recomputed from the request
+        (nothing is kept). No model, no network. An unknown field or value: 422."""
+        return app_session.rag_lab_erasure(request)
+
+    @app.get("/api/rag_lab/access")
+    def rag_lab_access_texts() -> dict[str, object]:
+        """V1.2 story 18: the card's texts and default state. Read only, no computation."""
+        return app_session.rag_lab_access_texts()
+
+    @app.post("/api/rag_lab/access")
+    def rag_lab_access(request: rag_access.AccessRequest) -> dict[str, object]:
+        """V1.2 story 18: what the pipeline read before the filter, recomputed. No model, no
+        network. An unknown field or value: 422."""
+        return app_session.rag_lab_access(request)
 
     @app.get("/mcp")
     def mcp_page() -> FileResponse:

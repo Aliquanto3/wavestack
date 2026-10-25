@@ -15175,6 +15175,125 @@ def s_rag_lab_attack(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_rights(r: Run) -> None:
+    """V1.2 story 18 (CAP-14, CAP-15), after `rag` and `rag_rerank`: the Attaquer tab, cards
+    « Effacement » and « Droits d'accès », no model, no index, no key. The sentinel activated, the
+    copies built, the sentinel deleted (chunks and BM25 erased, contexts and derivatives to rebuild,
+    caches to reload, illustrative marks), the question on the code, GraphRAG rebuilt; the rights:
+    profile Tous after the search (the HR passage read before the filter, fewer than k returned),
+    before the search (no leak), profile RH; the « Document piégé » card still answers; nothing
+    leaving 127.0.0.1; the corpus of Construire unchanged. Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    outside: list[str] = []
+
+    def listener(request) -> None:  # noqa: ANN001
+        if not request.url.startswith(("http://127.0.0.1", "data:", "blob:")):
+            outside.append(request.url)
+
+    def row(place: str):  # noqa: ANN202
+        return page.locator(f'#rag-era-table tr[data-place="{place}"]').first
+
+    page.on("request", listener)
+    _goto_rag_lab(r)
+    try:
+        before = r.api("GET", "/api/rag_lab").json()
+        corpus_before = json.dumps(
+            before.get("corpus", before.get("documents", "")), sort_keys=True
+        )
+        page.click("#rag-tab-attack")
+        expect(page.locator("#rag-era-title")).to_have_text("Effacement", timeout=10_000)
+        r.check(
+            not page.locator("#rag-era-sentinel").is_checked()
+            and page.inner_text("#rag-era-sentinel-state") == "inactive"
+            and page.locator("#rag-era-build").is_disabled(),
+            "Effacement : sentinelle inactive d'emblée, « Construire les copies » inactif",
+        )
+        page.locator("#rag-era-sentinel").check()
+        page.click("#rag-era-build")
+        expect(row("chunks")).to_contain_text("présent", timeout=10_000)
+        r.check(
+            "Passages avec le code : 2" in row("chunks").inner_text()
+            and "absent" in row("shipped_contexts").inner_text(),
+            "copies construites : 2 passages avec le code, fichier de contextes livré absent",
+        )
+        page.click("#rag-era-erase")
+        expect(row("chunks")).to_contain_text("effacé", timeout=10_000)
+        r.check(
+            "effacé" in row("bm25").inner_text()
+            and "à reconstruire" in row("contexts").inner_text()
+            and "à reconstruire" in row("raptor_summaries").inner_text()
+            and "à recharger" in row("cag_cache").inner_text()
+            and "illustratif" in row("graph_communities").inner_text()
+            and "cas construit" in row("graph_communities").inner_text(),
+            "suppression : chunks et BM25 effacés, dérivés à reconstruire, caches à recharger",
+        )
+        r.check(
+            page.locator('#rag-era-results li[data-place="cag_cache"]').count() == 1
+            and "Aucun passage ne remonte" in page.inner_text("#rag-era-results"),
+            "question sur le code : plus de passage, mais les copies contiennent encore le code",
+        )
+        page.locator('#rag-era-rebuild [data-architecture="graphrag"]').click()
+        expect(row("graph_communities")).to_contain_text("non mesuré", timeout=10_000)
+        r.check(
+            "effacé (illustratif, non mesuré)" in row("graph_entities").inner_text()
+            and "à reconstruire" in row("wiki_pages").inner_text()
+            and "Remise en conformité" in page.inner_text("#rag-era-costs"),
+            "reconstruction de GraphRAG : ses endroits « effacé (illustratif, non mesuré) », "
+            "les autres inchangés, coût en mots",
+        )
+        page.locator("#rag-era-sentinel").uncheck()
+        expect(page.locator("#rag-era-table-box")).to_be_hidden(timeout=10_000)
+
+        expect(page.locator("#rag-acc-title")).to_have_text("Droits d'accès", timeout=10_000)
+        expect(page.locator("#rag-acc-result")).to_contain_text("Fuite", timeout=10_000)
+        hr_seen = page.locator('#rag-acc-result [data-section="seen"] [data-audience="hr"]')
+        hr_returned = page.locator('#rag-acc-result [data-section="returned"] [data-audience="hr"]')
+        leaked = page.locator('#rag-acc-result [data-section="leaked"] li')
+        r.check(
+            hr_seen.count() >= 1
+            and hr_returned.count() == 0
+            and leaked.count() >= 1
+            and "trahit" in page.inner_text("#rag-acc-result")
+            and "Réécriture de requête" in page.inner_text("#rag-acc-result"),
+            "Tous, après : passage RH lu avant le filtre, moins de k rendus, fuite dite",
+        )
+        r.shot("69-atelier-rag-attaquer-effacement-droits", full_page=True)
+        page.select_option("#rag-acc-mode", "before")
+        expect(page.locator("#rag-acc-result")).to_contain_text("Aucune fuite", timeout=10_000)
+        r.check(
+            page.locator('#rag-acc-result [data-audience="hr"]').count() == 0
+            and "Aucun passage RH n'a été lu" in page.inner_text("#rag-acc-result"),
+            "Tous, avant la recherche : aucun passage RH lu, aucune fuite",
+        )
+        page.select_option("#rag-acc-profile", "hr")
+        expect(page.locator("#rag-acc-result")).to_contain_text("Autorisation", timeout=10_000)
+        page.select_option("#rag-acc-mode", "after")
+        expect(page.locator("#rag-acc-result")).to_contain_text("Autorisation", timeout=10_000)
+        r.check(
+            hr_returned.count() >= 1 and leaked.count() == 0,
+            "profil RH : passages RH rendus, aucune fuite comptée",
+        )
+
+        page.locator('#rag-atk-scenarios [data-scenario="poisoning"]').click()
+        page.locator("#rag-atk-trap").check()
+        expect(page.locator('#rag-atk-columns [data-kind="false"]').first).to_be_visible(
+            timeout=10_000
+        )
+        after = r.api("GET", "/api/rag_lab").json()
+        r.check(
+            json.dumps(after.get("corpus", after.get("documents", "")), sort_keys=True)
+            == corpus_before,
+            "Construire : le corpus actif n'a pas changé ; la carte « Document piégé » répond",
+        )
+        r.check(
+            not outside, "Effacement et Droits : aucune requête hors de 127.0.0.1", str(outside[:3])
+        )
+    finally:
+        page.remove_listener("request", listener)
+        r.goto_app()
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -17706,6 +17825,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
+    ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

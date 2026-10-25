@@ -166,5 +166,4 @@ texts:
       remove_needs_uncheck: "Décochez le document piégé pour le retirer."
       remove_needs_injection: "Rien à retirer : injectez d'abord le document dans le graphe."
       rebuild_document_still_there: "Le document est toujours dans le corpus : la reconstruction garde la relation fausse. Retirez-le d'abord."
-  story18_text: "Effacement et Droits : à venir (story 18)."
   unknown_text: "Scénario inconnu."

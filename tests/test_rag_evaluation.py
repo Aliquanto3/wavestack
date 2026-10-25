@@ -896,6 +896,8 @@ OTHER_TABS = (
     "rag-compare.js",
     "rag-diagnosis.js",
     "rag-attack.js",
+    "rag-attack-erasure.js",
+    "rag-attack-access.js",
     "rag-sheets.js",
 )
 
