@@ -549,3 +549,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:14 · 12.14 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; worktree ../wavestack-v12-s14 depuis l'intégration cc3ec10 ; même schéma que 12.11 et 12.13) · cc3ec10
 - 2026-10-25 13:17 · 12.19b · CI · verte · 10106d8
 - 2026-10-25 13:17 · 12.19b · fusion · #117 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.13 et 12.14 prévenues (fiche obligatoire pour chaque option) · 99e71ac
+- 2026-10-25 13:19 · 12.20 · second-avis · 0 high, 1 medium (« Arrêter » n'annule pas l'appel MCP en cours), 5 low (déconnexion du client non traitée, langue du contenu, compte des passages RH retirés exposé au client, ligne network de la matrice, échec de serve() non signalé) ; middleware, jeton, filtre hr sans défaut · eda9fc8
+- 2026-10-25 13:19 · 12.20 · review · lancé (Opus ; fusion de l'intégration avec 12.19b d'abord) · eda9fc8
