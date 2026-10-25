@@ -608,6 +608,122 @@ main:
       close: "Schließen"
       error:
         no_answer: "WaveStack antwortet nicht: Der Fall wurde nicht gespeichert."
+  agent_eval:
+    toggle: "Agent bewerten"
+    title: "Agent bewerten"
+    loading: "Fälle werden geladen …"
+    badge: "Fall: {title}"
+    head:
+      model: "Modell: {model}"
+      no_model: "keines"
+      prompt: "Systemprompt: „{start}“ ({state})"
+      prompt_default: "Standard"
+      prompt_custom: "geändert"
+    banner: "Eine Demonstration, kein Benchmark: wenige Fälle, ein kleines Modell, Ergebnisse, die von Lauf zu Lauf schwanken."
+    group:
+      provided: "Mitgelieferte Suite"
+      mine: "Meine Fälle"
+    mine:
+      empty: "Noch kein Sitzungsfall: Nutzen Sie „Als Fall speichern“ bei einem Turn der Ansicht Mensch."
+      unreadable: "Die Datei mit Ihren Fällen ist nicht lesbar: Ihre Fälle können nicht gestartet werden. „Meine Fälle löschen“ leert sie; die mitgelieferten Fälle bleiben spielbar."
+    case:
+      meta: "· {brick} · Obergrenze {max}"
+      meta_session: "· Sitzung · {turn} · Obergrenze {max}"
+      window_hint: "Um ihn zu spielen, wählen Sie dieses Fenster unter „Fenster ▾“ (das Modell wird neu geladen) und starten Sie den Fall erneut."
+      ignored: "Ohne gespielt: {ids} (in dieser Sitzung nicht vorhanden)."
+      run: "Starten"
+      run_label: "Fall „{title}“ starten"
+      trials_label: "Anzahl der Versuche für „{title}“"
+      trials:
+        one: "{count} Versuch"
+        other: "{count} Versuche"
+      delete: "Löschen"
+      delete_label: "Fall „{title}“ löschen"
+    run_suite: "Suite starten"
+    busy: "Ein Lauf ist im Gang."
+    first_run:
+      text: "Die Unterhaltung wird geleert; Ihre Konfiguration wird am Ende wiederhergestellt."
+      go: "Starten"
+      cancel: "Abbrechen"
+    progress:
+      suite: "Fall {index} von {total}"
+      trials: "Versuch {trial} von {k}"
+    stop: "Stoppen"
+    stop_requested: "Stopp angefordert …"
+    status:
+      passed: "Bestanden"
+      failed: "Nicht bestanden"
+      not_run: "Nicht gestartet"
+      running: "Läuft"
+      pending: "Wartet"
+    failing: "{check}: {reason}."
+    check:
+      model_calls_max: "Modellaufrufe unter der Obergrenze"
+    trace:
+      show: "Turn anzeigen"
+      hide: "Turn ausblenden"
+      label: "Ablauf des Falls"
+      loading: "Ablauf wird gelesen …"
+      fault: "(fehlerhaftes Ereignis)"
+      trial: "Versuch {trial}"
+      gone: "Dieser Ablauf ist nicht mehr im Speicher."
+    trials:
+      summary:
+        one: "{passed} von {ran} bestanden · pass@{k}: {at} · pass^{k}: {all}"
+        other: "{passed} von {ran} bestanden · pass@{k}: {at} · pass^{k}: {all}"
+      prefix: "{k} Versuche:"
+    "yes": "ja"
+    "no": "nein"
+    undecided: "—"
+    runs:
+      title: "Läufe dieser Sitzung"
+      col:
+        time: "Uhrzeit"
+        model: "Modell"
+        prompt: "Systemprompt"
+        result: "Ergebnis"
+      pick_a: "A"
+      pick_b: "B"
+      pick_label: "{pick}: der Lauf von {time}"
+      result:
+        one: "{passed} von {ran} gestarteten bestanden"
+        other: "{passed} von {ran} gestarteten bestanden"
+      not_run:
+        one: "· {count} nicht gestartet"
+        other: "· {count} nicht gestartet"
+      scope_case: "{title}, {trials}"
+      status:
+        cancelled: "· gestoppt"
+        budget: "· Ausgabengrenze erreicht"
+        error: "· durch einen Fehler unterbrochen"
+      empty: "Starten Sie die Suite, um einen ersten Lauf zu erhalten."
+    compare:
+      title: "A und B vergleichen"
+      diff: "Unterschied: {fields}."
+      field:
+        model: "Modell"
+        system_prompt: "Systemprompt"
+      control: "Kontrolllauf: Was sich hier ändert, kommt vom Modell, nicht von Ihnen."
+      same_run: "Wählen Sie zwei verschiedene Läufe."
+      col:
+        case: "Fall"
+        change: "Änderung"
+      change:
+        regressed: "verschlechtert"
+        fixed: "behoben"
+        unchanged: "unverändert"
+        absent_a: "fehlt in A"
+        absent_b: "fehlt in B"
+      missing: "—"
+    clear: "Meine Fälle löschen"
+    clear_confirm:
+      ask:
+        one: "Den Sitzungsfall löschen? Die mitgelieferten Fälle bleiben."
+        other: "Die {count} Sitzungsfälle löschen? Die mitgelieferten Fälle bleiben."
+      "yes": "Löschen"
+      "no": "Abbrechen"
+    error:
+      no_answer: "WaveStack antwortet nicht: Die Ansicht konnte nicht aktualisiert werden."
   orch:
     catalog:
       one: "{count} Tool, dem Modell im Kontext beschrieben: {tokens} Tokens."
@@ -1021,6 +1137,7 @@ main:
       llm_lab: "LLM-Werkstatt"
       rag_lab: "RAG-Werkstatt"
       mcp_lab: "MCP-Werkstatt"
+      agent_eval: "Agentenbewertung"
     lab_status:
       completed: "beendet"
       cancelled: "gestoppt"

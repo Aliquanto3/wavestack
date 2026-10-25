@@ -18336,8 +18336,9 @@ def s_agent_case(r: Run) -> None:
     drawer.get_by_role("button", name="Enregistrer").click()
     expect(drawer.locator(".ae-saved")).to_have_text("Cas enregistré.", timeout=5000)
     r.check(
-        drawer.get_by_role("button", name="Ouvrir Évaluer l'agent").count() == 0,
-        "cas enregistré, sans « Ouvrir Évaluer l'agent » tant qu'aucune vue ne s'est enregistrée",
+        drawer.get_by_role("button", name="Ouvrir Évaluer l'agent").count() == 1,
+        "cas enregistré : « Ouvrir Évaluer l'agent » proposé (la vue de la story 4 s'est "
+        "enregistrée)",
     )
     saved_file = r.stack.data_dir / "agent_cases.json"
     cases = json.loads(saved_file.read_text(encoding="utf-8"))["cases"]
@@ -19527,6 +19528,315 @@ def s_rag_lab_wiki(r: Run) -> None:
             r.check(False, "retour au faux cloud A, à 4 096 et au corpus livré", repr(exc))
 
 
+def _eval_state(r: Run) -> dict[str, Any]:
+    return r.api("GET", "/api/agent_eval/state").json()
+
+
+def _eval_finished(r: Run, runs_before: int, timeout: float = 120) -> dict[str, Any]:
+    """Waits for the run launched after `runs_before` runs to end and the session to rest,
+    then for the view to list it; returns `GET /state`."""
+    done, _ = r.poll(
+        lambda: (
+            (s := _eval_state(r))["current"] is None
+            and len(s["runs"]) > runs_before
+            and all(x["status"] != "running" for x in s["runs"])
+            and (r.state().get("session_state") or {}).get("state") == "idle"
+        ),
+        timeout,
+    )
+    if not done:
+        raise TimeoutError(f"exécution non finie en {timeout:g} s")
+    state = _eval_state(r)
+    rows = r.page.locator("#agent-eval-panel table.ae-table:not([data-role]) tbody tr")
+    expect(rows).to_have_count(len(state["runs"]), timeout=10000)
+    expect(r.page.locator("#agent-eval-panel .ae-progress")).to_have_count(0, timeout=10000)
+    return state
+
+
+def _eval_case(r: Run, case_id: str):
+    return r.page.locator(f"#agent-eval-panel .ae-case[data-case-id='{case_id}']")
+
+
+def s_agent_eval(r: Run) -> None:
+    """V1.5 story 4 (CAP-4): « Évaluer l'agent ». From the story 3's form to the view (« Ouvrir
+    Évaluer l'agent », the case in « Mes cas »), the toggle of the top bar, the suite with the
+    first-run warning, a passed, a failed and a « Non lancé » for the window (the session at
+    8 192, the Talvane case asks 4 096), the badges of the Vue humain, the failure's trace, 3
+    tries on one case, two runs compared after a change of the system prompt, then a control
+    rerun, « Arrêter » during a run, the configuration restored, « Effacer mes cas », the view
+    in English and German; capture `agent-eval.jpg`. Ends in French, at 4 096, prompt default."""
+    page = r.page
+    panel = page.locator("#agent-eval-panel")
+    toggle = page.locator("#agent-eval-toggle")
+    saved_file = r.stack.data_dir / "agent_cases.json"
+    pirate = "Réponds toujours en une phrase, comme un pirate."
+    try:
+        if (r.state().get("context_window_state") or {}).get("configured") != 8192:
+            _apply_window(r, 8192)
+        r.launch("native_tools")
+        # 1. From the form to the view. « [lent] »: the case's turn is slow (step 7's stop).
+        r.send("Quelle heure est-il ? [lent]")
+        _case_button(r).click()
+        drawer = page.locator(".ae-drawer")
+        expect(drawer.locator("[data-field='title_text']")).to_be_focused(timeout=5000)
+        drawer.locator("[data-field='title_text']").fill("L'heure lente")
+        drawer.locator("[data-field='symptom_text']").fill("Appelle l'outil")
+        drawer.locator("[data-field='assertion_text']").fill("Ne doit pas appeler get_datetime")
+        drawer.locator("select[data-field='checks.0.kind']").select_option("tool_not_called")
+        expect(drawer.locator(".ae-verdict")).to_have_class(re.compile(r"\bfails\b"), timeout=5000)
+        drawer.get_by_role("button", name="Enregistrer").click()
+        expect(drawer.locator(".ae-saved")).to_have_text("Cas enregistré.", timeout=5000)
+        case_id = json.loads(saved_file.read_text(encoding="utf-8"))["cases"][0]["id"]
+        drawer.get_by_role("button", name="Ouvrir Évaluer l'agent").click()
+        expect(panel).to_be_visible(timeout=5000)
+        mine = _eval_case(r, case_id)
+        expect(mine).to_be_visible(timeout=10000)
+        r.check(
+            drawer.count() == 0
+            and toggle.get_attribute("aria-pressed") == "true"
+            and "is-highlighted" in (mine.get_attribute("class") or "")
+            and panel.locator(".ae-group", has_text="Mes cas").count() == 1
+            and "séance" in mine.inner_text(),
+            "« Ouvrir Évaluer l'agent » ouvre la vue, le cas dans « Mes cas », mis en évidence",
+            mine.inner_text()[:200],
+        )
+        # 2. The toggle of the top bar; the Vue humain stays.
+        human = page.locator('.pane[data-pane="human"]')
+        ctx = page.locator('.pane[data-pane="ctx"]')
+        orch = page.locator('.pane[data-pane="orch"]')
+        r.check(
+            human.is_visible() and ctx.is_hidden() and orch.is_hidden(),
+            "vue ouverte : elle couvre Contexte LLM et Orchestration, la Vue humain reste",
+        )
+        toggle.click()
+        expect(panel).to_have_count(0, timeout=5000)
+        r.check(
+            toggle.get_attribute("aria-pressed") == "false"
+            and ctx.is_visible()
+            and orch.is_visible(),
+            "bouton de la barre : la vue se ferme, les deux volets reviennent",
+        )
+        toggle.click()
+        expect(panel).to_be_visible(timeout=5000)
+        panel.locator("h3").focus()
+        page.keyboard.press("Escape")
+        expect(panel).to_have_count(0, timeout=5000)
+        r.check(
+            page.evaluate("() => document.activeElement.id") == "agent-eval-toggle",
+            "Échap dans la vue la ferme et rend le focus au bouton",
+        )
+        toggle.click()
+        expect(panel.locator(".ae-case")).to_have_count(9, timeout=10000)
+        r.check(
+            "Lancez la suite pour obtenir une première exécution." in panel.inner_text()
+            and "Démonstration, pas un banc" in panel.inner_text(),
+            "vue vide : bandeau et « Lancez la suite… »",
+        )
+        # 3. The suite: the first-run warning, then the run.
+        panel.get_by_role("button", name="Lancer la suite").click()
+        warning = panel.locator(".ae-confirm")
+        expect(warning).to_contain_text("La conversation sera vidée", timeout=5000)
+        r.check(_eval_state(r)["runs"] == [], "avertissement du premier lancement : rien de lancé")
+        warning.get_by_role("button", name="Lancer").click()
+        progress = panel.locator(".ae-progress")
+        expect(progress).to_contain_text(re.compile(r"Cas \d sur 9"), timeout=10000)
+        reason = page.locator("#composer-reason")
+        expect(reason).to_contain_text("Évaluation de l'agent en cours", timeout=5000)
+        r.check(
+            progress.get_attribute("role") == "status"
+            and page.locator("#composer-input").is_disabled()
+            and "Évaluation de l'agent en cours" in reason.inner_text()
+            and page.locator("#composer-stop").is_visible()
+            and panel.get_by_role("button", name="Lancer la suite").is_disabled(),
+            "en cours : barre « Cas n sur 9 », compositeur désactivé avec la raison, « Arrêter » "
+            "visible, « Lancer la suite » désactivé",
+            reason.inner_text(),
+        )
+        badge = page.locator("#chat .ae-badge").first
+        expect(badge).to_contain_text("Cas : ", timeout=30000)
+        r.check(
+            True, "Vue humain : les tours des cas portent le badge « Cas : … »", badge.inner_text()
+        )
+        state = _eval_finished(r, 0)
+        heure = _eval_case(r, "heure_get_datetime")
+        talvane = _eval_case(r, "code_talvane_apres_compaction")
+        r.check(
+            heure.locator(".ae-status").inner_text() == "Réussi"
+            and mine.locator(".ae-status").inner_text() == "Échoué"
+            and "Outil non appelé" in mine.inner_text(),
+            "suite : heure_get_datetime « Réussi », le cas de séance « Échoué » avec sa "
+            "vérification",
+            mine.inner_text()[:200],
+        )
+        r.check(
+            talvane.locator(".ae-status").inner_text() == "Non lancé"
+            and re.search(r"4\s096", talvane.inner_text())
+            and "Fenêtre ▾" in talvane.inner_text(),
+            "code_talvane_apres_compaction « Non lancé » : la fenêtre exigée et le conseil",
+            talvane.inner_text()[:240],
+        )
+        # 4. The failure's trace.
+        show = mine.get_by_role("button", name="Voir le tour")
+        show.click()
+        trace = mine.locator("ol.ae-trace")
+        expect(trace).to_be_visible(timeout=5000)
+        r.check(
+            trace.locator("li.fault").count() == 1
+            and "(événement fautif)" in trace.locator("li.fault").inner_text()
+            and mine.get_by_role("button", name="Masquer le tour").get_attribute("aria-expanded")
+            == "true",
+            "« Voir le tour » sur l'échec : la trace dépliée, un élément fautif",
+            trace.inner_text()[:300],
+        )
+        # 5. Three tries on one case.
+        runs = len(state["runs"])
+        heure.locator("select").select_option("3")
+        heure.get_by_role("button", name="Lancer").click()
+        _eval_finished(r, runs)
+        expect(heure.locator(".ae-dots i")).to_have_count(3, timeout=5000)
+        r.check(
+            heure.locator(".ae-dots i.ok").count() == 3
+            and "3 réussis sur 3 · pass@3 : oui · pass^3 : oui" in heure.inner_text(),
+            "3 essais : trois ronds, « 3 réussis sur 3 · pass@3 : oui · pass^3 : oui »",
+            heure.inner_text()[:240],
+        )
+        # 6. The system prompt changed, the suite again, A and B compared.
+        page.click("#edit-system-prompt")
+        page.fill("#drawer-text", pirate)
+        page.click("#drawer-save")
+        expect(page.locator("#drawer-status")).to_contain_text(
+            "Prompt système enregistré", timeout=5000
+        )
+        page.click("#drawer-close")
+        page.mouse.move(0, 0)
+        page.wait_for_timeout(1200)  # the view reads its header again at most once a second
+        panel.locator("h3").hover()
+        expect(panel.locator(".ae-head").first).to_contain_text("(modifié)", timeout=10000)
+        state = _eval_state(r)
+        runs = len(state["runs"])
+        panel.get_by_role("button", name="Lancer la suite").click()
+        state = _eval_finished(r, runs)
+        suites = [x["run_id"] for x in state["runs"] if x["scope"] == "suite"]
+        panel.locator(f"input[name='agent-eval-pick-a'][value='{suites[0]}']").check()
+        panel.locator(f"input[name='agent-eval-pick-b'][value='{suites[1]}']").check()
+        panel.get_by_role("button", name="Comparer A et B").click()
+        compared = panel.locator("table.ae-table[data-role='comparison']")
+        expect(compared).to_be_visible(timeout=5000)
+        head = compared.locator("xpath=preceding-sibling::p[1]")
+        r.check(
+            head.inner_text() == "Diffère : prompt système."
+            and compared.locator("tbody tr").count() == 9,
+            "A et B : « Diffère : prompt système. », une ligne par cas",
+            head.inner_text(),
+        )
+        changes = compared.locator("tbody td:last-child").all_inner_texts()
+        r.check(
+            all(c in ("régressé", "corrigé", "inchangé") for c in changes)
+            and "inchangé" in changes,
+            "chaque ligne dit « régressé », « corrigé » ou « inchangé »",
+            ", ".join(changes),
+        )
+        # A control rerun: the same suite twice without a change.
+        state = _eval_state(r)
+        runs = len(state["runs"])
+        panel.get_by_role("button", name="Lancer la suite").click()
+        state = _eval_finished(r, runs)
+        suites = [x["run_id"] for x in state["runs"] if x["scope"] == "suite"]
+        panel.locator(f"input[name='agent-eval-pick-a'][value='{suites[1]}']").check()
+        panel.locator(f"input[name='agent-eval-pick-b'][value='{suites[2]}']").check()
+        panel.get_by_role("button", name="Comparer A et B").click()
+        expect(compared).to_be_visible(timeout=5000)
+        r.check(
+            head.inner_text().startswith("Rejeu témoin : ce qui change ici vient du modèle"),
+            "deux exécutions sans changement : la ligne de rejeu témoin",
+            head.inner_text(),
+        )
+        # 7. « Arrêter »: during the last case (the slow one), then nothing is left to run.
+        runs = len(state["runs"])
+        seq = r.ev.mark()
+        panel.get_by_role("button", name="Lancer la suite").click()
+        r.ev.wait("turn_started", seq, lambda p: p.get("case_id") == case_id, 120)
+        expect(progress).to_contain_text("Cas 9 sur 9", timeout=10000)
+        progress.get_by_role("button", name="Arrêter").click()
+        expect(progress).to_contain_text("Arrêt demandé…", timeout=5000)
+        state = _eval_finished(r, runs)
+        last = state["runs"][-1]
+        r.check(
+            last["status"] == "cancelled"
+            and mine.locator(".ae-status").inner_text() == "Non lancé"
+            and "arrêté" in mine.inner_text().lower(),
+            "« Arrêter » : le cas restant « Non lancé », « arrêté », exécution marquée",
+            mine.inner_text()[:200],
+        )
+        row = panel.locator(f"tr[data-run-id='{last['run_id']}']")
+        r.check(
+            "· arrêtée" in row.inner_text(),
+            "la ligne de l'exécution dit « arrêtée »",
+            row.inner_text(),
+        )
+        # 8. The configuration restored.
+        r.check(
+            r.bricks_state()["system_prompt"]["is_default"] is False,
+            "configuration rétablie : le prompt système modifié reste",
+        )
+        page.click("#edit-system-prompt")
+        r.check(page.input_value("#drawer-text") == pirate, "le tiroir montre le texte modifié")
+        page.click("#drawer-close")
+        # 9. « Effacer mes cas ».
+        panel.get_by_role("button", name="Effacer mes cas").click()
+        confirm = panel.locator(".ae-confirm")
+        expect(confirm).to_contain_text(
+            "Effacer le cas de séance ? Les cas fournis restent.", timeout=5000
+        )
+        r.check(confirm.get_attribute("role") == "alert", "confirmation dans la page (role=alert)")
+        confirm.get_by_role("button", name="Effacer").click()
+        expect(mine).to_have_count(0, timeout=5000)
+        r.check(
+            json.loads(saved_file.read_text(encoding="utf-8")) == {"version": 1, "cases": []}
+            and panel.locator(".ae-case").count() == 8
+            and "Aucun cas de séance" in panel.inner_text()
+            and panel.locator("table.ae-table:not([data-role]) tbody tr").count()
+            == len(state["runs"]),
+            "« Effacer mes cas » : « Mes cas » vide, les fournis et les exécutions restent",
+        )
+        r.shot("agent-eval")
+        # 10. English, then German.
+        for lang, title, banner, passed in (
+            ("en", "Evaluate the agent", "A demonstration, not a benchmark", "Passed"),
+            ("de", "Agent bewerten", "Eine Demonstration, kein Benchmark", "Bestanden"),
+        ):
+            _switch_language(r, lang)
+            toggle.click()
+            expect(panel.locator(".ae-case")).to_have_count(8, timeout=10000)
+            r.check(
+                panel.locator("h3").inner_text() == title
+                and toggle.inner_text() == title
+                and banner in panel.inner_text()
+                and _eval_case(r, "heure_get_datetime").locator(".ae-status").inner_text()
+                == passed,
+                f"vue en {lang} : titre, bandeau et statuts traduits",
+                panel.inner_text()[:200],
+            )
+            toggle.click()
+    finally:
+        try:
+            if page.locator("#agent-eval-panel").count():
+                toggle.click()
+            if r.state().get("language") != "fr":
+                _switch_language(r, "fr")
+            r.api("POST", "/api/intentions/stop", {})
+            r.wait_idle(120)
+            r.api("DELETE", "/api/agent_eval/cases")
+            if not r.bricks_state()["system_prompt"]["is_default"]:
+                page.click("#edit-system-prompt")
+                page.click("#drawer-reset")
+                page.click("#drawer-close")
+            if (r.state().get("context_window_state") or {}).get("configured") != 4096:
+                _apply_window(r, 4096)
+        except Exception as exc:  # noqa: BLE001 - reported, the scenario's own error kept
+            r.check(False, "nettoyage : français, 4 096, prompt par défaut", repr(exc))
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -19613,6 +19923,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1
     ("claude_cache", s_claude_cache),  # V1.3 story 5: le cache de prompt de Claude
     ("cache_module", s_cache_module),  # V1.3 story 6: le module « Cache »
+    ("agent_eval", s_agent_eval),  # V1.5 story 4 (CAP-4): « Évaluer l'agent »
 ]
 
 

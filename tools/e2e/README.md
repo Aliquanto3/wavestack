@@ -739,7 +739,15 @@ haut) :
   « échoue bien » puis « ne peut pas échouer » sans appel au modèle, « Abandonner les
   modifications ? », l'erreur sous un symptôme vide, le cas écrit dans `agent_cases.json`
   (provenance `séance`) et intact après « Vider la conversation » et « Réinitialiser », la note
-  d'un tour arrêté, le tiroir en anglais et en allemand ; capture `agent-case-form.jpg`.
+  d'un tour arrêté, le tiroir en anglais et en allemand, « Ouvrir Évaluer l'agent » proposé après
+  l'enregistrement ; capture `agent-case-form.jpg`.
+- `agent_eval` (story 4, « Évaluer l'agent ») : « Ouvrir Évaluer l'agent » depuis le tiroir (le cas
+  dans « Mes cas »), le bouton de la barre et Échap, la suite après l'avertissement du premier
+  lancement (« Réussi », « Échoué », « Non lancé » pour la fenêtre : la séance passe à 8 192, le
+  cas Talvane demande 4 096), les badges « Cas : … », la trace de l'échec, 3 essais, deux
+  exécutions comparées après un changement de prompt système puis un rejeu témoin, « Arrêter »
+  pendant le cas de séance (« [lent] »), la configuration rétablie, « Effacer mes cas », la vue en
+  anglais et en allemand ; capture `agent-eval.jpg`. Finit en français, à 4 096, prompt par défaut.
 
 ## Déclencheurs du faux modèle
 

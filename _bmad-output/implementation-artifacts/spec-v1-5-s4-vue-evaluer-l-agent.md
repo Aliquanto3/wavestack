@@ -714,3 +714,22 @@ Base : origin/main ffd2d60e, à jour (pas de rebase).
 - Complexité : 0 constat. Les exécutions sont bornées à `MAX_RUNS`, et `_of_try` est linéaire sur les enveloppes d'un essai.
 
 API pour 4b : inchangée.
+
+## Réalisation de la partie 4b (2026-10-25)
+
+Statut : 4b livrée, en revue. Base : `origin/main` après la fusion de 4a (`dd66ed03`). Le serveur n'est pas modifié.
+
+**Fichiers** : `agent-eval.js` et `agent-eval.css` (nouveaux), le bouton `#agent-eval-toggle` dans `index.html`, les quatre insertions d'`app.js`, le bloc `main.agent_eval` des trois `ui.yaml`, `tests/test_agent_eval_ui.py` (parité, pluriels, libellés de la story 5, contrat du module), `agent-eval.js` ajouté aux scripts d'`index.html` dans `tests/test_ui_texts.py`, le scénario E2E `agent_eval` (en dernier) et la capture `agent-eval.jpg`. L'E2E `agent_case` vérifie maintenant que « Ouvrir Évaluer l'agent » est proposé.
+
+**Écarts et précisions :**
+- `clear_confirm.one` et `.other` passent sous `clear_confirm.ask.{one,other}` : le test des pluriels impose qu'un nœud `one`/`other` n'ait rien d'autre, et `clear_confirm` porte aussi `yes` et `no`.
+- Clés ajoutées au tableau : `badge` (« Cas : {title} »), `head.no_model`, `case.trials_label` (nom accessible du choix d'essais) et `runs.pick_label` (nom des boutons radio A et B), plus `main.log.session_states.agent_eval` (libellé de l'état dans le journal des événements).
+- « Lancer » : un menu « 1 essai » / « 3 essais » à côté du bouton, « 1 essai » par défaut.
+- « Comparer A et B » est un bouton : la comparaison se charge au clic, et un nouveau choix de A ou de B l'efface.
+- Le lancement reste désactivé tant que `session_state` n'est pas `idle`, même si `/state` dit l'exécution finie : un tour qui ignore « Arrêter » peut survivre à son exécution. La raison montrée est alors celle de la session.
+- L'en-tête (modèle, prompt système) change hors exécution sans `session_state` : la vue relit `/state` quand le pointeur ou le focus revient dans le panneau, au plus une fois par seconde, et jamais pendant une exécution (l'interrogation suit déjà).
+- Le résultat montré pour un cas est celui de l'exécution en cours qui le joue, sinon celui de la dernière exécution finie qui l'a joué. Les exécutions finies sont lues une fois chacune (20 au plus) ; l'exécution en cours est relue à chaque changement de cas ou d'essai.
+- Les volets masqués le sont par attribut (`[data-pane="ctx"]`, `[data-handle]`) : `pages.css` garde seul les règles `.pane*` (AD-28, `test_only_pages_css_writes_the_shared_rules`).
+- E2E : la fenêtre passe à 8 192 au début, pour que le cas Talvane (4 096) soit « Non lancé », et revient à 4 096 à la fin. Le cas de séance vient d'un tour « Quelle heure est-il ? [lent] » : le faux fournisseur le ralentit, et l'arrêt se fait pendant ce cas, le dernier de la suite. C'est déterministe, sans route de debug.
+
+**Reports** : aucun nouveau. La sélection d'essai au-dessus de la trace (k = 3) n'est pas jouée par l'E2E, qui vérifie seulement les ronds et le résumé.

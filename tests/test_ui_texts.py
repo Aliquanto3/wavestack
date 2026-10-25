@@ -30,7 +30,7 @@ PAGES = {
     # Lot 2 (2026-10-04): diagram.js; lot 4 (AD-28): panes.js, shared with mcp.html.
     "index.html": (
         "main",
-        ("app.js", "agent-case-form.js", "diagram.js", "panes.js", "site-nav.js"),
+        ("app.js", "agent-case-form.js", "agent-eval.js", "diagram.js", "panes.js", "site-nav.js"),
     ),
     "llm.html": ("llm", ("llm.js", "site-nav.js")),
     "rag.html": ("rag", ("rag.js", "site-nav.js")),

@@ -608,6 +608,122 @@ main:
       close: "Close"
       error:
         no_answer: "WaveStack is not responding: the case was not saved."
+  agent_eval:
+    toggle: "Evaluate the agent"
+    title: "Evaluate the agent"
+    loading: "Loading the cases…"
+    badge: "Case: {title}"
+    head:
+      model: "Model: {model}"
+      no_model: "none"
+      prompt: "System prompt: “{start}” ({state})"
+      prompt_default: "default"
+      prompt_custom: "modified"
+    banner: "A demonstration, not a benchmark: a few cases, a small model, results that vary from one run to the next."
+    group:
+      provided: "Provided suite"
+      mine: "My cases"
+    mine:
+      empty: "No session case yet: use “Make it a case” on a turn of the Human view."
+      unreadable: "The file with your cases is unreadable: your cases cannot be run. “Clear my cases” empties it; the provided cases can still be run."
+    case:
+      meta: "· {brick} · limit {max}"
+      meta_session: "· session · {turn} · limit {max}"
+      window_hint: "To run it, pick this window in “Window ▾” (the model reloads), then run this case again."
+      ignored: "Run without: {ids} (missing from this session)."
+      run: "Run"
+      run_label: "Run the case “{title}”"
+      trials_label: "Number of tries for “{title}”"
+      trials:
+        one: "{count} try"
+        other: "{count} tries"
+      delete: "Delete"
+      delete_label: "Delete the case “{title}”"
+    run_suite: "Run the suite"
+    busy: "A run is in progress."
+    first_run:
+      text: "The conversation will be cleared; your configuration is restored at the end."
+      go: "Run"
+      cancel: "Cancel"
+    progress:
+      suite: "Case {index} of {total}"
+      trials: "Try {trial} of {k}"
+    stop: "Stop"
+    stop_requested: "Stop requested…"
+    status:
+      passed: "Passed"
+      failed: "Failed"
+      not_run: "Not run"
+      running: "Running"
+      pending: "Waiting"
+    failing: "{check}: {reason}."
+    check:
+      model_calls_max: "Model calls within the limit"
+    trace:
+      show: "Show the turn"
+      hide: "Hide the turn"
+      label: "Case trace"
+      loading: "Reading the trace…"
+      fault: "(faulty event)"
+      trial: "Try {trial}"
+      gone: "This trace is no longer in memory."
+    trials:
+      summary:
+        one: "{passed} passed out of {ran} · pass@{k}: {at} · pass^{k}: {all}"
+        other: "{passed} passed out of {ran} · pass@{k}: {at} · pass^{k}: {all}"
+      prefix: "{k} tries:"
+    "yes": "yes"
+    "no": "no"
+    undecided: "—"
+    runs:
+      title: "Runs of this session"
+      col:
+        time: "Time"
+        model: "Model"
+        prompt: "System prompt"
+        result: "Result"
+      pick_a: "A"
+      pick_b: "B"
+      pick_label: "{pick}: the run of {time}"
+      result:
+        one: "{passed} passed out of {ran} run"
+        other: "{passed} passed out of {ran} run"
+      not_run:
+        one: "· {count} not run"
+        other: "· {count} not run"
+      scope_case: "{title}, {trials}"
+      status:
+        cancelled: "· stopped"
+        budget: "· spending cap reached"
+        error: "· interrupted by an error"
+      empty: "Run the suite to get a first run."
+    compare:
+      title: "Compare A and B"
+      diff: "Differs: {fields}."
+      field:
+        model: "model"
+        system_prompt: "system prompt"
+      control: "Control rerun: what changes here comes from the model, not from you."
+      same_run: "Choose two different runs."
+      col:
+        case: "Case"
+        change: "Change"
+      change:
+        regressed: "regressed"
+        fixed: "fixed"
+        unchanged: "unchanged"
+        absent_a: "missing from A"
+        absent_b: "missing from B"
+      missing: "—"
+    clear: "Clear my cases"
+    clear_confirm:
+      ask:
+        one: "Clear the session case? The provided cases stay."
+        other: "Clear the {count} session cases? The provided cases stay."
+      "yes": "Clear"
+      "no": "Cancel"
+    error:
+      no_answer: "WaveStack is not responding: the view could not be updated."
   orch:
     catalog:
       one: "{count} tool described to the model in the context: {tokens} tokens."
@@ -1021,6 +1137,7 @@ main:
       llm_lab: "LLM workshop"
       rag_lab: "RAG workshop"
       mcp_lab: "MCP workshop"
+      agent_eval: "agent evaluation"
     lab_status:
       completed: "completed"
       cancelled: "stopped"
