@@ -810,6 +810,7 @@ PrefixCause = Literal[
     "llm",  # story 29: the « LLM nu » screen took the engine's cache
     "mcp_lab",  # lot 4 of 2026-10-04: the MCP workshop's model took the engine's cache
     "rag_lab",  # lot 5c-3: the RAG workshop's generation took the engine's cache
+    "cache_cleared",  # V1.3 story 3: « Vider le cache » emptied the engine's memory
 ]
 
 

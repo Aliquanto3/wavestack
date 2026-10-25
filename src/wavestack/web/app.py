@@ -1300,6 +1300,18 @@ def create_app(
             ) from None
         return {"cleared": True}
 
+    @app.post("/api/intentions/clear_cache")
+    def clear_cache() -> dict[str, bool]:
+        """V1.3 story 3 (CAP-4), class (b): refused outside `idle` and in cloud, with the
+        reason (409)."""
+        try:
+            app_session.clear_cache()
+        except SendRefused as refused:
+            raise HTTPException(
+                status_code=409, detail=render(refused.reason_text, app_session.language)
+            ) from None
+        return {"cleared": True}
+
     @app.post("/api/intentions/language")
     def language(intention: LanguageIntention) -> dict[str, str]:
         """Class (b), languages (1/5): refused outside `idle` or on a conversation that is

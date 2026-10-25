@@ -42,8 +42,8 @@ program:
     duration_min: 45
     scenarios: [native_tools, network_tools]
   - title_text: RAG
-    duration_min: 45
-    scenarios: [rag, rag_rerank]
+    duration_min: 60
+    scenarios: [rag, rag_rerank, rag_agentic]
   - title_text: MCP
     duration_min: 45
     scenarios: [mcp_full, mcp_lazy]
@@ -187,6 +187,24 @@ scenarios:
     prompts:
       - Quel plafond de remboursement pour une nuit d'hôtel à Paris chez Exemplia ?
       - Que faut-il faire en premier quand on perd son ordinateur portable chez Exemplia ?
+
+  rag_agentic:
+    title_text: RAG injecté ou recherche agentique
+    description_text: >-
+      Mêmes briques que le scénario RAG, avec l'outil « Recherche dans les documents »
+      (search_documents) à cocher sur la carte Outils. Envoyez d'abord le premier prompt, brique
+      RAG allumée et outil décoché : le harnais injecte des extraits dans votre message. Ouvrez
+      « Comparer » et regardez le contexte. Puis cliquez sur « Vider la conversation »,
+      éteignez la brique RAG, cochez « Recherche dans les documents » et envoyez le second
+      prompt, qui pose la même question en nommant l'outil (un petit modèle ne fait pas seul le
+      lien) : le modèle cherche des mots (search_documents), puis lit le document trouvé
+      (read_file, chemin corpus/…). Comparez le contexte : le RAG y met des extraits à chaque
+      tour, la recherche agentique ajoute des tours d'appel d'outil et un fichier lu en
+      entier. Dépliez les étapes d'outil dans Orchestration.
+    bricks: [short_memory, system_prompt, global_memory, tools, rag]
+    prompts:
+      - Combien de caractères doit compter au minimum un mot de passe chez Exemplia ?
+      - Utilise l'outil search_documents pour chercher « mot de passe » dans les documents, puis lis le document trouvé avec read_file. Combien de caractères doit compter au minimum un mot de passe chez Exemplia ?
 
   mcp_full:
     title_text: MCP en documentation complète

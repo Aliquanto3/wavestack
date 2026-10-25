@@ -213,7 +213,7 @@ from wavestack.session.effects import (
 from wavestack.skills import SkillsContent, SkillText, load_skills_content
 from wavestack.subagent import SubagentContent, load_subagent_content
 from wavestack.tools.executor import ToolExecutor
-from wavestack.tools.native import NATIVE_TOOLS, get_datetime, read_file
+from wavestack.tools.native import NATIVE_TOOLS, get_datetime, read_file, search_documents
 from wavestack.tools.network import network_tools
 from wavestack.tools.parser import (
     Malformed,
@@ -1089,6 +1089,7 @@ class AppSession:
         # (`stateless` or `failed`); and the last turn's status (`abandoned`).
         self._main_cache: list[int] | None = None
         self._cache_cause: str | None = None
+        self._cache_cleared = False  # V1.3 story 3: « Vider le cache » since the last call
         self._cache_evicted: str | None = None
         self._last_status: str | None = None
         self._turn_called = False  # the running turn made a main call (`abandoned`)
@@ -1143,6 +1144,7 @@ class AppSession:
             if not (spec := self._registry.get(n)).network
             and spec.source != "harness"
             and not spec.is_mcp
+            and spec.default_enabled
         }
         # MCP servers (story 6): the local one starts enabled, the public ones disabled.
         self._mcp_enabled = {"local"} & set(self._mcp_servers)
@@ -5277,11 +5279,18 @@ class AppSession:
     def _native_tools(self) -> list[ToolSpec]:
         """The native tools, `read_file` bound to the session's language (languages 3/5): it
         reads the demonstration file of the language current at each call."""
-        bound = {"read_file": self._read_file, "get_datetime": self._get_datetime}
+        bound = {
+            "read_file": self._read_file,
+            "get_datetime": self._get_datetime,
+            "search_documents": self._search_documents,
+        }
         return [replace(s, run=bound[s.name]) if s.name in bound else s for s in NATIVE_TOOLS]
 
     def _read_file(self, path: str) -> str:
         return read_file(path, self._language)
+
+    def _search_documents(self, query: str) -> str:
+        return search_documents(query, self._language)
 
     def _get_datetime(self) -> str:
         return get_datetime(self._language)  # languages (5/5): the day in the session's
@@ -6355,6 +6364,40 @@ class AppSession:
             emit_spend(
                 self.cfg.eur_per_usd, lambda spend: journal.emit("consumption_updated", spend)
             )
+
+    def clear_cache(self) -> None:
+        """V1.3 story 3 (CAP-4), class (b): the local engine's context memory emptied, the
+        model and the conversation kept. The next call writes everything, cause
+        `cache_cleared` (`_check_reuse`). Refused outside `idle` and in cloud (a provider's
+        cache does not purge). The clear runs on the worker, queued under the locks `_start`
+        takes: after a prefill or a workshop call still running, before any turn sent from
+        now (never while the engine generates)."""
+        with self._memory_lock, self._lock:
+            if self.state != "idle":
+                raise SendRefused(self._refusal_reason())
+            if self._cloud is not None:
+                raise SendRefused(Message("session.refused.cache_cloud"))
+            clear = getattr(self._engine, "clear_cache", None)
+            if clear is None:
+                raise SendRefused(Message("session.refused.cache_unsupported"))
+            done = self._executor.submit(self._run_clear_cache, clear)
+        self._abandon_prefill()  # a prefill running stops at its next batch, then the clear
+        done.result()
+
+    def _run_clear_cache(self, clear: Callable[[], bool]) -> None:
+        """On the worker: `clear_cache` of the engine, then the main context's ids it holds
+        (none). Raises `SendRefused` with the reason when it could not."""
+        try:
+            cleared = clear()
+        except Exception as exc:  # noqa: BLE001 - AD-16: a server without the slots API
+            raise SendRefused(Message("session.refused.cache_failed", cause=str(exc))) from exc
+        with self._lock:
+            self._cache_evicted = None
+            # Refused: the engine's memory is unknown (its ids forgotten), never compared.
+            self._main_cache = [] if cleared else None
+            self._cache_cleared = cleared
+        if not cleared:
+            raise SendRefused(Message("session.refused.cache_unsupported"))
 
     # ---------- languages (1/5, AD-19) ----------
 
@@ -8370,8 +8413,10 @@ class AppSession:
             self._check_prefix(*previous, ids)
             return
         cause = None
+        cleared = False
         if previous is None:  # the turn's first call: what happened since the last one
             cause, self._cache_cause = self._cache_cause, None
+            cleared, self._cache_cleared = self._cache_cleared, False
             if cause is None and self._last_status not in (None, "completed"):
                 cause = "abandoned"
         if evicted is not None:  # the engine holds the sub-agent's context, not the main one
@@ -8379,7 +8424,9 @@ class AppSession:
             cause = cause or "subagent"
         else:
             cached = self._main_cache
-            if cached is None or ids[: len(cached)] == cached:
+            if cleared and cached == []:  # V1.3 story 3: emptied since, refilled by nothing
+                cause = "cache_cleared"  # over a pending cause: why nothing at all is reused
+            elif cached is None or ids[: len(cached)] == cached:
                 return
         common = _common_prefix(cached, ids)
         cause = cause or self._diverging_cause(rendered, common)

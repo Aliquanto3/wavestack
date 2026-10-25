@@ -335,6 +335,89 @@ def test_a_cleared_conversation_is_a_reset():
     session.close()
 
 
+def test_a_cleared_cache_writes_everything_with_its_cause():
+    engine, session = qwen_session(["Bonjour.", "Oui."], "short_memory")
+    run(session, "Bonjour")
+    session.clear_cache()
+    assert engine.cache == []
+
+    events = run(session, "Ça va ?")
+
+    (reread,) = of(events, "prefix_not_reused")
+    assert reread["cause"] == "cache_cleared"
+    assert reread["common_tokens"] == 0 and reread["again_tokens"] == len(engine.calls[1])
+    assert engine.evaluated[1] == len(engine.calls[1])
+    session.close()
+
+
+def test_a_cleared_cache_of_a_server_without_cache_ids_is_named_too():
+    _, session = qwen_session(["Bonjour.", "Oui."], "short_memory", stateful=False)
+    run(session, "Bonjour")
+    session.clear_cache()
+
+    (reread,) = of(run(session, "Ça va ?"), "prefix_not_reused")
+
+    assert reread["cause"] == "cache_cleared"
+    session.close()
+
+
+def test_the_cache_is_refused_during_a_turn_and_without_support():
+    from wavestack.session.app_session import SendRefused
+
+    class NoClear(FakeEngine):
+        clear_cache = None  # an engine that cannot empty its memory
+
+    session = booted_session(NoClear(outputs=["Bonjour."]), window=16384)
+    with pytest.raises(SendRefused):
+        session.clear_cache()
+    session.state = "turn"
+    with pytest.raises(SendRefused):
+        session.clear_cache()
+    session.state = "idle"
+    session.close()
+
+
+def test_a_cleared_cache_stays_the_cause_after_a_cleared_conversation():
+    # Review of V1.3 story 3: in either order, nothing is reused because of the clear.
+    for first_cache in (True, False):
+        engine, session = qwen_session(["Bonjour.", "Oui."], "short_memory")
+        run(session, "Bonjour")
+        steps = [session.clear_cache, session.clear_conversation]
+        for step in steps if first_cache else reversed(steps):
+            step()
+
+        (reread,) = of(run(session, "Ça va ?"), "prefix_not_reused")
+
+        assert reread["cause"] == "cache_cleared" and reread["common_tokens"] == 0
+        assert engine.evaluated[1] == len(engine.calls[1])
+        session.close()
+
+
+def test_a_refused_clear_names_no_cleared_cache():
+    from wavestack.session.app_session import SendRefused
+
+    class Failing(FakeEngine):
+        def clear_cache(self) -> bool:
+            raise RuntimeError("HTTP 501")  # a server without the slots API: memory intact
+
+    class Forgetting(FakeEngine):
+        def clear_cache(self) -> bool:
+            self.cache = []  # `LlamaCppEngine`'s fallback: the ids forgotten, refused
+            return False
+
+    for kind in (Failing, Forgetting):
+        engine = kind(outputs=["Bonjour.", "Oui."], template=QWEN_TEXT, architecture="qwen35")
+        session = booted_session(engine, window=16384)
+        session.set_brick("short_memory", True)
+        session.join()
+        run(session, "Bonjour")
+        with pytest.raises(SendRefused):
+            session.clear_cache()
+
+        assert of(run(session, "Ça va ?"), "prefix_not_reused") == []
+        session.close()
+
+
 def test_a_scenario_change_is_a_reset():
     # Without a prefill (E122): with one, the engine's cache holds the new scenario's prefix
     # once it ends, and the first turn extends it (`test_a_prefill_after_a_conversation…`).

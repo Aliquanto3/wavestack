@@ -58,12 +58,16 @@ def test_fragments_carry_the_most_probable_tokens(engine):
 
     width = min(TOP, engine.dimensions()["vocab_size"])
     ids = engine.tokenize("<|im_start|>user\nBonjour<|im_end|>\n")
-    fragments = list(
-        engine.complete(
+    # The tiny model draws at random: a draw whose first token is end-of-generation yields no
+    # token at all (float rounding changes how often per platform), so draw again.
+    tokens: list = []
+    for _ in range(30):
+        fragments = engine.complete(
             ids, ["\n"], 8, CancelToken(), sampling=Sampling(1.0, 0, 1.0, 0.0), candidates=5
         )
-    )
-    tokens = [f for f in fragments if f.token_id is not None]
+        tokens = [f for f in fragments if f.token_id is not None]
+        if tokens:
+            break
     assert tokens
     for fragment in tokens:
         top = fragment.top
