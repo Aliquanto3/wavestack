@@ -516,3 +516,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:42 · 12.11 · attente humaine · done_checkpoint avec un vrai modèle sur le PC cible : protocole ACTION:, tours, plafonds, réponses illisibles, descente avant / après « Reconstruire », durées, rendu fr/en/de · —
 - 2026-10-25 12:42 · 12.11 · second-avis · lancé · 8b0342b
 - 2026-10-25 12:42 · 12.19b · dev · lancé (spec puis code, pas de spec_checkpoint, worktree ../wavestack-v12-s19b depuis l'intégration 30bbfc1) · 30bbfc1
+- 2026-10-25 12:48 · 12.11 · second-avis · 0 high, 0 medium, 3 low (search_documents lit le corpus avant de valider la requête, audience hr lisible par l'agent comme par search_documents, entrées de documents supprimés gardées dans l'arbre reconstruit), 1 info ; confinement, bornes, annulation et contrat 12.19 sans défaut · 8b0342b
+- 2026-10-25 12:48 · 12.11 · review · lancé (Opus ; règle hr à trancher en cohérence avec 12.18 et 12.20) · 8b0342b
