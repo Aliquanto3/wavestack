@@ -232,3 +232,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:29 · 14.4 · dev · spec de story écrite (11 critères, 9 points ouverts), relecture de spec lancée · baeeb9f
 - 2026-10-25 06:29 · 13.6 · dev · fini (module 8 « Cache » 45 min, 5 scénarios, fiche, 27 scénarios / 6 h 45) · 95770bc
 - 2026-10-25 06:29 · 13.6 · second-avis · lancé · 95770bc
+- 2026-10-25 06:34 · 13.6 · second-avis · 0 high, 1 medium (emplacement de « Vider le cache » dans la consigne), 7 low · 95770bc
+- 2026-10-25 06:34 · 13.6 · review · lancé · 95770bc
