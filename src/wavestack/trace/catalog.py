@@ -1532,6 +1532,15 @@ class RagLabItem(BaseModel):
     text: str
     score: float | None = None  # this stage's, 3 decimals
     sources: list[RagLabSource] = []
+    # V1.2 story 7 (CAP-5): the context's passages. `placed`: the position in the context;
+    # `state`: `whole` or `cut` (the budget); `tokens`: estimated, before a compression and
+    # `tokens_after`: after it (`None` without one); its transforms; why it failed on this one.
+    placed: int | None = None
+    state: Literal["whole", "cut"] | None = None
+    tokens: int | None = None
+    tokens_after: int | None = None
+    transforms: list[str] = []
+    error_text: str | None = None
 
 
 class RagLabCost(BaseModel):
@@ -1585,6 +1594,25 @@ class RagLabChunk(BaseModel):
     context_label: str | None = None
 
 
+class RagLabBudget(BaseModel):
+    """V1.2 story 7 (CAP-5): the context's estimated tokens against its budget (`used`, after a
+    compression; `before`: before it, `None` without one)."""
+
+    used: int
+    budget: int
+    before: int | None = None
+
+
+class RagLabPromptPart(BaseModel):
+    """V1.2 story 7: a part of the prompt the generation would send (`system`, `context` or
+    `question`), its label in the page's language and its estimated tokens."""
+
+    kind: Literal["system", "context", "question"]
+    label_text: str
+    text: str
+    tokens: int
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1618,6 +1646,12 @@ class RagLabStageEndedPayload(BaseModel):
     # V1.2 story 6 (CAP-4): the chunking's first chunks (bounded), and how many it made.
     chunks: list[RagLabChunk] = []
     chunks_total: int = 0
+    # V1.2 story 7 (CAP-5): the passages the budget left out (the context's `items` are those
+    # that are in), the tokens against the budget, and the prompt's parts with their total.
+    dropped: list[RagLabItem] = []
+    budget: RagLabBudget | None = None
+    prompt_parts: list[RagLabPromptPart] = []
+    prompt_tokens: int | None = None
 
 
 class RagLabRunEndedPayload(BaseModel):

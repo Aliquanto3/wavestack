@@ -14734,6 +14734,173 @@ def _rag_lab_chunking(r: Run) -> None:
     )
 
 
+def s_rag_lab_context(r: Run) -> None:
+    """V1.2 story 7 (CAP-5), after `rag` and `rag_rerank`: the context's four options in the
+    stage's editor; « Budget » with a tight budget (the « coupé » and « écarté » indicators in
+    the focus, the final prompt's parts); « Ordre » (the positions read in the focus);
+    « Compression » without the extra (the reason next to the option and in the step) or, with
+    it, the Compression card activated as `s_compression` does (the tokens before and after in
+    the focus). The stack has no fake compressor: the real Headroom, offline, or the branch
+    « sans l'extra » (`--no-headroom`). Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    r.goto_app()
+    headroom = _context_compression_ready(r)
+    _goto_rag_lab(r)
+    try:
+        _rag_lab_context(r, headroom)
+    finally:
+        page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+        r.goto_app()
+        if headroom:
+            r.set_brick("Compression", False)
+
+
+def _context_compression_ready(r: Run) -> bool:
+    """The Compression card activated when Headroom is installed (loaded before the workshop's
+    page reads its catalog); `False`: the extra is absent, the card cannot serve."""
+    brick = r.bricks()["compression"]
+    if not brick["available"] and "uv sync --extra compression" in (brick.get("reason_text") or ""):
+        return False
+    seq = r.ev.mark()
+    r.set_brick("Compression", True)
+    if not r.bricks()["compression"]["available"]:
+        r.ev.wait(
+            "bricks_changed",
+            seq,
+            lambda p: next(b for b in p["bricks"] if b["id"] == "compression")["available"],
+            60,
+        )
+    return True
+
+
+def _context_focus(r: Run) -> dict[str, Any]:
+    _focus_of(r, "context")
+    return r.page.evaluate(
+        "() => { const f = document.getElementById('rag-focus');"
+        " const q = (s) => [...f.querySelectorAll(s)];"
+        " return { states: q('.rag-items .rag-badge').map(n => n.dataset.state),"
+        " dropped: q('.rag-dropped-item .rag-badge').map(n => n.dataset.state),"
+        " placed: q('.rag-items .rag-passage-state').map(n => Number(n.dataset.placed)),"
+        " gauge: f.querySelector('.rag-budget')?.dataset.budget ?? '',"
+        " parts: q('.rag-prompt-part').map(n => [n.dataset.kind,"
+        " n.querySelector('pre').innerText]),"
+        " total: f.querySelector('.rag-prompt-parts-total')?.innerText ?? '',"
+        " text: f.innerText }; }"
+    )
+
+
+def _rag_lab_context(r: Run, headroom: bool) -> None:
+    page = r.page
+    _rag_mode(r, "compose")
+    if page.locator("#rag-reset-chain").is_visible():
+        page.locator("#rag-reset-chain").click()
+    select = _seq_row(r, "context").locator("select.rag-option")
+    r.check(
+        select.locator("option").all_inner_texts()
+        == [
+            "Extraits numérotés (format de la brique RAG)",
+            "Budget de contexte (tokens)",
+            "Ordre des passages (extrémités d'abord)",
+            "Compression (Headroom)",
+        ],
+        "les quatre options du contexte",
+        str(select.locator("option").all_inner_texts()),
+    )
+    # Budget: the shipped 450 tokens cut the third of three excerpts; five asked, two dropped.
+    _set_stage(r, "context", "budget", top_k=5)
+    r.check(
+        _seq_row(r, "context").locator('input[data-param="budget_tokens"]').input_value() == "450",
+        "le budget par défaut est de 450 tokens",
+    )
+    ended, seq = _rag_lab_run(r)
+    context = _stage_ended(r, seq, "context")
+    focus = _context_focus(r)
+    r.check(
+        ended["payload"]["status"] == "ok"
+        and focus["states"] == ["whole", "whole", "cut"]
+        and focus["dropped"] == ["dropped"] * len(context["dropped"])
+        and len(context["dropped"]) == 2
+        and focus["gauge"] == "450"
+        and "Budget : " in focus["text"],
+        "budget serré : deux passages entiers, un coupé, deux écartés, jauge du budget",
+        str((focus["states"], focus["dropped"])),
+    )
+    parts = dict(focus["parts"])
+    r.check(
+        [k for k, _ in focus["parts"]][-2:] == ["context", "question"]
+        and parts["context"].strip() == context["output_text"].strip()
+        and parts["question"].strip() == RAG_LAB_QUESTION
+        and "Total : " in focus["total"],
+        "le prompt final : contexte construit puis question, avec le total des tokens",
+        str([k for k, _ in focus["parts"]]),
+    )
+    generation = _stage_ended(r, seq, "generation")
+    rendered = generation.get("prompt_text") or ""
+    # The model's template, or the request's JSON body (the newlines escaped): either way the
+    # parts are in it, the same texts.
+    r.check(
+        generation.get("status") == "ok"
+        and all(
+            text.strip() in rendered
+            or json.dumps(text.strip(), ensure_ascii=False)[1:-1] in rendered
+            for _, text in focus["parts"]
+        ),
+        "le prompt rendu de la génération contient les parties montrées par le contexte",
+        rendered[:200],
+    )
+    r.shot("65-atelier-rag-contexte", full_page=True)
+
+    # Order: five passages, positions 1, 5, 2, 4, 3 read in the focus.
+    _rag_mode(r, "compose")
+    _set_stage(r, "context", "order", top_k=5, budget_tokens=4000)
+    ended, seq = _rag_lab_run(r)
+    focus = _context_focus(r)
+    r.check(
+        ended["payload"]["status"] == "ok" and focus["placed"] == [1, 5, 2, 4, 3],
+        "ordre : les positions lues dans le focus sont 1, 5, 2, 4, 3",
+        str(focus["placed"]),
+    )
+
+    # Compression.
+    _rag_mode(r, "compose")
+    _set_stage(r, "context", "compress", top_k=3, budget_tokens=4000)
+    note = _seq_row(r, "context").locator(".rag-chain-note")
+    if not headroom:
+        r.check(
+            note.count() == 1 and "uv sync --extra compression" in note.inner_text(),
+            "sans l'extra : la raison près de l'option",
+            note.inner_text() if note.count() else "",
+        )
+    else:
+        r.check(note.count() == 0, "avec l'extra et la carte active : rien près de l'option")
+    ended, seq = _rag_lab_run(r)
+    context = _stage_ended(r, seq, "context")
+    focus = _context_focus(r)
+    if not headroom:
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and "uv sync --extra compression" in (context.get("warning_text") or "")
+            and all(i["tokens_after"] == i["tokens"] for i in context["items"])
+            and [i["placed"] for i in context["items"]] == [1, 3, 2]
+            and "uv sync --extra compression" in focus["text"],
+            "sans l'extra : contexte construit comme avec l'ordre, la raison dite dans l'étape",
+            str(context.get("warning_text")),
+        )
+    else:
+        counted = all(
+            isinstance(i["tokens"], int) and isinstance(i["tokens_after"], int)
+            for i in context["items"]
+        )
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and counted
+            and "tokens estimés (Headroom" in focus["text"],
+            "avec l'extra : les tokens avant et après dans le focus",
+            str([(i["tokens"], i["tokens_after"]) for i in context["items"]]),
+        )
+
+
 def s_rag_lab_evaluate(r: Run) -> None:
     """V1.2 story 15 (CAP-11), after `rag` and `rag_rerank`: the Évaluer tab without any run (the
     banner « Démonstration, pas un banc » with n, the recorded set's table with a written-out
@@ -17756,6 +17923,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_query", s_rag_lab_query),  # V1.2 story 5
     ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
     ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
+    ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18

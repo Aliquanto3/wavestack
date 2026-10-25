@@ -1057,7 +1057,10 @@ function focusRun(box, step) {
   if (ended.queries?.length) box.append(queriesList(ended.queries));
   if (step.key === "chunking" && ended.chunks?.length) box.append(chunksList(ended));
   if (step.key === "chunking" && stage.option === "contextual") box.append(contextControls());
+  if (step.stage === "context" && ended.budget) box.append(budgetGauge(ended.budget));
   if (step.key !== "embed_query" && ended.items?.length) box.append(itemsTable(ended.items));
+  if (step.stage === "context" && ended.dropped?.length) box.append(droppedList(ended.dropped));
+  if (step.stage === "context" && ended.prompt_parts?.length) box.append(promptParts(ended));
   if (ownFigures(step) && ["ok", "error", "cancelled"].includes(stage.status)) {
     const foot = el("p", "rag-stage-figures");
     foot.append(el("span", "rag-stage-duration", labelled(text("duration_text"), `${fmtInt(ended.duration_ms)} ms`)));
@@ -1458,6 +1461,10 @@ function itemsTable(items) {
   for (const key of ["rank_text", "before_text", "document_text", "score_text"]) {
     head.append(el("th", null, text(`columns.${key}`)));
   }
+  // V1.2 story 7 (CAP-5): the context's passages also say whether they are whole or cut, where
+  // they stand in the context and what they weigh.
+  const withState = items.some((item) => item.state);
+  if (withState) head.append(el("th", null, t("rag.col_state")));
   const thead = el("thead");
   thead.append(head);
   const body = el("tbody");
@@ -1482,6 +1489,7 @@ function itemsTable(items) {
     doc.append(el("span", "rag-doc-text", item.text));
     row.append(doc);
     row.append(el("td", "rag-num", fmtScore(item.score)));
+    if (withState) row.append(passageState(item));
     body.append(row);
   }
   table.append(thead, body);
@@ -1731,6 +1739,88 @@ function wireCopy() {
   $("rag-copy-apply").addEventListener("click", applyCopyForm);
   $("rag-copy-cancel").addEventListener("click", closeCopyForm);
   $("rag-copy-reset").addEventListener("click", resetCopy);
+}
+
+// ---------- V1.2 story 7 (CAP-5): the context's budget, passages and final prompt ----------
+
+// A badge: `data-state` is the indicator the tests read (`whole`, `cut`, `dropped`).
+const badge = (state) => {
+  const mark = el("span", "rag-badge", t(`rag.item_${state}`));
+  mark.dataset.state = state;
+  return mark;
+};
+
+// The cell of a passage of the context: whole or cut, its position, its estimated tokens
+// (before and after a compression) and what the compressor did.
+function passageState(item) {
+  const cell = el("td", "rag-passage-state");
+  cell.dataset.placed = String(item.placed ?? "");
+  cell.append(badge(item.state ?? "whole"));
+  if (typeof item.placed === "number") cell.append(" ", el("span", "rag-placed", t("rag.item_placed", { n: fmtInt(item.placed) })));
+  if (typeof item.tokens === "number") {
+    const compressed = typeof item.tokens_after === "number" && item.tokens_after < item.tokens;
+    const said = compressed
+      ? t("rag.item_tokens_after", { before: fmtInt(item.tokens), after: fmtInt(item.tokens_after) })
+      : t("rag.item_tokens", { tokens: fmtInt(item.tokens) });
+    cell.append(el("span", "rag-tokens", said));
+    if (typeof item.tokens_after === "number" && !compressed && !item.error_text) {
+      const unchanged = el("span", "rag-unchanged", t("rag.item_unchanged"));
+      cell.append(unchanged);
+    }
+    if (item.transforms?.length) cell.append(el("span", "rag-transforms", t("rag.item_transforms", { names: item.transforms.join(", ") })));
+  }
+  if (item.error_text) cell.append(el("span", "rag-stage-error", item.error_text));
+  return cell;
+}
+
+// The budget's gauge: the tokens the context takes of the tokens it may take (the session's).
+function budgetGauge(budget) {
+  const box = el("div", "rag-budget");
+  box.dataset.used = String(budget.used);
+  box.dataset.budget = String(budget.budget);
+  const used = budget.before !== null && budget.before !== undefined ? budget.before : budget.used;
+  box.append(el("p", "rag-budget-title", t("rag.budget_used", { used: fmtInt(used), budget: fmtInt(budget.budget) })));
+  const gauge = el("meter", "rag-budget-gauge");
+  gauge.min = 0;
+  gauge.max = Math.max(budget.budget, used);
+  gauge.value = used;
+  box.append(gauge);
+  if (budget.before !== null && budget.before !== undefined) {
+    box.append(el("p", "rag-budget-after", t("rag.budget_compressed", { before: fmtInt(budget.before), after: fmtInt(budget.used) })));
+  }
+  return box;
+}
+
+// The passages the budget left out, with their indicator.
+function droppedList(items) {
+  const box = el("div", "rag-dropped");
+  box.append(el("p", "rag-dropped-title", t("rag.dropped_title", { count: fmtInt(items.length) })));
+  const list = el("ul", "rag-dropped-list");
+  for (const item of items) {
+    const row = el("li", "rag-dropped-item");
+    row.dataset.chunkId = String(item.chunk_id);
+    row.append(badge("dropped"), " ", el("span", "rag-doc-title", item.title_text), " ");
+    row.append(el("span", "rag-tokens", t("rag.item_tokens", { tokens: fmtInt(item.tokens) })));
+    row.append(el("span", "rag-doc-text", item.text));
+    list.append(row);
+  }
+  box.append(list);
+  return box;
+}
+
+// The final prompt as it leaves for the model: system instruction, context, question.
+function promptParts(ended) {
+  const box = el("div", "rag-prompt-parts");
+  box.append(el("p", "rag-prompt-parts-title", t("rag.prompt_title")));
+  for (const part of ended.prompt_parts) {
+    const block = el("div", "rag-prompt-part");
+    block.dataset.kind = part.kind;
+    block.append(el("p", "rag-prompt-part-head", labelled(part.label_text, t("rag.item_tokens", { tokens: fmtInt(part.tokens) }))));
+    block.append(el("pre", "rag-focus-pre", part.text));
+    box.append(block);
+  }
+  box.append(el("p", "rag-prompt-parts-total", t("rag.prompt_total", { tokens: fmtInt(ended.prompt_tokens) })));
+  return box;
 }
 
 // ---------- V1.2 story 6 (CAP-4): the chunks the chunking made, and the contexts' rebuild ----------
