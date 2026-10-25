@@ -577,7 +577,9 @@ function renderRefusals() {
 // ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
 
 // V1.2 story 10: the chain's Context reads the whole corpus (long context, CAG): no search.
-const corpusOption = (option) => (store.catalog?.corpus_options ?? []).includes(option);
+// V1.2 story 11: and every Context option that searches by itself (agent, tree): no segment.
+const corpusOption = (option) =>
+  (store.catalog?.searchless_options ?? store.catalog?.corpus_options ?? []).includes(option);
 const contextOf = (pipeline) => (pipeline?.stages ?? []).find((s) => s.kind === "context") ?? null;
 
 // The preset whose segment (kind, option, in order) is the chain's retrieval segment, if any;
@@ -1134,6 +1136,16 @@ function renderFocus(entries) {
   if (step.explain_text) box.append(el("p", "rag-focus-explain", step.explain_text));
   if (step.uses.length) box.append(uses(step));
   focusRun(box, step);
+  // V1.2 story 11: what a module adds to a step's focus (rag-agentic.js: the tree card).
+  for (const extra of focusExtras) extra(box, step, runStage(step));
+}
+
+// V1.2 story 11: the hooks a module adds to the focus, called with the box, the step and the
+// run's stage of it (`null` without a run).
+const focusExtras = [];
+export function registerFocus(hook) {
+  focusExtras.push(hook);
+  if (store.mounted) renderCurrent();
 }
 
 // ---------- the wires: from the step shown to the components it calls on ----------
@@ -2374,3 +2386,5 @@ async function main() {
 main();
 
 export { $, el, text, quote, fmtInt, keep, stored, store, costFigures, QUESTION_KEY };
+// V1.2 story 11: what rag-agentic.js draws the agent's rounds and PageIndex's tree with.
+export { busyReason, chain, labelled, post, refusalText, renderBusy, renderCurrent };

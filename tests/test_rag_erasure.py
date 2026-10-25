@@ -33,8 +33,6 @@ AVERAGE = re.compile(r"\b(mean|average|avg|mrr|recall_at_k|aggregates?)\b", re.I
 STORY_OF = {
     "long_context": 10,
     "cag": 10,
-    "agentic": 11,
-    "pageindex": 11,
     "raptor": 12,
     "crag": 12,
     "graphrag": 13,
@@ -42,7 +40,7 @@ STORY_OF = {
 }
 # V1.2 story 10 brought long_context and cag into the workshop (`lab.PRESETS`); their places
 # stay constructed, with the story 10 that will record the real cache.
-IN_WORKSHOP = ("dense", "hybrid", "rerank", "long_context", "cag")
+IN_WORKSHOP = ("dense", "hybrid", "rerank", "long_context", "cag", "agentic", "pageindex")
 
 
 @pytest.fixture(autouse=True)
@@ -100,6 +98,7 @@ def test_start_the_measured_places_hold_the_code(lang):
     hits = {p["id"]: p["hits"] for p in body["places"]}
     assert hits["chunks"] == 2 and hits["bm25"] == 2 and hits["contexts"] == 1
     assert hits["shipped_contexts"] == 0 and hits["source"] == 1
+    assert hits["pageindex_tree"] >= 1  # V1.2 story 11: measured on the rule's tree
     assert body["corpus"]["sentinel_passages"] == 2
     assert [p["position"] for p in body["results"]["ranking"]] == [2, 1]
     assert [p["rank"] for p in body["results"]["ranking"]] == [1, 2]
@@ -156,7 +155,7 @@ def test_a_cache_turns_erased_by_its_own_architecture_only():
         ask(make_session(), sentinel_active=True, step="rebuild", rebuilt=["cag", "pageindex"])
     )
     assert found["cag_cache"] == "erased_illustrative"
-    assert found["pageindex_tree"] == "erased_illustrative"
+    assert found["pageindex_tree"] == "erased"  # V1.2 story 11: measured, never illustrative
     assert found["long_context_prefix"] == "to_reload"
 
 
@@ -212,16 +211,18 @@ def test_rebuilt_outside_rebuild_and_unknown_values_are_refused():
 def test_the_displayed_marks_illustrative_and_upcoming():
     body = ask(make_session(), sentinel_active=True, step="erase")
     places = {p["id"]: p for p in body["places"]}
-    for pid in ("raptor_summaries", "pageindex_tree", "graph_communities", "graph_entities"):
+    for pid in ("raptor_summaries", "graph_communities", "graph_entities"):
         assert places[pid]["kind"] == "constructed"
         assert places[pid]["illustrative_text"].startswith("illustratif · cas construit")
+    assert places["pageindex_tree"]["kind"] == "measured"  # V1.2 story 11
+    assert places["pageindex_tree"]["illustrative_text"] is None
     assert places["wiki_pages"]["illustrative_text"].endswith("story 14)")
     assert places["chunks"]["illustrative_text"] is None
     rows = {r["architecture"]: r for r in places["bm25"]["rows"]}
     assert rows["hybrid"]["upcoming_text"] is None
     assert "story 12" in rows["crag"]["upcoming_text"] and "BM25" in rows["crag"]["upcoming_text"]
     source = {r["architecture"]: r["upcoming_text"] for r in places["source"]["rows"]}
-    assert "story 11" in source["agentic"] and source["long_context"] is None
+    assert source["agentic"] is None and source["long_context"] is None
 
 
 def snapshot_bytes(*roots: Path) -> dict[str, str]:
@@ -307,7 +308,6 @@ def test_constructed_places_cite_the_code_and_name_their_story(lang):
     constructed = [p for p in content.places if p.provenance]
     assert {p.id for p in constructed} == {
         "raptor_summaries",
-        "pageindex_tree",
         "graph_communities",
         "graph_entities",
         "wiki_pages",
@@ -369,6 +369,7 @@ def test_the_module_imports_only_the_permitted_names():
         ("wavestack.rag.attack", "Provenance"),
         ("wavestack.rag.attack", "provenance_text"),
         ("wavestack.rag.contexts", "heuristic_entries"),
+        ("wavestack.rag.pageindex", "build_tree"),  # V1.2 story 11: the rule's tree, pure
         ("wavestack.rag.contexts", "load_book"),
         ("wavestack.rag.corpus", "Chunk"),
         ("wavestack.rag.corpus", "DocText"),

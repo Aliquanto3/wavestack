@@ -182,11 +182,21 @@ def update(session: AppSession, *args, **kwargs) -> list:  # noqa: ANN002, ANN00
 
 
 def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
-    assert list(rag_lab.PRESETS) == ["dense", "hybrid", "rerank", "long_context", "cag"]
+    # V1.2 story 11: the agentic search and PageIndex follow, PageIndex in « Structure ».
+    assert list(rag_lab.PRESETS) == [
+        "dense",
+        "hybrid",
+        "rerank",
+        "long_context",
+        "cag",
+        "agentic",
+        "pageindex",
+    ]
     assert rag_lab.PRESETS["long_context"] == rag_lab.PRESETS["cag"] == ()
     assert rag_lab.PRESET_FAMILIES == {
         "search": ("dense", "hybrid", "rerank"),
-        "no_index": ("long_context", "cag"),
+        "structure": ("pageindex",),
+        "no_index": ("long_context", "cag", "agentic"),
     }
     session = lab(index)
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
@@ -201,6 +211,7 @@ def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
     state = session.rag_lab_state()["catalog"]
     assert state["preset_families"] == [
         {"id": "search", "label_text": "Recherche"},
+        {"id": "structure", "label_text": "Structure"},
         {"id": "no_index", "label_text": "Sans index"},
     ]
     assert state["corpus_options"] == ["full_corpus", "cached_corpus"]
@@ -273,7 +284,12 @@ def test_the_sequence_draws_the_prefix_for_the_cag_only_and_no_question_embeddin
         "hidden_with": [],
         "explain_text": "",
     }
-    assert steps["embed_query"]["hidden_with"] == ["full_corpus", "cached_corpus"]
+    assert steps["embed_query"]["hidden_with"] == [
+        "full_corpus",
+        "cached_corpus",
+        "agent_loop",  # V1.2 story 11
+        "section_tree",
+    ]
     assert [u["component"] for u in steps["cache_prefix"]["uses"]] == [
         "documents",
         "model_cache",
@@ -304,7 +320,7 @@ def test_sheets_presets_families_and_component_in_each_language(lang):
     assert reload_word in cag_sheet.when_text and reload_word in cag_sheet.cost_text
     for key in ("long_context", "cag"):
         assert texts.presets[key].label_text and texts.presets[key].explain_text
-    assert set(texts.preset_families) == {"search", "no_index"}
+    assert set(texts.preset_families) == {"search", "structure", "no_index"}
     assert texts.components["model_cache"].note_text
     assert texts.steps["cache_prefix"].explain_text
     assert texts.options["context"]["cached_corpus"].label_text
