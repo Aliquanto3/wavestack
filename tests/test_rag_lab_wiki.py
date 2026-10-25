@@ -240,6 +240,20 @@ def test_rebuild_writes_the_syntheses_then_reset_gives_the_shipped_wiki(index):
     session.close()
 
 
+def test_a_deletion_under_another_preset_forgets_the_wiki_s_pages(index):
+    # Review (criterion 6): the rebuilt wiki forgets a deleted document whatever the chain.
+    session = lab(index, FakeEngine(output="Synthèse écrite par le modèle."))
+    session.rebuild_rag_lab_contexts(preset(session, "llm_wiki"), "wiki")
+    wait_idle(session)
+    rebuilt = wiki.load_files("fr", config.rag_lab_dir())[1]
+    assert rebuilt is not None and any("teletravail" in p.sources for p in rebuilt.pages)
+    update(session, "delete", "teletravail", pipeline=preset(session, "pageindex"))
+    assert "teletravail" in workcopy.load("fr").deleted
+    kept = wiki.load_files("fr", config.rag_lab_dir())[1]
+    assert kept is not None and not [p.id for p in kept.pages if "teletravail" in p.sources]
+    session.close()
+
+
 def test_a_stopped_rebuild_writes_nothing(index):
     fake = Stopping(output="Synthèse.")
     session = lab(index, fake)

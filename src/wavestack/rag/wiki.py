@@ -635,6 +635,10 @@ def write_rebuilt(
             tokens += earlier.tokens or 0
             duration_ms += earlier.duration_ms or 0
             words = list(earlier.concepts)
+    # A page rewritten for a new text drops its synthesis of the old one (a modified
+    # document's earlier text leaves the file, story 18).
+    new_ids = {e.id for e in entries}
+    kept = {key: e for key, e in kept.items() if key[0] not in new_ids}
     for entry in entries:
         kept[(entry.id, entry.sha256)] = entry
     file = WikiFile(
@@ -708,12 +712,17 @@ def index_list(pages: Sequence[Page]) -> str:
 def parse_pages(answer: str, count: int) -> list[int] | None:
     """The numbers of the first `PAGES:` line of a model's answer, in `1..count`, at most
     `WIKI_BREADTH`, each once (a number out of range ignored); `[]` for `PAGES: NONE` or no
-    valid number; `None` when the answer has no `PAGES:` line (unreadable)."""
+    valid number; `None` when the answer has no `PAGES:` line (unreadable). A `PAGES:` line
+    with nothing after it is skipped for the next one."""
+    seen = False
     for line in answer.splitlines():
         found = _PAGES.match(line.strip())
         if found is None:
             continue
+        seen = True
         rest = found.group(1)
+        if not rest.strip():
+            continue
         if _NONE.match(rest):
             return []
         picked: list[int] = []
@@ -722,7 +731,7 @@ def parse_pages(answer: str, count: int) -> list[int] | None:
             if 1 <= n <= count and n not in picked:
                 picked.append(n)
         return picked[:WIKI_BREADTH]
-    return None
+    return [] if seen else None
 
 
 __all__ = [

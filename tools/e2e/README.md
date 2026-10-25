@@ -868,4 +868,4 @@ d'autres (story 21) :
   lint », « Wiki lookup » ; la page du télétravail choisie dans l'index ; carte « Wiki » « compilé
   par une règle, sans modèle » et son estimation ; « Ajouter » : pages recompilées puis
   vérification, 0 token ; « Recompiler » puis « Rétablir » ; Effacement (`wiki_pages` mesuré,
-  « effacé » après la recompilation) ; en puis de ; capture `88-atelier-rag-wiki.jpg`.
+  « effacé » après la recompilation) ; en puis de ; capture `89-atelier-rag-wiki.jpg`.

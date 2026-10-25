@@ -18570,7 +18570,7 @@ def s_rag_lab_graphrag(r: Run) -> None:
         _goto_rag_lab(r)
         _rag_mode(r, "compose")
         r.check(
-            _family_buttons(r, "structure") == ["pageindex", "graphrag"],
+            _family_buttons(r, "structure")[:2] == ["pageindex", "graphrag"],  # then the wiki
             "famille Structure : PageIndex puis GraphRAG",
             str(_family_buttons(r, "structure")),
         )
@@ -18792,7 +18792,7 @@ def s_rag_lab_wiki(r: Run) -> None:
             "règle, sans modèle » et son estimation",
             str({k: wiki.get(k) for k in ("chosen", "stop", "trimmed", "answer_preview")}),
         )
-        r.shot("88-atelier-rag-wiki", full_page=True)
+        r.shot("89-atelier-rag-wiki", full_page=True)
 
         # (2) A document added: the pages it feeds recompiled, then the lint.
         _rag_mode(r, "compose")

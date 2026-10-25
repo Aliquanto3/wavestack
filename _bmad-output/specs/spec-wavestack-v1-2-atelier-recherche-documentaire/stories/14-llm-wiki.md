@@ -102,7 +102,7 @@ Avec un vrai modèle local (4 096 tokens) : (1) « LLM Wiki » sur 3 questions d
 
 Pas de spec_checkpoint pour cette story : points tranchés par le développeur, chacun **à revoir par Anaël**.
 
-1. **Wiki livré compilé par une règle, modèle à « Reconstruire » seulement** (schéma de 12.11 et 12.13) : un wiki écrit par un vrai modèle ne sort ni de la CI ni d'un run de nuit. Conséquence honnête : avec le wiki livré, construction et mise à jour coûtent moins qu'un RAG dense (ms, 0 token) ; l'estimation étiquetée, hors somme, dit ce qu'un vrai LLM Wiki coûterait. À revoir par Anaël.
+1. **Wiki livré compilé par une règle, modèle à « Reconstruire » seulement** (schéma de 12.11 et 12.13) : un wiki écrit par un vrai modèle ne sort ni de la CI ni d'un run de nuit. Conséquence honnête : avec le wiki livré, construction et mise à jour coûtent moins qu'un RAG dense (ms, 0 token) ; l'estimation étiquetée, hors somme, dit ce qu'un vrai LLM Wiki coûterait. Revue (passe 1) : lecture de la D5 de 12.13 reprise. `architectures.md:83` (« coûtent plus à toutes les étapes ») et H13 sont tenus par la mesure d'un wiki recompilé par un modèle (faux moteur dans les tests et l'E2E, vrai modèle au done_checkpoint) ; le wiki livré, compilé par une règle, coûte réellement moins que dense, et l'afficher autrement truquerait AD-1. La fiche `context.wiki_pages` ×3 le dit désormais (« d'où une construction et une mise à jour moins chères que le RAG dense ; par le modèle, bien plus cher » ; H13 « quand un modèle compile les pages ») ; la fiche d'architecture `llm_wiki` garde le coût de la littérature, comme celle de GraphRAG. À revoir par Anaël.
 2. **Le modèle n'écrit que la synthèse** de chaque page ; la structure (pages, liens, citations, points clés) reste celle de la règle, ce qui garde le lint et l'effacement mesurables. Karpathy fait écrire la page entière. À revoir par Anaël.
 3. **Concepts par tf-idf, deux par document** : mesuré sur le corpus livré, 41 concepts (fr), 40 (en), 41 (de), dont du bruit (« pendant », « admise ») ; pas de concepts à plusieurs mots. À revoir par Anaël.
 4. **Vocabulaire gelé entre deux compilations complètes** : une mise à jour ne crée ni ne supprime de concept ; le lint le dit (`missing_concept`, `thin_concept`, `empty_concept`). À revoir par Anaël.
@@ -117,6 +117,8 @@ Pas de spec_checkpoint pour cette story : points tranchés par le développeur, 
 
 - 2026-10-25 : rédaction et développement (statut `review`), sur `integration/v1-2-atelier` refusionnée (12.19b, puis 12.20). Mesures du wiki livré : fr 67 pages (25 sources, 41 concepts, index), 368 liens, 108 Ko ; en 66 pages, 323 liens, 93 Ko ; de 67 pages, 320 liens, 101 Ko ; lint du livré : 1 `orphan_page` par langue ; 15 (fr), 14 (en, de) pages d'audience RH ; sentinelle active : 1 page avec le code (fr, en), 2 (de).
 
+- 2026-10-25 : revue passe 1, refusion de `integration/v1-2-atelier` (12.13 GraphRAG, banc 12.2) : `PRESET_FAMILIES["structure"] == ("pageindex", "graphrag", "llm_wiki")`, `llm_wiki` en fin de `PRESETS` après `graphrag` ; capture du wiki renumérotée `89-atelier-rag-wiki.jpg` (88 pris par 12.13). Le critère 1 se lit avec GraphRAG entre PageIndex et le wiki.
+
 ## Reports
 
 - Mesure réelle d'une recompilation par un vrai modèle (tokens, durée, qualité) et de la requête (choix des pages) : done_checkpoint d'Anaël.
@@ -126,3 +128,18 @@ Pas de spec_checkpoint pour cette story : points tranchés par le développeur, 
 - Lien vérifié vers la description du pattern par Karpathy dans la fiche.
 - Filtre `hr` de l'atelier (décision transverse, 12.11) ; exposition MCP du wiki (règle D12 de 12.20).
 - Sans modèle, l'étape Contexte des préréglages sans recherche (PageIndex comme le wiki) est sautée avant de lire la structure : la charge utile `wiki` / `tree` n'est pas émise dans ce cas (constaté, comportement existant de 12.11).
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu d183de47)
+
+Fusion de `origin/integration/v1-2-atelier` (1db4ec2) : 22 fichiers en conflit, ajouts des deux côtés gardés (GraphRAG puis LLM Wiki), `Literal` et `TARGETS` à quatre cibles, catalogue, effacement (`graph_entities`, `graph_communities`, `wiki_pages`), tests d'égalité réalignés (`test_rag_lab_graphrag`, `test_rag_lab_wiki`, `test_rag_lab_no_index`, `test_rag_erasure`, E2E `rag_lab_graphrag`). `RagLabRunIntention` strict : `rag-wiki.js` n'appelle que `rag_lab_rebuild` (`pipelines`, `target`) et `wiki/reset`, rien à changer.
+
+- Important, high, second avis (a) : textes de coût contradictoires avec le wiki livré à 0 token. Corrigé en partie : fiche `context.wiki_pages` ×3 (comparaison avec dense, H13 conditionnée au modèle) ; `architectures.md` et la fiche d'architecture gardés (lecture de la D5 de 12.13, décision 1 mise à jour, à revoir par Anaël).
+- Important, high, second avis (b) : `wiki.forget` seulement dans `_update_wiki`, un document supprimé sous un autre préréglage garde ses pages dans le wiki reconstruit (critère 6). Corrigé : `forget` dans `_rag_lab_keep_copy`, à côté de celui du graphe, quel que soit le Contexte ; test `test_a_deletion_under_another_preset_forgets_the_wiki_s_pages` (échoue sans le correctif). Une mise à jour annulée ne garde pas la copie : le document n'est pas supprimé, rien à oublier.
+- Important, medium, second avis (c) : `write_rebuilt(merge=True)` gardait la synthèse de l'ancien texte d'un document modifié. Corrigé : une page réécrite remplace toutes ses entrées de même id ; test dans `test_rebuilt_syntheses_are_read_by_fingerprint_and_forgotten_with_their_document`.
+- Important, medium, second avis (d) : conflits avec 12.13. Corrigé par la fusion ; E2E `rag_lab_graphrag` réaligné (`[:2]`), capture du wiki renumérotée 89 (doublon de numéro 88 avec 12.13).
+- Nit, low, second avis (e) : `PAGES:` vide masquait la ligne suivante ; focus « 0 pages » sans modèle. Corrigés (`parse_pages` saute une ligne vide, `[]` si aucune autre ; `rag-wiki.js` n'affiche l'index que s'il a des pages). `PAGES: 1-3` lu [1, 3] : rejeté, les intervalles ne sont pas dans le format demandé au modèle.
+- Nit, low, second avis (f) : tests de `load_wiki` sans dossier sur le poste. Rejeté : `tests/conftest.py` isole `WAVESTACK_DATA_DIR` dans `tmp_path` pour chaque test (autouse).
+- Nit, low, revue : la fiche d'architecture (`rag_sheets.yaml`, données) dit « la compilation et la vérification passent par le modèle actif » ; dans l'atelier le lint est une règle. Reporté à la relecture de la fiche par Anaël (done_checkpoint, point 6).
+- Complexité : 0 constat à impact. `_index_fit` réestime la liste à chaque page retirée (O(n²) sur ~67 pages) ; `forget` relit le fichier reconstruit (~100 Ko) à chaque copie gardée : négligeables.

@@ -125,7 +125,7 @@ async function resetWiki() {
 registerFocus((box, step, stage) => {
   if (step.stage !== "context") return;
   const ended = stage?.ended;
-  if (ended?.wiki && step.key === "wiki_lookup" && ended.wiki.shown) box.append(wikiIndex(ended.wiki));
+  if (ended?.wiki && step.key === "wiki_lookup" && ended.wiki.shown?.length) box.append(wikiIndex(ended.wiki));
   if (ended?.wiki && step.key === "wiki_lint") box.append(lintList(ended.wiki));
   if (contextOption() === "wiki_pages" && ["wiki_build", "wiki_lint", "wiki_lookup", "context"].includes(step.key)) {
     box.append(wikiCard());

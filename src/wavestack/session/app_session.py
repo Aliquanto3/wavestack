@@ -11923,6 +11923,8 @@ class AppSession:
         workcopy.save(copy, self._language)
         # V1.2 story 13: a deleted document's evidence leaves the rebuilt graph (story 18).
         rag_graph.forget(self._language, list(copy.deleted), config.rag_lab_dir())
+        # V1.2 story 14: and its pages leave the rebuilt wiki, whatever the chain's Context.
+        rag_wiki.forget(self._language, list(copy.deleted), config.rag_lab_dir())
         with self._lock:
             if self._cag_pending is not None:
                 self._cag_cache, self._cag_pending = self._cag_pending, None

@@ -92,7 +92,10 @@ def test_the_preset_its_family_and_its_context(index):
     session = full(index)
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
     chain = catalog.preset_pipeline("graphrag")
-    assert rag_lab.PRESETS["graphrag"] == () and list(rag_lab.PRESETS)[-2:] == ["graphrag", "llm_wiki"]
+    assert rag_lab.PRESETS["graphrag"] == () and list(rag_lab.PRESETS)[-2:] == [
+        "graphrag",
+        "llm_wiki",
+    ]
     assert [s.kind for s in chain.stages] == [*rag_lab.FIXED_HEAD, *rag_lab.FIXED_TAIL]
     assert stage(chain, "context").option == "graph_search"
     assert rag_lab.check_pipeline(chain, catalog) is None

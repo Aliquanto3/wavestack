@@ -166,6 +166,9 @@ def test_parse_pages_reads_the_first_line_in_range_at_most_three():
     assert wiki.parse_pages("**Pages**: none", 5) == []
     assert wiki.parse_pages("PAGES: 99", 5) == []
     assert wiki.parse_pages("La deuxième page.", 5) is None
+    # Review: an empty PAGES: line does not hide the next one, nor make the answer unreadable.
+    assert wiki.parse_pages("PAGES:\nPAGES: 2", 5) == [2]
+    assert wiki.parse_pages("PAGES:", 5) == []
 
 
 # ---------- the rebuilt file ----------
@@ -218,4 +221,23 @@ def test_rebuilt_syntheses_are_read_by_fingerprint_and_forgotten_with_their_docu
     merged = wiki.load_files("fr", tmp_path)[1]
     assert merged is not None and (merged.tokens, merged.model) == (14, "m + n")
     assert merged.concepts == concepts  # the vocabulary of the full compilation stays
+    # Review: a page rewritten for a new text drops its synthesis of the old one.
+    page = wiki.build_wiki(changed, "fr", concepts)["source/beta"]
+    newer = [DocText("beta", "Beta", DOCS[1].text + "\n\nUn ajout."), DOCS[2]]
+    fresh = wiki.build_wiki(newer, "fr", concepts)["source/beta"]
+    fresh.synthesis_text = "Nouvelle synthèse."
+    assert fresh.sha256 != page.sha256
+    wiki.write_rebuilt(
+        "fr",
+        [fresh.entry()],
+        concepts=concepts,
+        model="n",
+        tokens=1,
+        duration_ms=1,
+        merge=True,
+        folder=tmp_path,
+    )
+    merged = wiki.load_files("fr", tmp_path)[1]
+    assert merged is not None
+    assert [p.sha256 for p in merged.pages if p.id == "source/beta"] == [fresh.sha256]
     assert wiki.reset("fr", tmp_path) and not wiki.reset("fr", tmp_path)
