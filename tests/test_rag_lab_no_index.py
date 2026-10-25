@@ -185,7 +185,7 @@ def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
     # V1.2 story 11: the agentic search and PageIndex follow, PageIndex in « Structure »;
     # V1.2 story 13: GraphRAG last, after PageIndex in « Structure ».
     # V1.2 stories 12 and 14 add theirs after these (an inclusion, not an equality).
-    assert list(rag_lab.PRESETS)[:8] == [
+    assert list(rag_lab.PRESETS)[:9] == [
         "dense",
         "hybrid",
         "rerank",
@@ -194,6 +194,7 @@ def test_the_two_presets_join_their_own_family_with_an_empty_segment(index):
         "agentic",
         "pageindex",
         "graphrag",
+        "llm_wiki",  # V1.2 story 14
     ]
     assert rag_lab.PRESETS["long_context"] == rag_lab.PRESETS["cag"] == ()
     families = rag_lab.PRESET_FAMILIES
@@ -297,6 +298,7 @@ def test_the_sequence_draws_the_prefix_for_the_cag_only_and_no_question_embeddin
         "agent_loop",  # V1.2 story 11
         "section_tree",
         "graph_search",  # V1.2 story 13
+        "wiki_pages",  # V1.2 story 14
         "raptor_search",  # V1.2 story 12
     ]
     assert [u["component"] for u in steps["cache_prefix"]["uses"]] == [

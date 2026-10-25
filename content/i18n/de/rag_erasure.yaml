@@ -50,8 +50,7 @@ architectures:
     label_text: "Vereinfachtes GraphRAG"
     update_text: "Entitäten neu extrahieren, zusammenführen, dann Gemeinschaften und ihre Zusammenfassungen neu berechnen."
   - id: llm_wiki
-    available: false
-    story: 14
+    available: true
     label_text: "LLM-Wiki"
     update_text: "die betroffenen Seiten neu kompilieren, dann die Prüfung des Wikis durchlaufen."
   - id: crag
@@ -120,15 +119,11 @@ places:
     measured_on_text: "die Entitäten des heuristischen Graphen, im Speicher neu berechnet"
   - id: wiki_pages
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "dem echten Wiki, Story 14"
-    story: 14
+    measured: wiki_pages
     architectures: [llm_wiki]
     label_text: "Wiki-Seiten"
     unit_text: "Seiten"
-    text: "Seite \"Projekt Orion\": fiktives internes Projekt, Code ORN-7731-QZ, Quelle: das Sentinel-Dokument."
-    rebuilt_text: "Wiki-Index: die Seiten der internen Richtlinien von Exemplia, ohne Seite zum Projekt Orion."
+    measured_on_text: "das im Speicher neu kompilierte heuristische Wiki"
   - id: cag_cache
     erase_mode: reload
     provenance:

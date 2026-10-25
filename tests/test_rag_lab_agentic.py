@@ -73,12 +73,13 @@ def test_the_two_presets_their_families_and_their_context(index):
     assert shown["agentic"]["available"] and shown["pageindex"]["available"]
     state = session.rag_lab_state()["catalog"]
     assert state["corpus_options"] == ["full_corpus", "cached_corpus"]
-    assert state["searchless_options"][:5] == [  # V1.2 stories 12 and 14 add theirs after
+    assert state["searchless_options"][:6] == [  # V1.2 stories 12 and 14 add theirs after
         "full_corpus",
         "cached_corpus",
         "agent_loop",
         "section_tree",
         "graph_search",  # V1.2 story 13
+        "wiki_pages",  # V1.2 story 14
     ]
     assert [f["label_text"] for f in state["preset_families"]] == [
         "Recherche",

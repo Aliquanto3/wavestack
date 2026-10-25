@@ -96,7 +96,7 @@ def test_the_preset_its_family_and_its_context(index):
     assert [s.kind for s in chain.stages] == [*rag_lab.FIXED_HEAD, *rag_lab.FIXED_TAIL]
     assert stage(chain, "context").option == "graph_search"
     assert rag_lab.check_pipeline(chain, catalog) is None
-    assert "graphrag" in rag_lab.PRESET_FAMILIES["structure"]  # V1.2 story 12: RAPTOR too
+    assert "graphrag" in rag_lab.PRESET_FAMILIES["structure"]  # V1.2 stories 12, 14 too
     shown = presets(session)
     assert shown["graphrag"]["family"] == "structure" and shown["graphrag"]["available"]
     state = session.rag_lab_state()["catalog"]

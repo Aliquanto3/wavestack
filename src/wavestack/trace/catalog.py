@@ -1854,6 +1854,53 @@ class RagLabFallback(BaseModel):
     warnings: list[RagLabWarning] = []
 
 
+class RagLabWikiShown(BaseModel):
+    """V1.2 story 14: a page of the index shown to the model (its title and synthesis cut)."""
+
+    number: int
+    page_id: str
+    kind: str = ""
+    title_text: str
+    summary_text: str = ""
+    audience: str = "all"
+
+
+class RagLabWikiFinding(BaseModel):
+    """V1.2 story 14: a finding of the wiki's lint (its code, its page, its sentence)."""
+
+    code: str
+    page_id: str
+    text: str = ""
+
+
+class RagLabWiki(BaseModel):
+    """V1.2 story 14 (CAP-7): the LLM Wiki a Context stage (`wiki_pages`) read, or an update's
+    lint checked: who wrote its syntheses (`shipped`/`heuristic` or `rebuilt`/`llm`), its pages,
+    concepts, links and stale pages, the lint's findings, the estimate of a compilation by a
+    model (shipped wiki only), the index shown to the model, the pages it picked, its answer
+    cut, the call's tokens, why it stopped and its warnings."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    pages: int = 0
+    concepts: int = 0
+    links: int = 0
+    stale: int = 0
+    findings: int = 0
+    lint: list[RagLabWikiFinding] = []
+    estimate_text: str | None = None
+    shown: list[RagLabWikiShown] = []
+    chosen: list[str] = []
+    trimmed: int = 0
+    answer_preview: str = ""
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+    stop: str = ""
+    warnings: list[RagLabWarning] = []
+
+
 class RagLabStageEndedPayload(BaseModel):
     """What a stage received and made, its figures and its excerpts, its duration and
     WaveStack's memory at its end (`None` for a stage that did not run)."""
@@ -1908,6 +1955,7 @@ class RagLabStageEndedPayload(BaseModel):
     # V1.2 story 12: RAPTOR's search on every level, Corrective RAG's fallback.
     raptor: RagLabRaptor | None = None
     fallback: RagLabFallback | None = None
+    wiki: RagLabWiki | None = None  # V1.2 story 14
 
 
 class RagLabRunEndedPayload(BaseModel):

@@ -871,3 +871,10 @@ d'autres (story 21) :
   l'arbre » ; « Corrective RAG » en dernier de la famille Recherche, le repli après le filtre, son
   focus (jugement, aucune recherche web, « je ne sais pas » de l'atelier si rien n'est gardé) ;
   captures `93-atelier-rag-raptor.jpg`, `94-atelier-rag-crag.jpg`.
+- `rag_lab_wiki`, V1.2 story 14 (CAP-7), après `rag` et `rag_rerank`, sans vrai modèle : le faux
+  llama-server répond `PAGES:` de la page du télétravail et une synthèse fixe (`workshop_plan`).
+  « LLM Wiki » dans la famille Structure, après PageIndex ; lignes « Wiki compilation », « Wiki
+  lint », « Wiki lookup » ; la page du télétravail choisie dans l'index ; carte « Wiki » « compilé
+  par une règle, sans modèle » et son estimation ; « Ajouter » : pages recompilées puis
+  vérification, 0 token ; « Recompiler » puis « Rétablir » ; Effacement (`wiki_pages` mesuré,
+  « effacé » après la recompilation) ; en puis de ; capture `89-atelier-rag-wiki.jpg`.

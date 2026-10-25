@@ -1026,7 +1026,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
     steps = {s["key"]: s for s in catalog["steps"]}
     assert list(steps) == list(rag_lab.STEPS)
     build = [k for k, s in steps.items() if s["phase"] == "build"]
-    assert build[:8] == [  # V1.2 stories 12 and 14 add theirs after these
+    assert build[:10] == [  # V1.2 stories 12 and 14 add theirs after these
         "documents",
         "chunking",
         "embed_passages",
@@ -1035,6 +1035,8 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "cache_prefix",  # V1.2 story 10: drawn for `cached_corpus` only
         "tree_build",  # V1.2 story 11: drawn for `section_tree` only
         "graph_build",  # V1.2 story 13: drawn for `graph_search` only
+        "wiki_build",  # V1.2 story 14: drawn for `wiki_pages` only
+        "wiki_lint",
     ]
     assert "raptor_build" in build  # V1.2 story 12: drawn for `raptor_search` only
     assert steps["documents"] | {"explain_text": ""} == {
@@ -1068,7 +1070,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
     assert steps["generation"]["note_text"] is None  # lot 5c-3: it runs, no « not run » note
     not_own = [(s["key"], s["stage"]) for s in catalog["steps"] if not s["own"]]
     assert ("raptor_build", "context") in not_own and ("raptor_query", "context") in not_own
-    assert not_own[:10] == [
+    assert not_own[:13] == [
         ("documents", "chunking"),
         ("lexical_index", "lexical_search"),
         ("question", None),
@@ -1079,13 +1081,16 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         ("tree_levels", "context"),
         ("graph_build", "context"),  # V1.2 story 13
         ("graph_query", "context"),
+        ("wiki_build", "context"),  # V1.2 story 14
+        ("wiki_lint", "context"),
+        ("wiki_lookup", "context"),
     ]
     components = {c["id"]: c for c in catalog["components"]}
     assert list(components) == list(rag_lab.COMPONENTS)
     labels = [c["label_text"] for c in catalog["components"]]
     assert "Decision model" in labels  # V1.2 story 8: System One's model
     assert "Arbre de résumés" in labels  # V1.2 story 12: RAPTOR's tree
-    assert [label for label in labels if label != "Decision model"][:14] == [
+    assert [label for label in labels if label != "Decision model"][:15] == [
         "Documents",
         "Chunks",
         "Vector store",
@@ -1100,6 +1105,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "Outils sur les fichiers",  # V1.2 story 11
         "Arbre de sections",
         "Graphe de connaissances",  # V1.2 story 13
+        "Wiki",  # V1.2 story 14
     ]
     assert components["reranker"]["group"] == "models"
     assert components["reranker"]["stage"] == "rerank"
@@ -1172,7 +1178,7 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
     presets = {p["id"]: p for p in session.rag_lab_state()["catalog"]["presets"]}
     # V1.2 stories 12 and 14 add theirs after these (an inclusion, not an equality).
-    assert list(presets)[:8] == [
+    assert list(presets)[:9] == [
         "dense",
         "hybrid",
         "rerank",
@@ -1181,6 +1187,7 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
         "agentic",  # V1.2 story 11
         "pageindex",
         "graphrag",  # V1.2 story 13
+        "llm_wiki",  # V1.2 story 14
     ]
     assert list(presets) == list(rag_lab.PRESETS)
     search = ("dense", "hybrid", "rerank", "crag")  # V1.2 story 10, CRAG (story 12) last

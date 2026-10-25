@@ -246,6 +246,8 @@ options:
       label_text: "Wissensgraph (GraphRAG)"
     raptor_search:  # V1.2 story 12
       label_text: "Baum von Zusammenfassungen (RAPTOR)"
+    wiki_pages:
+      label_text: "Seiten des LLM Wiki (Index vom Modell gelesen)"
   generation:
     active:
       label_text: "Aktives Modell der Werkstatt"
@@ -434,6 +436,19 @@ steps:
   fallback:
     label_text: "Corrective fallback"
     action_text: "Die Frage umformulieren und erneut suchen, wenn der Filter nichts behalten hat"
+  # V1.2 story 14: the LLM Wiki compiled once, linted, its index read at each question.
+  wiki_build:
+    label_text: "Wiki compilation"
+    action_text: "Die Quellen zu verknüpften Wiki-Seiten kompilieren"
+    explain_text: "Das LLM Wiki kompiliert die Dokumente einmal zu Markdown-Seiten: eine Seite je Dokument (Synthese, Kernpunkte, Begriffe), eine Seite je Begriff, den mehrere Dokumente nennen, und den Index aller Seiten, verknüpft durch [[Seite]]-Verweise. Das ausgelieferte Wiki wird nach einer Regel kompiliert, ohne Modell; „Neu aufbauen“ lässt das aktive Modell die Synthesen schreiben. Ein Dokument zu aktualisieren kompiliert nur die Seiten neu, die es speist."
+  wiki_lint:
+    label_text: "Wiki lint"
+    action_text: "Das Wiki prüfen: Verweise, verwaiste Seiten, Begriffe"
+    explain_text: "Nach jeder Kompilierung liest eine Prüfung das Wiki erneut: Verweise auf eine fehlende Seite, Seiten, auf die keine andere verweist, Begriffe, die nur eine oder keine Quelle mehr nennt, Begriffe, die der Korpus ohne Seite verlangt, veraltete Synthesen. Sie sagt, was eine vollständige Neukompilierung beheben würde; selbst korrigiert sie nichts."
+  wiki_lookup:
+    label_text: "Wiki lookup"
+    action_text: "Das Modell liest den Index und wählt die zu lesenden Seiten"
+    explain_text: "Das Modell liest den nummerierten Index der Seiten (Titel und Synthese) und antwortet PAGES: 2, 5 (höchstens drei) oder PAGES: NONE. Ein einziger Aufruf; der ganze Text der gewählten Seiten wird der Kontext, mit ihren Quellen."
 
 # The architecture's tiles: their name, and their subtitle when no option gives one.
 components:
@@ -486,6 +501,9 @@ components:
   summary_tree:  # V1.2 story 12
     label_text: "Baum von Zusammenfassungen"
     note_text: "Passagen, Zusammenfassungen von Gruppen, Zusammenfassungen von Zusammenfassungen"
+  wiki:
+    label_text: "Wiki"
+    note_text: "Aus den Quellen kompilierte Markdown-Seiten und ihr Index"
 
 groups:
   data:
@@ -558,6 +576,13 @@ presets:
       zusammengefassten Communities, einmal aufgebaut. Lokal nennt das Modell die Entitäten der
       Frage und liest die Belege ihrer Nachbarn; global liest es die nächsten Communities. Teuer
       im Aufbau und in der Aktualisierung mit einem Modell, mehrere Aufrufe je Anfrage.
+  llm_wiki:
+    label_text: "LLM Wiki"
+    explain_text: >-
+      Keine Vektoren: die Quellen werden einmal zu einem Wiki aus Markdown-Seiten kompiliert
+      (eine je Dokument, eine je gemeinsamem Begriff, ein Index), durch eine Prüfung
+      kontrolliert; bei jeder Frage wählt das Modell im Index die zu lesenden Seiten. Seiten
+      zum Kompilieren und bei jeder Aktualisierung neu, ein Aufruf je Anfrage.
   raptor:  # V1.2 story 12
     label_text: "RAPTOR"
     explain_text: "Keine Vektoren: ein Baum von Zusammenfassungen, einmal aufgebaut, die Passagen gruppiert und zusammengefasst, dann die Zusammenfassungen gruppiert und zusammengefasst. Die Anfrage sucht auf allen Ebenen zugleich, ohne Modellaufruf. Teuer im Aufbau mit einem Modell, Zusammenfassungen bei jeder Aktualisierung zu erneuern."
@@ -1085,3 +1110,12 @@ sheets:
         url: "https://arxiv.org/abs/2401.15884"
       - label_text: "Towards AI: Jev als Richter der Aussagenprüfung (23 % gegenüber 13 %)"
         url: "https://pub.towardsai.net/jev-as-a-judge-for-rag-claim-verification-7b356619814c"
+  context.wiki_pages:
+    purpose_text: "Die Quellen einmal zu einem Wiki aus Markdown-Seiten kompilieren (eine Seite je Dokument, eine je Begriff, den mehrere Dokumente teilen, ein Index aller Seiten, verknüpft durch [[Seite]]-Verweise), es mit einer Prüfung kontrollieren und dann aus den Seiten antworten, die das Modell im Index wählt: das LLM-Wiki-Muster von Andrej Karpathy, hier von Hand umgesetzt."
+    when_text: "Zu verwenden für eine stabile Wissensbasis von einigen hundert Dokumenten, die Menschen lesen: eine Begriffsseite sammelt, was mehrere Quellen über ein Thema sagen. Zu vermeiden, wenn sich die Quellen schnell ändern (jede Aktualisierung kompiliert Seiten neu) oder wenn die Verankerung zählt: die Seite ist eine Synthese, nicht die Quelle."
+    cost_text: "Aufbau: alle Seiten kompilieren; nach der ausgelieferten Regel wenige Millisekunden und kein Token, daher ein Aufbau und eine Aktualisierung billiger als dichtes RAG; durch das Modell („Neu aufbauen“) ein Aufruf je Seite, weit teurer, dessen Schätzung gesondert angezeigt wird, außerhalb der Summen. Aktualisierung: die Seiten neu kompilieren, die das betroffene Dokument speist (seine Seite, die seiner Begriffe, den Index), dann die Prüfung. Anfrage: ein Aufruf, um die Seiten im Index zu wählen, dann die Generierung."
+    literature_text: "Hypothese H3, zum Umfang nicht untersucht: das LLM Wiki erreiche RAG bei einigen hundert Dokumenten und falle dann zurück. Eine Studie (24 Artikel, 13 Fragen) findet das Wiki besser bei der Synthese und RAG besser bei der Verankerung, für etwa 21-mal mehr Tokens (arXiv 2605.18490). Hypothese H13, teilweise gestützt: es kostet mehr bei der Indexierung und der Aktualisierung, wenn ein Modell die Seiten kompiliert. Das hier ausgelieferte Wiki wird nach einer Regel kompiliert, ohne Modell: teurer wird es erst, wenn das Modell es neu aufbaut."
+    bench_text: ""
+    sources:
+      - label_text: "arXiv 2605.18490: LLM Wiki und RAG an 24 Artikeln und 13 Fragen, etwa 21-mal mehr Tokens"
+        url: "https://arxiv.org/html/2605.18490v1"

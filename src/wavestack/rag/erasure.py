@@ -39,6 +39,7 @@ from wavestack.rag.index import passage_text
 from wavestack.rag.lab import bm25, bm25_terms, lexical_index
 from wavestack.rag.pageindex import build_tree
 from wavestack.rag.raptor import build_tree as build_raptor
+from wavestack.rag.wiki import build_wiki
 
 FILE = "rag_erasure.yaml"
 ARCHITECTURES = (
@@ -78,6 +79,7 @@ MEASURED = (
     "graph_entities",
     "graph_communities",
     "raptor_summaries",  # V1.2 story 12
+    "wiki_pages",  # V1.2 story 14: the rule's wiki, recompiled in memory
 )
 MODE_OF_MEASURED = {
     "pageindex_tree": "rebuild",  # V1.2 story 11: the rule's tree, recomputed in memory
@@ -86,6 +88,7 @@ MODE_OF_MEASURED = {
     "graph_communities": "rebuild",
     # V1.2 story 12: the rule's RAPTOR tree, recomputed in memory (its summaries)
     "raptor_summaries": "rebuild",
+    "wiki_pages": "rebuild",  # V1.2 story 14
     "chunks": "delete",
     "bm25": "delete",
     "contexts": "rebuild",
@@ -159,6 +162,7 @@ class Place(_Strict):
             "graph_entities",
             "graph_communities",
             "raptor_summaries",
+            "wiki_pages",  # V1.2 story 14
         ]
         | None
     ) = None
@@ -304,6 +308,10 @@ class Copies(NamedTuple):
     # V1.2 story 12: RAPTOR's tree by the rule, a summary each, with and without the sentinel.
     raptor_with: list[str] = []
     raptor_without: list[str] = []
+    # V1.2 story 14: the LLM Wiki compiled by the rule, a page each (its whole Markdown, what
+    # the wiki copies of the documents), with the sentinel and without it.
+    wiki_with: list[str] = []
+    wiki_without: list[str] = []
 
 
 def build_copies(content: ErasureContent, lang: str) -> Copies:
@@ -358,6 +366,8 @@ def build_copies(content: ErasureContent, lang: str) -> Copies:
         communities_without=graph_without[1],
         raptor_with=raptor(docs_with),
         raptor_without=raptor(docs_without),
+        wiki_with=[p.text for p in build_wiki(docs_with, lang).values()],
+        wiki_without=[p.text for p in build_wiki(docs_without, lang).values()],
     )
 
 
@@ -381,6 +391,8 @@ def _items(place: Place, copies: Copies, erased: bool, rebuilt: set[str]) -> lis
         return copies.communities_without if rebuilding else copies.communities_with
     if place.measured == "raptor_summaries":  # V1.2 story 12
         return copies.raptor_without if rebuilding else copies.raptor_with
+    if place.measured == "wiki_pages":  # V1.2 story 14
+        return copies.wiki_without if rebuilding else copies.wiki_with
     if place.measured == "source":
         return [d.text for d in (copies.docs_without if erased else copies.docs_with)]
     assert place.text and place.rebuilt_text  # noqa: S101 - validated at the load
