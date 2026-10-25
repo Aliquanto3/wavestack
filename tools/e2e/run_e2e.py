@@ -9346,7 +9346,20 @@ def _annex_patterns(
     # Languages 5/5 (story 7 of 2026-09-30): the backend's messages too.
     french |= _message_catalogue("fr")
     translated |= _message_catalogue(lang)
-    return _value_patterns(french, translated), _literals(french, translated)
+    # The RAG workshop's technical names are the same English words in every language
+    # (test_i18n): « Documents » stays one on a German page, even though the graph's column
+    # « Documents » of `ui.yaml` reads « Dokumente » there.
+    technical = {
+        value
+        for key, value in translated.items()
+        if _TECHNICAL_NAME.fullmatch(key) and french.get(key) == value
+    }
+    return _value_patterns(french, translated), _literals(french, translated) | technical
+
+
+_TECHNICAL_NAME = re.compile(
+    r"rag_lab\.yaml:(steps|stages|components|phases)\.[^.]+\.(label_text|tag_text)"
+)
 
 
 def _annex_french_left(r: Run, lang: str) -> list[str]:
