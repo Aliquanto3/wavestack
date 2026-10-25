@@ -625,3 +625,52 @@ def test_strands_positions_and_probability():
         b.strands_positions(10, 4, offsets, [(20, 30)])
     assert b.strands_p_true([0.0, 0.0], 0.9) == pytest.approx(0.5)
     assert b.strands_p_true([0.0, 0.911], 0.911) == pytest.approx(1 / (1 + 2.718281828**-1))
+
+
+# ---------- local judge adapter and resumption ----------
+
+
+class _FakeLlama:
+    """A `Llama` without `logits_all`: asking for logprobs raises, as llama-cpp-python does."""
+
+    def __init__(self, yes_logit=2.0, no_logit=0.0):
+        self.logits = {1: yes_logit, 2: no_logit}
+        self.calls = []
+
+    def create_chat_completion(self, **kwargs):
+        if kwargs.get("logprobs"):
+            raise ValueError("logprobs is not supported for models created with logits_all=False")
+        self.calls.append(kwargs)
+        return {"choices": [{"message": {"content": "oui"}}]}
+
+    def tokenize(self, text, add_bos=True, special=False):
+        return [1 if text in (b"oui", b"yes", b"ja") else 2]
+
+
+def test_judge_probability_never_asks_for_logprobs(built):
+    item = next(i for i in built.items if i.task == "filter" and i.lang == "fr")
+    llm = _FakeLlama()
+    p = b.judge_probability(llm, object(), item, lambda m: m.logits)
+    assert p == pytest.approx(1 / (1 + 2.718281828**-2.0))
+    assert llm.calls[0]["max_tokens"] == 1 and "logprobs" not in llm.calls[0]
+
+
+def test_stale_local_run_dropped_so_rerun_measures(tmp_path):
+    rec = b.recorded_path(tmp_path, "slm_juge")
+    meta = tmp_path / "local" / "slm_juge.json"
+    for r in ({"item_id": "a", "error": "ValueError()"}, {"item_id": "b", "error": "x"}):
+        b.append_record(rec, r)
+    b.write_json(meta, {"status": "measured"})
+    assert b.drop_stale_local_run(tmp_path, "slm_juge")
+    assert not rec.exists() and not meta.exists()
+
+
+def test_good_local_run_kept(tmp_path):
+    rec = b.recorded_path(tmp_path, "slm_juge")
+    meta = tmp_path / "local" / "slm_juge.json"
+    b.append_record(rec, {"item_id": "a", "error": None, "prob": 0.5})
+    b.append_record(rec, {"item_id": "b", "error": "x"})
+    b.write_json(meta, {"status": "measured"})
+    assert not b.drop_stale_local_run(tmp_path, "slm_juge")
+    assert rec.exists() and meta.exists()
+    assert not b.drop_stale_local_run(tmp_path / "none", "slm_juge")

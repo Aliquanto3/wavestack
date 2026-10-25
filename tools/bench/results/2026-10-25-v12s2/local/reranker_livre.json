@@ -1,0 +1,24 @@
+{
+  "determinism": {
+    "checked": 20,
+    "deterministic": true,
+    "max_gap": 0.0
+  },
+  "guard": "wavestack.net.guard",
+  "id": "reranker_livre",
+  "peak_before_load_mb": 1934,
+  "probabilistic": false,
+  "revisions": {
+    "bge-reranker-v2-m3-q4_k_m": "reranker/bge-reranker-v2-m3-Q4_K_M.gguf"
+  },
+  "rss_added_mb": 758,
+  "rss_before_load_mb": 1934,
+  "rss_loaded_mb": 2692,
+  "rss_peak_mb": 2692,
+  "rss_with_slm_mb": 1934,
+  "status": "measured",
+  "truncated_items": 0,
+  "versions": {
+    "llama-cpp-python": "0.3.35"
+  }
+}

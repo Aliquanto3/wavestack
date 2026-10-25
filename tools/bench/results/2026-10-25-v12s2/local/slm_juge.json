@@ -1,0 +1,22 @@
+{
+  "determinism": {
+    "checked": 20,
+    "deterministic": true,
+    "max_gap": 0.0
+  },
+  "guard": "wavestack.net.guard",
+  "id": "slm_juge",
+  "peak_before_load_mb": 1933,
+  "probabilistic": true,
+  "revisions": {},
+  "rss_added_mb": 247,
+  "rss_before_load_mb": 1933,
+  "rss_loaded_mb": 2124,
+  "rss_peak_mb": 2180,
+  "rss_with_slm_mb": 1933,
+  "status": "measured",
+  "truncated_items": 0,
+  "versions": {
+    "llama-cpp-python": "0.3.35"
+  }
+}

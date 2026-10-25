@@ -1707,6 +1707,82 @@ class RagLabTree(BaseModel):
     warnings: list[RagLabWarning] = []
 
 
+class RagLabGraphEntity(BaseModel):
+    id: str
+    name: str
+    audience: str = "all"
+
+
+class RagLabGraphPassage(BaseModel):
+    """V1.2 story 13: an evidence passage a local query kept: its id, document and rank, its
+    audience (shown, never filtered), the relations it backs, its text only as a length and a
+    cut preview."""
+
+    passage_id: str
+    doc_id: str
+    rank: int
+    audience: str = "all"
+    relation_text: str = ""
+    chars: int = 0
+    preview: str = ""
+
+
+class RagLabGraphCommunity(BaseModel):
+    """V1.2 story 13: a community a global query ranked: its entities, sources and audience,
+    its score (the words it shares with the question), its « map » call (the answer cut, the
+    tokens) and whether its points were kept."""
+
+    community_id: str
+    entities: list[str] = []
+    size: int = 0
+    sources: list[str] = []
+    audience: str = "all"
+    score: int = 0
+    summary_preview: str = ""
+    answer_preview: str = ""
+    kept: bool = False
+    trimmed: bool = False
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+
+
+class RagLabGraphEstimate(BaseModel):
+    """V1.2 story 13: what an extraction by a model would need, an estimate never measured."""
+
+    calls: int
+    input_tokens: int
+    text: str
+
+
+class RagLabGraph(BaseModel):
+    """V1.2 story 13 (CAP-7): GraphRAG's query of a Context stage (`graph_search`): who built
+    the graph and its numbers, the mode, the entities asked and recognized, their neighbours,
+    the evidence passages (local) or the communities ranked (global), the calls, why it
+    stopped and its warnings."""
+
+    author: str
+    method: str
+    model: str
+    mark_text: str = ""
+    rule_note_text: str | None = None
+    mode: str = "local"
+    entities: int = 0
+    relations: int = 0
+    communities: int = 0
+    isolated: int = 0
+    stale: int = 0
+    estimate: RagLabGraphEstimate | None = None
+    asked: list[str] = []
+    matched: list[RagLabGraphEntity] = []
+    neighbours: list[RagLabGraphEntity] = []
+    passages: list[RagLabGraphPassage] = []
+    ranked: list[RagLabGraphCommunity] = []
+    calls: int = 0
+    answer_preview: str = ""
+    stop: str = ""
+    warnings: list[RagLabWarning] = []
+
+
 class RagLabWikiShown(BaseModel):
     """V1.2 story 14: a page of the index shown to the model (its title and synthesis cut)."""
 
@@ -1801,6 +1877,7 @@ class RagLabStageEndedPayload(BaseModel):
     # cut preview and a length).
     agent: RagLabAgent | None = None
     tree: RagLabTree | None = None
+    graph: RagLabGraph | None = None  # V1.2 story 13: GraphRAG's query
     wiki: RagLabWiki | None = None  # V1.2 story 14
 
 

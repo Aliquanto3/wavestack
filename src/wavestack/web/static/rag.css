@@ -2140,3 +2140,104 @@ body.rag-page {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* V1.2 story 13 (CAP-7): GraphRAG's query in the focus and its « Graphe » card. */
+.rag-graph,
+.rag-graph-card {
+  margin: var(--spacing-3) 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rag-graph-card {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+}
+
+.rag-graph-title,
+.rag-graph-card-title,
+.rag-graph-subtitle {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: 600;
+}
+
+.rag-graph-mark,
+.rag-graph-preview {
+  color: var(--color-ink-soft);
+}
+
+.rag-graph-entities,
+.rag-graph-passages,
+.rag-graph-communities {
+  margin: 0;
+  padding-left: var(--spacing-4);
+}
+
+.rag-graph-entity,
+.rag-graph-passage-head,
+.rag-graph-community-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  align-items: baseline;
+  margin: 0;
+}
+
+.rag-graph-community.is-kept .rag-graph-community-id {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.rag-graph-audience,
+.rag-graph-estimate-badge {
+  padding: 0 var(--spacing-1);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  color: var(--color-ink-soft);
+  font-size: 0.85em;
+}
+
+.rag-graph-audience[data-audience="hr"] {
+  border-color: var(--color-warning);
+  color: var(--color-ink);
+}
+
+.rag-graph-estimate-badge {
+  border-color: var(--color-warning);
+}
+
+.rag-graph-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  margin: var(--spacing-2) 0;
+  padding: var(--spacing-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+}
+
+.rag-graph-table-wrap {
+  max-width: 100%;
+  margin: var(--spacing-2) 0;
+}
+
+.rag-graph-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  overflow-wrap: anywhere;
+}
+
+.rag-graph-table caption {
+  text-align: left;
+  font-weight: 600;
+}
+
+.rag-graph-table th,
+.rag-graph-table td {
+  padding: var(--spacing-1);
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}

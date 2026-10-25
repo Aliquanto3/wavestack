@@ -223,6 +223,8 @@ options:
       label_text: "Agentic search (tools on the files)"
     section_tree:
       label_text: "Tree of sections (PageIndex)"
+    graph_search:
+      label_text: "Knowledge graph (GraphRAG)"
     wiki_pages:
       label_text: "Pages of the LLM Wiki (index read by the model)"
   generation:
@@ -349,6 +351,15 @@ steps:
     label_text: "Tree descent"
     action_text: "The model picks, level by level, the nodes to open"
     explain_text: "At each level, the model reads the numbered list of the children of the nodes kept (title and summary) and answers CHOICE: 3, 7 (two at most) or CHOICE: NONE. One call per level: two on the shipped corpus (the documents, then the sections). The whole text of the sections reached becomes the context."
+  # V1.2 story 13: GraphRAG's graph built once, then queried at each question.
+  graph_build:
+    label_text: "Graph building"
+    action_text: "Build the graph of the entities, their relations and their communities"
+    explain_text: "GraphRAG builds a knowledge graph once: the corpus's entities, their relations, their summarized communities; each entity and relation keeps its evidence (the passage and its fingerprint). The shipped graph is computed by a rule, without a model (key terms, acronyms, codes, co-occurrence in a sentence); « Rebuild » has the active model extract it, one call per passage then one per community. Updating a document redoes its extraction, the merge, the communities and only the summaries touched."
+  graph_query:
+    label_text: "Graph query"
+    action_text: "The model names the question's entities, or reads the closest communities"
+    explain_text: "In local mode, one call gives the question's entities (ENTITIES: a, b); the graph links them to their neighbours one hop away, and the evidence passages of these relations become the context. In global mode, the three communities closest to the question each go through a « map » call (POINTS: … or POINTS: NONE); the generation does the « reduce ». No audience is filtered: each element says its own."
   # V1.2 story 14: the LLM Wiki compiled once, linted, its index read at each question.
   wiki_build:
     label_text: "Wiki compilation"
@@ -404,6 +415,9 @@ components:
   section_tree:
     label_text: "Tree of sections"
     note_text: "Documents and sections, titles and summaries"
+  knowledge_graph:
+    label_text: "Knowledge graph"
+    note_text: "Entities, relations, summarized communities"
   wiki:
     label_text: "Wiki"
     note_text: "Markdown pages compiled from the sources, and their index"
@@ -471,6 +485,13 @@ presets:
       No vectors: a tree of the documents and their sections, built once, that the model goes
       down level by level reading titles and summaries. A tree to build and to redo at each
       update, few calls per query.
+  graphrag:
+    label_text: "GraphRAG"
+    explain_text: >-
+      No vectors: a graph of the corpus's entities, their relations and their summarized
+      communities, built once. Locally, the model names the question's entities and reads the
+      evidence of their neighbours; globally, it reads the closest communities. Costly to build
+      and to update with a model, several calls per query.
   llm_wiki:
     label_text: "LLM Wiki"
     explain_text: >-
@@ -879,6 +900,23 @@ sheets:
         url: "https://github.com/VectifyAI/PageIndex"
       - label_text: "arXiv 2604.14222: PageIndex evaluated on 50 questions, latency ~1.7 times"
         url: "https://arxiv.org/html/2604.14222v1"
+  context.graph_search:
+    purpose_text: "Search without vectors in a knowledge graph built once: the corpus's entities, their relations (with their evidence passages) and their summarized communities. Locally, the question's entities and their neighbours one hop away give the context's passages; globally, the closest communities each go through a « map » call."
+    when_text: "Use it for multi-hop questions (linking two procedures, two departments) and global ones (an overview of a theme), on a stable corpus. Avoid it for a simple fact: it loses on simple facts, wins on multi-hop and global questions. Avoid it too on a corpus that changes often: the graph and its summaries must be redone."
+    cost_text: "Building is the Build cost: by the rule (shipped graph), a few milliseconds and no token, hence a cheaper build than dense RAG; by the model (« Rebuild »), one call per passage then one per community, far dearer. An update redoes the document's extraction, the merge, the communities and the summaries touched. Each query costs one call (local) or three « map » calls (global), then the generation."
+    literature_text: "Hypotheses H2 and H13, supported: GraphRAG loses on simple facts, wins on complex reasoning, and a global query costs ~377 times a vector RAG (GraphRAG-Bench); it hallucinates on unanswerable questions (arXiv 2502.11371); its update costs ~100 times more (EraRAG). H12: poisoning less than 0.05% of the corpus drops its accuracy from 95% to 50% (arXiv 2508.04276). The workshop's builder and local query draw on LightRAG, simplified; the shipped graph is computed by a rule, without a model."
+    bench_text: ""
+    sources:
+      - label_text: "GraphRAG-Bench: GraphRAG loses on simple facts, a global query ~377 times a vector RAG"
+        url: "https://arxiv.org/html/2506.05690v3"
+      - label_text: "arXiv 2502.11371: GraphRAG hallucinates on unanswerable questions"
+        url: "https://arxiv.org/html/2502.11371v2"
+      - label_text: "arXiv 2508.04276: poisoning less than 0.05% of the corpus drops GraphRAG from 95% to 50%"
+        url: "https://arxiv.org/abs/2508.04276"
+      - label_text: "EraRAG: updating a graph costs ~100 times more"
+        url: "https://arxiv.org/pdf/2506.20963v1.pdf"
+      - label_text: "LightRAG (Guo et al., 2024), entity graph with local or global query: the builder's inspiration"
+        url: "https://arxiv.org/abs/2410.05779"
   context.wiki_pages:
     purpose_text: "Compile the sources once into a wiki of Markdown pages (a page per document, one per concept several documents share, an index of every page, linked by [[page]] links), check it with a lint pass, then answer from the pages the model picks in the index: Andrej Karpathy's LLM Wiki pattern, implemented here by hand."
     when_text: "To use for a stable knowledge base of a few hundred documents, read by humans: a concept page gathers what several sources say about one subject. To avoid if the sources change fast (each update recompiles pages) or if grounding matters: the page is a synthesis, not the source."

@@ -1031,6 +1031,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "lexical_index",
         "cache_prefix",  # V1.2 story 10: drawn for `cached_corpus` only
         "tree_build",  # V1.2 story 11: drawn for `section_tree` only
+        "graph_build",  # V1.2 story 13: drawn for `graph_search` only
         "wiki_build",  # V1.2 story 14: drawn for `wiki_pages` only
         "wiki_lint",
     ]
@@ -1072,6 +1073,8 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         ("tree_build", "context"),  # V1.2 story 11
         ("agent_calls", "context"),
         ("tree_levels", "context"),
+        ("graph_build", "context"),  # V1.2 story 13
+        ("graph_query", "context"),
         ("wiki_build", "context"),  # V1.2 story 14
         ("wiki_lint", "context"),
         ("wiki_lookup", "context"),
@@ -1092,6 +1095,7 @@ def test_the_catalog_renders_the_sequence_its_components_groups_and_phases(index
         "Model cache",
         "Outils sur les fichiers",  # V1.2 story 11
         "Arbre de sections",
+        "Graphe de connaissances",  # V1.2 story 13
         "Wiki",  # V1.2 story 14
     ]
     assert components["reranker"]["group"] == "models"
@@ -1172,6 +1176,7 @@ def test_the_catalog_renders_the_presets_their_segment_and_availability(index):
         "cag",
         "agentic",  # V1.2 story 11
         "pageindex",
+        "graphrag",  # V1.2 story 13
         "llm_wiki",  # V1.2 story 14
     ]
     assert list(presets) == list(rag_lab.PRESETS)

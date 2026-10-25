@@ -1,0 +1,8 @@
+{
+  "attempts": [],
+  "guard": "wavestack.net.guard",
+  "id": "strands_decider_2b",
+  "reason": "Fail('[ONNXRuntimeError] : 1 : FAIL : Load model from C:\\\\Users\\\\Utilisateur\\\\.cache\\\\wavestack-bench\\\\hf\\\\models--onnx-community--strands-decider-2B-hobson-v19-ONNX\\\\snapshots\\\\31a83e0244b26d939ae33f87189d6c8204003e53\\\\onnx\\\\model_quantized.onnx failed:Fatal error: com.microsoft:CausalConvWithState",
+  "rss_with_slm_mb": 1933,
+  "status": "discarded"
+}

@@ -35,7 +35,6 @@ STORY_OF = {
     "cag": 10,
     "raptor": 12,
     "crag": 12,
-    "graphrag": 13,
     "llm_wiki": 14,
 }
 # V1.2 story 10 brought long_context and cag into the workshop (`lab.PRESETS`); their places
@@ -48,6 +47,7 @@ IN_WORKSHOP = (
     "cag",
     "agentic",
     "pageindex",
+    "graphrag",  # V1.2 story 13
     "llm_wiki",  # V1.2 story 14
 )
 
@@ -108,6 +108,8 @@ def test_start_the_measured_places_hold_the_code(lang):
     assert hits["chunks"] == 2 and hits["bm25"] == 2 and hits["contexts"] == 1
     assert hits["shipped_contexts"] == 0 and hits["source"] == 1
     assert hits["pageindex_tree"] >= 1  # V1.2 story 11: measured on the rule's tree
+    # V1.2 story 13: measured on the rule's graph, the code kept as an entity from one mention
+    assert hits["graph_entities"] >= 1 and hits["graph_communities"] >= 1
     assert hits["wiki_pages"] >= 1  # V1.2 story 14: measured on the rule's wiki
     assert body["corpus"]["sentinel_passages"] == 2
     assert [p["position"] for p in body["results"]["ranking"]] == [2, 1]
@@ -138,14 +140,15 @@ def test_erase_chunks_and_bm25_are_erased_the_rest_stays(lang):
 @pytest.mark.parametrize("lang", LANGS)
 def test_rebuild_one_architecture_touches_only_its_places(lang):
     body = ask(make_session(lang), sentinel_active=True, step="rebuild", rebuilt=["graphrag"])
-    # constructed places are never « erased » (measured): their rebuilt text is written by hand
+    # V1.2 story 13: the graph's places are measured, « erased » once the graph is rebuilt
+    # without the sentinel (never « illustratif, non mesuré »)
     assert statuses(body) == {
         **ERASED,
-        "graph_communities": "erased_illustrative",
-        "graph_entities": "erased_illustrative",
+        "graph_communities": "erased",
+        "graph_entities": "erased",
     }
     rebuilt = next(p for p in body["places"] if p["id"] == "graph_communities")
-    assert rebuilt["status_text"] != rebuilt_measured_text(lang) and rebuilt["status_note_text"]
+    assert rebuilt["status_text"] == rebuilt_measured_text(lang) and rebuilt["hits"] == 0
     assert body["costs"] and body["costs"][0]["architecture"] == "graphrag"
     assert not re.search(r"\d+\s*(ms|s|tokens?|\$|€)", body["costs"][0]["text"])
 
@@ -237,11 +240,12 @@ def test_rebuilt_outside_rebuild_and_unknown_values_are_refused():
 def test_the_displayed_marks_illustrative_and_upcoming():
     body = ask(make_session(), sentinel_active=True, step="erase")
     places = {p["id"]: p for p in body["places"]}
-    for pid in ("raptor_summaries", "graph_communities", "graph_entities"):
-        assert places[pid]["kind"] == "constructed"
-        assert places[pid]["illustrative_text"].startswith("illustratif · cas construit")
-    assert places["pageindex_tree"]["kind"] == "measured"  # V1.2 story 11
-    assert places["pageindex_tree"]["illustrative_text"] is None
+    assert places["raptor_summaries"]["kind"] == "constructed"
+    assert places["raptor_summaries"]["illustrative_text"].startswith("illustratif · cas construit")
+    # V1.2 story 11: the tree; V1.2 story 13: the graph's entities and communities
+    for pid in ("pageindex_tree", "graph_communities", "graph_entities"):
+        assert places[pid]["kind"] == "measured"
+        assert places[pid]["illustrative_text"] is None
     assert places["wiki_pages"]["kind"] == "measured"  # V1.2 story 14
     assert places["wiki_pages"]["illustrative_text"] is None
     assert places["chunks"]["illustrative_text"] is None
@@ -335,8 +339,6 @@ def test_constructed_places_cite_the_code_and_name_their_story(lang):
     constructed = [p for p in content.places if p.provenance]
     assert {p.id for p in constructed} == {
         "raptor_summaries",
-        "graph_communities",
-        "graph_entities",
         "cag_cache",
         "long_context_prefix",
     }
@@ -396,6 +398,7 @@ def test_the_module_imports_only_the_permitted_names():
         ("wavestack.rag.attack", "provenance_text"),
         ("wavestack.rag.contexts", "heuristic_entries"),
         ("wavestack.rag.pageindex", "build_tree"),  # V1.2 story 11: the rule's tree, pure
+        ("wavestack.rag.graph", "build_graph"),  # V1.2 story 13: the rule's graph, pure
         ("wavestack.rag.wiki", "build_wiki"),  # V1.2 story 14: the rule's wiki, pure
         ("wavestack.rag.contexts", "load_book"),
         ("wavestack.rag.corpus", "Chunk"),

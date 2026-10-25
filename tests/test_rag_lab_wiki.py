@@ -65,7 +65,7 @@ def ask_wiki(session, fake: FakeEngine, *answers: str) -> list:
 def test_the_preset_joins_the_structure_family_with_an_empty_segment(index):
     session = lab(index, engine("x"))
     catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
-    assert rag_lab.PRESET_FAMILIES["structure"] == ("pageindex", "llm_wiki")
+    assert rag_lab.PRESET_FAMILIES["structure"] == ("pageindex", "graphrag", "llm_wiki")
     chain = catalog.preset_pipeline("llm_wiki")
     assert [s.kind for s in chain.stages] == [*rag_lab.FIXED_HEAD, *rag_lab.FIXED_TAIL]
     assert stage(chain, "context").option == "wiki_pages"

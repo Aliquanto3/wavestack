@@ -47,8 +47,7 @@ architectures:
     label_text: "RAPTOR"
     update_text: "redo the summaries of the branches concerned, then those that summarize them."
   - id: graphrag
-    available: false
-    story: 13
+    available: true
     label_text: "Simplified GraphRAG"
     update_text: "re-extract the entities, merge, then recompute the communities and their summaries."
   - id: llm_wiki
@@ -112,26 +111,18 @@ places:
     measured_on_text: "the heuristic tree recomputed in memory"
   - id: graph_communities
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "the real GraphRAG index, story 13"
-    story: 13
+    measured: graph_communities
     architectures: [graphrag]
     label_text: "Community summaries (GraphRAG)"
     unit_text: "Summaries"
-    text: "Community \"Orion\": Project Orion (code ORN-7731-QZ) and the document that describes it form a community of their own."
-    rebuilt_text: "Communities: internal policies, human resources and security; no community devoted to Project Orion."
+    measured_on_text: "the communities of the heuristic graph recomputed in memory"
   - id: graph_entities
     erase_mode: rebuild
-    provenance:
-      kind: constructed
-      to_record_with: "the real GraphRAG index, story 13"
-    story: 13
+    measured: graph_entities
     architectures: [graphrag]
     label_text: "Entities and relations (GraphRAG)"
     unit_text: "Entities"
-    text: "Entity \"Project Orion\" (code ORN-7731-QZ), relation \"describes\" to the sentinel document."
-    rebuilt_text: "Entities: Exemplia's policies, teams and procedures; no entity for Project Orion."
+    measured_on_text: "the entities of the heuristic graph recomputed in memory"
   - id: wiki_pages
     erase_mode: rebuild
     measured: wiki_pages

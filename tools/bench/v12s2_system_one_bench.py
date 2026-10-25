@@ -1900,6 +1900,44 @@ def _loader_reranker(c: Candidate, models_dir: Path, v2):  # pragma: no cover - 
     return score, {"revisions": {model.id: model.load_path}}
 
 
+def judge_user_message(item: Item) -> str:
+    return (
+        f"Question : {item.query}\nPassage : {item.text}"
+        if item.task == "filter"
+        else f"Passages :\n{item.text}\n\nAffirmation : {item.query}"
+    )
+
+
+def judge_probability(llm, grammar, item: Item, read_logits) -> float:
+    """P(yes) of the judge for one item, as production reads it (story 12.8): one grammar-
+    constrained token, then the logits of the last evaluated position, never `logits_all`
+    (n_ctx x vocabulary floats; `logprobs` needs it and the engine never sets it).
+    `read_logits(llm)` returns the last position's logits; the two verdict tokens are the
+    first token of each permitted word, softmaxed against each other."""
+    yes, no = YES_NO[item.lang]
+    llm.create_chat_completion(
+        messages=[
+            {"role": "system", "content": INSTRUCTIONS[item.task][item.lang]},
+            {"role": "user", "content": judge_user_message(item)},
+        ],
+        grammar=grammar,
+        max_tokens=1,
+        temperature=0.0,
+    )
+    logits = read_logits(llm)
+    yes_id = llm.tokenize(yes.encode(), add_bos=False, special=False)[0]
+    no_id = llm.tokenize(no.encode(), add_bos=False, special=False)[0]
+    return softmax_pair(float(logits[yes_id]), float(logits[no_id]))
+
+
+def _last_position_logits(llm):  # pragma: no cover - model
+    import llama_cpp
+    import numpy as np
+
+    pointer = llama_cpp.llama_get_logits_ith(llm.ctx, -1)
+    return np.ctypeslib.as_array(pointer, shape=(llm.n_vocab(),))
+
+
 def _loader_judge(c: Candidate, models_dir: Path, v2, slm_llm):  # pragma: no cover - model
     from llama_cpp import LlamaGrammar
 
@@ -1912,32 +1950,24 @@ def _loader_judge(c: Candidate, models_dir: Path, v2, slm_llm):  # pragma: no co
     state = {"probabilistic": True}
 
     def score(item: Item) -> tuple[float, bool]:
-        user = (
-            f"Question : {item.query}\nPassage : {item.text}"
-            if item.task == "filter"
-            else f"Passages :\n{item.text}\n\nAffirmation : {item.query}"
-        )
-        out = slm_llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": INSTRUCTIONS[item.task][item.lang]},
-                {"role": "user", "content": user},
-            ],
-            grammar=grammars[item.lang],
-            max_tokens=1,
-            temperature=0.0,
-            logprobs=True,
-            top_logprobs=10,
-        )
-        choice = out["choices"][0]
-        top = ((choice.get("logprobs") or {}).get("content") or [{}])[0].get("top_logprobs") or []
-        p = yes_probability(top, item.lang)
-        if p is None:  # no logprobs under the grammar: the label only
-            state["probabilistic"] = False
-            text = (choice["message"].get("content") or "").strip().lower()
-            p = 1.0 if text.startswith(YES_NO[item.lang][0]) else 0.0
-        return p, False
+        return judge_probability(slm_llm, grammars[item.lang], item, _last_position_logits), False
 
     return score, {"revisions": {}, "judge_state": state}
+
+
+def stale_local_run(results_dir: Path, cid: str) -> bool:
+    """True when a local candidate's records are all failures (a broken adapter, not a
+    measurement): its metadata and records must be dropped so that a rerun measures it."""
+    rows = read_records(recorded_path(results_dir, cid))
+    return bool(rows) and all(r.get("error") for r in rows)
+
+
+def drop_stale_local_run(results_dir: Path, cid: str) -> bool:
+    if not stale_local_run(results_dir, cid):
+        return False
+    recorded_path(results_dir, cid).unlink()
+    (results_dir / "local" / f"{slug(cid)}.json").unlink(missing_ok=True)
+    return True
 
 
 def child_local(
@@ -2335,6 +2365,8 @@ def cmd_local(args) -> int:  # pragma: no cover - real run
         if c.office:
             write_json(meta_path, {"status": "discarded", "reason": c.office_reason})
             continue
+        if drop_stale_local_run(results_dir, cid):
+            print(f"{cid}: enregistrements tous en erreur écartés, remesure")
         if meta_path.exists():
             continue  # resumable: a candidate already measured is not run again
         cmd = ["uv", "run"]

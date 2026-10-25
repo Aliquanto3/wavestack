@@ -106,6 +106,21 @@ def workshop_plan(prompt: str, message: str) -> str | None:
             script = [f"ACTION: grep {asked}", "ACTION: read_file corpus/teletravail.md"]
             script.append("ACTION: ANSWER")
         return script[min(done, len(script) - 1)]
+    # V1.2 story 13: GraphRAG's calls, by their system prompt: the question's entities, a
+    # community's « map », a passage's extraction, a community's summary.
+    if "ENTITIES: NONE" in prompt:
+        return "ENTITIES: astreinte, gestion de crise"
+    if "POINTS: NONE" in prompt:
+        return "POINTS: un fait de la communauté, relevé par le faux llama-server."
+    if "RELATION: <" in prompt:
+        return (
+            "ENTITY: Astreinte | rôle\nENTITY: Cellule de crise | organisation\n"
+            "RELATION: Astreinte | Cellule de crise | alerte"
+        )
+    if re.search(
+        r"Le résumé de cette communauté|The summary of this community|dieser Community", message
+    ):
+        return "Résumé de communauté écrit par le faux llama-server."
     if "CHOICE: NONE" in prompt:
         listed = [line for line in lines if re.match(r"^\d+\. ", line)]
         if len(listed) > 12:  # the documents
