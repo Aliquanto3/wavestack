@@ -718,6 +718,27 @@ session:
       tool_result: "résultat d'outil"
     share: "dont {model} s de génération"
   reading_context: "Lecture du contexte ({tokens} tokens)"
+  # V1.2 story 20 (CAP-18): the workshop's chain exposed as an MCP server (`rag_mcp_*`).
+  rag_mcp:
+    busy_reason: "Atelier RAG : un client MCP fait une recherche ; attendez sa fin ou arrêtez-la."
+    busy: "Atelier occupé : réessayez dans un instant."
+    timeout: "La recherche a dépassé {seconds} s : elle est arrêtée ; réessayez."
+    index_missing: "Index de la brique RAG absent ou périmé : construisez l'index dans l'atelier, puis démarrez le serveur. {reason}"
+    failed: "La recherche s'est arrêtée ({status}) : {error}"
+    failed_no_detail: "La recherche s'est arrêtée ({status})."
+    no_loop: "Serveur MCP indisponible : l'application n'a pas fini de démarrer ; rechargez la page."
+    work_copy: "Le corpus de l'atelier est modifié (copie de travail) : le serveur n'expose que le corpus livré. Rétablissez le corpus livré, puis démarrez."
+    texts_invalid: "Textes du serveur MCP illisibles (content/rag_mcp.yaml) : corrigez le fichier."
+    stopped_language: "Serveur arrêté : la langue a changé, et les descriptions des outils étaient dans la langue du démarrage. Démarrez-le de nouveau."
+    denied: "Outil refusé : sa règle n'est pas « autoriser » (page Sécurité)."
+    unknown_client: inconnu
+    journal_served: "Servi à {client} : {passages} passage(s) en {ms} ms."
+    journal_described: "Description servie à {client} en {ms} ms."
+    journal_busy: "Refusé à {client} : atelier occupé."
+    journal_timeout: "Annulé pour {client} : délai de {seconds} s dépassé."
+    journal_index: "Refusé à {client} : index de la brique RAG absent ou périmé."
+    journal_error: "Échec pour {client} après {ms} ms."
+    journal_denied: "Refusé à {client} : la règle de {tool} n'est pas « autoriser »."
 
 tools:
   datetime:

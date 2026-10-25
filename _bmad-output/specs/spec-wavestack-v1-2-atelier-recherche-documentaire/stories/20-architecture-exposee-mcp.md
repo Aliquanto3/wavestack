@@ -2,7 +2,7 @@
 title: 'Story 20 : architecture composée exposée en serveur MCP (optionnel)'
 type: 'feature'
 created: '2026-10-25'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -81,11 +81,11 @@ Aucune dépendance nouvelle (`mcp>=2.2,<2.3` et `mcp-types` sont déjà dans `py
 
 ## Tasks & Acceptance
 
-- [ ] `rag/exposed.py` : règle d'exposition, chaîne figée, recherche citée.
-- [ ] `mcp/architecture_server.py` : outils, annotations, garde d'accès, filtre par règle.
-- [ ] Session, points d'accès, intentions, Journal de sécurité, arrêt.
-- [ ] Carte `rag-mcp-card` (`rag-mcp.js`, `rag.html`, `rag.css`), textes ×3.
-- [ ] Tests (pytest avec client MCP, E2E), README E2E.
+- [x] `rag/exposed.py` : règle d'exposition, chaîne figée, recherche citée.
+- [x] `mcp/architecture_server.py` : outils, annotations, garde d'accès, filtre par règle.
+- [x] Session, points d'accès, intentions, Journal de sécurité, arrêt.
+- [x] Carte `rag-mcp-card` (`rag-mcp.js`, `rag.html`, `rag.css`), textes ×3.
+- [x] Tests (pytest avec client MCP, E2E), README E2E.
 
 **Acceptance Criteria:**
 1. Given l'application démarrée, when le formateur démarre l'exposition de la chaîne `hybrid` index construit, then un client MCP du SDK (`mcp.Client` sur `streamable_http_client`) avec le jeton affiché se connecte, `tools/list` renvoie `search_documents` et `describe_architecture`, et `tools/call search_documents` renvoie au plus `top_k` passages, chacun avec `doc_id`, `title_text`, `position`, `text`, `score` et `citation` (CAP-18 : « liste l'outil de recherche et reçoit des passages cités »).
@@ -165,6 +165,14 @@ Point de contrôle du 2026-10-25, relu contre `stories.yaml` (id 20), `SPEC.md` 
 
 - 2026-10-25 : création (phase 1, point de contrôle de spec).
 - 2026-10-25 : point de contrôle de spec, `ready-for-dev`. Corrigé : règle d'exposition (toute chaîne finit par `generation` ; liste blanche du segment, tête de la brique, raisons `whole_corpus` / `searches_itself` / `model_stage` / `head`, `agentic` et `crag` absents de `PRESETS`) ; fuite `hr` (`LabRun` ne filtre pas l'audience : filtre côté serveur) ; écriture possible de `LabRun` (tête de la brique imposée, `work_copy=None`) ; `_same_origin_post` qui aurait bloqué tout client MCP ; `Host` étranger = 400 ; montage à chaud prouvé, repli `uvicorn.Server` retiré ; appel direct d'un outil non `allow` refusé ; Journal par `record("mcp_tool", …)` ; `OTHER_TABS` ; critères 2, 4 à 11 et 16 précisés ; liste de vérification sur les vrais noms de tests.
+- 2026-10-25 : implémentation (phase 2), statut `review`. Écarts et choix à relire :
+  - le corpus « pas celui du dépôt » est lu comme une copie de travail non vide : démarrage refusé (`session.rag_mcp.work_copy`) ; une copie créée après le démarrage n'est jamais lue (test) ;
+  - ordre des raisons tenu tel quel : une chaîne invalide dans la session (par exemple `cag` avec une fenêtre de 4 096) est refusée en `invalid` avant `whole_corpus` ; le test de la règle rend toutes les options disponibles pour juger la structure seule ;
+  - un argument en trop (`profile`) n'est pas refusé par le SDK, il est ignoré : le schéma n'a que `question` et `top_k` (test), le filtre `hr` s'applique toujours ;
+  - les passages sont pris dans `LabRun.chain.ranked` (la liste classée de la dernière étape du segment, ou celle qu'un reranking sauté laisse passer), la position par `chunk_id` sur les extraits du run (ceux de l'index de la brique) ;
+  - l'aiguilleur est enregistré deux fois (`Route` exacte et `Mount`) : sans la route, `/mcp/architecture` sans barre finale serait redirigé ; il réécrit le chemin en `/` avant l'application du SDK ;
+  - « Arrêter » de la page annule aussi un appel MCP en cours (le jeton d'annulation est celui de la session pendant l'appel) ;
+  - `matrix_row_of("workshop__…")` vaut `network` : une règle posée sur un outil exposé apparaîtrait dans la ligne « réseau » de la matrice ; `policy.py` n'est touché que par les deux entrées de `_DEFAULTS` (à revoir avec la ligne « exposé »).
 
 ## Reports
 

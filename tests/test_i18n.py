@@ -498,6 +498,14 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
             assert plain(f) == plain(t)
             assert bool(f.no_source_text) == bool(t.no_source_text)
             assert t.purpose_text != f.purpose_text
+    elif rel == "rag_mcp.yaml":  # V1.2 story 20: same keys and limits, the descriptions translated
+        from wavestack.rag import exposed
+
+        fr, tr = exposed.load_texts("fr"), exposed.load_texts(lang)
+        assert len(tr.describe.limits) == len(fr.describe.limits)
+        tool, fr_tool = tr.tools.search_documents, fr.tools.search_documents
+        assert tool.description_text != fr_tool.description_text
+        assert tr.card.title_text != fr.card.title_text
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()

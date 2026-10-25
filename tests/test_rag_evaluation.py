@@ -899,6 +899,7 @@ OTHER_TABS = (
     "rag-attack-erasure.js",
     "rag-attack-access.js",
     "rag-sheets.js",
+    "rag-mcp.js",  # V1.2 story 20
 )
 
 

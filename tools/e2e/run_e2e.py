@@ -15408,6 +15408,171 @@ def s_rag_lab_sheets(r: Run) -> None:
         r.goto_app()
 
 
+# V1.2 story 20 (CAP-18): the JSON-RPC a client outside the browser sends (no `Origin`).
+_MCP_ACCEPT = "application/json, text/event-stream"
+_HR_DOCS = ("grille_remunerations", "dossier_disciplinaire", "entretiens_annuels")
+
+
+def _mcp_rpc(address: str, token: str | None, body: dict, session_id: str | None = None):  # noqa: ANN202
+    headers = {"Accept": _MCP_ACCEPT, "Content-Type": "application/json"}
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
+    if session_id is not None:
+        headers["mcp-session-id"] = session_id
+    with httpx.Client(trust_env=False, timeout=60) as client:
+        return client.post(address, headers=headers, json=body)
+
+
+def s_rag_lab_mcp(r: Run) -> None:
+    """V1.2 story 20 (CAP-18), after `rag` (the brick's index built): the « Exposer en MCP » card
+    of Construire. Stopped, then started on `hybrid`; the address and the token (hidden, then
+    revealed); a client in raw JSON-RPC without `Origin` (`initialize`, `tools/list`,
+    `tools/call`): cited passages, none of an HR document, even for `q_global_rh`; 401 without the
+    token; light and dark contrast; stopped, 404; `cag` refused with its reason; en then de;
+    nothing leaving 127.0.0.1. Back to the shipped chain and `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    outside: list[str] = []
+
+    def listener(request) -> None:  # noqa: ANN001
+        if not request.url.startswith(("http://127.0.0.1", "data:", "blob:")):
+            outside.append(request.url)
+
+    if r.state().get("language_locked"):
+        r.goto_app()
+        _clear_conversation(r)
+    r.api("POST", "/api/rag_lab/copy/reset")
+    r.api("POST", "/api/intentions/rag_mcp_stop", {})
+    page.on("request", listener)
+    _goto_rag_lab(r)
+    try:
+        expect(page.locator("#rag-mcp-card")).to_be_visible(timeout=10_000)
+        expect(page.locator("#rag-mcp-state")).to_contain_text("arrêtée", timeout=10_000)
+        chips = page.locator("#rag-mcp-tools .status-chip")
+        r.check(
+            "Exposer en MCP" in page.inner_text("#rag-mcp-title")
+            and chips.all_inner_texts() == ["faible", "faible"]
+            and "Copilot Studio" in page.inner_text("#rag-mcp-copilot"),
+            "carte « Exposer en MCP » : arrêtée, deux outils de risque « faible », Copilot Studio",
+            str(chips.all_inner_texts()),
+        )
+        _rag_mode(r, "compose")
+        page.locator('#rag-presets .rag-preset[data-preset="hybrid"]').click()
+        time.sleep(0.8)  # the session's verdict on the chain
+        page.click("#rag-mcp-start")
+        expect(page.locator("#rag-mcp-state")).to_contain_text("exposée", timeout=10_000)
+        address = page.inner_text("#rag-mcp-address").strip()
+        hidden = page.inner_text("#rag-mcp-token")
+        hidden_command = page.inner_text("#rag-mcp-command")
+        page.click("#rag-mcp-reveal")
+        token = page.inner_text("#rag-mcp-token").strip()
+        command = page.inner_text("#rag-mcp-command")
+        r.check(
+            address.startswith("http://127.0.0.1:")
+            and address.endswith("/mcp/architecture")
+            and "masqué" in hidden
+            and token not in hidden_command
+            and len(token) >= 32
+            and "claude mcp add --transport http" in command
+            and token in command
+            and "hybrid" in page.inner_text("#rag-mcp-chain").lower(),
+            "exposée : adresse 127.0.0.1, jeton masqué puis révélé, commande, chaîne figée",
+            f"{address} · {page.inner_text('#rag-mcp-chain')[:80]}",
+        )
+        page.click("#rag-mcp-reveal")  # hidden again before the captures
+        r.shot("71-atelier-rag-mcp", full_page=True)
+        init = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "e2e-brut", "version": "1"},
+            },
+        }
+        refused = _mcp_rpc(address, None, init)
+        opened = _mcp_rpc(address, token, init)
+        sid = opened.headers.get("mcp-session-id")
+        _mcp_rpc(address, token, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid)
+        listed = _mcp_rpc(address, token, {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}, sid)
+        names = sorted(t["name"] for t in listed.json()["result"]["tools"])
+        r.check(
+            refused.status_code == 401
+            and opened.status_code == 200
+            and bool(sid)
+            and names == ["describe_architecture", "search_documents"],
+            "client JSON-RPC sans Origin : 401 sans jeton, initialize puis tools/list",
+            f"{refused.status_code} · {opened.status_code} · {names}",
+        )
+        questions = (
+            "Combien de jours de congés payés ?",
+            "Quels processus encadrent la relation entre Exemplia et ses collaborateurs côté "
+            "ressources humaines ?",
+        )
+        found: list[dict] = []
+        for n, question in enumerate(questions, start=3):
+            arguments = {"question": question, "top_k": 5}
+            call = {
+                "jsonrpc": "2.0",
+                "id": n,
+                "method": "tools/call",
+                "params": {"name": "search_documents", "arguments": arguments},
+            }
+            found.append(_mcp_rpc(address, token, call, sid).json()["result"])
+        passages = [p for a in found for p in a["structuredContent"]["passages"]]
+        r.check(
+            all(not a.get("isError") for a in found)
+            and bool(passages)
+            and all(p["citation"] and p["doc_id"] in p["citation"] for p in passages)
+            and not [p for p in passages if p["doc_id"] in _HR_DOCS]
+            and found[1]["structuredContent"]["removed_hr"] >= 1,
+            "tools/call search_documents : passages cités, aucun passage RH (q_global_rh compris)",
+            str([p["doc_id"] for p in passages][:8]),
+        )
+        light = _contrast_sweep(r, ["#rag-mcp-card"])
+        _pick_theme(page, "dark")
+        dark = _contrast_sweep(r, ["#rag-mcp-card"])
+        r.shot("71-atelier-rag-mcp-sombre", full_page=True)
+        _pick_theme(page, "system")
+        r.check(not light, "carte MCP : contrastes AA en clair", str(light[:3]))
+        r.check(not dark, "carte MCP : contrastes AA en sombre", str(dark[:3]))
+        page.click("#rag-mcp-stop")
+        expect(page.locator("#rag-mcp-state")).to_contain_text("arrêtée", timeout=10_000)
+        gone = _mcp_rpc(address, token, init)
+        r.check(gone.status_code == 404, "arrêtée : l'adresse répond 404", str(gone.status_code))
+        page.locator('#rag-presets .rag-preset[data-preset="cag"]').click()
+        time.sleep(0.8)
+        page.click("#rag-mcp-start")
+        expect(page.locator("#rag-mcp-refused")).to_be_visible(timeout=10_000)
+        r.check(
+            "Démarrage refusé" in page.inner_text("#rag-mcp-refused")
+            and "arrêtée" in page.inner_text("#rag-mcp-state"),
+            "cag : démarrage refusé avec sa raison, la carte reste arrêtée",
+            page.inner_text("#rag-mcp-refused")[:200],
+        )
+        for language, title, stopped in (
+            ("en", "Expose over MCP", "stopped"),
+            ("de", "Über MCP freigeben", "gestoppt"),
+        ):
+            _rag_pick_language(r, language)
+            expect(page.locator("#rag-mcp-title")).to_have_text(title, timeout=10_000)
+            r.check(
+                stopped in page.inner_text("#rag-mcp-state"),
+                f"carte MCP en {language} : titre et état traduits",
+            )
+        _rag_pick_language(r, "fr")
+        r.check(not outside, "carte MCP : aucune requête hors de 127.0.0.1", str(outside[:3]))
+    finally:
+        page.remove_listener("request", listener)
+        try:
+            r.api("POST", "/api/intentions/rag_mcp_stop", {})
+            page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+        except Exception as exc:  # noqa: BLE001 - reported, the scenario's own error kept
+            r.check(False, "carte MCP : arrêt et chaîne livrée rétablie", repr(exc))
+        r.goto_app()
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -18118,6 +18283,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18
     ("rag_lab_sheets", s_rag_lab_sheets),  # V1.2 story 19
+    ("rag_lab_mcp", s_rag_lab_mcp),  # V1.2 story 20
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

@@ -222,6 +222,42 @@
       <div class="rag-copy-buttons" id="rag-cases" role="group"></div>
       <div id="rag-case" aria-live="polite"></div>
     </section>
+    <!-- V1.2 story 20 (CAP-18): the chain exposed as a read-only MCP server (rag-mcp.js). -->
+    <section class="rag-section rag-mcp-card" id="rag-mcp-card" aria-labelledby="rag-mcp-title">
+      <h2 class="rag-section-title" id="rag-mcp-title"></h2>
+      <p class="rag-note" id="rag-mcp-hint"></p>
+      <p class="rag-mcp-state" id="rag-mcp-state" role="status"></p>
+      <div class="rag-copy-buttons" role="group" aria-labelledby="rag-mcp-title">
+        <button type="button" id="rag-mcp-start"></button>
+        <button type="button" id="rag-mcp-stop"></button>
+      </div>
+      <p class="rag-atk-limit" id="rag-mcp-refused" role="alert" hidden></p>
+      <p class="rag-note" id="rag-mcp-note" hidden></p>
+      <dl class="rag-mcp-facts" id="rag-mcp-facts" hidden>
+        <dt id="rag-mcp-address-label"></dt>
+        <dd><code id="rag-mcp-address"></code></dd>
+        <dt id="rag-mcp-token-label"></dt>
+        <dd>
+          <code id="rag-mcp-token"></code>
+          <button type="button" id="rag-mcp-reveal" aria-pressed="false"></button>
+          <button type="button" id="rag-mcp-copy-token"></button>
+        </dd>
+        <dt id="rag-mcp-chain-label"></dt>
+        <dd id="rag-mcp-chain"></dd>
+      </dl>
+      <p class="rag-note" id="rag-mcp-frozen" hidden></p>
+      <h3 class="rag-cost-title" id="rag-mcp-tools-title"></h3>
+      <ul class="rag-mcp-tools" id="rag-mcp-tools"></ul>
+      <div id="rag-mcp-command-box" hidden>
+        <h3 class="rag-cost-title" id="rag-mcp-command-title"></h3>
+        <pre class="rag-mcp-command"><code id="rag-mcp-command"></code></pre>
+        <button type="button" id="rag-mcp-copy-command"></button>
+        <p class="rag-note" id="rag-mcp-command-note"></p>
+      </div>
+      <p class="rag-note" id="rag-mcp-copilot"></p>
+      <p class="rag-note" id="rag-mcp-language"></p>
+      <p class="rag-note" id="rag-mcp-copied" role="status"></p>
+    </section>
     </div>
 
     <!-- V1.2 story 4 (CAP-9): the pinned run beside the current one. -->
@@ -390,5 +426,6 @@
   <script type="module" src="/static/rag-attack-access.js"></script>
   <script type="module" src="/static/rag-sheets.js"></script>
   <script type="module" src="/static/rag-diagnosis.js"></script>
+  <script type="module" src="/static/rag-mcp.js"></script>
 </body>
 </html>

@@ -705,6 +705,27 @@ session:
       tool_result: "Tool-Ergebnis"
     share: "davon {model} s Generierung"
   reading_context: "Lesen des Kontexts ({tokens} Tokens)"
+  # V1.2 story 20 (CAP-18): the workshop's chain exposed as an MCP server (`rag_mcp_*`).
+  rag_mcp:
+    busy_reason: "RAG-Werkstatt: Ein MCP-Client sucht; warten Sie das Ende ab oder stoppen Sie die Suche."
+    busy: "Werkstatt belegt: Versuchen Sie es gleich noch einmal."
+    timeout: "Die Suche hat {seconds} s überschritten: Sie ist gestoppt; versuchen Sie es erneut."
+    index_missing: "Der Index des RAG-Bausteins fehlt oder ist veraltet: Erstellen Sie den Index in der Werkstatt und starten Sie dann den Server. {reason}"
+    failed: "Die Suche wurde beendet ({status}): {error}"
+    failed_no_detail: "Die Suche wurde beendet ({status})."
+    no_loop: "MCP-Server nicht verfügbar: Die Anwendung ist noch nicht fertig gestartet; laden Sie die Seite neu."
+    work_copy: "Das Korpus der Werkstatt ist geändert (Arbeitskopie): Der Server gibt nur das ausgelieferte Korpus frei. Stellen Sie das ausgelieferte Korpus wieder her und starten Sie dann."
+    texts_invalid: "Die Texte des MCP-Servers sind unlesbar (content/rag_mcp.yaml): Korrigieren Sie die Datei."
+    stopped_language: "Server gestoppt: Die Sprache hat gewechselt, und die Beschreibungen der Werkzeuge waren in der Sprache des Starts. Starten Sie ihn erneut."
+    denied: "Werkzeug abgelehnt: Seine Regel ist nicht „erlauben“ (Seite Sicherheit)."
+    unknown_client: unbekannt
+    journal_served: "An {client} geliefert: {passages} Passage(n) in {ms} ms."
+    journal_described: "Beschreibung an {client} geliefert in {ms} ms."
+    journal_busy: "Für {client} abgelehnt: Werkstatt belegt."
+    journal_timeout: "Für {client} abgebrochen: Frist von {seconds} s überschritten."
+    journal_index: "Für {client} abgelehnt: Der Index des RAG-Bausteins fehlt oder ist veraltet."
+    journal_error: "Für {client} gescheitert nach {ms} ms."
+    journal_denied: "Für {client} abgelehnt: Die Regel von {tool} ist nicht „erlauben“."
 
 tools:
   datetime:

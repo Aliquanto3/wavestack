@@ -702,6 +702,27 @@ session:
       tool_result: "tool result"
     share: "of which {model} s of generation"
   reading_context: "Reading the context ({tokens} tokens)"
+  # V1.2 story 20 (CAP-18): the workshop's chain exposed as an MCP server (`rag_mcp_*`).
+  rag_mcp:
+    busy_reason: "RAG workshop: an MCP client is searching; wait for it to end or stop it."
+    busy: "Workshop busy: try again in a moment."
+    timeout: "The search took more than {seconds} s: it is stopped; try again."
+    index_missing: "The RAG brick's index is absent or stale: build the index in the workshop, then start the server. {reason}"
+    failed: "The search stopped ({status}): {error}"
+    failed_no_detail: "The search stopped ({status})."
+    no_loop: "MCP server unavailable: the application has not finished starting; reload the page."
+    work_copy: "The workshop's corpus is changed (work copy): the server exposes the shipped corpus only. Restore the shipped corpus, then start."
+    texts_invalid: "The MCP server's texts are unreadable (content/rag_mcp.yaml): fix the file."
+    stopped_language: "Server stopped: the language changed, and the tools' descriptions were in the language of the start. Start it again."
+    denied: "Tool refused: its rule is not “allow” (Security page)."
+    unknown_client: unknown
+    journal_served: "Served to {client}: {passages} passage(s) in {ms} ms."
+    journal_described: "Description served to {client} in {ms} ms."
+    journal_busy: "Refused to {client}: workshop busy."
+    journal_timeout: "Cancelled for {client}: the {seconds} s delay was exceeded."
+    journal_index: "Refused to {client}: the RAG brick's index is absent or stale."
+    journal_error: "Failed for {client} after {ms} ms."
+    journal_denied: "Refused to {client}: the rule of {tool} is not “allow”."
 
 tools:
   datetime:

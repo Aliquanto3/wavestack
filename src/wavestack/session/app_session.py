@@ -22,6 +22,7 @@ import math
 import os
 import random
 import re
+import secrets
 import subprocess
 import sys
 import threading
@@ -109,7 +110,10 @@ from wavestack.hooks import (
     host,
     load_hooks_content,
 )
-from wavestack.mcp import github_auth
+from wavestack.mcp import (
+    architecture_server,  # V1.2 story 20
+    github_auth,
+)
 from wavestack.mcp import lab as mcp_lab
 from wavestack.mcp import snapshot as mcp_snapshot
 from wavestack.mcp.connection import (
@@ -204,10 +208,13 @@ from wavestack.rag import attack as rag_attack
 from wavestack.rag import contexts as rag_contexts
 from wavestack.rag import erasure as rag_erasure
 from wavestack.rag import evaluation as rag_evaluation
+from wavestack.rag import (
+    exposed,  # V1.2 story 20
+    workcopy,
+)
 from wavestack.rag import index as rag_index
 from wavestack.rag import lab as rag_lab
 from wavestack.rag import sheets as rag_sheets
-from wavestack.rag import workcopy
 from wavestack.rag.corpus import (
     Chunk,
     RagContent,
@@ -1864,6 +1871,7 @@ class AppSession:
 
     def close(self) -> None:
         self._cag_drop()  # V1.2 story 10: the CAG state freed with the session
+        self._rag_mcp_halt(None)  # V1.2 story 20: the exposed server stops with the session
         self.stop()
         with self._lock:
             conns = list(self._mcp_conns.values())
@@ -6425,6 +6433,7 @@ class AppSession:
             lab, self._mcp_lab_conn = self._mcp_lab_conn, None  # the MCP workshop's (story 6)
         conns += [lab] if lab is not None else []
         await asyncio.gather(*(conn.aclose() for conn in conns), return_exceptions=True)
+        await self._rag_mcp_aclose()  # V1.2 story 20: the exposed server's task awaited
 
     def save_system_prompt(self, text: str | None) -> dict[str, Any]:
         """Class (a): `None` (or a blank text) restores the default. Returns the saved state."""
@@ -6986,6 +6995,8 @@ class AppSession:
                 restart = [s for s in self._mcp_conns if self._mcp_servers[s].url is None]
             self._demo_memory_in(old_demo)
         self._journal().emit("language_changed", {"language": language})
+        # V1.2 story 20: the exposed tools were described in the former language.
+        self._rag_mcp_halt(Message("session.rag_mcp.stopped_language"))
         self._emit_state()  # `language` in the session's state
         # Story 6 of 2026-09-30: reconnected in the language (`mcp_lab_closed{language}`).
         self._mcp_lab_drop(wait=False, cause="language")
@@ -12469,6 +12480,280 @@ class AppSession:
         """The sheet of an architecture; `rag_sheets.UnknownSheet` if there is none."""
         return rag_sheets.architecture(self._language, arch_id)
 
+    # ---------- V1.2 story 20 (CAP-18): the workshop's chain exposed as an MCP server ----------
+    # A server, read only, on the application's port (`mcp/architecture_server.py`): never one of
+    # `mcp_servers()`, `_mcp_enabled`, the MCP brick or the MCP workshop. The token lives here
+    # only, rendered by `GET /api/rag_lab/mcp` alone.
+
+    RAG_MCP_TIMEOUT_S = 30.0  # a call waits this long for its run, then cancels it
+    _rag_mcp_endpoint: architecture_server.ExposedEndpoint | None = None
+    _rag_mcp_live: _RagMcpLive | None = None
+    _rag_mcp_note: Any = None  # why the server stopped by itself (the language), for the card
+
+    def attach_rag_mcp(self, endpoint: architecture_server.ExposedEndpoint) -> None:
+        """The endpoint mounted by `create_app` (once, the application's port)."""
+        self._rag_mcp_endpoint = endpoint
+
+    def rag_mcp_state(self, *, with_token: bool = False) -> dict[str, Any]:
+        """The card's state: running or not, the address, the frozen chain, the tools with
+        their risk and rule; the token (and the command that holds it) only `with_token`."""
+        endpoint = self._rag_mcp_endpoint
+        with self._lock:
+            live, note = self._rag_mcp_live, self._rag_mcp_note
+        try:
+            texts = exposed.load_texts(self._language)
+        except Exception:  # noqa: BLE001 - said on the card, the page stays served
+            reason = self._t("session.rag_mcp.texts_invalid")
+            return {"available": False, "running": False, "reason_text": reason}
+        tools = []
+        for tool in architecture_server.TOOLS:
+            name = architecture_server.policy_name(tool)
+            rule = self._mcp_policy.rule_of(name)
+            tools.append(
+                {
+                    "name": tool,
+                    "policy_name": name,
+                    "risk": ToolPolicy.risk_of(name),
+                    "rule": rule,
+                    "announced": rule == "allow",
+                }
+            )
+        url = endpoint.url if endpoint is not None else None
+        token = live.token if live is not None and with_token else None
+        command = None
+        if token is not None:
+            command = (
+                f"claude mcp add --transport http {architecture_server.SERVER_NAME} {url}"
+                f' --header "Authorization: Bearer {token}"'
+            )
+        chain = None
+        if live is not None:
+            chain = {
+                "architecture": live.chain.architecture,
+                "label_text": live.chain.label_text,
+                "stages": [s.model_dump() for s in live.chain.stages],
+            }
+        return {
+            "available": endpoint is not None and self._loop is not None,
+            "running": live is not None,
+            "url": url,
+            "token": token,
+            "command": command,
+            "chain": chain,
+            "tools": tools,
+            "note_text": note,
+            "texts": texts.card.model_dump(),
+        }
+
+    def _rag_mcp_index_error(self) -> Any:
+        """Why the brick's index cannot serve now (read afresh), or `None`."""
+        model, content = self._rag_model, self._rag_content
+        if model is None or content is None:
+            return self._content_errors.get("rag") or Message("session.rag.not_configured")
+        return self._rag_index_state(model, content)[1]
+
+    def rag_mcp_start(self, pipeline: rag_lab.Pipeline | None = None) -> dict[str, Any]:
+        """Intention `rag_mcp_start`: the chain (the shipped one when `None`) checked, frozen
+        and exposed by a new server. Refused, with the reason: no loop attached, the chain not
+        exposable, the brick's index absent, the workshop's corpus changed. Already running:
+        no effect, the same state."""
+        endpoint, loop = self._rag_mcp_endpoint, self._loop
+        if endpoint is None or loop is None:
+            raise SendRefused(Message("session.rag_mcp.no_loop"))
+        with self._lock:
+            running = self._rag_mcp_live is not None
+        if running:
+            return self.rag_mcp_state()
+        texts, error_text = self._rag_lab_content()
+        if texts is None:
+            raise SendRefused(error_text or Message("session.rag_lab.texts_unreadable"))
+        unavailable = self._rag_lab_unavailable()
+        if unavailable is not None:
+            raise SendRefused(unavailable)
+        try:
+            exposed_texts = exposed.load_texts(self._language)
+        except Exception:  # noqa: BLE001 - a refusal with its reason
+            raise SendRefused(Message("session.rag_mcp.texts_invalid")) from None
+        catalog = self._rag_lab_catalog(texts)
+        chain = pipeline or catalog.default
+        refused = exposed.refusal(chain, catalog, self.cfg.rag_chunk_max_chars, exposed_texts)
+        if refused is not None:
+            raise SendRefused(refused.text)
+        index_error = self._rag_mcp_index_error()
+        if index_error is not None:
+            reason = render(index_error, self._language)
+            raise SendRefused(self._t("session.rag_mcp.index_missing", reason=reason))
+        if not workcopy.load(self._language).empty:
+            raise SendRefused(Message("session.rag_mcp.work_copy"))
+        frozen = exposed.freeze(chain, catalog, exposed_texts)
+        token = secrets.token_urlsafe(32)
+        server = architecture_server.build_server(_RagMcpBackend(self), exposed_texts)
+        with self._lock:
+            running = self._rag_mcp_live is not None  # two starts at once: the first one wins
+            if not running:
+                self._rag_mcp_live = _RagMcpLive(frozen, exposed_texts, token, self._language)
+                self._rag_mcp_note = None
+        if not running:
+            endpoint.start(server, token, loop)
+        return self.rag_mcp_state()
+
+    def rag_mcp_stop(self) -> dict[str, Any]:
+        """Intention `rag_mcp_stop`: 404 from now on; the server's task ends on the loop."""
+        self._rag_mcp_halt(None)
+        return self.rag_mcp_state()
+
+    def _rag_mcp_halt(self, note: Any) -> None:
+        """Stopped from any thread, never waiting for the task (`close`, the language)."""
+        with self._lock:
+            live, self._rag_mcp_live = self._rag_mcp_live, None
+            if live is not None:
+                self._rag_mcp_note = note
+        endpoint = self._rag_mcp_endpoint
+        if live is not None and endpoint is not None:
+            endpoint.stop()
+
+    async def _rag_mcp_aclose(self) -> None:
+        """On the loop, at shutdown: stopped, the server's task awaited."""
+        with self._lock:
+            self._rag_mcp_live = None
+        endpoint = self._rag_mcp_endpoint
+        if endpoint is not None:
+            await endpoint.aclose()
+
+    def _rag_mcp_journal(self, called: str, decision: str, key: str, **kw: Any) -> None:
+        """One entry of the security journal per call: the client, the duration, the count;
+        never the question, a passage or the token."""
+        name = architecture_server.policy_name(called)
+        reason = self._t(f"session.rag_mcp.{key}", **kw)
+        self._emit_security(self._security_journal.record("mcp_tool", name, decision, reason))
+
+    def _rag_mcp_client(self, client: str | None) -> str:
+        return client or self._t("session.rag_mcp.unknown_client")
+
+    def _rag_mcp_denied(self, tool: str, client: str | None) -> str:
+        """A tool whose rule is not `allow`, called: `deny` in the journal, `isError`."""
+        name = architecture_server.policy_name(tool)
+        who = self._rag_mcp_client(client)
+        self._rag_mcp_journal(tool, "deny", "journal_denied", client=who, tool=name)
+        return self._t("session.rag_mcp.denied")
+
+    def _rag_mcp_describe(self, client: str | None) -> Any:
+        """`describe_architecture`, on the loop: the frozen chain, no model, nothing read."""
+        started = time.monotonic()
+        with self._lock:
+            live = self._rag_mcp_live
+        if live is None:
+            stopped = self._t("session.rag_mcp.failed_no_detail", status="stopped")
+            raise architecture_server.refused(stopped)
+        described = exposed.describe(live.chain, live.texts, architecture_server.SERVER_NAME)
+        ms = int((time.monotonic() - started) * 1000)
+        who = self._rag_mcp_client(client)
+        self._rag_mcp_journal(
+            "describe_architecture", "allow", "journal_described", client=who, ms=ms
+        )
+        return architecture_server.result(exposed.describe_text(described, live.texts), described)
+
+    async def _rag_mcp_search(self, question: str, top_k: int, client: str | None) -> Any:
+        """`search_documents`, on the loop: refused at once when the session is not `idle` (no
+        queue); else the session goes `rag_lab` (« a client's call ») and the run goes to the
+        worker, awaited `RAG_MCP_TIMEOUT_S` at most, then cancelled (it stops at its next
+        checkpoint, the session back to `idle` then)."""
+        tool = "search_documents"
+        who = self._rag_mcp_client(client)
+        started = time.monotonic()
+        previous: Any = None
+        cancel = CancelToken()
+        with self._lock:
+            live = self._rag_mcp_live
+            busy = self.state != "idle"
+            if live is not None and not busy:
+                previous = self.reason_text
+                self._cancel = cancel
+                self.state = "rag_lab"
+                self.reason_text = Message("session.rag_mcp.busy_reason")
+        if live is None:
+            stopped = self._t("session.rag_mcp.failed_no_detail", status="stopped")
+            raise architecture_server.refused(stopped)
+        if busy:
+            self._rag_mcp_journal(tool, "cancelled", "journal_busy", client=who)
+            raise architecture_server.refused(self._t("session.rag_mcp.busy"))
+        self._emit_state()
+        try:
+            future = self._executor.submit(
+                self._rag_mcp_run, live, question, top_k, cancel, previous
+            )
+        except RuntimeError:  # the session is closing
+            self._set_state("idle", previous)
+            raise architecture_server.refused(self._t("session.rag_mcp.busy")) from None
+        wrapped = asyncio.wrap_future(future)
+        wrapped.add_done_callback(lambda f: f.cancelled() or f.exception())
+        seconds = self.RAG_MCP_TIMEOUT_S
+        try:
+            found = await asyncio.wait_for(asyncio.shield(wrapped), seconds)
+        except TimeoutError:
+            cancel.cancel()
+            said = f"{seconds:g}" if self._language == "en" else f"{seconds:g}".replace(".", ",")
+            self._rag_mcp_journal(tool, "cancelled", "journal_timeout", client=who, seconds=said)
+            raise architecture_server.refused(
+                self._t("session.rag_mcp.timeout", seconds=said)
+            ) from None
+        except _RagMcpIndexGone as gone:
+            self._rag_mcp_journal(tool, "cancelled", "journal_index", client=who)
+            reason = render(gone.reason, live.lang)
+            raise architecture_server.refused(
+                self._t("session.rag_mcp.index_missing", reason=reason)
+            ) from None
+        except Exception as exc:  # noqa: BLE001 - `isError`, never a crash of the server
+            ms = int((time.monotonic() - started) * 1000)
+            self._rag_mcp_journal(tool, "cancelled", "journal_error", client=who, ms=ms)
+            failed = exc if isinstance(exc, exposed.SearchFailed) else None
+            if failed is not None and failed.error_text:
+                text = self._t(
+                    "session.rag_mcp.failed", status=failed.status, error=failed.error_text
+                )
+            else:
+                status = failed.status if failed is not None else "error"
+                text = self._t("session.rag_mcp.failed_no_detail", status=status)
+            raise architecture_server.refused(text) from None
+        ms = int((time.monotonic() - started) * 1000)
+        self._rag_mcp_journal(
+            tool, "allow", "journal_served", client=who, passages=len(found.passages), ms=ms
+        )
+        return architecture_server.result(exposed.search_text(found, live.texts, live.lang), found)
+
+    def _rag_mcp_run(
+        self,
+        live: _RagMcpLive,
+        question: str,
+        top_k: int,
+        cancel: CancelToken,
+        previous: Any,
+    ) -> exposed.SearchResult:
+        """On the worker, in series with the turns and the workshop's runs: the shipped corpus,
+        the brick's index read only, the models lent for the call and closed after it."""
+        loans = rag_lab.Loans(self._load_registry)
+        try:
+            index_error = self._rag_mcp_index_error()
+            if index_error is not None:  # removed after the start: never built here
+                raise _RagMcpIndexGone(index_error)
+            texts, _ = self._rag_lab_content()
+            if texts is None:
+                raise exposed.SearchFailed("error", None)
+            catalog = self._rag_lab_catalog(texts)
+            deps = replace(
+                self._rag_lab_deps(texts, catalog, cancel, loans),
+                content=load_rag_content(live.lang),  # the shipped file, never a work copy
+                brick_index_error=None,
+                work_copy=None,
+            )
+            return exposed.search(live.chain, question, top_k, deps, live.texts)
+        finally:
+            loans.close()
+            with self._lock:
+                if self._cancel is cancel:
+                    self._cancel = None
+            self._set_state("idle", previous)
+
     # ---------- the MCP workshop (context `mcp_lab`): story 6 of 2026-09-30, lot 4 of 2026-10-04 --
 
     @staticmethod
@@ -14428,3 +14713,44 @@ class _CloudJudge:
         finally:
             engine.close()
         return call.text
+
+
+# ---------- V1.2 story 20 (CAP-18): the exposed chain, what the server asks the session ----------
+
+
+@dataclass(frozen=True)
+class _RagMcpLive:
+    """The exposure under way: the frozen chain, the texts and the language of its start, and
+    its token (memory only)."""
+
+    chain: exposed.ExposedChain
+    texts: exposed.ExposedTexts
+    token: str
+    lang: str
+
+
+class _RagMcpIndexGone(Exception):
+    """The brick's index went away after the start: the call refused, nothing built."""
+
+    def __init__(self, reason: Any) -> None:
+        super().__init__(str(reason))
+        self.reason = reason
+
+
+class _RagMcpBackend:
+    """`architecture_server.Backend`, the session's side of the exposed server."""
+
+    def __init__(self, session: AppSession) -> None:
+        self._session = session
+
+    def rule_of(self, name: str) -> str:
+        return self._session._mcp_policy.rule_of(name)
+
+    def denied(self, tool: str, client: str | None) -> str:
+        return self._session._rag_mcp_denied(tool, client)
+
+    async def search(self, question: str, top_k: int, client: str | None) -> Any:
+        return await self._session._rag_mcp_search(question, top_k, client)
+
+    def describe(self, client: str | None) -> Any:
+        return self._session._rag_mcp_describe(client)
