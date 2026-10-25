@@ -644,3 +644,10 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 17:22 · 12.21 · dev · modèles téléchargés sur le WiFi (17:16 → 17:22) : colpali_v13_fp16 ok, colsmol_256m_onnx ok ; mesure seule sur poste libre après le renommage de l'onglet, avant la refusion de 12.16 · e647ad10
 - 2026-10-25 17:26 · run · dev · onglet « Modèles » fait (libellés, titres, renvois ×3, 6 pages HTML, docs, tests et E2E model_catalog) ; 5 727 tests ciblés, E2E 102/102 ; second avis lancé (lecture seule) · 3c1beb5e
 - 2026-10-25 17:26 · 12.21 · dev · mesure lancée seule (18,6 Go libres, CPU 0 %) · e647ad10
+- 2026-10-25 17:31 · 12.12 · CI · verte · 4b3729a4
+- 2026-10-25 17:31 · 12.12 · fusion · #123 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 8a611a8
+- 2026-10-25 17:31 · run · PR · onglet Modèles : second avis 4 oublis corrigés (menu Volets, docs, cahier de recette), 264 tests verts ; #124 ouverte vers l'intégration, file_prs.py lancé · fc55e52d
+- 2026-10-25 17:31 · 12.21 · dev · mesure faite (17:26 → 17:28) : ne tient pas ; ColPali arrêté au plafond de sécurité (18 750 Mo), ColSmol-256M pic 6 130 Mo et requêtes refusées par le graphe ONNX (entrée de requête du banc à vérifier) ; résultats et rapport commités · 78ca191c
+- 2026-10-25 17:31 · 12.21 · second-avis · lancé (lecture seule) · 78ca191c
+- 2026-10-25 17:31 · 12.16 · dev · refusion de l'intégration (avec 12.12) lancée, test des parties du repli CRAG dans l'arbre · 7e97f4c9
+- 2026-10-25 17:31 · 13 · dev · correctif de _update_graph lancé (schéma de _update_raptor : StageFailed, écriture après la copie gardée), branche fix/v1-2-mise-a-jour-du-graphe · 8a611a8
