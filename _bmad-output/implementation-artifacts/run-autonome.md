@@ -623,3 +623,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 16:59 · 12.16 · attente humaine · recette : uv sync --extra otel, Phoenix ou Langfuse, [otel] endpoint, « Exporter cette exécution » ; capture_content · —
 - 2026-10-25 16:59 · 12.16 · second-avis · lancé · 219eb637
 - 2026-10-25 16:59 · 12.21 · dev · lancé (spec et script de mesure seulement, ni téléchargement ni mesure ; worktree ../wavestack-v12-s21) ; mesure plus tard sur poste libre · 3525323
+- 2026-10-25 17:02 · 12.12 · second-avis · 1 high (erreur du modèle à la mise à jour RAPTOR : fichier réécrit, run ok), 1 medium (second essai et fallback de CRAG hors du moteur d'étapes, invisibles pour l'arbre de 12.16), 5 low · 16043c36
+- 2026-10-25 17:02 · 12.12 · review · lancé (Opus ; parties du fallback émises en run.sN.<partie> pour 12.16 ; 12.12 entre avant 12.16) · 16043c36
