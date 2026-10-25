@@ -14465,6 +14465,77 @@ def s_rag_lab_views(r: Run) -> None:
         r.goto_app()
 
 
+def s_rag_lab_diagnosis(r: Run) -> None:
+    """V1.2 story 9 (CAP-10), after `rag` and `rag_rerank`: the rank of the expected passage at
+    each stage of a run on a prepared question (the stage at fault named, no mean), a free
+    question and a question without passage said apart, and the three recorded cases of
+    « Où naît l'erreur » replayed in one click each, with no event of the workshop (no model,
+    no run). Back to `/`."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    _goto_rag_lab(r)
+    try:
+        _rag_mode(r, "compose")
+        page.locator("#rag-reset-chain").click()
+        questions = r.api("GET", "/api/rag_lab").json()["questions"]
+        factual = next(q for q in questions if q["type"] == "factual")
+        silent = next(q for q in questions if q["type"] == "no_answer")
+        expect(page.locator("#rag-diag-title")).to_have_text(
+            "Où se perd le bon extrait ?", timeout=5000
+        )
+        _rag_lab_run(r, "Une question libre")
+        r.check(
+            "Question libre" in page.locator("#rag-diag-run").inner_text(),
+            "diagnostic : une question libre n'a pas de passage attendu",
+        )
+        _rag_lab_run(r, factual["question_text"])
+        passage = page.locator("#rag-diag-run .rag-diag-passage")
+        expect(passage.first).to_be_visible(timeout=10_000)
+        kinds = passage.first.locator(".rag-diag-steps li").evaluate_all(
+            "els => els.map(e => e.dataset.stage)"
+        )
+        r.check(
+            kinds[0] == "chunking"
+            and kinds[-1] == "context"
+            and "vector_search" in kinds
+            and passage.first.locator(".rag-diag-verdict").inner_text() != ""
+            and "moyenne" not in page.locator("#rag-diag-run").inner_text().lower(),
+            "diagnostic : le rang du passage attendu à chaque étape et un verdict, sans moyenne",
+            str(kinds),
+        )
+        r.shot("63-atelier-rag-diagnostic", full_page=True)
+        _rag_lab_run(r, silent["question_text"])
+        expect(page.locator("#rag-diag-run")).to_contain_text(
+            "rien à diagnostiquer", timeout=10_000
+        )
+
+        # « Où naît l'erreur »: three recorded cases, each born at its own stage, no model.
+        seq = r.ev.mark()
+        born = []
+        for case, fault in (
+            ("not_indexed", "chunking:not_indexed"),
+            ("ranked_low", "vector_search:ranked_low"),
+            ("cut_by_budget", "context:cut"),
+        ):
+            page.click(f'#rag-cases [data-case="{case}"]')
+            expect(page.locator(f'#rag-case[data-case="{case}"]')).to_be_visible(timeout=5000)
+            verdict = page.locator("#rag-case .rag-diag-verdict")
+            born.append(verdict.get_attribute("data-fault"))
+            r.check(
+                born[-1] == fault
+                and "aucun appel au modèle" in page.locator("#rag-case .rag-badge").inner_text()
+                and page.locator("#rag-case .rag-diag-steps li.is-fault").count() == 1,
+                f"cas {case} : l'étape fautive est désignée ({fault}), exécution enregistrée",
+                str(born[-1]),
+            )
+        r.check(
+            not [e for e in r.ev.since(seq) if e["kind"].startswith(("rag_lab_", "model_"))],
+            "les trois cas se rejouent sans événement de l'atelier (ni modèle, ni exécution)",
+        )
+    finally:
+        r.goto_app()
+
+
 def _rag_lab_tabs(r: Run) -> None:
     page = r.page
     page.evaluate("localStorage.removeItem('wavestack.ragLab.pin')")
@@ -16701,6 +16772,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_agentic", s_rag_agentic),
     ("rag_lab", s_rag_lab),
     ("rag_lab_views", s_rag_lab_views),  # V1.2 story 4
+    ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
     ("mcp_lab", s_mcp_lab),  # story 6 (2026-09-30): captures 61 and 62
     ("mcp_lab_page", s_mcp_lab_page),  # restes du 2026-10-01: /mcp on its own side
     ("compression", s_compression),

@@ -212,6 +212,16 @@
         <div class="rag-results" id="rag-results"></div>
       </details>
     </section>
+    <!-- V1.2 story 9 (CAP-10): the rank of the expected passage at each stage, the stage at fault. -->
+    <section class="rag-section" id="rag-diag" aria-labelledby="rag-diag-title">
+      <h2 class="rag-section-title" id="rag-diag-title"></h2>
+      <p class="rag-note" id="rag-diag-hint"></p>
+      <div id="rag-diag-run" aria-live="polite"></div>
+      <h3 class="rag-cost-title" id="rag-cases-title"></h3>
+      <p class="rag-note" id="rag-cases-hint"></p>
+      <div class="rag-copy-buttons" id="rag-cases" role="group"></div>
+      <div id="rag-case" aria-live="polite"></div>
+    </section>
     </div>
 
     <!-- V1.2 story 4 (CAP-9): the pinned run beside the current one. -->
@@ -243,5 +253,6 @@
   <script type="module" src="/static/rag-evaluate.js"></script>
   <script type="module" src="/static/rag-attack.js"></script>
   <script type="module" src="/static/rag-sheets.js"></script>
+  <script type="module" src="/static/rag-diagnosis.js"></script>
 </body>
 </html>

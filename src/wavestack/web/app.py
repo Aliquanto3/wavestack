@@ -42,6 +42,7 @@ from wavestack.messages import in_language, msg, render
 from wavestack.models import catalog
 from wavestack.models.cloud_base import session_spend
 from wavestack.models.engine import SAMPLING_BOUNDS, Sampling
+from wavestack.rag import diagnosis as rag_diagnosis
 from wavestack.rag.lab import QUESTION_MAX, Pipeline
 from wavestack.session.app_session import (
     AppSession,
@@ -690,6 +691,30 @@ def create_app(
             raise HTTPException(
                 status_code=409, detail=render(refused.reason_text, app_session.language)
             ) from None
+
+    @app.get("/api/rag_lab/diagnosis")
+    def rag_lab_diagnosis_texts() -> dict[str, object]:
+        """V1.2 story 9 (CAP-10): the diagnosis' texts and the recorded failure cases, in the
+        session's language. Read only, no model."""
+        return rag_diagnosis.listing(app_session.language)
+
+    @app.post("/api/rag_lab/diagnosis")
+    def rag_lab_diagnosis(request: rag_diagnosis.LiveRequest) -> dict[str, object]:
+        """V1.2 story 9: the rank of the expected passage at each stage of a finished run
+        (the lists the page holds), the stage at fault. One question, no mean. 404: not a
+        prepared question."""
+        found = rag_diagnosis.live(request, app_session.language)
+        if found is None:
+            raise HTTPException(status_code=404, detail="unknown question")
+        return found
+
+    @app.get("/api/rag_lab/diagnosis/cases/{case_id}")
+    def rag_lab_failure_case(case_id: str) -> dict[str, object]:
+        """V1.2 story 9: a recorded failure case replayed, without the model. 404: unknown."""
+        found = rag_diagnosis.replay(case_id, app_session.language)
+        if found is None:
+            raise HTTPException(status_code=404, detail="unknown case")
+        return found
 
     @app.get("/mcp")
     def mcp_page() -> FileResponse:

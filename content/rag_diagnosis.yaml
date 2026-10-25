@@ -1,0 +1,143 @@
+# Story 9 (CAP-10) : textes du diagnostic du bon extrait et trois cas d'échec enregistrés,
+# rejoués sans modèle. Un élément d'une liste désigne un chunk du corpus : le `passage`-ième
+# passage attendu de la question, ou le `other`-ième chunk du document qui n'en porte aucun.
+texts:
+  title_text: "Où se perd le bon extrait ?"
+  hint_text: >-
+    Pour une question préparée, le rang du passage attendu à chaque étape, et l'étape où il
+    disparaît ou chute. Aucune réponse du modèle n'est lue : seuls les rangs comptent. Une
+    question, une exécution : la moyenne sur plusieurs questions est celle de l'onglet Évaluer.
+  free_question_text: "Question libre : choisissez une question préparée pour savoir quel passage était attendu."
+  no_expected_text: "Cette question n'a pas de passage à trouver : il n'y a rien à diagnostiquer."
+  wait_text: "Lancez la chaîne sur cette question pour voir le rang du passage attendu à chaque étape."
+  passage_text: "Passage attendu dans {doc}"
+  rank_text: "rang {rank} sur {of}"
+  absent_text: "absent"
+  whole_text: "entier dans un chunk"
+  cut_chunk_text: "coupé entre deux chunks"
+  fault_text: "Étape fautive : {stage}"
+  no_fault_text: "Aucune étape fautive : le passage arrive dans le contexte."
+  rescued_text: "Rattrapé ensuite par : {stage}"
+  middle_text: "Au milieu du contexte : les modèles lisent mieux les extraits du début et de la fin."
+  budget_text: "Budget du contexte : {budget} passages. Chute tolérée : {tolerance} rangs."
+  stages:
+    chunking_text: "Découpage"
+    vector_search_text: "Recherche par vecteurs"
+    lexical_search_text: "Recherche BM25"
+    fusion_text: "Fusion"
+    rerank_text: "Reranking"
+    context_text: "Contexte"
+  reasons:
+    not_indexed_text: "Le passage n'est dans aucun chunk : il n'est pas dans l'index."
+    missing_text: "Le passage n'est plus dans la liste de cette étape."
+    ranked_low_text: "Le passage est classé au-delà du budget du contexte."
+    fell_text: "Le passage chute de plus de rangs que la chute tolérée."
+    cut_text: "Le passage est trouvé, mais le budget du contexte le coupe."
+  cases_title_text: "Où naît l'erreur"
+  cases_hint_text: "Trois échecs enregistrés, chacun né à une étape différente. Un clic les rejoue : ni modèle, ni index, ni calcul de vecteurs."
+  replay_badge_text: "Exécution enregistrée, aucun appel au modèle"
+  replay_failed_text: "Cas introuvable."
+  run_unavailable_text: "Le diagnostic n'est pas joignable."
+cases:
+  - id: not_indexed
+    question_id: q_cross_lyon
+    chunk_max_chars: 200
+    top_k: 3
+    expected_fault: chunking:not_indexed
+    title_text: "Le passage n'est pas dans l'index"
+    explain_text: >-
+      Le plan de continuité de Lyon tient en une phrase longue. Avec des chunks de 200 caractères au plus, le découpage la coupe en deux : aucun chunk ne porte la phrase entière. Rien ne la retrouvera plus loin dans la chaîne, quel que soit le reranking.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 1}
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 1}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: context
+        items:
+          - {doc_id: astreinte, other: 0}
+          - {doc_id: plan_continuite_lyon, other: 0}
+          - {doc_id: gestion_crise, other: 0}
+  - id: ranked_low
+    question_id: q_fact_sauvegarde
+    chunk_max_chars: 700
+    top_k: 3
+    expected_fault: vector_search:ranked_low
+    title_text: "Mal classé par la recherche, repêché par le reranking"
+    explain_text: >-
+      La recherche par vecteurs place le passage de la règle 3-2-1 au sixième rang, hors du budget de 3 passages. Le reranking le remonte en tête : sans lui, le contexte l'aurait perdu. L'erreur naît à la recherche, une autre étape la répare.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: ia_generative, other: 0}
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: ia_generative, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+      - kind: context
+        items:
+          - {doc_id: sauvegardes, passage: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+  - id: cut_by_budget
+    question_id: q_fact_badge
+    chunk_max_chars: 700
+    top_k: 3
+    expected_fault: context:cut
+    title_text: "Dans la liste, mais coupé par le budget"
+    explain_text: >-
+      La recherche le place au troisième rang et le reranking le laisse au quatrième : l'écart est faible, aucune de ces étapes n'est en cause. Mais le contexte ne garde que 3 passages : le quatrième est coupé avant le prompt, et le modèle n'en saura rien.
+    stages:
+      - kind: vector_search
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: acces_physique, passage: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+      - kind: rerank
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}
+          - {doc_id: acces_physique, passage: 0}
+          - {doc_id: teletravail, other: 0}
+          - {doc_id: sauvegardes, other: 0}
+          - {doc_id: mots_de_passe, other: 0}
+          - {doc_id: donnees_personnelles, other: 0}
+      - kind: context
+        items:
+          - {doc_id: acces_physique, other: 0}
+          - {doc_id: incidents, other: 0}
+          - {doc_id: classification, other: 0}

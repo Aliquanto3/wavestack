@@ -38,13 +38,13 @@ Repères : **[V1]** marque une base existante, **[neuf]** ce qui manque. Le dét
 - **CAP-1** Jeu de questions de démonstration avec réponses attendues (incrément 1, [neuf])
   - **intent:** Le formateur choisit une question d'un petit jeu fourni. Chaque question porte sa réponse attendue et le passage du corpus qui la contient, dans chacune des trois langues.
   - **success:** Pour chaque question du jeu et chaque langue, le passage attendu est retrouvé dans le corpus de cette langue (test) ; dans l'interface, choisir une question la place dans la saisie et désigne son bon extrait pour le diagnostic.
-- **CAP-2** Diagnostic du bon extrait dans la vue harnais (incrément 1, [neuf] sur CAP-18, CAP-19, CAP-31 [V1])
+- **CAP-2** Diagnostic du bon extrait dans la vue harnais (incrément 1, [neuf] sur CAP-18, CAP-19, CAP-31 [V1]) — partiellement absorbé par la V1.2 (CAP-10, story 9), reste ouvert
   - **intent:** Pour une question du jeu, la vue harnais dit, avant la génération, où est le bon extrait et quelle étape l'a perdu : retrouvé ou non, rang avant et après reranking, gardé dans le contexte ou coupé, position et tokens dans le contexte.
   - **success:** Sur chacun des cas d'échec du module (CAP-4), l'étape fautive est désignée par le harnais, sans lire la réponse du modèle ; une question hors du jeu ne déclenche aucun diagnostic.
-- **CAP-3** Diagnostic du bon extrait dans l'Atelier RAG (incrément 1, [neuf] sur CAP-45 [V1])
+- **CAP-3** Diagnostic du bon extrait dans l'Atelier RAG (incrément 1, [neuf] sur CAP-45 [V1]) — partiellement absorbé par la V1.2 (CAP-10, story 9), reste ouvert
   - **intent:** Dans l'Atelier RAG, pour une question du jeu, chaque étape montre le rang du bon extrait, et l'étape contexte compte des tokens ; la comparaison A/B dit quelle chaîne place le bon extrait le plus haut.
   - **success:** Deux chaînes qui diffèrent par une seule étape (par exemple avec ou sans reranking) donnent deux rangs du bon extrait lisibles côte à côte, et la synthèse A/B les nomme.
-- **CAP-4** Module « Où naît l'erreur d'un RAG » (incrément 1, [neuf] sur les scénarios et modules [V1])
+- **CAP-4** Module « Où naît l'erreur d'un RAG » (incrément 1, [neuf] sur les scénarios et modules [V1]) — partiellement absorbé par la V1.2 (CAP-10, story 9), reste ouvert
   - **intent:** Un module V2 joue au moins trois cas d'échec du RAG à partir du jeu de questions, chacun localisé à une étape différente.
   - **success:** Chaque cas se lance en un clic ; le diagnostic de CAP-2 y désigne une étape fautive différente ; aucune réponse du modèle n'est nécessaire à la démonstration.
 - **CAP-5** Coût contrefactuel d'un tour local (incrément 1, [neuf] sur le FinOps cloud [V1])
