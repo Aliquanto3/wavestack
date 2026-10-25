@@ -287,7 +287,7 @@ def build(frames: Path) -> Film:
     def rag(name: str) -> list[Path]:
         return film.phase("rag", name)
 
-    chain = "L'Atelier RAG : la chaîne RAG, étape par étape"
+    chain = "L'Atelier recherche documentaire : la chaîne RAG, étape par étape"
     film.run(rag("rag_intro") + rag("rag_steps"), "5", chain, 3.0, "📚")
     film.run(
         rag("rag_done")[-1:],
