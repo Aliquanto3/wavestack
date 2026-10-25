@@ -320,3 +320,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:13 · 12.5 · review · passe 1 : main fusionnée ; 2 medium corrigés (copie sauvée avant la fin de « Modifier » + attente de « 1 modifié » dans l'E2E ; préambules écartés par parse_queries), 2 low corrigés ; E2E 168/168 après correctif, diagnosis 81/81 · d767ef0
 - 2026-10-25 08:13 · 12.5 · décision · à revoir : questions annulées gardées dans l'historique du suivi ; échec de sauvegarde de la copie = session.rag_lab.interrupted · d767ef0
 - 2026-10-25 08:13 · 12.5 · PR · #105 ouverte · d767ef0
+- 2026-10-25 08:21 · 14.4 · CI · rouge (Windows, Ubuntu) : harness_map en de ne citait pas le scénario Compression ; règle .compact-choice .pane-text-action hors de pages.css ; corrigé (classe compact-choice-button), tests ciblés verts · a29fecf
