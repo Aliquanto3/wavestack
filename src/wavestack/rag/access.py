@@ -142,10 +142,10 @@ def run(request: AccessRequest, lang: str) -> dict[str, Any]:
         }
     if leaked:
         note = texts["notes"]["leak_text"].format(count=len(leaked))
-    elif request.mode == "before":
-        note = texts["notes"]["safe_before_text"]
     elif request.profile == "hr":
         note = texts["notes"]["authorized_text"]
+    elif request.mode == "before":
+        note = texts["notes"]["safe_before_text"]
     else:
         note = texts["notes"]["no_leak_text"]
     return {
