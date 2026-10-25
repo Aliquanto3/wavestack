@@ -585,3 +585,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 15:00 · 12.2 · fusion · #119 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; banc réel complet, critères 6 et 8 mesurés · 132bbf3
 - 2026-10-25 15:00 · 12.2 · attente humaine · done_checkpoint : relire le rapport du banc (seuils du filtre sans source, H7 sur un seul article, Strands écarté, SLM juge non viable) · —
 - 2026-10-25 15:00 · 12.8 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; worktree ../wavestack-v12-s8 depuis l'intégration 132bbf3 ; cascade SLM juge en option « non validée », désactivée par défaut) · 132bbf3
+- 2026-10-25 15:18 · 12.13 · review · passe 1 : high corrigé (modèle en erreur = StageFailed sans écriture, reconstruction illisible n'écrit rien), 1 medium (part extraite par le modèle affichée) et 2 low corrigés (ENTITY: NONE, verrou du cache), 4 écartés avec motif ; lien LightRAG vérifié ; tests ciblés verts, E2E 165/165 · 5979b68
+- 2026-10-25 15:18 · 12.13 · PR · #120 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 5979b68
+- 2026-10-25 15:18 · 12.8 · décision · diagnostics Pyright sur config.py (str passé pour Message, l. 1000-1053) à faire vérifier par le second avis de 12.8 · —
