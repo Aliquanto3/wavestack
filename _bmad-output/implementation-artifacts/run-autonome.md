@@ -506,3 +506,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 12:33 · 12.2 · décision · à revoir : Strands en q8 hobson v19 (seul port ONNX, q4f16 en repli) ; AnyJev en L0 content_free ; item toujours en erreur compté contre le candidat ; pas de filtre par défaut sans mesure du reranker · e91bdca
 - 2026-10-25 12:33 · 12.2 · PR · #115 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · e91bdca
 - 2026-10-25 12:33 · 12.2 · décision · Anaël : profiter du réseau rapide ; snapshot Strands (~1,8 Go) et paquets du banc local (onnxruntime, tokenizers, AnyJev) mis en cache · —
+- 2026-10-25 12:38 · 12.2 · CI · verte · e91bdca
+- 2026-10-25 12:38 · 12.2 · fusion · #115 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; banc réel encore à lancer (critères 6 et 8 ouverts), story gardée in-progress · 30bbfc1
+- 2026-10-25 12:38 · 12.2 · attente humaine · ordre d'Anaël pour la partie en ligne (possible avec agents en cours) ; partie locale et mémoire quand le poste est libre · —
