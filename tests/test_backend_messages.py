@@ -404,6 +404,9 @@ EXCEPTIONS = {
     ("net/factory.py", "[masqué]"),
     # A sentence-end pattern, not a text.
     ("rag/corpus.py", "…»"),
+    # V1.2-5: the quotes a model wraps a query in, and the quoted-preamble pattern, not texts.
+    ("rag/lab.py", "«»“”„"),
+    ("rag/lab.py", "[^:«"),
     # The warm-up call's text, given to Headroom, never shown.
     ("compression/headroom_adapter.py", "Résultat à compresser"),
 }
