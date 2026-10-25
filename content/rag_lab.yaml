@@ -220,6 +220,10 @@ options:
       label_text: "Ordre des passages (extrémités d'abord)"
     compress:
       label_text: "Compression (Headroom)"
+    full_corpus:
+      label_text: "Corpus entier dans le prompt (contexte long)"
+    cached_corpus:
+      label_text: "Corpus entier en cache du modèle (CAG)"
   generation:
     active:
       label_text: "Modèle actif de l'atelier"
@@ -325,6 +329,15 @@ steps:
     label_text: "Query understanding"
     action_text: "Produire les requêtes à chercher"
     note_text: "L'atelier n'a pas de conversation : la question de suivi lit les questions posées plus tôt dans cette session (trois au plus)."
+  cache_prefix:
+    label_text: "Prefix caching"
+    action_text: "Garder la consigne et le corpus entier dans la mémoire du modèle"
+    explain_text: >-
+      Le CAG évalue une fois le début du prompt (la consigne et tout le corpus) et garde l'état
+      du modèle qui en résulte. À chaque question, cet état est remis en mémoire : le modèle ne
+      lit plus que la question. Ce préfixe est un découpage en tokens du prompt envoyé, jusqu'à
+      la dernière fin de ligne avant la question. Toute mise à jour du corpus le recharge en
+      entier, et l'état occupe la mémoire tant qu'il est gardé.
 
 # Les tuiles de l'architecture : leur nom, et leur sous-titre quand aucune option ne le donne.
 components:
@@ -358,6 +371,9 @@ components:
   answer:
     label_text: "Réponse"
     note_text: "La réponse du LLM, une fois générée"
+  model_cache:
+    label_text: "Model cache"
+    note_text: "L'état du modèle après le préfixe (CAG)"
 
 groups:
   data:
@@ -399,6 +415,24 @@ presets:
       les réordonne : plus juste, plus lent. Seul le segment de récupération revient à celui de
       la chaîne livrée : les réglages du Chunking, de l'Embedding, du vector store et du prompt
       restent les vôtres.
+  long_context:
+    label_text: "Contexte long"
+    explain_text: >-
+      Aucun index, aucune recherche : tout le corpus va dans le prompt, à chaque question. Rien
+      à construire ni à mettre à jour, mais chaque requête relit tout le corpus. Il faut une
+      fenêtre de 16 384 tokens.
+  cag:
+    label_text: "CAG (cache du modèle)"
+    explain_text: >-
+      Aucun index, aucune recherche : le corpus est évalué une fois et gardé dans la mémoire du
+      modèle local ; chaque requête n'évalue que la question. Toute mise à jour recharge tout le
+      préfixe. Il faut un modèle local et une fenêtre de 16 384 tokens.
+# V1.2 story 10 (vues.md) : les familles d'architectures, dans l'ordre de PRESET_FAMILIES.
+preset_families:
+  search:
+    label_text: "Recherche"
+  no_index:
+    label_text: "Sans index"
 
 # V1.2 story 3 (CAP-8): the costs in three times and the work copy's buttons.
 costs:
@@ -607,3 +641,21 @@ sheets:
     sources:
       - label_text: "Headroom (headroom-ai), compression du contexte pour les agents"
         url: "https://pypi.org/project/headroom-ai/"
+  context.full_corpus:
+    purpose_text: "Ne rien chercher : mettre tout le corpus, document par document et en entier, dans le prompt de chaque question. L'étape Contexte lit le corpus de la chaîne (la copie de travail quand elle diffère)."
+    when_text: "À utiliser sur un petit corpus qui tient dans la fenêtre du modèle (16 384 tokens au moins), pour une question qui demande de tout lire. À éviter dès que le corpus grandit : il finit par ne plus tenir, et le modèle lit mal le milieu d'un long contexte."
+    cost_text: "Rien à construire ni à mettre à jour : aucun index, aucun embedding. Mais le coût de chaque requête croît avec le corpus : tout le corpus est relu à chaque question, en temps de lecture sur CPU et, en nuage, en dollars."
+    literature_text: "Liu et al. montrent que les modèles exploitent mal une information placée au milieu d'un long contexte (« Lost in the Middle ») : la réponse est meilleure quand elle est au début ou à la fin. Le diagnostic de l'atelier le note pour le passage attendu."
+    bench_text: ""
+    sources:
+      - label_text: "Liu et al., Lost in the Middle: How Language Models Use Long Contexts (2023)"
+        url: "https://arxiv.org/abs/2307.03172"
+  context.cached_corpus:
+    purpose_text: "Le même contexte que le contexte long, mais évalué une fois comme préfixe du prompt et gardé dans le cache du modèle local (CAG) : chaque question n'évalue plus que la question."
+    when_text: "À utiliser sur un corpus qui tient dans la fenêtre et change peu, interrogé souvent : le gain tient à un corpus stable. À éviter si le corpus change souvent : toute mise à jour recharge le préfixe en entier. Demande un modèle local ; l'atelier ne pilote pas le cache d'un fournisseur nuage."
+    cost_text: "La construction évalue tout le préfixe (la consigne et le corpus) ; chaque requête n'évalue que la question et lit le reste du cache. Toute mise à jour recharge tout le préfixe. L'état du cache occupe la mémoire tant qu'il est gardé : sa taille est dans le focus de l'étape."
+    literature_text: "Chan et al. proposent de précharger les connaissances dans le cache du modèle plutôt que de les chercher à chaque question (Cache-Augmented Generation) : sur des corpus de taille limitée et stables, ils rapportent des réponses aussi bonnes qu'un RAG, sans temps de recherche. Les mesures sur le PC cible restent à faire."
+    bench_text: ""
+    sources:
+      - label_text: "Chan et al., Don't Do RAG: When Cache-Augmented Generation is All You Need for Knowledge Tasks (2024)"
+        url: "https://arxiv.org/abs/2412.15605"

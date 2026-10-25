@@ -400,7 +400,13 @@ sable : la brique RAG de l'atelier (ses réglages, son index, ses modèles) ne c
   composants, et ◀ ▶ la rejouent ensuite. Le choix du mode est gardé par le navigateur.
 - **Architectures toutes faites.** En Composer, « RAG dense », « RAG hybride (BM25 + dense) » et
   « RAG + reranking » remplacent d'un clic le segment de recherche, réglages livrés, sans toucher
-  le Chunking, l'Embedding, le vector store ni le prompt.
+  le Chunking, l'Embedding, le vector store ni le prompt. Ils forment la famille « Recherche ».
+  La famille « Sans index » (V1.2) ajoute « Contexte long » (tout le corpus dans le prompt, à
+  chaque question) et « CAG » (le corpus évalué une fois et gardé dans la mémoire du modèle
+  local ; chaque requête n'évalue que la question, toute mise à jour recharge le préfixe). Les
+  deux exigent une fenêtre effective de 16 384 tokens (sélecteur « Fenêtre » de la page
+  Conversation, dans la limite du modèle ou du `-c` du serveur), le CAG un modèle local ; sinon
+  leur bouton est grisé avec la raison. La taille de l'état gardé est dans le focus du Contexte.
 - **L'exécution.** « Lancer la chaîne » exécute chaque étape sur la question (500 caractères au
   plus) et montre ce qu'elle reçoit, ce qu'elle produit, ses chiffres, ses extraits (rang, rang
   d'avant, document, score), sa durée et la mémoire de WaveStack. La chaîne livrée lit l'index

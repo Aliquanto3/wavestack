@@ -1173,6 +1173,21 @@ rag:
   dropped_title: "Dropped by the budget ({count})"
   prompt_title: "Final prompt, as it leaves for the model (estimated tokens; the model's template is added at generation)"
   prompt_total: "Total: {tokens} tokens (estimated)"
+  # V1.2 story 10: the whole corpus against the window, and the CAG's cache.
+  window_used: "Window: {used} / {window} tokens (estimated)"
+  cache_title: "Model cache (CAG)"
+  cache_pending: "The cache's state is read once the generation is done."
+  cache_state: "State: {state}"
+  cache_state_cold: "cold (prefix built by this run)"
+  cache_state_warm: "warm (prefix read from the cache)"
+  cache_state_lost: "lost (prefix evicted from the server)"
+  cache_state_none: "no cache (no state kept)"
+  cache_state_unknown: "unknown (the engine says nothing of its cache)"
+  cache_prefix: "Prefix: {tokens} tokens"
+  cache_read: "Read from the cache: {tokens} tokens"
+  cache_evaluated: "Evaluated: {tokens} tokens"
+  cache_build: "Prefix built in {ms} ms"
+  cache_size: "State size: {mb} MB"
 
 # Story 6 (2026-09-30), then lot 4 of 2026-10-04: the MCP workshop in sequence (`/mcp`).
 mcp:

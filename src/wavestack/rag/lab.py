@@ -91,7 +91,9 @@ OPTIONS: dict[str, tuple[str, ...]] = {
     "rerank": ("declared",),
     # V1.2 story 7 (CAP-5): cumulative options, each adds to the one before: the context fits a
     # budget of tokens, then the passages are ordered « extremities first », then compressed.
-    "context": ("excerpts", "budget", "order", "compress"),
+    # V1.2 story 10: the architectures without an index read the whole corpus instead, in the
+    # prompt at each question (`full_corpus`) or once in the model's cache (`cached_corpus`).
+    "context": ("excerpts", "budget", "order", "compress", "full_corpus", "cached_corpus"),
     # Lot 5c-3: the workshop's active model generates (the shipped one), or nothing is sent.
     "generation": ("active", "not_run"),
 }
@@ -141,6 +143,10 @@ FOCUS_CHUNK_CHARS = 300
 CUT_MARK = "[…]"
 _SENTENCE_END = re.compile(r"[.!?\u2026\u00bb](?=\s)")
 QUESTION_MAX = 500  # the characters of a question the workshop accepts
+# V1.2 story 10: the Context options that read the whole corpus, without any search, and the
+# effective window they need (the largest of `config.WINDOW_CHOICES`).
+CORPUS_OPTIONS = ("full_corpus", "cached_corpus")
+NO_INDEX_WINDOW = 16384
 STATUSES = ("ok", "error", "skipped", "cancelled", "not_run")
 EMBED_BATCH = 8  # passages embedded at a time: « Arrêter » and the progress between batches
 PROGRESS_INTERVAL_S = 0.1  # `rag_lab_stage_progress` at most ten times a second
@@ -166,6 +172,8 @@ COMPONENTS: dict[str, tuple[str, str, str | None]] = {
     "question": ("exchange", "💬", None),
     "augmented_prompt": ("exchange", "📝", None),
     "answer": ("exchange", "💡", None),
+    # V1.2 story 10: the prefix the CAG keeps in the model's memory.
+    "model_cache": ("models", "🗃️", None),
 }
 
 
@@ -185,6 +193,10 @@ class SequenceStep:
     writes: tuple[str, ...] = ()
     calls: tuple[str, ...] = ()
     part: str | None = None
+    # V1.2 story 10: the line is drawn only when its stage's option is one of `options`
+    # (empty: any), and never when the chain's Context is one of `hidden_with`.
+    options: tuple[str, ...] = ()
+    hidden_with: tuple[str, ...] = ()
 
 
 # In the order drawn: BUILD, then RUN (whose retrieval segment follows the chain's order).
@@ -208,7 +220,12 @@ STEPS: dict[str, SequenceStep] = {
     ),
     "question": SequenceStep("run", None, own=False, reads=("question",)),
     "embed_query": SequenceStep(
-        "run", "embedding", own=False, reads=("question",), calls=("embedding_model",)
+        "run",
+        "embedding",
+        own=False,
+        reads=("question",),
+        calls=("embedding_model",),
+        hidden_with=CORPUS_OPTIONS,  # V1.2 story 10: no vector search, no question embedded
     ),
     # V1.2 story 5: the queries the searches will run (the question, rewritten or split).
     "query": SequenceStep("run", "query", reads=("question",), calls=("llm",)),
@@ -222,6 +239,18 @@ STEPS: dict[str, SequenceStep] = {
     "generation": SequenceStep(
         "run", "generation", reads=("augmented_prompt",), writes=("answer",), calls=("llm",)
     ),
+    # V1.2 story 10: the CAG's prefix (the instruction and the whole corpus), evaluated once
+    # into the model's memory, drawn only for `cached_corpus`.
+    "cache_prefix": SequenceStep(
+        "build",
+        "context",
+        own=False,
+        reads=("documents",),
+        writes=("model_cache",),
+        calls=("llm",),
+        part="prefix",
+        options=("cached_corpus",),
+    ),
 }
 
 # ---------- lot 5b: the ready-made architectures (vues-atelier-rag.md §8) ----------
@@ -233,6 +262,16 @@ PRESETS: dict[str, tuple[tuple[str, str], ...]] = {
     "dense": (("vector_search", "cosine"),),
     "hybrid": (("vector_search", "cosine"), ("lexical_search", "bm25"), ("fusion", "rrf")),
     "rerank": (("vector_search", "cosine"), ("rerank", "declared")),  # the shipped chain's
+    # V1.2 story 10: no search at all, the Context reads the whole corpus (`PRESET_CONTEXT`).
+    "long_context": (),
+    "cag": (),
+}
+# V1.2 story 10: the Context option a preset sets (the others keep the chain's Context).
+PRESET_CONTEXT: dict[str, str] = {"long_context": "full_corpus", "cag": "cached_corpus"}
+# V1.2 story 10 (vues.md): the presets' families, drawn in this order; each preset is in one.
+PRESET_FAMILIES: dict[str, tuple[str, ...]] = {
+    "search": ("dense", "hybrid", "rerank"),
+    "no_index": ("long_context", "cag"),
 }
 
 
@@ -300,6 +339,12 @@ class PresetText(_Strict):
 
     label_text: str = Field(min_length=1)
     explain_text: str = Field(min_length=1)
+
+
+class PresetFamilyText(_Strict):
+    """V1.2 story 10: a family of ready-made architectures (« Recherche », « Sans index »)."""
+
+    label_text: str = Field(min_length=1)
 
 
 class PhaseText(_Strict):
@@ -517,6 +562,7 @@ class RagLabContent(_Strict):
     groups: dict[str, GroupText]
     phases: dict[str, PhaseText]
     presets: dict[str, PresetText]
+    preset_families: dict[str, PresetFamilyText]  # V1.2 story 10
     # V1.2 story 5 (CAP-17): « kind.option » -> its sheet.
     sheets: dict[str, SheetText] = {}
 
@@ -532,6 +578,7 @@ class RagLabContent(_Strict):
             ("groups", GROUPS),
             ("phases", PHASES),
             ("presets", PRESETS),
+            ("preset_families", PRESET_FAMILIES),
         ):
             if set(getattr(self, name)) != set(keys):
                 raise ValueError(f"{name} : il faut exactement {', '.join(keys)}")
@@ -547,6 +594,13 @@ class RagLabContent(_Strict):
             raise ValueError(f"options : il faut exactement {', '.join(OPTIONS)}")
         if set(self.params) != set(BOUNDS):
             raise ValueError(f"params : il faut exactement {', '.join(BOUNDS)}")
+        # V1.2 story 10: each preset in exactly one family.
+        families = [p for members in PRESET_FAMILIES.values() for p in members]
+        for preset in PRESETS:
+            if families.count(preset) != 1:
+                raise ValueError(f"preset_families : il faut exactement une famille pour {preset}")
+        if set(families) != set(PRESETS):
+            raise ValueError(f"preset_families : il faut exactement {', '.join(PRESETS)}")
         wanted = {f"{k}.{o}" for k in SHEETED_KINDS for o in OPTIONS[k]}
         if set(self.sheets) != wanted:
             raise ValueError(f"sheets : il faut exactement {', '.join(sorted(wanted))}")
@@ -701,6 +755,13 @@ class Catalog:
             "insert_before": FIXED_TAIL[0],
             **self._views(),
             "presets": self._presets(),
+            # V1.2 story 10: the families the presets are drawn in, and the Context options
+            # that read the whole corpus (a chain with one of them has no search).
+            "preset_families": [
+                {"id": f, "label_text": self.content.preset_families[f].label_text}
+                for f in PRESET_FAMILIES
+            ],
+            "corpus_options": list(CORPUS_OPTIONS),
         }
 
     def kind_options(self, kind: str) -> list[str]:
@@ -712,14 +773,24 @@ class Catalog:
 
     def preset_pipeline(self, preset: str) -> Pipeline:
         """The shipped chain, its retrieval segment replaced by the preset's, each stage of
-        it at its shipped settings."""
+        it at its shipped settings. V1.2 story 10: a preset of `PRESET_CONTEXT` also sets the
+        Context's option (without settings); the others keep the shipped Context."""
         segment = [
             (kind, option, self._shipped_params(kind, option)) for kind, option in PRESETS[preset]
         ]
         head = [s for s in self.default.stages if s.kind in FIXED_HEAD]
         tail = [s for s in self.default.stages if s.kind in FIXED_TAIL]
+        ends = [(s.kind, s.option, dict(s.params)) for s in tail]
+        context = PRESET_CONTEXT.get(preset)
+        if context is not None:
+            ends = [
+                ("context", context, self._shipped_params("context", context))
+                if e[0] == "context"
+                else e
+                for e in ends
+            ]
         stages = [(s.kind, s.option, dict(s.params)) for s in head]
-        stages += segment + [(s.kind, s.option, dict(s.params)) for s in tail]
+        stages += segment + ends
         return Pipeline(
             label_text=self.default.label_text,
             stages=[
@@ -738,9 +809,12 @@ class Catalog:
         on the shipped chain with that segment, its refusal as the reason; the notes of its
         options (what a run would meet: the reranker's files missing), in its language."""
         presets = []
+        family_of = {p: f for f, members in PRESET_FAMILIES.items() for p in members}
         for key in PRESETS:
             chain = self.preset_pipeline(key)
             segment = chain.stages[len(FIXED_HEAD) : -len(FIXED_TAIL)]
+            context = chain.find("context")
+            assert context is not None  # the shipped chain has its Context
             refusal = check_pipeline(chain, self)
             notes = []
             for stage in segment:
@@ -760,6 +834,11 @@ class Catalog:
                     "available": refusal is None,
                     "reason_text": refusal[0] if refusal else None,
                     "note_text": " ".join(notes) or None,
+                    # V1.2 story 10: its family, and the Context it sets (`replaces_context`)
+                    # or that a chain without search gets back when it is applied.
+                    "family": family_of[key],
+                    "context": {"option": context.option, "params": dict(context.params)},
+                    "replaces_context": key in PRESET_CONTEXT,
                 }
             )
         return presets
@@ -786,6 +865,8 @@ class Catalog:
                     "stage": step.stage,
                     "own": step.own,
                     "part": step.part,
+                    "options": list(step.options),
+                    "hidden_with": list(step.hidden_with),
                     "uses": uses,
                     "label_text": text.label_text,
                     "action_text": text.action_text,
@@ -872,30 +953,25 @@ def check_pipeline(
         return text("fixed_place", stage=names[wrong.kind], order=order), wrong.id
     segment = stages[len(head) : -len(tail)]
     searches = [s for s in segment if s.kind in SEARCHES]
-    if not searches:
-        return text("no_search", stage=names["context"]), stages[-len(tail)].id
-    position = {s.id: i for i, s in enumerate(segment)}
-    fusion = next((s for s in segment if s.kind == "fusion"), None)
-    if len(searches) == 2:
-        second = searches[1]
-        if fusion is None:
-            return text("fusion_needed", stage=names[second.kind]), second.id
-        if position[fusion.id] < position[second.id]:
-            return text("fusion_before", stage=names["fusion"]), fusion.id
-    elif fusion is not None:
-        return text("fusion_alone", stage=names["fusion"]), fusion.id
-    rerank = next((s for s in segment if s.kind == "rerank"), None)
-    if rerank is not None and position[rerank.id] < position[searches[0].id]:
-        return text("rerank_before", stage=names["rerank"]), rerank.id
-    understanding = next((s for s in segment if s.kind == "query"), None)
-    if understanding is not None and position[understanding.id] > position[searches[0].id]:
-        return text("query_before", stage=names["query"]), understanding.id
+    # V1.2 story 10: a Context that reads the whole corpus takes no search, nor any stage of
+    # the segment; the head stays in the chain without running (its availability unchecked).
+    whole = stages[-len(tail)].option in CORPUS_OPTIONS
+    if whole and segment:
+        option = catalog.option_label("context", stages[-len(tail)].option)
+        return (
+            text("corpus_needs_no_search", stage=names[segment[0].kind], option=option),
+            segment[0].id,
+        )
+    if not whole:
+        refused = _segment_refusal(segment, searches, names, text, stages[-len(tail)].id)
+        if refused is not None:
+            return refused
     for stage in stages:
         label = names[stage.kind]
         state = catalog.options.get((stage.kind, stage.option))
         if state is None:
             return text("unknown_option", stage=label, option=stage.option), stage.id
-        if not state.available:
+        if not state.available and not (whole and stage.kind in FIXED_HEAD):
             reason = _rendered(state.reason_text, lang)
             return (
                 text("unavailable", stage=label, option=state.label_text, reason=reason),
@@ -927,6 +1003,36 @@ def check_pipeline(
                 ),
                 stage.id,
             )
+    return None
+
+
+def _segment_refusal(
+    segment: Sequence[Stage],
+    searches: Sequence[Stage],
+    names: dict[str, str],
+    text: Callable[..., str],
+    context_id: str,
+) -> tuple[str, str | None] | None:
+    """The retrieval segment's own rules: at least one search, a fusion for two searches and
+    after them, a reranking and a query understanding on the right side of the searches."""
+    if not searches:
+        return text("no_search", stage=names["context"]), context_id
+    position = {s.id: i for i, s in enumerate(segment)}
+    fusion = next((s for s in segment if s.kind == "fusion"), None)
+    if len(searches) == 2:
+        second = searches[1]
+        if fusion is None:
+            return text("fusion_needed", stage=names[second.kind]), second.id
+        if position[fusion.id] < position[second.id]:
+            return text("fusion_before", stage=names["fusion"]), fusion.id
+    elif fusion is not None:
+        return text("fusion_alone", stage=names["fusion"]), fusion.id
+    rerank = next((s for s in segment if s.kind == "rerank"), None)
+    if rerank is not None and position[rerank.id] < position[searches[0].id]:
+        return text("rerank_before", stage=names["rerank"]), rerank.id
+    understanding = next((s for s in segment if s.kind == "query"), None)
+    if understanding is not None and position[understanding.id] > position[searches[0].id]:
+        return text("query_before", stage=names["query"]), understanding.id
     return None
 
 
@@ -1564,6 +1670,30 @@ class GenerationAsk:
     # `reserve` tokens written.
     instruction: str | None = None
     reserve: int | None = None
+    # V1.2 story 10 (CAG): the prompt up to the question is the prefix kept in the model's
+    # memory (`cached_corpus`); `on_prefix` is called once when the session starts building
+    # it (the « Préfixe en cache » line then runs).
+    cached_prefix: bool = False
+    on_prefix: Callable[[], None] | None = None
+
+
+@dataclass
+class CagPrefix:
+    """V1.2 story 10: what the session did with the CAG's prefix. `status`: `ok` (built by
+    this call, `built`, or read back from the cache entry), `skipped` (nothing built: why in
+    `reason_text`) or `error`. `tokens`: the prefix's tokens (`exact`: counted by the engine,
+    else estimated). `cost`: its measure in its time (`build` for a run, `update` for an
+    update), the entry's record when it was built earlier (`measured_at_build`). `cache`:
+    `RagLabCache`'s fields. `warning_text`: what went wrong without failing (memory, lost)."""
+
+    status: str
+    tokens: int | None = None
+    exact: bool = True
+    built: bool = False
+    cost: StageCost | None = None
+    cache: dict[str, Any] | None = None
+    reason_text: Any = None
+    warning_text: Any = None
 
 
 @dataclass
@@ -1590,6 +1720,11 @@ class Generated:
     duration_ms: int | None = None
     cost_usd: float | None = None
     impact: greenops.Impact | None = None
+    # V1.2 story 10 (CAG): the prompt tokens the call evaluated (the rest read from the cache;
+    # `None`: unknown), the cache's state of the call (`RagLabCache`'s fields) and the prefix.
+    evaluated_tokens: int | None = None
+    cache: dict[str, Any] | None = None
+    prefix: CagPrefix | None = None
 
 
 @dataclass
@@ -1639,6 +1774,11 @@ class LabDeps:
     prompt_parts: Callable[[str, str], Sequence[tuple[str, str]]] = lambda context, question: (
         ([("context", context)] if context else []) + [("question", question)]
     )
+    # V1.2 story 10: the session's effective window (the gauge of a whole corpus), and the
+    # CAG's prefix built for a context (the update's « Préfixe »): `(context_text, question)`
+    # -> `CagPrefix` measured in `update`; `None`: no local model, the part is estimated.
+    window: int = 0
+    cag: Callable[[str, str], CagPrefix] | None = None
 
 
 @dataclass
@@ -1706,6 +1846,9 @@ class _Result:
     budget: dict[str, Any] | None = None
     prompt_parts: list[dict[str, Any]] = field(default_factory=list)
     prompt_tokens: int | None = None
+    # V1.2 story 10: the window a whole corpus is shown against, and the CAG's cache.
+    window: int | None = None
+    cache: dict[str, Any] | None = None
 
 
 # V1.2 story 3: the time a stage's duration counts in, when it gives no costs of its own.
@@ -1719,6 +1862,8 @@ COST_PHASE = {
     "rerank": "query",
     "context": "query",
 }
+# V1.2 story 10: the footprint of a stage an architecture does not run (none, measured as such).
+NO_IMPACT = greenops.Impact("codecarbon", None, 0.0, 0.0, 0.0, 0.0)
 UPDATE_RUN_PREFIX = "upd"  # the id of an update run (`upd1`): its events are not the last run
 # V1.2 story 6: the id of a rebuild of the contexts (`ctx1`), apart from the runs as well.
 REBUILD_RUN_PREFIX = "ctx"
@@ -1880,9 +2025,15 @@ class LabRun:
             "rag_lab",
         )
 
+    def _whole_corpus(self, chain: _Chain) -> bool:
+        """V1.2 story 10: the chain's Context reads the whole corpus (no index, no search)."""
+        context = chain.pipeline.find("context")
+        return context is not None and context.option in CORPUS_OPTIONS
+
     def _run_chain(self, chain: _Chain) -> None:
         stopped = False  # an earlier stage failed or was stopped: the rest is skipped
         indexed = False  # B2: BM25's index part run (at the end of BUILD)
+        whole = self._whole_corpus(chain)
         for index, stage in enumerate(chain.pipeline.stages, start=1):
             if not indexed and stage.kind not in FIXED_HEAD:
                 indexed = True
@@ -1893,6 +2044,12 @@ class LabRun:
             base["option"] = stage.option
             if stopped:
                 self._ended(step_id, component, base, "skipped", _Result(), None, 0, None)
+                continue
+            if whole and stage.kind in FIXED_HEAD:
+                # V1.2 story 10: in the chain, never run: nothing indexed, nothing to build.
+                unused = _Result(costs=[StageCost("build", stage.kind, 0, 0, 0.0, NO_IMPACT)])
+                reason = self._text("stage.not_used")
+                self._ended(step_id, component, base, "skipped", unused, reason, 0, None)
                 continue
             if stage.kind == "generation" and stage.option == "not_run":
                 result = self._generation(chain)
@@ -2042,6 +2199,8 @@ class LabRun:
                 "budget": result.budget,
                 "prompt_parts": result.prompt_parts,
                 "prompt_tokens": result.prompt_tokens,
+                "window": result.window,
+                "cache": result.cache,
             },
             step_id,
             component,
@@ -3109,6 +3268,8 @@ class LabRun:
         )
 
     def _context(self, chain: _Chain, stage: Stage) -> _Result:
+        if stage.option in CORPUS_OPTIONS:
+            return self._context_corpus(chain, stage)
         ranked = chain.ranked
         if ranked is None:
             raise StageFailed(Message("rag_lab.context.nothing"))
@@ -3297,6 +3458,71 @@ class LabRun:
         result.input_text = say("context.input", extracts=self._count(len(ranked), "extract"))
         result.output_text = text or say("context.empty")
         self._prompt_preview(result, text)
+        return result
+
+    # -- V1.2 story 10: the whole corpus in the context (long context, CAG) --
+
+    def _corpus_documents(self, copy: workcopy.WorkCopy | None) -> list[DocText]:
+        return workcopy.documents(self.deps.content, self.deps.lang, copy)
+
+    def _corpus_text(self, documents: Sequence[DocText]) -> str:
+        """The introduction, then each document whole, formatted as an excerpt at its rank."""
+        content = self.deps.content
+        excerpts = [content.excerpt(n, d.title_text, d.text) for n, d in enumerate(documents, 1)]
+        return "\n\n".join([content.intro_text, *excerpts])
+
+    def _context_corpus(self, chain: _Chain, stage: Stage) -> _Result:
+        """`full_corpus` and `cached_corpus`: the documents the chain reads (the work copy while
+        it differs from the shipped corpus), each whole, in their order; no budget, no cut, no
+        order, no compression. One item per document (its rank, placed there, whole)."""
+        deps, say, count = self.deps, self._text, self._int
+        copy = deps.work_copy if self._reads_work_copy() else None
+        documents = self._corpus_documents(copy)
+        if not documents:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        source = say("chunking.source_work_copy" if copy else "chunking.source_corpus")
+        items = []
+        for rank, doc in enumerate(documents, start=1):
+            formatted = deps.content.excerpt(rank, doc.title_text, doc.text)
+            items.append(
+                Item(
+                    rank,
+                    doc.doc_id,
+                    doc.title_text,
+                    doc.text,
+                    None,
+                    rank=rank,
+                    placed=rank,
+                    state="whole",
+                    tokens=deps.estimate_tokens(formatted),
+                )
+            )
+        text = self._corpus_text(documents)
+        chain.context, chain.context_text = items, text
+        result = _Result(
+            input_text=say(
+                "context.corpus_input", documents=self._count(len(items), "document"), source=source
+            ),
+            output_text=text,
+            items=items,
+            window=deps.window or None,
+        )
+        self._prompt_preview(result, text)
+        used = result.prompt_tokens or 0
+        result.facts = [
+            (say("fact.documents"), count(len(items))),
+            (say("fact.source"), source),
+            (say("fact.characters"), count(len(text))),
+            (
+                say("fact.window_used"),
+                say("context.window_used", used=count(used), window=count(deps.window))
+                if deps.window
+                else count(used),
+            ),
+            (say("fact.placement"), deps.content.placement_text),
+        ]
+        if stage.option == "cached_corpus":
+            result.facts.append((say("fact.cache"), say("context.cached_note")))
         return result
 
     def _kept_fact(self, kept: int, total: int) -> tuple[str, str]:
@@ -3494,6 +3720,9 @@ class LabRun:
         """« le contexte construit (3 extraits), puis la question », or the question alone."""
         if chain.status != "ok" or not chain.context_text:
             return self._text("generation.question_only")
+        if self._whole_corpus(chain):  # V1.2 story 10: every document, whole
+            documents = self._count(len(chain.context), "document")
+            return self._text("generation.with_corpus", documents=documents)
         kept = self._count(len(chain.context), "extract")
         return self._text("generation.with_context", extracts=kept)
 
@@ -3518,7 +3747,14 @@ class LabRun:
         would = _Result(
             input_text=self._text("generation.input", context=context, question=self.question)
         )
+        context_stage = chain.pipeline.find("context")
+        cached = bool(
+            context_stage and context_stage.option == "cached_corpus" and chain.status == "ok"
+        )
+        prefix = _PrefixPart(self, chain) if cached else None
         if self.deps.generator is None:
+            if prefix is not None:
+                prefix.skip(self._text("cache.no_model"))
             raise StageSkipped(Message("rag_lab.generation.no_model"), result=would)
         self._check()
         ask = GenerationAsk(
@@ -3527,12 +3763,22 @@ class LabRun:
             step_id=step_id,
             progress=progress,
             cancelled=self.deps.cancelled,
+            cached_prefix=cached,
+            on_prefix=prefix.start if prefix is not None else None,
         )
         try:
             got = self.deps.generator(ask)
         except StageSkipped as skipped:
             skipped.result = skipped.result or would
+            if prefix is not None:
+                prefix.skip(skipped.render(self._lang))
             raise
+        except BaseException:
+            if prefix is not None:
+                prefix.skip(self._text("cache.not_built"))
+            raise
+        if prefix is not None:
+            prefix.end(got)
         text, count = self._text, self._int
         system = text("generation.system_prompt" if got.system_prompt else "generation.no_system")
         prompt_tokens = ("" if got.exact else "≈ ") + count(got.prompt_tokens)
@@ -3568,18 +3814,33 @@ class LabRun:
             )
         )
         result.output_text = got.answer_text
+        # V1.2 story 10 (CAG): the tokens read from the cache are not evaluated again.
+        evaluated = got.prompt_tokens
+        notes: list[str] = []
+        if got.evaluated_tokens is not None:
+            evaluated = got.evaluated_tokens
+            read = max(0, got.prompt_tokens - evaluated)
+            facts.append((text("fact.cache_read"), count(read)))
+            facts.append((text("fact.evaluated"), count(evaluated)))
+            if read:
+                notes.append(text("costs.cache_read", tokens=count(read)))
+        if got.cache is not None:
+            result.cache = got.cache
+            facts.append((text("fact.cache_state"), text(f"cache.state.{got.cache['state']}")))
+        if got.prefix is not None and got.prefix.warning_text:
+            result.warning_text = render(got.prefix.warning_text, self._lang)
+        if got.cost_usd is None and got.impact is None:
+            notes.append(render(Message("rag_lab.costs.generation_unpriced"), self._lang))
         # V1.2 story 3: a call stopped or in error was sent all the same, its cost is kept.
         result.costs = [
             StageCost(
                 "query",
                 "generation",
-                got.prompt_tokens + got.output_tokens,
+                evaluated + got.output_tokens,
                 got.duration_ms,
                 got.cost_usd,
                 got.impact,
-                note_text=None
-                if got.cost_usd is not None or got.impact is not None
-                else Message("rag_lab.costs.generation_unpriced"),
+                note_text=" ".join(notes) or None,
             )
         ]
         if got.status == "cancelled":
@@ -3591,8 +3852,86 @@ class LabRun:
         if not got.answer_text.strip():
             result.output_text = text("generation.empty")
         if got.status == "limit":
-            result.warning_text = text("generation.cut", max=count(got.reserve))
+            cut = text("generation.cut", max=count(got.reserve))
+            result.warning_text = " ".join(filter(None, [result.warning_text, cut]))
         return result
+
+
+class _PrefixPart:
+    """V1.2 story 10: the « Préfixe en cache » line of a `cached_corpus` chain, a part of the
+    Context stage run apart (`part` « prefix », kind `cache_prefix`, step `….prefix`, as BM25's
+    index): started when the session begins to build the prefix (`start`), ended once the
+    generation says what it did with it (`end`), or skipped (`skip`)."""
+
+    def __init__(self, run: LabRun, chain: _Chain) -> None:
+        stages = chain.pipeline.stages
+        context = next(s for s in stages if s.kind == "context")
+        self.run = run
+        self.step_id = f"{run._step(stages.index(context) + 1)}.prefix"
+        self.component = "rag_lab.cache_prefix"
+        self.base = {
+            "stage_id": context.id,
+            "kind": "cache_prefix",
+            "option": context.option,
+            "part": "prefix",
+        }
+        self.started = False
+        self.rss_before: int | None = None
+        self.at = 0.0
+
+    def start(self) -> None:
+        if self.started:
+            return
+        self.started = True
+        label = self.run.deps.texts.steps["cache_prefix"].label_text
+        self.run._emit(
+            "rag_lab_stage_started",
+            self.base | {"phase_label": self.run._text("stage.running", stage=label)},
+            self.step_id,
+            self.component,
+        )
+        self.rss_before = self.run.deps.rss()
+        self.at = time.monotonic()
+
+    def _close(self, status: str, result: _Result, error_text: str | None) -> None:
+        duration = _ms(time.monotonic() - self.at) if self.started else 0
+        rss_before = self.rss_before if self.started else None
+        step, component, base = self.step_id, self.component, self.base
+        self.run._ended(step, component, base, status, result, error_text, duration, rss_before)
+
+    def skip(self, reason_text: str) -> None:
+        """Nothing kept: skipped, or in error once begun (the call went wrong meanwhile)."""
+        self._close("error" if self.started else "skipped", _Result(costs=[]), reason_text)
+
+    def end(self, got: Generated) -> None:
+        run, prefix = self.run, got.prefix
+        say, count = run._text, run._int
+        if prefix is None or got.status == "too_long":
+            self.skip(say("cache.too_long" if got.status == "too_long" else "cache.not_built"))
+            return
+        tokens = ("" if prefix.exact else "≈ ") + count(prefix.tokens or 0)
+        cache = prefix.cache or {}
+        facts = [(say("fact.prefix_tokens"), tokens)]
+        if cache.get("state_bytes") is not None:
+            facts.append((say("fact.state_size"), size_text(cache["state_bytes"], run._lang)))
+        if cache.get("build_ms") is not None:
+            facts.append((say("fact.prefix_duration"), ms_text(cache["build_ms"], run._lang)))
+        result = _Result(
+            input_text=say("cache.input"),
+            facts=facts,
+            costs=[prefix.cost] if prefix.cost else [],
+            cache=prefix.cache,
+        )
+        if prefix.warning_text:
+            result.warning_text = render(prefix.warning_text, run._lang)
+        if prefix.status != "ok":
+            reason = render(prefix.reason_text or say("cache.not_built"), run._lang)
+            status = "error" if prefix.status == "error" else "skipped"
+            self._close(status, result, reason)
+            return
+        self.start()  # read back from the cache entry: nothing built by this call
+        result.output_text = say("cache.built" if prefix.built else "cache.reused", tokens=tokens)
+        self._close("ok", result, None)
 
 
 class UpdateRun(LabRun):
@@ -3640,6 +3979,13 @@ class UpdateRun(LabRun):
 
     def _parts(self) -> list[tuple[Stage, str, Callable[[Stage], _Result]]]:
         pipeline = self.pipeline
+        context = pipeline.find("context")
+        # V1.2 story 10: the long context reads the corpus at each question, nothing to redo;
+        # the CAG reloads its whole prefix (any change invalidates all that follows it).
+        if context is not None and context.option == "full_corpus":
+            return []
+        if context is not None and context.option == "cached_corpus":
+            return [(context, "cache_prefix", self._update_prefix)]
         chunking = pipeline.find("chunking")
         embedding = pipeline.find("embedding")
         store = pipeline.find("vector_store")
@@ -3653,6 +3999,15 @@ class UpdateRun(LabRun):
         if lexical is not None:
             parts.append((lexical, "lexical_index", self._update_lexical))
         return parts
+
+    def cost_summary(self, phases: Sequence[str], complete: bool = True) -> list[dict[str, Any]]:
+        """V1.2 story 10: an update with no part to redo (the long context) costs nothing,
+        said as such (`parts` 0, zero tokens and duration, the note)."""
+        if self._parts():
+            return super().cost_summary(phases, complete)
+        nothing = greenops.summarize([], "update", self._lang)
+        note = self._text("update.nothing_to_redo")
+        return [nothing | {"tokens": 0, "duration_ms": 0, "usd": 0.0, "note_text": note}]
 
     def run(self) -> str:
         started = time.monotonic()
@@ -3713,6 +4068,9 @@ class UpdateRun(LabRun):
             result = fn(stage)
         except LabCancelled:
             status, error_text = "cancelled", self._text("stage.stopped")
+        except StageSkipped as skipped:  # V1.2 story 10: estimated, the update goes on
+            status, error_text = "skipped", skipped.render(self._lang)
+            result = skipped.result or result
         except StageFailed as failed:
             status, error_text = "error", failed.render(self._lang)
             result = failed.result or result
@@ -3725,7 +4083,52 @@ class UpdateRun(LabRun):
         if status == "ok" and result.costs is None:
             result.costs = [StageCost("update", kind, duration_ms=duration)]
         self._ended(step_id, component, base, status, result, error_text, duration, rss_before)
-        return status
+        return "ok" if status == "skipped" else status
+
+    def _update_prefix(self, stage: Stage) -> _Result:
+        """V1.2 story 10 (CAG): the prefix of the copy after the operation (the instruction and
+        the whole corpus), rebuilt whole from an emptied memory by the session, measured in
+        `update`; once the update ends `ok`, it becomes the session's cache entry. Without a
+        local model: skipped, its tokens estimated."""
+        documents = self._corpus_documents(self.after)
+        if not documents:
+            raise StageFailed(Message("rag_lab.update.empty_corpus"))
+        context_text = self._corpus_text(documents)
+        question = self.deps.texts.default_question_text
+        say, count = self._text, self._int
+        built = self.deps.cag(context_text, question) if self.deps.cag else None
+        if built is None or built.status == "skipped":
+            parts = self.deps.prompt_parts(context_text, question)
+            estimate = sum(self.deps.estimate_tokens(t) for k, t in parts if k != "question")
+            estimated = StageCost(
+                "update", "cache_prefix", estimate, note_text=Message("rag_lab.costs.estimated")
+            )
+            reason = (built.reason_text if built else None) or Message("rag_lab.cache.no_model")
+            raise StageSkipped(
+                reason,
+                result=_Result(
+                    input_text=say("update.prefix_input", documents=count(len(documents))),
+                    output_text=say("update.prefix_estimated", tokens=count(estimate)),
+                    costs=[estimated],
+                ),
+            )
+        if built.status != "ok":
+            raise StageFailed(built.reason_text or Message("rag_lab.cache.not_built"))
+        tokens = ("" if built.exact else "≈ ") + count(built.tokens or 0)
+        facts = [(say("fact.prefix_tokens"), tokens)]
+        cache = built.cache or {}
+        if cache.get("state_bytes") is not None:
+            facts.append((say("fact.state_size"), size_text(cache["state_bytes"], self._lang)))
+        result = _Result(
+            input_text=say("update.prefix_input", documents=count(len(documents))),
+            output_text=say("update.prefix_output", tokens=tokens),
+            facts=facts,
+            costs=[built.cost] if built.cost else [],
+            cache=built.cache,
+        )
+        if built.warning_text:
+            result.warning_text = render(built.warning_text, self._lang)
+        return result
 
     # -- the parts --
 

@@ -14797,14 +14797,17 @@ def _rag_lab_context(r: Run, headroom: bool) -> None:
         page.locator("#rag-reset-chain").click()
     select = _seq_row(r, "context").locator("select.rag-option")
     r.check(
-        select.locator("option").all_inner_texts()
+        # V1.2 story 10: the two options without an index, unavailable at 4 096, say so.
+        [t.removesuffix(" (indisponible)") for t in select.locator("option").all_inner_texts()]
         == [
             "Extraits numérotés (format de la brique RAG)",
             "Budget de contexte (tokens)",
             "Ordre des passages (extrémités d'abord)",
             "Compression (Headroom)",
+            "Corpus entier dans le prompt (contexte long)",  # V1.2 story 10
+            "Corpus entier en cache du modèle (CAG)",
         ],
-        "les quatre options du contexte",
+        "les options du contexte (les quatre de la story 7, puis les deux sans index)",
         str(select.locator("option").all_inner_texts()),
     )
     # Budget: the shipped 450 tokens cut the third of three excerpts; five asked, two dropped.
@@ -16545,13 +16548,15 @@ def _rag_lab_presets(r: Run) -> None:
     catalog = r.api("GET", "/api/rag_lab").json()["catalog"]
     served = {p["id"]: p for p in catalog.get("presets", [])}
     shown = _rag_presets(r)
+    # V1.2 story 10: the « Recherche » family; « Sans index » follows (its own scenario).
+    search = [k for k, p in served.items() if p.get("family") == "search"]
     r.check(
-        list(served) == ["dense", "hybrid", "rerank"]
-        and all(p["available"] for p in served.values())
+        search == ["dense", "hybrid", "rerank"]
+        and all(served[k]["available"] for k in search)
         and [s["kind"] for s in served["hybrid"]["segment"]]
         == ["vector_search", "lexical_search", "fusion"]
         and list(shown) == list(served)
-        and all(shown[k]["text"] == served[k]["label_text"] for k in served)
+        and all(shown[k]["text"] == served[k]["label_text"] for k in search)
         and all(served[k]["explain_text"] in shown[k]["title"] for k in served)
         and _pressed_preset(r) == ["rerank"]
         and page.locator("#rag-presets").is_visible(),
@@ -17897,6 +17902,179 @@ def _cache_module_steps(r: Run) -> None:
     )
 
 
+def _no_index_presets(r: Run) -> dict[str, Any]:
+    """V1.2 story 10: the « Sans index » family as the page draws it: its label, its buttons
+    (marked, their tooltip) and the session's verdict on each."""
+    _goto_rag_lab(r)
+    _rag_mode(r, "compose")
+    time.sleep(0.3)
+    family = r.page.locator('#rag-presets .doc-family[data-family="no_index"]')
+    shown = _rag_presets(r)
+    served = {p["id"]: p for p in r.api("GET", "/api/rag_lab").json()["catalog"]["presets"]}
+    return {
+        "label": family.locator(".rag-preset-family-label").inner_text() if family.count() else "",
+        "buttons": family.locator(".rag-preset").evaluate_all("bs => bs.map(b => b.dataset.preset)")
+        if family.count()
+        else [],
+        "shown": shown,
+        "served": served,
+    }
+
+
+def s_rag_lab_no_index(r: Run) -> None:
+    """V1.2 story 10, after `rag` and `rag_rerank` (no real model): (1) the fake llama-server at
+    4 096: « Contexte long » and « CAG » of the « Sans index » family greyed, the reason says
+    16 384 and the « Fenêtre » selector; (2) 16 384 by the Conversation page's selector: still
+    greyed, the reason says the server's bound of 8 192 (`-c`), the effective window; (3) the
+    fake cloud A (declared at 32 768) at 16 384: « CAG » greyed (a local model only), « Contexte
+    long » applied and run (the head « non utilisée », the whole corpus in the Context's
+    focus, its gauge on the window), then « Ajouter » gives U = 0 with its note; (4) the
+    Conversation page's cache gauge did not move with the workshop's calls. The CAG cold then
+    warm and its reload are proved by the session's tests. Back to A, 4 096, the shipped chain
+    and corpus."""
+    page = r.page
+    page.set_viewport_size({"width": 1600, "height": 1000})
+    r.goto_app()
+    r.wait_idle()
+    try:
+        # (1) The fake llama-server, window 4 096.
+        ok, _ = r.poll(lambda: _picker_options(r).get(LLAMA_OPTION) is False, 10)
+        seq = r.ev.mark()
+        page.select_option("#model-picker", label=LLAMA_OPTION)
+        page.click("#model-picker-apply")
+        ended = r.ev.wait("model_load_ended", seq, timeout=30)
+        r.check(ok and ended["payload"]["status"] == "ok", "faux llama-server chargé (4 096)")
+        r.wait_idle()
+        seen = _no_index_presets(r)
+        served, shown = seen["served"], seen["shown"]
+        r.check(
+            seen["label"] == "Sans index" and seen["buttons"] == ["long_context", "cag"],
+            "famille « Sans index » : « Contexte long » et « CAG »",
+            str(seen["buttons"]),
+        )
+        reasons = [served[k]["reason_text"] or "" for k in ("long_context", "cag")]
+        r.check(
+            all(shown[k]["unavailable"] for k in ("long_context", "cag"))
+            and all(
+                "16 384" in t and "4 096" in t and "sélecteur « Fenêtre »" in t for t in reasons
+            )
+            and all(served[k]["reason_text"] in shown[k]["title"] for k in ("long_context", "cag")),
+            "fenêtre 4 096 : les deux grisés, la raison dit 16 384, la fenêtre effective et le "
+            "sélecteur « Fenêtre »",
+            " | ".join(reasons),
+        )
+        r.shot("77-atelier-rag-sans-index", full_page=True)
+
+        # (2) 16 384 by the Conversation page's selector: bounded to 8 192 by the server.
+        r.goto_app()
+        state = _apply_window(r, 16384)
+        seen = _no_index_presets(r)
+        reasons = [seen["served"][k]["reason_text"] or "" for k in ("long_context", "cag")]
+        r.check(
+            state["window"] == 8192
+            and all(seen["shown"][k]["unavailable"] for k in ("long_context", "cag"))
+            and all("8 192" in t and "llama-server" in t for t in reasons)
+            and not any("sélecteur" in t for t in reasons),
+            "16 384 borné à 8 192 par llama-server : toujours grisés, la raison dit la borne",
+            " | ".join(reasons),
+        )
+
+        # (3) The fake cloud A, declared at 32 768: the long context runs, the CAG is local only.
+        r.goto_app()
+        _pick_model(r, A_LABEL)
+        if (r.state().get("context_window_state") or {}).get("configured") != 16384:
+            _apply_window(r, 16384)
+        r.send("Bonjour")
+        gauge_before = page.locator("#cache-gauge").inner_text()
+        seen = _no_index_presets(r)
+        served, shown = seen["served"], seen["shown"]
+        r.check(
+            served["long_context"]["available"]
+            and not shown["long_context"]["unavailable"]
+            and shown["cag"]["unavailable"]
+            and "modèle local" in (served["cag"]["reason_text"] or ""),
+            "cloud A à 16 384 : « Contexte long » disponible, « CAG » grisé (modèle local)",
+            str(served["cag"]["reason_text"]),
+        )
+        page.locator('#rag-presets .rag-preset[data-preset="long_context"]').click()
+        time.sleep(0.8)  # the session's verdict
+        r.check(
+            _pressed_preset(r) == ["long_context"]
+            and _chain_kinds(r)[3:] == ["context", "generation"]
+            and _option_label(r, "context") == "Corpus entier dans le prompt (contexte long)",
+            "« Contexte long » appliqué : aucune recherche, le Contexte lit le corpus entier",
+            str(_chain_kinds(r)),
+        )
+        r.check(
+            page.locator('#rag-seq .rag-seq-step[data-step="embed_query"]').count() == 0
+            and page.locator('#rag-seq .rag-seq-step[data-step="cache_prefix"]').count() == 0,
+            "séquence : ni Embedding de la question, ni « Préfixe en cache »",
+        )
+        ended, seq = _rag_lab_run(r)
+        heads = [_stage_ended(r, seq, k) for k in ("chunking", "embedding", "vector_store")]
+        context = _stage_ended(r, seq, "context")
+        focus = _focus_of(r, "context")
+        window = page.locator("#rag-focus .rag-window")
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and all(h.get("status") == "skipped" for h in heads)
+            and all("Non utilisée" in (h.get("error_text") or "") for h in heads)
+            and len(context.get("items", [])) >= 20
+            and focus["rows"] == len(context["items"])
+            and window.count() == 1
+            and window.get_attribute("data-window") == "16384",
+            "contexte long : tête « non utilisée », tout le corpus dans le focus, jauge sur la "
+            "fenêtre",
+            f"{[h.get('status') for h in heads]} · {len(context.get('items', []))} · "
+            f"{focus['rows']}",
+        )
+        r.shot("78-atelier-rag-contexte-long", full_page=True)
+        _rag_mode(r, "compose")
+        seq = r.ev.mark()
+        page.locator('#rag-copy button[data-op="add"]').click()
+        expect(page.locator("#rag-copy-form")).to_be_visible()
+        page.fill("#rag-copy-id", "doc_sans_index")
+        page.fill("#rag-copy-title", "Document sans index")
+        page.fill("#rag-copy-body", "Un document neuf, relu à chaque requête.")
+        page.click("#rag-copy-apply")
+        ended = r.ev.wait("rag_lab_run_ended", seq, timeout=60)
+        (update,) = ended["payload"]["cost_summary"]
+        card = page.locator('#rag-cost-cards .rag-cost-card[data-phase="update"]')
+        expect(card.locator(".rag-cost-note")).to_contain_text(
+            "relu à chaque requête", timeout=5000
+        )
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and update["parts"] == 0
+            and update["tokens"] == 0
+            and update["duration_ms"] == 0,
+            "« Ajouter » sur le contexte long : U = 0, la note le dit",
+            str(update),
+        )
+
+        # (4) The Conversation page's cache gauge: the workshop's calls are not the chat's.
+        r.goto_app()
+        r.wait_idle()
+        time.sleep(0.5)
+        r.check(
+            page.locator("#cache-gauge").inner_text() == gauge_before,
+            "jauge du cache de la conversation inchangée par l'atelier",
+            page.locator("#cache-gauge").inner_text()[:160],
+        )
+    finally:
+        try:
+            page.keyboard.press("Escape")
+            r.goto_app()
+            page.evaluate("localStorage.removeItem('wavestack.ragLab')")
+            r.api("POST", "/api/rag_lab/copy/reset")
+            if (r.state().get("active_model") or {}).get("ref") != MODEL_ENTRY_ID:
+                _pick_model(r, A_LABEL)
+            if (r.state().get("context_window_state") or {}).get("configured") != 4096:
+                _apply_window(r, 4096)
+        except Exception as exc:  # noqa: BLE001 - reported, the scenario's own error kept
+            r.check(False, "retour au faux cloud A, à 4 096 et au corpus livré", repr(exc))
+
+
 SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("diagnostic", s_diagnostic),
     ("programme", s_programme),
@@ -17935,6 +18113,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("rag_lab_diagnosis", s_rag_lab_diagnosis),  # V1.2 story 9
     ("rag_lab_chunking", s_rag_lab_chunking),  # V1.2 story 6
     ("rag_lab_context", s_rag_lab_context),  # V1.2 story 7
+    ("rag_lab_no_index", s_rag_lab_no_index),  # V1.2 story 10
     ("rag_lab_evaluate", s_rag_lab_evaluate),  # V1.2 story 15
     ("rag_lab_attack", s_rag_lab_attack),  # V1.2 story 17
     ("rag_lab_rights", s_rag_lab_rights),  # V1.2 story 18

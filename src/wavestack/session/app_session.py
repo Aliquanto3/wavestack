@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import bisect
+import hashlib
 import importlib.util
 import inspect
 import json
@@ -169,6 +170,7 @@ from wavestack.models.load_registry import (
     COMPRESSOR,
     EMBEDDING,
     GREENOPS_CODECARBON,
+    RAG_LAB_CAG,
     RAG_LAB_EMBEDDING,
     RAG_LAB_FAISS,
     RAG_LAB_FASTEMBED,
@@ -322,6 +324,22 @@ class RuntimeRefused(KeyedError, RuntimeError):
     """Languages (5/5): a failure raised as a `RuntimeError`, its text keyed."""
 
     shown_name = "RuntimeError"
+
+
+@dataclass
+class _CagEntry:
+    """V1.2 story 10: the RAG workshop's one CAG entry (`AppSession._cag_cache`): its key (the
+    prefix's ids, the active model, the effective window), the engine's state after the prefix
+    (`None` for an engine that keeps no state: a server holds the prefix itself), its tokens
+    and what its build measured. Only this entry references the state: deleting it frees it."""
+
+    key: str
+    snapshot: EngineSnapshot | None
+    prefix_tokens: int
+    build_tokens: int | None
+    build_ms: int | None
+    impact: Impact | None
+    state_bytes: int | None
 
 
 class _RenderingJournal:
@@ -1034,8 +1052,17 @@ class AppSession:
         self._rag_lab_import_errors: dict[str, str] = {}
         # The catalog the validation of an edited chain reads (`_rag_lab_recent_catalog`).
         self._rag_lab_catalog_kept: tuple[float, Any, rag_lab.Catalog] | None = None
+        # V1.2 story 10: what that catalog was read for (the active model, the effective
+        # window): another one reads it again, whatever its age.
+        self._rag_lab_catalog_for: tuple[Any, ...] | None = None
         # V1.2 story 5: the questions the workshop ran, which `follow_up` reads as history.
         self._rag_lab_asked: list[str] = []
+        # V1.2 story 10 (CAG): the workshop's one prefix state, and the one an update rebuilt,
+        # which becomes the entry once the update ends `ok`; both read and written under
+        # `_lock`, deleted at each change of model, window or language, « vider le cache » and
+        # the session's close.
+        self._cag_cache: _CagEntry | None = None
+        self._cag_pending: _CagEntry | None = None
         # Lot 5c-1: the `[[rag_lab.embeddings]]` entries left out, traced once each.
         self._rag_lab_rejected_traced: set[str] = set()
         # Story 6 of 2026-09-30 (the MCP workshop): its exchanges, numbered (`mcp{n}`), the
@@ -1836,6 +1863,7 @@ class AppSession:
         self._executor.submit(lambda: None).result()
 
     def close(self) -> None:
+        self._cag_drop()  # V1.2 story 10: the CAG state freed with the session
         self.stop()
         with self._lock:
             conns = list(self._mcp_conns.values())
@@ -2494,6 +2522,8 @@ class AppSession:
             self._model_name, self._meta = None, None
             # Lot A: the next engine starts with an empty cache, nothing to check against.
             self._main_cache = self._cache_evicted = None
+            # V1.2 story 10: the CAG's state was this engine's.
+            self._cag_forget()
         try:
             if engine is not None:
                 engine.close()
@@ -2676,6 +2706,8 @@ class AppSession:
                 raise SendRefused(self._refusal_reason())
             if window == self._configured_window:
                 return Message("session.window.already", window=self._num_lazy(window)), None
+            # V1.2 story 10: a CAG state is kept for one window.
+            self._cag_forget()
             active, cloud = self._active, self._cloud
             if cloud is not None:
                 locked = self._locked_fr(cloud)
@@ -6856,6 +6888,7 @@ class AppSession:
             # Refused: the engine's memory is unknown (its ids forgotten), never compared.
             self._main_cache = [] if cleared else None
             self._cache_cleared = cleared
+            self._cag_forget()  # V1.2 story 10: its state too
         if not cleared:
             raise SendRefused(Message("session.refused.cache_unsupported"))
 
@@ -6939,6 +6972,7 @@ class AppSession:
             with self._lock:
                 self._language = language
                 self._ui_texts = None  # never the former language's under the new code
+                self._cag_forget()  # V1.2 story 10: another corpus
                 if hasattr(self._engine, "language"):  # a served engine's own traces
                     self._engine.language = language
             config.clear_content_caches()
@@ -10738,6 +10772,7 @@ class AppSession:
         compressor, why = self._rag_lab_compressor()
         if compressor is None:
             options[("context", "compress")].note_text = why
+        self._rag_lab_corpus_availability(options)
         fastembed = options[("embedding", "fastembed")]
         declared, reason = self._rag_lab_fastembed()
         if declared is not None:
@@ -10777,6 +10812,41 @@ class AppSession:
         return rag_lab.Catalog(
             texts, rag_lab.default_pipeline(self.cfg), options, lang=self._language
         )
+
+    def _rag_lab_corpus_availability(
+        self, options: dict[tuple[str, str], rag_lab.OptionState]
+    ) -> None:
+        """V1.2 story 10: the long context and the CAG need an effective window of at least
+        `NO_INDEX_WINDOW` tokens (the model's, the server's `-c` or the cloud declaration may
+        bound the window configured), the CAG a local engine; read afresh at each catalog."""
+        with self._lock:
+            engine, cloud = self._engine, self._cloud
+            window, source, configured = self._window, self._window_source, self._configured_window
+            active = self._active
+        needed = rag_lab.NO_INDEX_WINDOW
+        if window < needed:
+            if configured < needed:
+                where = Message("session.rag_lab.window_set", needed=self._num_lazy(needed))
+            else:
+                provider = active.provider if active is not None else None
+                where = Message(
+                    "session.rag_lab.window_bound",
+                    configured=self._num_lazy(configured),
+                    bound=self._bound_lazy(source, window, provider),
+                )
+            reason = Message(
+                "session.rag_lab.window_needed",
+                needed=self._num_lazy(needed),
+                effective=self._num_lazy(window),
+                where=where,
+            )
+            for option in rag_lab.CORPUS_OPTIONS:
+                state = options[("context", option)]
+                state.available, state.reason_text = False, reason
+        if engine is None or cloud is not None:
+            state = options[("context", "cached_corpus")]
+            state.available = False
+            state.reason_text = Message("session.rag_lab.cag_local_only")
 
     def _rag_lab_absent(self, model: config.EmbeddingModel | RerankerModel) -> Message | None:
         """Lot 5c-1: why a declared embedding model (lot 5c-2: or reranking model) of the
@@ -11122,10 +11192,18 @@ class AppSession:
         the disk again each time. A run reads it afresh."""
         now = time.monotonic()
         kept = self._rag_lab_catalog_kept
-        if kept is not None and kept[1] is texts and now - kept[0] < RAG_LAB_CATALOG_TTL_S:
+        with self._lock:
+            read_for = (self._active, self._window)
+        if (
+            kept is not None
+            and kept[1] is texts
+            and now - kept[0] < RAG_LAB_CATALOG_TTL_S
+            and self._rag_lab_catalog_for == read_for
+        ):
             return kept[2]
         catalog = self._rag_lab_catalog(texts)
         self._rag_lab_catalog_kept = (now, texts, catalog)
+        self._rag_lab_catalog_for = read_for
         return catalog
 
     def validate_rag_lab(self, pipeline: rag_lab.Pipeline) -> dict[str, Any]:
@@ -11167,7 +11245,7 @@ class AppSession:
                 lab_run = rag_lab.LabRun(run_id, question, chain, deps)
             else:
                 lab_run = rag_lab.UpdateRun(run_id, question, chain, deps, *update)
-                lab_run.keep = lambda copy: workcopy.save(copy, self._language)
+                lab_run.keep = self._rag_lab_keep_copy
             lab_run.run()
         except Exception as exc:  # noqa: BLE001 - AD-16: the state still comes back
             with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
@@ -11182,6 +11260,10 @@ class AppSession:
                 except Exception:  # noqa: BLE001, S110 - the error above says it already
                     pass
         finally:
+            with self._lock:  # V1.2 story 10: an update's prefix not kept is freed
+                self._cag_pending = None
+                if self._cag_cache is None or self._cag_cache.snapshot is None:
+                    self._load_registry.release(RAG_LAB_CAG)  # no state held any more
             errors = loans.close()
             if errors:
                 with scoped(**self._rag_lab_scope(run_id, "rag_lab", brick=None)):
@@ -11489,7 +11571,20 @@ class AppSession:
             compressor=self._rag_lab_compressor,
             compression_min_chars=self.cfg.compression_min_chars,
             prompt_parts=self._rag_lab_prompt_parts,
+            # V1.2 story 10: the window a whole corpus fits in, and the update's prefix.
+            window=self._window,
+            cag=lambda context_text, question: self._rag_lab_cag_update(
+                context_text, question, cancel
+            ),
         )
+
+    def _rag_lab_keep_copy(self, copy: workcopy.WorkCopy) -> None:
+        """An update measured `ok`: the copy saved; V1.2 story 10, the prefix it rebuilt
+        becomes the CAG entry (the chain reads this copy next: its next run is warm)."""
+        workcopy.save(copy, self._language)
+        with self._lock:
+            if self._cag_pending is not None:
+                self._cag_cache, self._cag_pending = self._cag_pending, None
 
     def _rag_lab_compressor(self) -> tuple[Compressor | None, Message | str | None]:
         """V1.2 story 7: the compressor the Compression card loaded, to borrow for a run (the
@@ -11588,22 +11683,7 @@ class AppSession:
         with scoped(**scope | {"call_id": step_id}, origin="model"):
             rendered: RenderedContext | RenderedChat
             if cloud is None:
-                meta = engine.metadata()
-                template_vars: dict[str, Any] = {}
-                if caps.reasoning_variable:
-                    template_vars[caps.reasoning_variable] = reasons
-                rendered = render_context(
-                    engine,
-                    caps.chat_template or "",
-                    messages,
-                    call_id=step_id,
-                    special_tokens=meta.special_tokens,
-                    bos_token=meta.bos_token,
-                    eos_token=meta.eos_token,
-                    add_generation_prompt=True,
-                    **template_vars,
-                    lang=self._language,
-                )
+                rendered = self._rag_lab_render(engine, caps, messages, step_id, reasons)
                 text, tokens, exact = rendered.prompt, len(rendered.ids), True
             else:
                 content = self._cloud_content or self._localized(load_cloud_content)
@@ -11634,13 +11714,25 @@ class AppSession:
             journal = self._journal()
             mark = journal.last_seq()
             ask.progress(0, reserve)  # the prompt being read: « 0 / 1 024 tokens »
+            cag: tuple[rag_lab.CagPrefix, bool, bool] | None = None
             if cloud is None:
                 saved = self._save_main_state()
                 try:
-                    out = self._call_model(rendered, cancel, (), reserve, reasons, on_token=token)
-                    got.status = out.status
-                    if out.status == "error":
-                        got.error_text = out.message_text or None
+                    if ask.cached_prefix:  # V1.2 story 10: within the main context's copy
+                        assert isinstance(rendered, RenderedContext)
+                        cag = self._cag_prepare(engine, rendered, ask, cancel)
+                    if cag is not None and cag[0].status == "error":
+                        # The prefix stopped or failed: no generation behind it (it would
+                        # meet the same engine, or a cancel already asked).
+                        got.status = "cancelled" if cancel.cancelled else "error"
+                        got.error_text = cag[0].reason_text
+                    else:
+                        out = self._call_model(
+                            rendered, cancel, (), reserve, reasons, on_token=token
+                        )
+                        got.status = out.status
+                        if out.status == "error":
+                            got.error_text = out.message_text or None
                 except Exception as exc:  # noqa: BLE001 - AD-16: the stage says it, prompt kept
                     got.status = "error"
                     got.error_text = Message(
@@ -11697,7 +11789,331 @@ class AppSession:
                     )
             else:
                 got.output_tokens = produced
+            if ask.cached_prefix and cloud is None and cag is None:
+                # Local, but the CAG's preparation raised: the stage's error says it.
+                failed = got.error_text or Message("rag_lab.stage.stopped")
+                got.prefix = rag_lab.CagPrefix("error", reason_text=failed)
+            elif ask.cached_prefix:
+                self._cag_reading(got, cag, call)
             return got
+
+    def _rag_lab_render(
+        self, engine: Engine, caps: Capabilities, messages: list, step_id: str, reasons: bool
+    ) -> RenderedContext:
+        """The workshop's messages rendered for the local engine, as the generation sends them."""
+        meta = engine.metadata()
+        template_vars: dict[str, Any] = {}
+        if caps.reasoning_variable:
+            template_vars[caps.reasoning_variable] = reasons
+        return render_context(
+            engine,
+            caps.chat_template or "",
+            messages,
+            call_id=step_id,
+            special_tokens=meta.special_tokens,
+            bos_token=meta.bos_token,
+            eos_token=meta.eos_token,
+            add_generation_prompt=True,
+            **template_vars,
+            lang=self._language,
+        )
+
+    # ---------- V1.2 story 10: the CAG's prefix, kept in the model's memory ----------
+
+    def _cag_drop(self) -> None:
+        """The CAG entry deleted, its state freed (nothing else references it)."""
+        with self._lock:
+            self._cag_forget()
+
+    def _cag_forget(self) -> None:
+        """Under `self._lock`: the entry and the update's pending one deleted, their state's
+        grant released from the budget (`LoadRegistry`, slot `rag_lab.cag`)."""
+        self._cag_cache = self._cag_pending = None
+        self._load_registry.release(RAG_LAB_CAG)
+
+    def _cag_grant(self, size: int) -> None:
+        """A CAG state kept (`size` bytes, in WaveStack's memory): held by the budget's slot
+        `rag_lab.cag` until `_cag_forget`, so that what loads next is checked with it."""
+        self._load_registry.grant(
+            self._t("session.rag_lab.cag_label"), size, RAG_LAB_CAG, share=size
+        )
+
+    @staticmethod
+    def _cag_prefix_ids(engine: Engine, rendered: RenderedContext, question: str) -> list[int]:
+        """The prefix of the prompt sent, in tokens: the text rendered up to the question, back
+        to its last end of line, tokenized, and the ids sent as long as they agree with it. An
+        exact prefix of `rendered.ids` by construction, whatever the tokenizer merges."""
+        prompt, wanted = rendered.prompt, question.strip()
+        at = prompt.rfind(wanted) if wanted else -1
+        cut = prompt.rfind("\n", 0, at if at >= 0 else len(prompt)) + 1
+        if cut <= 0:
+            return []
+        return list(rendered.ids[: common_prefix_len(engine.tokenize(prompt[:cut]), rendered.ids)])
+
+    def _cag_key(self, prefix_ids: Sequence[int]) -> str:
+        """The entry's key: the prefix's ids, the active model, the effective window."""
+        with self._lock:
+            active, window = self._active, self._window
+        model = f"{active.kind}:{active.ref}" if active is not None else ""
+        digest = hashlib.sha256(",".join(map(str, prefix_ids)).encode("ascii")).hexdigest()
+        return f"{digest}|{model}|{window}"
+
+    def _cag_memory_refusal(self, prefix_tokens: int) -> Message | None:
+        """Before a prefix is built on an engine with a state: what the session will hold
+        during the call (the CAG state and the main context's copy, `_kv_per_token` × their
+        tokens) checked against the budget (`LoadRegistry`, slot `rag_lab.cag`); `None` when
+        it fits, or when the KV's bytes per token cannot be read (the check after the
+        `snapshot` then applies alone)."""
+        with self._lock:
+            active, main = self._active, self._main_cache
+        try:
+            per_token = self._kv_per_token(active) if active is not None else None
+        except Exception:  # noqa: BLE001 - unreadable: no estimate
+            per_token = None
+        if not per_token:
+            return None
+        estimate = per_token * (prefix_tokens + len(main or []))
+        label = Message("session.rag_lab.cag_label")
+        refusal = self._load_registry.check_component(label, estimate, RAG_LAB_CAG)
+        if refusal is None:
+            return None
+        return Message("session.rag_lab.cag_memory", reason=refusal)
+
+    def _cag_build(
+        self,
+        engine: Engine,
+        prefix_ids: list[int],
+        key: str,
+        cancel: CancelToken,
+        phase: str,
+        on_start: Callable[[], None] | None = None,
+    ) -> tuple[rag_lab.CagPrefix, _CagEntry | None]:
+        """The prefix evaluated from an emptied memory (`engine.clear_cache`, never the
+        session's, which would touch the main context): by `prefill` then `snapshot` on an
+        engine with a state, by a one-token warm-up call on a server; measured in `phase`.
+        Memory: estimated first (refused: nothing built), the RSS checked after the `snapshot`
+        (over the budget: the state dropped at once), a failed `snapshot` (`MemoryError`
+        included) caught. Returns what to say of it, and the entry to keep (`None`: none)."""
+        n = len(prefix_ids)
+        stateful = _engine_cached_ids(engine) is not None
+        refusal = self._cag_memory_refusal(n) if stateful else None
+        if refusal is not None:
+            cache = {"state": "none", "prefix_tokens": n}
+            prefix = rag_lab.CagPrefix(
+                "skipped", n, reason_text=refusal, warning_text=refusal, cache=cache
+            )
+            return prefix, None
+        if on_start is not None:
+            on_start()
+        with self._lock:
+            active = self._active
+        served = active is not None and active.kind == "server"
+        probe = greenops.Probe(lambda: self._local_meter.start(machine=served))
+        clear = getattr(engine, "clear_cache", None)
+        failure: BaseException | None = None
+        evaluated: int | None = None
+        try:
+            if clear is not None:
+                try:
+                    clear()
+                except Exception:  # noqa: BLE001 - a server without the slots API: kept as is
+                    pass
+            if stateful:
+                evaluated = engine.prefill(prefix_ids, cancel)
+            else:
+                for _ in engine.complete(prefix_ids, (), 1, cancel):
+                    pass  # the warm-up's output is thrown away
+                evaluated = _evaluated(engine)
+        except Exception as exc:  # noqa: BLE001 - AD-16: said in the step
+            failure = exc
+        finally:
+            duration, impact = probe.stop()  # the tracker never left running
+        if failure is not None or cancel.cancelled:
+            reason = (
+                Message("rag_lab.stage.stopped")
+                if failure is None
+                else Message(
+                    "rag_lab.stage.failed",
+                    error=type(failure).__name__,
+                    cause=rag_index.exception_text(failure, self._language),
+                )
+            )
+            return rag_lab.CagPrefix("error", n, reason_text=reason), None
+        tokens = evaluated if evaluated is not None else n
+        note = None if evaluated is not None else Message("rag_lab.costs.estimated")
+        cost = greenops.StageCost(phase, "cache_prefix", tokens, duration, 0.0, impact, False, note)
+        snapshot, warning, size = None, None, None
+        if stateful:
+            try:
+                snapshot = engine.snapshot()
+            except Exception as exc:  # noqa: BLE001 - `MemoryError` included: no state kept
+                snapshot = None
+                warning = Message(
+                    "session.rag_lab.cag_memory",
+                    reason=Message("session.rag_lab.cag_snapshot_failed", error=type(exc).__name__),
+                )
+            if snapshot is not None:
+                size = snapshot.size_bytes
+                rss, budget = self._rss_now(), self._load_registry.budget_bytes
+                if rss is not None and rss > budget:
+                    snapshot = None  # dropped at once: never referenced again
+                    warning = Message(
+                        "session.rag_lab.cag_memory",
+                        reason=Message(
+                            "session.rag_lab.cag_rss",
+                            size=self._size_lazy(size),
+                            rss=self._size_lazy(rss),
+                            budget=self._size_lazy(budget),
+                        ),
+                    )
+            elif warning is None:
+                warning = Message(
+                    "session.rag_lab.cag_memory",
+                    reason=Message("session.rag_lab.cag_snapshot_failed", error="None"),
+                )
+        keep = snapshot is not None or not stateful
+        if snapshot is not None:
+            self._cag_grant(size or 0)
+        entry = (
+            _CagEntry(key, snapshot, n, tokens, duration, impact, size if snapshot else None)
+            if keep
+            else None
+        )
+        cache = {
+            "state": "cold" if keep else "none",
+            "prefix_tokens": n,
+            "state_bytes": size,
+            "build_ms": duration,
+        }
+        prefix = rag_lab.CagPrefix(
+            "ok", n, built=True, cost=cost, cache=cache, warning_text=warning
+        )
+        return prefix, entry
+
+    def _cag_prepare(
+        self,
+        engine: Engine,
+        rendered: RenderedContext,
+        ask: rag_lab.GenerationAsk,
+        cancel: CancelToken,
+    ) -> tuple[rag_lab.CagPrefix, bool, bool]:
+        """Before the generation's call (the main context already copied): the entry of this
+        prefix put back (`restore` on an engine with a state; nothing on a server, which holds
+        it), else the entry replaced by a new prefix. Returns the prefix, whether it was read
+        back from the entry, and whether the engine keeps a state."""
+        prefix_ids = self._cag_prefix_ids(engine, rendered, ask.question)
+        key = self._cag_key(prefix_ids)
+        stateful = _engine_cached_ids(engine) is not None
+        with self._lock:
+            entry = self._cag_cache
+        reused = False
+        if entry is not None and entry.key == key:
+            if not stateful:
+                reused = True
+            elif entry.snapshot is not None:
+                try:
+                    reused = bool(engine.restore(entry.snapshot))
+                except Exception:  # noqa: BLE001 - treated as a key absent
+                    reused = False
+        if reused and entry is not None:
+            cost = greenops.StageCost(
+                "build",
+                "cache_prefix",
+                entry.build_tokens,
+                entry.build_ms,
+                0.0,
+                entry.impact,
+                measured_at_build=True,
+            )
+            cache = {
+                "state": "warm",
+                "prefix_tokens": entry.prefix_tokens,
+                "state_bytes": entry.state_bytes,
+            }
+            prefix = rag_lab.CagPrefix("ok", entry.prefix_tokens, cost=cost, cache=cache)
+            return prefix, True, stateful
+        self._cag_drop()  # never two states at once
+        prefix, built = self._cag_build(engine, prefix_ids, key, cancel, "build", ask.on_prefix)
+        if built is not None:
+            with self._lock:
+                self._cag_cache = built
+        return prefix, False, stateful
+
+    def _cag_reading(
+        self,
+        got: rag_lab.Generated,
+        cag: tuple[rag_lab.CagPrefix, bool, bool] | None,
+        call: dict[str, Any] | None,
+    ) -> None:
+        """After the call: what it read from the cache (`model_call_ended`'s cells: the
+        server's `cache_n`, else the prompt less what the engine evaluated) and the state of
+        the cache: `warm`, `cold`, `none`, `lost` (a server evicted the prefix meanwhile: the
+        entry kept, the server holds it again) or `unknown` (no reading, no figure)."""
+        if cag is None:  # a cloud model, or the call never reached the engine
+            reason = Message("session.rag_lab.cag_local_only")
+            got.prefix = rag_lab.CagPrefix("skipped", reason_text=reason)
+            return
+        prefix, reused, stateful = cag
+        cache = dict(prefix.cache or {})
+        n = prefix.tokens or 0
+        read = call.get("cache_read_tokens") if call is not None else None
+        state = cache.get("state", "none")
+        if not stateful:
+            if read is None:
+                state = "unknown"
+            elif read < n:
+                state = "lost"
+                prefix.warning_text = Message(
+                    "session.rag_lab.cag_lost", read=self._num_lazy(read), prefix=self._num_lazy(n)
+                )
+            else:
+                state = "warm" if reused else "cold"
+        cache["state"] = state
+        cache["read_tokens"] = read
+        cache["evaluated_tokens"] = got.prompt_tokens - read if read is not None else None
+        prefix.cache = cache
+        got.cache, got.prefix = cache, prefix
+        got.evaluated_tokens = cache["evaluated_tokens"]
+
+    def _rag_lab_cag_update(
+        self, context_text: str, question: str, cancel: CancelToken
+    ) -> rag_lab.CagPrefix:
+        """The update's « Préfixe » (V1.2 story 10): the prefix of the copy after the operation,
+        rebuilt whole from an emptied memory as a first run builds it, within the main
+        context's copy, the same memory checks; kept as `_cag_pending`, the entry once the
+        update ends `ok`. Without a local engine: skipped (the lab estimates its tokens)."""
+        with self._lock:
+            engine, caps, cloud, window = self._engine, self._caps, self._cloud, self._window
+        if engine is None or caps is None or cloud is not None:
+            return rag_lab.CagPrefix(
+                "skipped", reason_text=Message("session.rag_lab.cag_local_only")
+            )
+        state = self.build_turn_state()
+        reserve = self._reserve_of(state)
+        messages, _ = self._rag_lab_messages(state, context_text, question)
+        step_id = "rag_lab.cag"
+        with scoped(**self._rag_lab_scope(step_id, "rag_lab.cache_prefix", brick=None)):
+            rendered = self._rag_lab_render(
+                engine, caps, messages, step_id, self._reasoning_on(state)
+            )
+        if len(rendered.ids) > window - reserve:  # AD-9: the CAG could not hold it
+            reason = Message(
+                "rag_lab.cache.update_too_long",
+                tokens=self._num_lazy(len(rendered.ids)),
+                usable=self._num_lazy(window - reserve),
+            )
+            return rag_lab.CagPrefix("error", len(rendered.ids), reason_text=reason)
+        prefix_ids = self._cag_prefix_ids(engine, rendered, question)
+        key = self._cag_key(prefix_ids)
+        self._cag_drop()  # the state of the copy before goes: never two at once
+        saved = self._save_main_state()
+        try:
+            prefix, built = self._cag_build(engine, prefix_ids, key, cancel, "update")
+        finally:
+            self._lab_restore(saved, "rag_lab")
+        with self._lock:
+            self._cag_pending = built
+        return prefix
 
     def _rag_lab_embedder(self, option: str, loans: rag_lab.Loans) -> rag_lab.Lent:
         """The brick's embedding model, borrowed when it holds it, else loaded as
