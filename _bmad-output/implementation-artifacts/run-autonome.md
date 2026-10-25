@@ -370,3 +370,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:11 · 12.6 · CI · verte à la 3e relance (test de téléchargement instable sous Windows) · 6518c09
 - 2026-10-25 09:11 · 12.6 · fusion · #107 MERGED dans integration/v1-2-atelier (merge) via file_prs.py · 746329b
 - 2026-10-25 09:11 · 12.15 · CI · branche d'intégration fusionnée (4 conflits d'ajout, deux côtés gardés), 4652 tests ciblés verts, CI relancée · 9c9adf2
+- 2026-10-25 09:16 · 12.15 · CI · E2E de la fusion rag rag_rerank rag_lab_chunking rag_lab_evaluate : 47/54 (rag en délai dépassé, poste chargé), relancé 94/94 · 9c9adf2
