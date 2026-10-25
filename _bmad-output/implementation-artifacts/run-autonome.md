@@ -447,3 +447,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 10:53 · 12.19 · CI · défaut de l'intégration trouvé et corrigé : accolade manquante après #rag-case dans rag.css, styles des stories 6 à 18 ignorés par le navigateur · f1cba8b
 - 2026-10-25 10:53 · 12.19 · décision · à revoir : ~400 textes fr/en/de écrits par le dev, graphrag / Droits « high » à trancher, couleur d'encre forcée sur les puces pour le contraste AA, champ before_search · f1cba8b
 - 2026-10-25 10:53 · 12.19 · second-avis · lancé · f1cba8b
+- 2026-10-25 10:55 · 12.19 · dev · complément : critère 7 sans nombre figé (available == id in PRESETS) · a6b5584
+- 2026-10-25 10:55 · run · décision · contrat entre 12.10 et 12.19 : la seconde des deux à entrer dans l'intégration retire story: 10 de long_context et cag dans rag_sheets.yaml ×3 et les passe available: true dans rag_erasure.yaml ×3 · —
+- 2026-10-25 10:55 · run · PR · #112 ouverte vers main (CLAUDE.md : 32 Go de RAM, accord d'Anaël) · —
