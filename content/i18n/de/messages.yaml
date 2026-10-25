@@ -1407,7 +1407,7 @@ rag_lab:
   graph:
     input: "Die Frage und der Wissensgraph ({entities}, {relations}, {communities}) der {documents} aus {source}."
     mark_shipped: "mitgelieferter Graph, per Regel berechnet, ohne Modell"
-    mark_rebuilt: "vom Modell {model} neu aufgebauter Graph"
+    mark_rebuilt: "vom Modell {model} neu aufgebauter Graph ({by_model} von {passages} Passage(n) vom Modell extrahiert, die übrigen von der Regel)"
     rule_note: "Per Regel berechneter Graph: Ein echtes GraphRAG baut seinen Graphen mit einem Modell, siehe die Schätzung oder Neu aufbauen."
     estimate: "Schätzung, nicht gemessen: Eine Extraktion durch ein Modell bräuchte {calls} Aufrufe (einen pro Passage, dazu einen pro Community) und etwa {tokens} Eingabe-Tokens. Außerhalb jeder Summe."
     mode_local: "lokal (die Entitäten der Frage und ihre Nachbarn)"
@@ -1437,6 +1437,8 @@ rag_lab:
     summary: "{mark}: {entities}, {relations}, {communities}; {stale} veraltete Beleg(e) gegenüber der Arbeitskopie."
     measure: "Messung des Neuaufbaus: {tokens} Tokens, {calls} Modellaufrufe, {duration}."
     run_label: "Neuaufbau des Graphen"
+    rebuild_model_error: "Das Modell ist beim Neuaufbau des Graphen gescheitert: Nichts wird geschrieben, der vorhandene Graph bleibt; das Ereignisprotokoll sagt, warum."
+    rebuild_nothing: "Keine Antwort des Modells hat das Protokoll befolgt (keine Zeile ENTITY: oder RELATION:, keine Zusammenfassung): Nichts wird geschrieben, der vorhandene Graph bleibt."
     by_rule: "per Regel, ohne Modell"
     by_model: "vom Modell (neu aufgebauter Graph)"
     merge_fact: "{entities} Entität(en) und {relations} Beziehung(en) geändert"

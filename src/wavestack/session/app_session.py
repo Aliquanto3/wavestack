@@ -1049,6 +1049,7 @@ class AppSession:
         self._rag_labs = 0
         # V1.2 story 13: GraphRAG's graphs built, by what they are built from (a few kept).
         self._rag_lab_graphs: dict[str, tuple[rag_graph.Graph, int]] = {}
+        self._rag_lab_graphs_lock = threading.Lock()  # read by the HTTP thread and the worker
         # V1.2 story 15 (CAP-11), the Evaluate tab: the generating model of each finished run
         # (`run_id` -> label and family), the judges' verdicts kept by run, both bounded (the
         # oldest leaves), the last judgment's failure, and the local-model discovery (replaced
@@ -11144,12 +11145,14 @@ class AppSession:
         assert content is not None  # checked when the intention was accepted
         lang, size, folder = self._language, self.cfg.rag_chunk_max_chars, config.rag_lab_dir()
         key = rag_lab.graph_key(lang, size, documents, folder)
-        kept = self._rag_lab_graphs.get(key)
+        with self._rag_lab_graphs_lock:
+            kept = self._rag_lab_graphs.get(key)
         if kept is None:
             kept = rag_lab.graph_for(content, lang, size, documents, folder)
-            while len(self._rag_lab_graphs) >= RAG_LAB_GRAPHS_KEPT:
-                self._rag_lab_graphs.pop(next(iter(self._rag_lab_graphs)))
-            self._rag_lab_graphs[key] = kept
+            with self._rag_lab_graphs_lock:
+                while len(self._rag_lab_graphs) >= RAG_LAB_GRAPHS_KEPT:
+                    self._rag_lab_graphs.pop(next(iter(self._rag_lab_graphs)))
+                self._rag_lab_graphs[key] = kept
         return kept
 
     def _rag_lab_graph_card(self, blocked: Message | None) -> dict[str, Any] | None:

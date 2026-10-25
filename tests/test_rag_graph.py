@@ -260,6 +260,9 @@ def test_the_answers_are_parsed_by_their_lines_only():
     assert found is not None and set(found.entities) == {"cellule-de-crise", "astreinte"}
     assert found.relations == {("astreinte", "cellule-de-crise"): (1, "alerte")}
     assert g.parse_extraction("Le passage parle d'astreinte.") is None
+    # `ENTITY: NONE`: read (the model followed the protocol), but no entity « none ».
+    found = g.parse_extraction("ENTITY: NONE")
+    assert found is not None and not found.entities
 
 
 def test_an_injection_in_a_document_is_text_never_a_line_read():

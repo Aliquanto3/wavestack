@@ -404,6 +404,28 @@ def test_a_stopped_rebuild_writes_nothing(index):
     session.close()
 
 
+def test_a_failing_model_writes_nothing_and_keeps_the_earlier_rebuild(index):
+    # Review of 12.13: a model in error is not « unreadable »; the rebuild stops at its first
+    # failure, ends in error and keeps the earlier rebuilt file as it was.
+    fake = FakeEngine(output=EXTRACTION)
+    session = full(index, fake)
+    rebuild(session, fake)
+    path = rag_graph.rebuilt_path("fr", config.rag_lab_dir())
+    before = path.read_text(encoding="utf-8")
+    broken = FakeEngine(output=EXTRACTION)
+    broken.fail = True
+    events = rebuild(session, broken)
+    assert ended(events, "graph_search")["status"] == "error"
+    assert len(broken.calls) == 1
+    assert path.read_text(encoding="utf-8") == before
+    # Nothing readable at all (no extraction, no summary): nothing written either.
+    reset = session.reset_rag_lab_graph()
+    assert not reset["graph"]["rebuilt"]
+    rebuild(session, FakeEngine(output=""))
+    assert not path.exists()
+    session.close()
+
+
 def test_an_unreadable_passage_keeps_the_rule_and_is_counted(index):
     outputs = ["Je ne sais pas.", *[EXTRACTION] * 200]
     fake = FakeEngine(outputs=outputs)
@@ -498,6 +520,9 @@ def test_a_passage_changed_after_a_rebuild_is_stale_and_the_rest_kept(index):
     workcopy.save(copy, "fr")
     card = session.rag_lab_state()["contexts"]["graph"]
     assert card["stale"] >= 1 and card["rebuilt"]
+    # The card says how many passages the model's extraction still covers.
+    kept = len(rag_graph.load_files("fr", config.rag_lab_dir())[1].passages) - card["stale"]
+    assert f"{kept} passage(s) sur" in card["mark_text"]
     kg = rag_graph.load_graph(docs(session), "fr", 700, construction=docs(session))
     assert kg.by_model == len(kg.passages) - card["stale"]
     session.close()

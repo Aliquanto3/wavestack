@@ -1423,7 +1423,7 @@ rag_lab:
   graph:
     input: "La question, et le graphe de connaissances ({entities}, {relations}, {communities}) des {documents} de {source}."
     mark_shipped: "graphe livré, calculé par une règle, sans modèle"
-    mark_rebuilt: "graphe reconstruit par le modèle {model}"
+    mark_rebuilt: "graphe reconstruit par le modèle {model} ({by_model} passage(s) sur {passages} extrait(s) par le modèle, les autres par la règle)"
     rule_note: "Graphe calculé par une règle : un vrai GraphRAG construit son graphe avec un modèle, voir l'estimation ou Reconstruire."
     estimate: "estimation, non mesurée : une extraction par un modèle demanderait {calls} appels (un par passage, plus un par communauté) et environ {tokens} tokens d'entrée. Hors de toute somme."
     mode_local: "locale (entités de la question et leurs voisins)"
@@ -1453,6 +1453,8 @@ rag_lab:
     summary: "{mark} : {entities}, {relations}, {communities} ; {stale} preuve(s) périmée(s) face à la copie de travail."
     measure: "Mesure de la reconstruction : {tokens} tokens, {calls} appels au modèle, {duration}."
     run_label: "Reconstruction du graphe"
+    rebuild_model_error: "Le modèle a échoué pendant la reconstruction du graphe : rien n'est écrit, le graphe en place est gardé ; le journal des événements dit pourquoi."
+    rebuild_nothing: "Aucune réponse du modèle n'a suivi le protocole (ni ligne ENTITY: ou RELATION:, ni résumé) : rien n'est écrit, le graphe en place est gardé."
     by_rule: "par la règle, sans modèle"
     by_model: "par le modèle (graphe reconstruit)"
     merge_fact: "{entities} entité(s) et {relations} relation(s) modifiée(s)"

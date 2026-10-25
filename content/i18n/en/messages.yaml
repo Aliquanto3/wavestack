@@ -1404,7 +1404,7 @@ rag_lab:
   graph:
     input: "The question, and the knowledge graph ({entities}, {relations}, {communities}) of the {documents} of {source}."
     mark_shipped: "shipped graph, computed by a rule, without a model"
-    mark_rebuilt: "graph rebuilt by the model {model}"
+    mark_rebuilt: "graph rebuilt by the model {model} ({by_model} passage(s) of {passages} extracted by the model, the others by the rule)"
     rule_note: "Graph computed by a rule: a real GraphRAG builds its graph with a model, see the estimate or Rebuild."
     estimate: "estimate, not measured: an extraction by a model would take {calls} calls (one per passage, plus one per community) and about {tokens} input tokens. Outside every sum."
     mode_local: "local (the question's entities and their neighbours)"
@@ -1434,6 +1434,8 @@ rag_lab:
     summary: "{mark}: {entities}, {relations}, {communities}; {stale} stale evidence against the work copy."
     measure: "The rebuild's measure: {tokens} tokens, {calls} model calls, {duration}."
     run_label: "Rebuilding the graph"
+    rebuild_model_error: "The model failed while rebuilding the graph: nothing is written, the graph in place is kept; the event log says why."
+    rebuild_nothing: "No answer of the model followed the protocol (no ENTITY: or RELATION: line, no summary): nothing is written, the graph in place is kept."
     by_rule: "by the rule, without a model"
     by_model: "by the model (rebuilt graph)"
     merge_fact: "{entities} entity(ies) and {relations} relation(s) changed"

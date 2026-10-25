@@ -193,3 +193,22 @@ Tranchées au point de contrôle de spec (2026-10-25), sur la base rebasée sur 
 - Mesure réelle (tokens, durée, qualité) d'un graphe construit par un vrai modèle sur le PC cible, et éventuel remplacement du graphe livré (`recorded`) : done_checkpoint d'Anaël.
 - `networkx` en extra épinglé : seulement si les déplacements de modularité maison ne donnent plus de communautés exploitables (D2, à revoir par Anaël).
 - Exposition MCP de `graphrag` : demanderait d'étendre la règle D12 de la story 20 (segment vide refusé par `searches_itself`) ; les fonctions pures sont prêtes (D8).
+
+## Revue
+
+### Passe 1 (2026-10-25, SHA revu 6bb7616)
+
+Base : à jour d'`origin/integration/v1-2-atelier` (rien à fusionner). 12.14 non fusionnée ; ajouts aux listes partagées laissés en fin de liste.
+
+- **Important**, high, second avis 1 : un modèle en `error` était traité comme une réponse illisible ; la reconstruction finissait `ok` et écrasait le fichier reconstruit précédent par un fichier `author: rebuilt, method: llm` vide (mesuré : 86 appels en échec, 11 936 → 245 octets). **Corrigé** : `_extract_by_model` / `_summarize_by_model` s'arrêtent au premier échec (`status: error`), `_rebuild_graph` lève `StageFailed` (`graph.rebuild_model_error`) sans écrire ; une reconstruction sans aucune extraction ni résumé lisible n'écrit rien non plus (`graph.rebuild_nothing`, comme `pageindex` sans entrée). À la mise à jour, un échec arrête les appels et le reste passe par la règle. Test `test_a_failing_model_writes_nothing_and_keeps_the_earlier_rebuild`.
+- Rejeté, medium, second avis 2 (garde-fous des communautés à l'exécution) : le critère 3 porte sur le graphe livré des trois langues, tenu par test ; un graphe reconstruit par un vrai modèle est une mesure à montrer telle quelle (done_checkpoint d'Anaël), pas à refuser.
+- **Important**, medium, second avis 3 (`graph.forget` à chaque copie gardée, document rétabli ré-extrait par la règle sans signal) : l'effacement est exigé par la spec (aucun texte d'un document supprimé sur le disque, story 18) et reste ; le signal manquait. **Corrigé** : la marque du graphe reconstruit dit « N passage(s) sur M extrait(s) par le modèle, les autres par la règle » (carte, focus), ce qui couvre aussi les passages illisibles et modifiés. Test dans `test_a_passage_changed_after_a_rebuild_is_stale_and_the_rest_kept`.
+- Reporté à l'intégration, medium, second avis 4 (conflits textuels avec 12.14) : rien à faire dans cette story.
+- Rejeté, low, second avis 5 (vocabulaire de la copie à la reconstruction, gelé à la lecture) : conforme à la spec (« Reconstruire » recalcule) ; mesuré, après ajout d'un document puis reconstruction, les 13 résumés du modèle sont tous relus (empreintes inchangées).
+- Nit, low, second avis 6 : les totaux d'en-tête après `forget` restent ceux de la reconstruction (mesure d'alors, non affichés par la carte) ; un document modifié sans modèle garde des noms d'entités dans le fichier, pas son texte (seul le supprimé est exigé). Non corrigé.
+- Nit, low, second avis 7 : `ENTITY: NONE` créait une entité « none » : **corrigé** (test `parse_extraction`). « POINTS: aucun point … » compté comme un point : rejeté, le protocole demande `NONE`, élargir l'analyse risquerait d'écarter de vrais points.
+- Nit, low, second avis 8 : cache `_rag_lab_graphs` lu et élagué sans verrou par le fil HTTP et le worker (`pop(next(iter(...)))` concurrent) : **corrigé**, verrou dédié, construction hors verrou.
+- D5 : la carte (« Graphe calculé par une règle : un vrai GraphRAG construit son graphe avec un modèle… ») et la fiche `context.graph_search` (« d'où une construction moins chère que le RAG dense ; par le modèle… bien plus cher ») le disent honnêtement ; la fiche d'architecture garde le coût de la littérature. Lecture approuvée gardée.
+- Lien LightRAG `https://arxiv.org/abs/2410.05779` vérifié (titre « LightRAG: Simple and Fast Retrieval-Augmented Generation », Guo, Xia, Yu…) : le point (h) n'est plus à vérifier.
+- Complexité : 0 constat (cache borné à 4, graphe borné par le corpus, listes du focus bornées par les plafonds).
+- Tests : test_rag_graph, test_rag_lab_graphrag, test_rag_lab, test_rag_lab_agentic, test_rag_sheets, test_rag_erasure, test_rag_mcp, test_rag_lab_no_index, test_rag_pageindex, test_i18n verts ; contrôle rapide vert. E2E `rag rag_rerank rag_lab rag_lab_graphrag` ensemble : 165 vérifications, 0 échec (lancés seuls, `rag_lab` et `rag_lab_graphrag` échouent aussi sur 6bb7616 : ils supposent les modèles d'embedding préparés par `rag`).

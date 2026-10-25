@@ -329,7 +329,7 @@ def parse_extraction(answer: str) -> Extraction | None:
             seen = True
             parts = [p.strip() for p in found.group(1).split("|")]
             name = _name(parts[0]) if parts else ""
-            if name and normalize(name):
+            if name and normalize(name) and not _NONE.match(name):  # `ENTITY: NONE`
                 kind = _name(parts[1]) if len(parts) > 1 and parts[1].strip() else None
                 out.entities.setdefault(slug(name), (name, kind or None))
         elif found := _RELATION.match(line):

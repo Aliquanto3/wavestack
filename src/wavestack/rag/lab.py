@@ -4490,7 +4490,8 @@ class LabRun:
     ) -> dict[str, Any]:
         """Each passage extracted by the active model (`ENTITY:` / `RELATION:`), one call each
         (its cost in `phase`, added to the run's). A passage whose answer is unreadable keeps
-        the rule's extraction (`fallback`). Stops at « Arrêter »."""
+        the rule's extraction (`fallback`). Stops at « Arrêter » (`cancelled`) and at the
+        model's first failure (`error`): the passages not reached keep the rule's."""
         say = self._text
         out: dict[str, Any] = {
             "status": "ok",
@@ -4518,6 +4519,9 @@ class LabRun:
             out["output"] += got.output_tokens
             if got.status == "cancelled":
                 out["status"] = "cancelled"
+                break
+            if self._stopped(got) == "error":  # the model failed: no more calls to it
+                out["status"] = "error"
                 break
             found = None if self._stopped(got) else rag_graph.parse_extraction(got.answer_text)
             if found is None:
@@ -4572,6 +4576,9 @@ class LabRun:
             out["output"] += got.output_tokens
             if got.status == "cancelled":
                 out["status"] = "cancelled"
+                break
+            if self._stopped(got) == "error":  # the model failed: no more calls to it
+                out["status"] = "error"
                 break
             summary = "" if self._stopped(got) else rag_graph.clean_summary(got.answer_text)
             if summary:
@@ -5851,6 +5858,12 @@ class RebuildRun(LabRun):
                     len(passages) + len(targets),
                 )
         status = "cancelled" if "cancelled" in (out["status"], summaries["status"]) else "ok"
+        if status == "ok" and "error" in (out["status"], summaries["status"]):
+            # A failing model writes nothing: the graph in place (rebuilt or shipped) is kept.
+            raise StageFailed(Message("rag_lab.graph.rebuild_model_error"))
+        if status == "ok" and not (out["extractions"] or summaries["written"]):
+            # Nothing the model wrote is readable: no file « by the model » without the model.
+            raise StageFailed(Message("rag_lab.graph.rebuild_nothing"))
         if status == "ok" and kg is not None:
             file = rag_graph.to_file(
                 kg,
@@ -6049,9 +6062,16 @@ def graph_key(lang: str, size: int, documents: Sequence[DocText], folder: Path) 
 
 def graph_mark(kg: rag_graph.Graph, lang: str) -> str:
     """« graphe livré, calculé par une règle, sans modèle » or « graphe reconstruit par le
-    modèle X »."""
+    modèle X », with how many passages the model's extraction still covers (the others, an
+    unreadable answer, a passage changed, or a document deleted then restored: by the rule)."""
     if kg.rebuilt is not None:
-        return _t("graph.mark_rebuilt", lang, model=kg.rebuilt.model)
+        return _t(
+            "graph.mark_rebuilt",
+            lang,
+            model=kg.rebuilt.model,
+            by_model=lang_int(kg.by_model, lang),
+            passages=lang_int(len(kg.passages), lang),
+        )
     return _t("graph.mark_shipped", lang)
 
 
