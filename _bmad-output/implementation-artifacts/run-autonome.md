@@ -541,3 +541,5 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:09 · 12.13 · attente humaine · done_checkpoint : reconstruction du graphe avec un vrai modèle sur le PC cible (durée, tokens, graph_passages_fallback), local et global contre l'hybride, coût dans Comparer · —
 - 2026-10-25 13:09 · 12.13 · dev · phase 2 (code) lancée (Opus, effort high ; fusion de l'intégration avec 12.11 d'abord) · 0cdc471
 - 2026-10-25 13:09 · run · décision · Anaël : 3 créneaux de développement, le 3e seulement pour une story sans fichier commun avec les deux en cours · —
+- 2026-10-25 13:10 · 12.19b · dev · intégration fusionnée (avec 12.11) : ui.yaml ×3 deux côtés gardés, compte de rag_lab_sheets lu sur l'API ; 390 tests, E2E 166/166 · 10106d8
+- 2026-10-25 13:10 · 12.19b · PR · #117 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 10106d8
