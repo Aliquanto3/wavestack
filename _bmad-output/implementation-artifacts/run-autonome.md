@@ -408,3 +408,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:49 · 12.18 · dev · fini ; 16 critères, 4760 tests ciblés verts, E2E rag_lab_attack et rag_lab_rights verts, rag_rerank en échec mémoire (1 à 1,25 Go de RAM libre) · 89b0697
 - 2026-10-25 09:49 · 12.18 · décision · à revoir : 11 architectures et 12 endroits dont 7 construits, textes de remise en conformité écrits par le dev, rebuild vide accepté, capture 69 · 89b0697
 - 2026-10-25 09:49 · 12.18 · second-avis · lancé · 89b0697
+- 2026-10-25 09:50 · 12.19 · dev · lancé (phase spec, empilé sur 12.18, worktree ../wavestack-v12-s19) · 89b0697
