@@ -77,7 +77,7 @@ l'empreinte estimées sont dans le bouton **Dépense** de la barre de navigation
 ## Programme de formation
 
 Le sélecteur de scénario de la barre du bas liste huit modules, dans l'ordre des briques, soit
-6 h 45 au total, à répartir sur plusieurs séances :
+7 h au total, à répartir sur plusieurs séances :
 
 | Module | Durée | Scénarios |
 |---|---|---|
@@ -87,7 +87,7 @@ Le sélecteur de scénario de la barre du bas liste huit modules, dans l'ordre d
 | 4. MCP | 45 min | documentation complète, lazy loading |
 | 5. Skills et hooks | 60 min | skills, Caveman, hooks |
 | 6. Sous-agent | 45 min | sous-agent |
-| 7. Contexte long et carte | 45 min | compression du contexte, carte du harnais |
+| 7. Contexte long et carte | 60 min | compression du contexte, compaction et fenêtre glissante, carte du harnais |
 | 8. Cache | 45 min | lire le cache, casser le préfixe, faire expirer le cache, cache de Claude (facultatif), lire un bilan d'agent-cost-kit |
 
 Lancer le premier scénario d'un module active les briques des modules précédents et restaure la
