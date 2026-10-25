@@ -543,3 +543,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 13:09 · run · décision · Anaël : 3 créneaux de développement, le 3e seulement pour une story sans fichier commun avec les deux en cours · —
 - 2026-10-25 13:10 · 12.19b · dev · intégration fusionnée (avec 12.11) : ui.yaml ×3 deux côtés gardés, compte de rag_lab_sheets lu sur l'API ; 390 tests, E2E 166/166 · 10106d8
 - 2026-10-25 13:10 · 12.19b · PR · #117 ouverte vers integration/v1-2-atelier, file_prs.py --methode merge lancé · 10106d8
+- 2026-10-25 13:14 · 12.20 · dev · fini ; critères 1 à 16 (12 et 6 vérifiés hors test dédié, 15 par la CI), test_rag_mcp 38 verts, E2E rag rag_rerank rag_lab_mcp rag_lab_sheets 96/96, agentic et pageindex refusés (searches_itself) · eda9fc8
+- 2026-10-25 13:14 · 12.20 · décision · à revoir : copie de travail non vide = démarrage refusé ; argument profile en trop ignoré par le SDK ; « Arrêter » annule aussi un appel MCP ; matrix_row_of("workshop__…") renvoie network (à trancher avec la ligne « exposé ») · eda9fc8
+- 2026-10-25 13:14 · 12.20 · second-avis · lancé (jeton, exception du middleware, filtre hr, cycle de vie) · eda9fc8
+- 2026-10-25 13:14 · 12.14 · dev · lancé (spec puis code, pas de spec_checkpoint ; Opus, effort high ; worktree ../wavestack-v12-s14 depuis l'intégration cc3ec10 ; même schéma que 12.11 et 12.13) · cc3ec10
