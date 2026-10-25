@@ -68,7 +68,8 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 ## Reprise après /clear
 
 - Lire ce fichier en entier, puis `sprint-status.yaml` ; l'état réel prime : `gh pr list --state open`, `git -C ../wavestack-<lot>-s<n> log -3 --oneline` pour chaque worktree d'une story en cours.
-- Worktrees : `../wavestack-v13-s6` (13.6, PR #101), `../wavestack-v14-s4` (14.4, spec `stories/4-compaction.md` ready-for-dev puis code), `../wavestack-v12-s5` (12.5), `../wavestack-v12-s9` (12.9), `../wavestack-tests-sparse` (PR #100), `../agent-cost-kit-ci-run` (PR du kit 0.12.0, dépôt agent-cost-kit).
+- Worktrees de la V1.2 : `../wavestack-v12-s<n>` (s11 : 12.11, spec ready-for-dev 3f8f1cd ; s19 : 12.19, a6b5584, PR à ouvrir après la revue). Les autres sont fusionnés, à supprimer en fin de run.
+- Les stories V1.2 s'intègrent sur `integration/v1-2-atelier` (PR `--base integration/v1-2-atelier`, fusion `--methode merge`) ; main reste à la v1.4.0 jusqu'à la fin de la V1.2.
 - Une story dont le dev a commité sans rapport : relancer la chaîne à partir de `second-avis` sur son dernier commit.
 - Fusions par `scripts/file_prs.py` du kit (vérifie `MERGED`), puis journal. Sur `integration/v1-2-atelier` : `--methode merge` (les branches V1.2 sont empilées ; un squash recrée des conflits dans la story suivante).
 - Fin de lot : PR de version (SemVer mineure), tag annoté, release GitHub ; V1.3 dès la fusion de 13.6, V1.4 dès celle de 14.4.
@@ -80,6 +81,14 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 
 - (Avancée dans le run le 2026-10-25, décision d'Anaël.) Story d'outillage : accélérer les tests lents propres à Windows de `tests/test_model_servers.py` et `tests/test_context_window_setting.py` (11 à 33 s chacun sous Windows, absents du haut de la liste sous Ubuntu ; piste : connexion à un port fermé qui met ~2 s à échouer sous Windows). Gain mesuré attendu : ~2 min 30 de tests Windows. Décision d'Anaël du 2026-10-25.
 - Rafraîchir `test-durations-windows-latest.json` et `test-durations-ubuntu-latest.json` depuis les artefacts `test-durations-<os>-<groupe>` d'une CI récente (fusion des 4 fichiers par système), quand l'écart entre groupes dépasse ~2 min.
+
+## Prochaines étapes (reprise du 2026-10-25 après /clear)
+
+1. 12.19 : `reviewer` (Opus) sur a6b5584, avec la liste du second avis : 1 medium rag.css:1625, la règle `.rag-badge` de la story 7, réactivée par l'accolade corrigée, écrase la `border-color` primaire de la ligne 1440 par `--color-line` (contraste 1,15:1) sur tous les badges de la page, à trancher ; low : aucun test du JS de rag-sheets.js hors E2E ; PENDING_SHEET_KINDS codé en dur, `missing_sheets()` ne vérifie pas PENDING → OPTIONS ; spec périmée (8 fiches et `context` en attente, contre 12 en réalité) ; `load()` de rag-sheets.js n'affiche rien si l'API échoue ; contrat 12.10 : retirer `story: 10` de long_context et cag dans rag_sheets.yaml ×3 et les passer `available: true` dans rag_erasure.yaml ×3 (12.10 est fusionnée, #113). Fusionner d'abord l'intégration. Puis PR et fusion.
+2. 12.11 : `dev-story` phase 2, Opus, effort high, worktree s11, spec 3f8f1cd (fusionner l'intégration d'abord).
+3. 12.2 : `dev-story` phase spec, puis relecture : banc avec les 6 modèles de décision en ligne choisis par Anaël (journal) et les candidats locaux ; banc lancé seulement quand aucun agent ne tourne.
+4. Après 12.19 : 12.20 (architecture en MCP) et 12.19b (12 fiches de composant). Après 12.11 : 12.13 · 12.14, puis 12.16, puis 12.21. 12.8 et 12.12 après le rapport de 12.2.
+5. Vérifier que #112 (CLAUDE.md, base main) est fusionnée, sinon relancer `file_prs.py 112 --methode squash`.
 
 ## Journal
 
@@ -458,3 +467,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 11:00 · 12.2 · décision · Anaël : banc avec 6 modèles de décision en ligne par OpenRouter /api/alpha/decisions (typesafe/jev-1.14, microsoft/microsoft-decision-1, openai/gpt-6-luna-decisions, perplexity/pplx-decider-flash-v1.2, liquid/d1, inception/mercury-decide:free) + candidats locaux prévus ; clé OpenAI inutile ; modèle à poids ouverts (Kev 4B, Clef Flash) pour une story ultérieure · —
 - 2026-10-25 11:02 · 12.10 · CI · verte · 911399e
 - 2026-10-25 11:02 · 12.10 · fusion · #113 MERGED dans integration/v1-2-atelier (merge) via file_prs.py ; 12.19 entrera seconde et applique le contrat long_context / cag · 7f24444
+- 2026-10-25 11:03 · 12.19 · second-avis · 0 high, 1 medium (règle .rag-badge réactivée par l'accolade corrigée), 5 low ; 43 sources identiques à litterature.md, accolades équilibrées · a6b5584
