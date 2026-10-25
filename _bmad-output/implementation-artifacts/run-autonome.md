@@ -223,3 +223,4 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 06:23 · 12.4 · review · passe 1, 2 medium corrigés (YAMLError, chargement des rag-*.js testé), 4 low corrigés · 3da301f
 - 2026-10-25 06:23 · 12.4 · PR · #99 ouverte · 3da301f
 - 2026-10-25 06:23 · 12.4 · décision · à revoir : épingle indépendante de la langue et du corpus ; pas de tabindex sur les panneaux ; captures echec-*.jpg ignorées par git · —
+- 2026-10-25 06:26 · run · CI · #98 verte en 8 groupes : Windows 9 min 10 au plus (contre 17-18 min), Ubuntu 6 min 05 ; groupes déséquilibrés, durées complètes en cours de collecte · 286f8ea
