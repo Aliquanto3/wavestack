@@ -280,3 +280,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 07:27 · 13.6 · CI · verte (8 groupes) · 4c67f02
 - 2026-10-25 07:27 · 13.6 · fusion · #101 MERGED via file_prs.py ; lot V1.3 terminé · 1a55608
 - 2026-10-25 07:27 · run · PR · #102 ouverte (version 1.3.0) · —
+- 2026-10-25 07:30 · 12.9 · second-avis · 0 high, 6 medium (découpage jugé sur le livré, aucune étape = aucune faute, budget lu sur la chaîne courante, top_k ≤ 10 contre 20, CAP-2 à 4 fermés à tort, JS sans test en CI), 4 low · afe6bbd
+- 2026-10-25 07:30 · 12.9 · décision · à revoir : CAP-2 à CAP-4 de la spec V2 « partiellement absorbés », restent ouverts ; E2E hors CI (aucun E2E n'y tourne) · —
+- 2026-10-25 07:30 · 12.9 · review · lancé (fusion de main d'abord) · afe6bbd
