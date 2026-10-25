@@ -108,3 +108,5 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 21:52 · 15.4 · décision · k = 3 réussi à la majorité ; id inconnu ignoré et montré · à revoir
 - 2026-10-25 21:52 · 15.3 · dev · fini (E2E agent_case 34/34) · c26438b6
 - 2026-10-25 21:52 · 15.3 · second-avis · lancé · —
+- 2026-10-25 21:57 · 15.3 · second-avis · 1 high (tiroir qui ne se ferme plus après modification, plantage pendant le chargement), 3 medium (erreur d'enregistrement silencieuse ; abandon pendant l'enregistrement ; collision de turn_id), 4 low · c26438b6
+- 2026-10-25 21:57 · 15.3 · review · lancé (Opus) · —
