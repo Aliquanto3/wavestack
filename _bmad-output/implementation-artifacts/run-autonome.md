@@ -395,3 +395,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:31 · 12.18 · décision · à revoir : 8 points tranchés par le relecteur Opus (instantanés en mémoire, dérivés illustratifs, q_global_rh, tableau de 11 architectures) · ae54017
 - 2026-10-25 09:31 · 12.18 · attente humaine · avant de déclarer finie (done_checkpoint) : recette visuelle fr/en/de clair et sombre, jouer effacement et droits, corpus et copie de travail inchangés, relire les contenus construits · —
 - 2026-10-25 09:31 · 12.18 · dev · phase 2 (code) lancée · ae54017
+- 2026-10-25 09:36 · 12.17 · review · passe 1 : 3 medium corrigés (seul le verdict réel agit, entrées de démonstration hors compteurs via record(counted=False), remove sans inject refusé), 4 low corrigés (LoadedOnly : la carte ne peut jamais charger Prompt Guard) ; E2E 102/102 · 0127a8c
+- 2026-10-25 09:36 · 12.17 · décision · à revoir : sans Prompt Guard chargé, rien n'est écarté (critère 14 lu « affiché ») ; security_log.py modifié par ajout · 0127a8c
+- 2026-10-25 09:36 · 12.17 · PR · #109 ouverte vers integration/v1-2-atelier · 0127a8c
