@@ -576,3 +576,8 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 14:41 · run · décision · 12.13 et 12.14 en conflit lourd (lab.py, erasure.py, app_session.py, app.py, catalog.py, rag.css, rag.html, content ×3) : 12.13 entre la première, la revue de 12.14 refusionne l'intégration après elle et garde les deux ajouts · —
 - 2026-10-25 14:41 · 12.14 · second-avis · 2 high (wiki livré à 0 token contre « coûte plus à toutes les étapes » d'architectures.md et des fiches, décision d'Anaël ; forget seulement si le Contexte est wiki_pages et après le contrôle d'annulation), 2 medium (anciennes pages d'un document modifié jamais purgées, conflits avec 12.13), 2 low · 538aa5d
 - 2026-10-25 14:41 · 12.2 · dev · remesure du SLM juge seule sur poste libre (aucun agent), puis dry-run · 7ff9e29
+- 2026-10-25 14:53 · 12.2 · dev · SLM juge remesuré seul (14:41 → 14:52), 470 enregistrements sans erreur : filtre AUC 0,86, 49 % de négatifs écartés ; ancrage H7 64 % ; ni défaut ni repli · 61cf5a5
+- 2026-10-25 14:53 · 12.2 · décision · à revoir : la cascade vers le SLM juge de CAP-6 n'est pas viable avec Qwen3.5-2B (H7 64 %) ; 12.8 part sans repli SLM ou avec un repli signalé « non validé » · 61cf5a5
+- 2026-10-25 14:53 · 12.2 · PR · #119 ouverte vers integration/v1-2-atelier (résultats du banc et correctif du juge), file_prs.py --methode merge lancé · 61cf5a5
+- 2026-10-25 14:53 · 12.13 · review · lancé (Opus ; 12.13 entre avant 12.14) · 6bb7616
+- 2026-10-25 14:53 · 12.8 · report · dev lancé après la fusion de #119 (rapport du banc dans l'intégration) · —
