@@ -409,3 +409,6 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 09:49 · 12.18 · décision · à revoir : 11 architectures et 12 endroits dont 7 construits, textes de remise en conformité écrits par le dev, rebuild vide accepté, capture 69 · 89b0697
 - 2026-10-25 09:49 · 12.18 · second-avis · lancé · 89b0697
 - 2026-10-25 09:50 · 12.19 · dev · lancé (phase spec, empilé sur 12.18, worktree ../wavestack-v12-s19) · 89b0697
+- 2026-10-25 09:53 · 12.18 · second-avis · 0 high, 1 medium (endroit construit affiché « effacé » sans mesure), 4 low ; aucune écriture de fichier, fuite au profil Tous en mode après vérifiée, mode avant sans fuite · 89b0697
+- 2026-10-25 09:53 · 12.18 · décision · à revoir : endroit construit jamais « effacé » mesuré, statut distinct « effacé (illustratif, non mesuré) » · —
+- 2026-10-25 09:53 · 12.18 · review · lancé · 89b0697
