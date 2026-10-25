@@ -367,7 +367,16 @@
       </section>
     </div>
     <div id="rag-panel-sheets" class="rag-panel" role="tabpanel" aria-labelledby="rag-tab-sheets" hidden>
-      <p class="rag-note rag-soon"></p>
+      <!-- V1.2 story 19 (CAP-16, CAP-17): the sheets. The shell still writes its « à venir » text into
+           this note (`renderTabs`); it stays hidden. -->
+      <p class="rag-note rag-soon" hidden></p>
+      <p class="rag-eval-banner" id="rag-sh-banner" role="status"></p>
+      <h2 class="rag-section-title" id="rag-sh-title"></h2>
+      <p class="rag-note" id="rag-sh-hint"></p>
+      <div class="rag-sh-layout">
+        <nav class="rag-sh-list" id="rag-sh-list" aria-labelledby="rag-sh-title"></nav>
+        <article class="rag-sh-sheet" id="rag-sh-sheet" tabindex="-1" aria-live="polite"></article>
+      </div>
     </div>
   </main>
 

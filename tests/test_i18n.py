@@ -480,6 +480,24 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         else:
             assert raw[lang]["rewrite"]["doc_id"] == raw["fr"]["rewrite"]["doc_id"]
             assert raw[lang]["question_id"] == raw["fr"]["question_id"]
+    elif rel == "rag_sheets.yaml":  # V1.2 story 19: same ids, levels, classes, links; texts differ
+        from wavestack.rag import sheets
+
+        fr, tr = sheets.load_sheets("fr"), sheets.load_sheets(lang)
+        assert set(tr.texts) == set(fr.texts)
+        assert [a.id for a in tr.architectures] == [a.id for a in fr.architectures]
+        free = {"purpose_text", "when_text", "cost_text", "literature_text", "no_source_text"}
+        for f, t in zip(fr.architectures, tr.architectures, strict=True):
+            plain = lambda a: {  # noqa: E731
+                **a.model_dump(by_alias=True, exclude=free | {"axes"}),
+                "axes": {
+                    n: {k: v for k, v in x.model_dump(by_alias=True).items() if k != "text"}
+                    for n, x in a.axes.items()
+                },
+            }
+            assert plain(f) == plain(t)
+            assert bool(f.no_source_text) == bool(t.no_source_text)
+            assert t.purpose_text != f.purpose_text
     elif rel.startswith("demo_files/"):  # the same name, its text translated
         fr_lines = french.read_text(encoding="utf-8").splitlines()
         tr_lines = translated.read_text(encoding="utf-8").splitlines()
