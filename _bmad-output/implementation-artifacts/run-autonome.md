@@ -330,3 +330,7 @@ Deux pistes en V1.2 (relevé des fichiers du 2026-10-25) : piste chaîne (`rag/l
 - 2026-10-25 08:31 · 12.6 · second-avis · 0 high, 2 medium (en-tête des contextes reconstruits limité au dernier run, top_k parents distincts non garanti), 4 low ; clé de cache paragraphs inchangée vérifiée · 88b9a7d
 - 2026-10-25 08:31 · 12.6 · décision · à revoir : build_rag_contexts.py sans --model (pas de moteur testable sans modèle), spec mise en accord · —
 - 2026-10-25 08:31 · 12.6 · review · lancé · 88b9a7d
+- 2026-10-25 08:34 · 12.15 · dev · fini ; 17 critères, test_rag_evaluation 58 verts, E2E jusqu'à 181/181 ; échecs variables de rag_lab « Modifier » (branche sans le correctif de #105) et un « mémoire insuffisante » · b7d33be
+- 2026-10-25 08:34 · 12.15 · décision · à revoir : verdicts yes / partly / no (1 / 0,5 / 0), jeu de 10 questions, juges cibles Granite 4.0 Micro et Mistral Small, sondage 1,5 s, juge chargé par appel, moteur sans grammar refusé comme juge · b7d33be
+- 2026-10-25 08:34 · 12.15 · second-avis · lancé · b7d33be
+- 2026-10-25 08:34 · 12.17 · dev · lancé (phase spec, empilé sur 12.15, worktree ../wavestack-v12-s17) · b7d33be
