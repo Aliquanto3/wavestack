@@ -11036,7 +11036,8 @@ class AppSession:
             "rebuilt": book.rebuilt is not None,
             "rebuild_blocked_text": render(blocked, self._language) if blocked else None,
             "expected_text": self._t(
-                "session.rag_lab.rebuild_expected", chunks=header.chunks if header else 0
+                "session.rag_lab.rebuild_expected",
+                chunks=book.shipped.chunks if book.shipped else (header.chunks if header else 0),
             ),
         }
 

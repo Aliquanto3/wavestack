@@ -152,3 +152,50 @@ def test_parent_child_children_are_small_and_each_names_its_parent():
     for child, index in zip(children, parent_of, strict=True):
         assert child.doc_id == parents[index].doc_id
         assert child.text.split(" ")[0] in parents[index].text
+
+
+def test_a_rebuilt_header_covers_every_entry_kept(tmp_path):
+    # Review V1.2-6: a second rebuild merges its entries with the first's; the header counts
+    # them all and adds up what each rebuild wrote, instead of describing the last one only.
+    chunks = _chunks("fr")
+
+    def entry(chunk):
+        return contexts.ContextEntry(
+            doc_id=chunk.doc_id,
+            position=chunk.position,
+            sha256=contexts.fingerprint(chunk.text),
+            context_text="Contexte réécrit.",
+        )
+
+    contexts.write_rebuilt(
+        "fr",
+        [entry(c) for c in chunks[:3]],
+        model="a",
+        chunk_max_chars=700,
+        tokens=30,
+        duration_ms=50,
+        folder=tmp_path,
+    )
+    contexts.write_rebuilt(
+        "fr",
+        [entry(c) for c in chunks[2:5]],
+        model="b",
+        chunk_max_chars=700,
+        tokens=20,
+        duration_ms=40,
+        folder=tmp_path,
+    )
+    header = contexts.load_book("fr", tmp_path).rebuilt
+    assert (header.chunks, len(header.entries)) == (5, 5)
+    assert (header.tokens, header.duration_ms, header.model) == (50, 90, "a + b")
+    contexts.write_rebuilt(
+        "fr",
+        [entry(chunks[0])],
+        model="b",
+        chunk_max_chars=300,
+        tokens=7,
+        duration_ms=9,
+        folder=tmp_path,
+    )
+    header = contexts.load_book("fr", tmp_path).rebuilt
+    assert (header.chunks, header.tokens, header.duration_ms, header.model) == (1, 7, 9, "b")

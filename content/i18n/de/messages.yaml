@@ -1179,6 +1179,7 @@ rag_lab:
     input: "Die Rangfolge des vorigen Schritts: {extracts}."
     empty: "Kein Auszug: Das Modell würde nur die Frage erhalten."
     kept: "{kept} von {total}"
+    parents_short: "{kept} verschiedene Eltern von {top_k} verlangten: Die {read} besten Kinder decken nicht mehr ab. Erhöhen Sie die Kandidaten der Suche, um mehr zu erhalten."
   costs:
     build_unknown: "Aufbaukosten für diesen vorberechneten Inhalt nicht aufgezeichnet: Bauen Sie ihn neu, um sie zu messen."
     generation_unpriced: "Kosten in Dollar nicht beziffert: Das Modell hat keinen deklarierten Preis."

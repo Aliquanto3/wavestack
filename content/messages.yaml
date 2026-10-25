@@ -1195,6 +1195,7 @@ rag_lab:
     input: "Le classement de l'étape précédente : {extracts}."
     empty: "Aucun extrait : le modèle ne recevrait que la question."
     kept: "{kept} sur {total}"
+    parents_short: "{kept} parents distincts sur {top_k} demandés : les {read} meilleurs enfants n'en couvrent pas plus. Augmentez les candidats de la recherche pour en avoir davantage."
   costs:
     build_unknown: "Coût de construction non enregistré pour ce contenu précalculé : reconstruisez-le pour le mesurer."
     generation_unpriced: "Coût en dollars non chiffré : le modèle n'a pas de tarif déclaré."

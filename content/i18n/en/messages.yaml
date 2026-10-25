@@ -1176,6 +1176,7 @@ rag_lab:
     input: "The ranking of the previous step: {extracts}."
     empty: "No excerpt: the model would only receive the question."
     kept: "{kept} of {total}"
+    parents_short: "{kept} distinct parents of the {top_k} asked: the {read} best children cover no more. Raise the search's candidates to get more."
   costs:
     build_unknown: "Build cost not recorded for this precomputed content: rebuild it to measure it."
     generation_unpriced: "Cost in dollars not priced: the model has no declared price."

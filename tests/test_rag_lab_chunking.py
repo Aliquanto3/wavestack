@@ -127,7 +127,9 @@ def test_parent_child_searches_children_and_returns_distinct_parents(index):
     assert all(len(i["text"]) <= rag_lab.CHILD_MAX_CHARS for i in search["items"])
     context = ended(events, "context")
     texts = [i["text"] for i in context["items"]]
-    assert 1 <= len(texts) <= 3 and len(set(texts)) == len(texts)
+    top_k = stage(own_chain(session), "context").params["top_k"]
+    assert 1 <= len(texts) <= top_k and len(set(texts)) == len(texts)
+    assert len(texts) == top_k or context["warning_text"]
     assert any(len(t) > rag_lab.CHILD_MAX_CHARS for t in texts)
     assert "Enfants lus" in facts(context)
 
@@ -341,3 +343,20 @@ def test_late_chunking_is_deferred_with_its_reason_and_candidate_model():
         / "_bmad-output/implementation-artifacts/deferred-work.md"
     ).read_text(encoding="utf-8")
     assert "late chunking" in text.lower() and "jina-embeddings-v2-small-en" in text
+
+
+def test_parent_child_says_when_children_sharing_parents_give_fewer_than_top_k(index):
+    # Review V1.2-6: `top_k` distinct parents are taken from the searched children only; when
+    # the best children share parents, fewer come and the step says it.
+    session = ready(index)
+    chain = chain_with(session, "parent_child", 700)
+    stage(chain, "vector_search").params["candidates"] = 20
+    stage(chain, "context").params["top_k"] = 20
+    events = run(session, QUESTION, chain)
+    context = ended(events, "context")
+    search = ended(events, "vector_search")
+    assert len(search["items"]) == 20
+    kept = len(context["items"])
+    assert kept == len({i["text"] for i in context["items"]})
+    assert kept < 20
+    assert "parents distincts sur 20" in context["warning_text"]
