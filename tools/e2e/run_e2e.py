@@ -15574,6 +15574,9 @@ def s_rag_lab_sheets(r: Run) -> None:
         expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
         page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
         # Story 13 shipped GraphRAG's preset: every architecture is `available`, none « à venir ».
+        # Review: wait for GraphRAG's sheet itself, not the previous sheet's seven rows.
+        graphrag_sheet = page.locator('#rag-sh-sheet[data-sheet="architecture.graphrag"]')
+        expect(graphrag_sheet.locator("h3.rag-sh-name")).to_be_visible(timeout=10_000)
         expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
         listing = page.evaluate(
             "() => fetch('/api/rag_lab/sheets').then((response) => response.json())"
@@ -15602,6 +15605,7 @@ def s_rag_lab_sheets(r: Run) -> None:
             page.click("#rag-tab-sheets")
             expect(entries).to_have_count(sheet_entries, timeout=10_000)
             page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
+            expect(graphrag_sheet.locator("h3.rag-sh-name")).to_be_visible(timeout=10_000)
             expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
             r.check(
                 legal in page.inner_text("#rag-sh-banner")
