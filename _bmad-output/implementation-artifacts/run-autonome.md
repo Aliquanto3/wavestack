@@ -60,6 +60,10 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - Fichiers temporaires des agents : chacun dans `C:\Users\Utilisateur\AppData\Local\Temp\wavestack-v15\s<story>` (le scratchpad de session a expiré).
 - Fin de run : `rapport-run-v1-5.md` (fusionné, bloqué, reporté, « à revoir », tests manuels), mémoire du projet, suppression des worktrees.
 
+## Prochaines étapes (mise à jour du 2026-10-26 04:57 : run terminé)
+
+Run terminé : epic 15 fusionné dans main, version 1.6.0 publiée. Suite : mesure des plafonds, décisions « à revoir » et recette de [rapport-run-v1-5.md](rapport-run-v1-5.md).
+
 ## Journal
 
 - 2026-10-25 20:50 · run · décision · run V1.5 lancé ; run précédent archivé ; Ollama non requis (Anaël lance un benchmark) · —
@@ -155,3 +159,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-26 04:45 · 15.5 · CI · verte (8/8) après rebase · c8c15e6f
 - 2026-10-26 04:45 · 15.5 · fusion · #142 MERGED dans main (squash) · 64d50dc8
 - 2026-10-26 04:45 · run · PR · #143 version 1.6.0 ouverte, CI en cours · —
+- 2026-10-26 04:57 · run · CI · #143 verte (8/8) · —
+- 2026-10-26 04:57 · run · fusion · #143 MERGED dans main (squash), version 1.6.0 · bd1dcc11
+- 2026-10-26 04:57 · run · décision · tag annoté v1.6.0 et release GitHub « WaveStack 1.6.0 » publiés · bd1dcc11
+- 2026-10-26 04:57 · run · décision · fin du run : rapport-run-v1-5.md, mémoire du projet à jour, worktrees supprimés · —
