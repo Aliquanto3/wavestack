@@ -1,0 +1,270 @@
+/* V1.5 CAP-4 (story 4): the « Évaluer l'agent » view. The rules are the mock-up's (section 2 of
+   maquette-evaluer-l-agent.html), loaded by agent-eval.js; the shared ones (ae-button, ae-text,
+   ae-actions, ae-danger, ae-confirm, ae-banner) stay in agent-case-form.css.
+   Decision 8: the panel takes the place of Contexte LLM and Orchestration by CSS only, through
+   `data-agent-eval="open"` on `.right`; panes.js and its stored layout do not change. */
+
+.agent-eval-toggle {
+  min-height: var(--spacing-hit-target-min);
+  padding: 0 var(--spacing-3);
+  background: transparent;
+  color: var(--color-on-ink);
+  border: 1px solid var(--color-on-ink-soft);
+  border-radius: var(--rounded-md);
+  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
+    var(--typography-label-line-height) var(--typography-label-font-family);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.agent-eval-toggle[aria-pressed="true"] {
+  background: var(--color-on-ink);
+  color: var(--color-ink-fill);
+}
+
+/* By attribute: pages.css owns the `.pane*` rules (AD-28); the handles carry `data-handle`. */
+.right[data-agent-eval="open"] .top-row > [data-pane="ctx"],
+.right[data-agent-eval="open"] .top-row > [data-pane="orch"],
+.right[data-agent-eval="open"] .top-row > [data-handle] {
+  display: none;
+}
+
+.top-row > .ae-panel {
+  /* The share of the two panes it covers. */
+  flex: calc(var(--pane-ctx-grow, 1) + var(--pane-orch-grow, 1)) 1 0%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--color-surface-raised);
+  border-radius: var(--rounded-lg);
+  box-shadow: 0 var(--spacing-relief-offset) 0 var(--color-relief);
+}
+
+.ae-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.ae-panel h3 {
+  margin: 0;
+  font: var(--typography-heading-font-weight) var(--typography-heading-font-size) / 1.2
+    var(--typography-heading-font-family);
+}
+
+.ae-panel .ae-actions {
+  margin-top: 0;
+}
+
+.ae-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-4);
+  align-items: baseline;
+  margin: 0;
+  color: var(--color-ink-soft);
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.ae-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.ae-progress .bar {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--rounded-full);
+  background: var(--color-line);
+  overflow: hidden;
+}
+
+.ae-progress .bar span {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.ae-group {
+  margin: var(--spacing-2) 0 0;
+  color: var(--color-ink-soft);
+  font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1
+    var(--typography-label-font-family);
+}
+
+.ae-cases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.ae-case {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: var(--spacing-2);
+  align-items: start;
+  padding: var(--spacing-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-sm);
+}
+
+.ae-case.is-highlighted {
+  outline: 2px solid var(--color-primary);
+}
+
+.ae-case .meta {
+  color: var(--color-ink-soft);
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.ae-case select {
+  min-height: var(--spacing-hit-target-min);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+}
+
+.ae-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 var(--spacing-2);
+  border-radius: var(--rounded-full);
+  font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1
+    var(--typography-label-font-family);
+}
+
+.ae-status.passed {
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+.ae-status.failed {
+  background: var(--color-danger-soft);
+  color: var(--color-ink);
+}
+
+.ae-status.not-run {
+  background: var(--color-ink-fill);
+  color: var(--color-on-ink);
+}
+
+.ae-status.running,
+.ae-status.pending {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-deep);
+}
+
+.ae-status.pending {
+  opacity: 0.7;
+}
+
+.ae-reason {
+  margin: var(--spacing-1) 0 0;
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.ae-trace {
+  margin: var(--spacing-2) 0 0;
+  padding: var(--spacing-2);
+  list-style: none;
+  border-radius: var(--rounded-sm);
+  background: var(--color-surface);
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.ae-trace li {
+  padding: 2px var(--spacing-1);
+  overflow-wrap: anywhere;
+}
+
+.ae-trace li.fault {
+  outline: 2px solid var(--color-danger);
+  border-radius: var(--rounded-sm);
+  background: var(--color-danger-soft);
+}
+
+.ae-dots {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.ae-dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ae-dots i.ok {
+  background: var(--color-state-ok);
+}
+
+.ae-dots i.ko {
+  background: var(--color-danger);
+}
+
+.ae-dots i.skip {
+  background: var(--color-line);
+}
+
+table.ae-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--typography-body-sm-font-size);
+}
+
+.ae-table th,
+.ae-table td {
+  text-align: left;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.ae-table .num {
+  font: var(--typography-number-font-weight) var(--typography-number-font-size) / 1
+    var(--typography-number-font-family);
+}
+
+.ae-table .meta {
+  display: block;
+  color: var(--color-ink-soft);
+}
+
+.ae-diff {
+  font-weight: 600;
+}
+
+.ae-diff.reg {
+  color: var(--color-danger);
+}
+
+.ae-diff.fix {
+  color: var(--color-primary);
+}
+
+.ae-badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 2px var(--spacing-2);
+  border-radius: var(--rounded-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-deep);
+  font: var(--typography-label-font-weight) var(--typography-label-font-size) / 1.2
+    var(--typography-label-font-family);
+  margin-bottom: var(--spacing-1);
+}
+
+@media (max-width: 60rem) {
+  .ae-case {
+    grid-template-columns: 1fr;
+  }
+}

@@ -16,6 +16,7 @@ import { block as diagramBlock, light, marker, svgEl, wire, wireLayer } from "./
 import { createPanes, initProjection } from "./panes.js";
 // V1.5 story 3: « En faire un cas » on a finished turn.
 import { canMakeCase, openCaseForm } from "./agent-case-form.js";
+import { caseBadge, sessionStateChanged } from "./agent-eval.js"; // V1.5 story 4
 
 const PANES = ["bricks", "human", "ctx", "orch", "schema"];
 const PANE_LABELS = section("main.pane_titles");
@@ -333,6 +334,9 @@ function applyEnvelope(envelope) {
       if (p.state === "download" || p.state === "index_build") store.ragNotice = store.rerankNotice = null;
       if (!isLive(envelope)) break;
       store.sessionState = p;
+      // V1.5 story 4: « Évaluer l'agent » follows the application session only (the diagnostic
+      // session's states carry no `active_model`: it runs beside, it blocks no case run).
+      if (p.active_model !== undefined) sessionStateChanged(p);
       // The diagnostic session's own states carry no model: the last known one stays.
       if (p.active_model !== undefined) store.activeModel = p.active_model;
       if (p.state === "idle") store.composerError = null;
@@ -3634,6 +3638,7 @@ function renderChat() {
       badge.addEventListener("click", () => openCompare(origin.id, turn.id));
       user.prepend(badge);
     }
+    if (turn.caseId) nodes.push(caseBadge(turn.caseId)); // V1.5 story 4: « Cas : titre »
     nodes.push(user);
     const answer = el("div", "bubble bubble-model");
     // FR-9: shown here only if « Afficher le raisonnement » is ticked; Contexte LLM always.
@@ -3820,7 +3825,8 @@ function renderComposer() {
   const stop = document.getElementById("composer-stop");
   // Lot E (E4): « Arrêter » also stops a model load (the previous model comes back).
   const loading = state?.state === "model_load" && Boolean(store.modelLoad);
-  stop.hidden = state?.state !== "turn" && state?.state !== "awaiting_human" && !loading;
+  // V1.5 story 4: « Arrêter » stops a case run too, between two cases included.
+  stop.hidden = state?.state !== "turn" && state?.state !== "awaiting_human" && state?.state !== "agent_eval" && !loading;
   stop.disabled = loading ? Boolean(store.modelLoad.stopRequested) : Boolean(activeTurn()?.stopRequested);
   const reason = document.getElementById("composer-reason");
   const text = store.composerError || (ready ? null : state?.reason_text || t("main.chat.waiting_model"));
@@ -8083,6 +8089,8 @@ async function boot() {
     store.serverInstance = body.instance_id ?? null;
     store.liveFrom = body.seq ?? 0;
     store.sessionState = body.session_state;
+    // V1.5 story 4 (review): the view's buttons follow a turn already going at the load too.
+    if (body.session_state && body.session_state.active_model !== undefined) sessionStateChanged(body.session_state);
     store.activeModel = body.active_model ?? null;
     store.architecture = body.architecture_changed || { nodes: [], edges: [] };
     store.bricks = body.bricks_changed;

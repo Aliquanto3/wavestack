@@ -714,3 +714,42 @@ Base : origin/main ffd2d60e, à jour (pas de rebase).
 - Complexité : 0 constat. Les exécutions sont bornées à `MAX_RUNS`, et `_of_try` est linéaire sur les enveloppes d'un essai.
 
 API pour 4b : inchangée.
+
+### Passe 2 (2026-10-25, SHA revu de816b5d, partie 4b)
+
+Base : origin/main dd66ed03, à jour (pas de rebase).
+
+- **Important**, medium, second avis n° 1, corrigé : l'état de session ne venait que des `session_state` reçus en direct. Après un rechargement pendant un tour, « Lancer » s'activait. `boot()` transmet maintenant le `session_state` de `/api/state` à `sessionStateChanged`. E2E : `rechargement pendant un tour : « Lancer la suite » désactivé…`.
+- **Important**, medium, second avis n° 2, corrigé : chaque poll reconstruisait le panneau, et l'entrée du focus déclenche un poll, si bien qu'un menu « 1 ou 3 essais » ouvert se refermait. Un poll dont l'état (`GET /state`, erreur, lancement en cours) est identique au précédent ne rend plus rien, sauf si une exécution a été relue. Un changement d'état de session force le rendu.
+- **Important**, medium, second avis n° 3, corrigé : `.ae-progress` porte `data-focus-key="progress"`. Si l'élément focalisé disparaît (fin de l'exécution), le focus passe au titre de la vue, et non plus à `body`. E2E : deux vérifications après « Arrêter ».
+- **Important**, medium, second avis n° 4, corrigé : `alertLine` ne pose `role=alert` qu'à l'apparition du texte. Une alerte conservée d'un rendu à l'autre n'est plus annoncée de nouveau.
+- **Nit**, low, second avis n° 5, corrigé : verrou `view.starting`. Les boutons restent désactivés du POST jusqu'à ce que `GET /state` liste le `run_id`, et `start()` passe par `blocked()`, avertissement compris.
+- **Nit**, low, second avis n° 6, laissé : avec `session_error=unreadable`, la confirmation affiche un compte de 0. Le corriger demande un nouveau libellé dans les trois langues, ce qui n'est pas bloquant.
+- **Nit**, low, second avis n° 7, corrigé : seuls les `session_state` de la séance de l'application (clé `active_model` présente) alimentent la vue. Ceux du diagnostic sont ignorés, en direct comme au chargement.
+- **Nit**, low, second avis n° 8, corrigé : `caseBadge` ne relance `GET /cases` qu'une fois toutes les 5 s au plus.
+- **Nit**, low, second avis n° 9, laissé : `refresh()` et `poll()` peuvent se croiser à l'ouverture. Le poll suivant corrige l'affichage en une seconde au plus.
+- **Nit**, low, second avis n° 10, corrigé : avant le premier essai (`current` vaut `null`), la barre offre « Arrêter » ; `stopClicked` n'est remis à zéro qu'une fois l'exécution finie.
+- **Nit**, low, second avis n° 11, laissé : le scénario E2E remet la fenêtre à 4 096 et compte 9 cas en dur. C'est la configuration par défaut de l'E2E et la suite livrée.
+- **Important**, medium, revue, corrigé : enchaîné après `agent_case`, `agent_eval` échouait, car le cas laissé par `agent_case` apparaissait dans « Mes cas ». Le scénario efface d'abord les cas de séance.
+- Complexité : 0 constat. L'état est borné à `MAX_RUNS`, et le rendu ainsi que `updateBadges` sont linéaires sur des listes bornées.
+
+Libellés : aucun modifié.
+
+## Réalisation de la partie 4b (2026-10-25)
+
+Statut : 4b livrée, en revue. Base : `origin/main` après la fusion de 4a (`dd66ed03`). Le serveur n'est pas modifié.
+
+**Fichiers** : `agent-eval.js` et `agent-eval.css` (nouveaux), le bouton `#agent-eval-toggle` dans `index.html`, les quatre insertions d'`app.js`, le bloc `main.agent_eval` des trois `ui.yaml`, `tests/test_agent_eval_ui.py` (parité, pluriels, libellés de la story 5, contrat du module), `agent-eval.js` ajouté aux scripts d'`index.html` dans `tests/test_ui_texts.py`, le scénario E2E `agent_eval` (en dernier) et la capture `agent-eval.jpg`. L'E2E `agent_case` vérifie maintenant que « Ouvrir Évaluer l'agent » est proposé.
+
+**Écarts et précisions :**
+- `clear_confirm.one` et `.other` passent sous `clear_confirm.ask.{one,other}` : le test des pluriels impose qu'un nœud `one`/`other` n'ait rien d'autre, et `clear_confirm` porte aussi `yes` et `no`.
+- Clés ajoutées au tableau : `badge` (« Cas : {title} »), `head.no_model`, `case.trials_label` (nom accessible du choix d'essais) et `runs.pick_label` (nom des boutons radio A et B), plus `main.log.session_states.agent_eval` (libellé de l'état dans le journal des événements).
+- « Lancer » : un menu « 1 essai » / « 3 essais » à côté du bouton, « 1 essai » par défaut.
+- « Comparer A et B » est un bouton : la comparaison se charge au clic, et un nouveau choix de A ou de B l'efface.
+- Le lancement reste désactivé tant que `session_state` n'est pas `idle`, même si `/state` dit l'exécution finie : un tour qui ignore « Arrêter » peut survivre à son exécution. La raison montrée est alors celle de la session.
+- L'en-tête (modèle, prompt système) change hors exécution sans `session_state` : la vue relit `/state` quand le pointeur ou le focus revient dans le panneau, au plus une fois par seconde, et jamais pendant une exécution (l'interrogation suit déjà).
+- Le résultat montré pour un cas est celui de l'exécution en cours qui le joue, sinon celui de la dernière exécution finie qui l'a joué. Les exécutions finies sont lues une fois chacune (20 au plus) ; l'exécution en cours est relue à chaque changement de cas ou d'essai.
+- Les volets masqués le sont par attribut (`[data-pane="ctx"]`, `[data-handle]`) : `pages.css` garde seul les règles `.pane*` (AD-28, `test_only_pages_css_writes_the_shared_rules`).
+- E2E : la fenêtre passe à 8 192 au début, pour que le cas Talvane (4 096) soit « Non lancé », et revient à 4 096 à la fin. Le cas de séance vient d'un tour « Quelle heure est-il ? [lent] » : le faux fournisseur le ralentit, et l'arrêt se fait pendant ce cas, le dernier de la suite. C'est déterministe, sans route de debug.
+
+**Reports** : aucun nouveau. La sélection d'essai au-dessus de la trace (k = 3) n'est pas jouée par l'E2E, qui vérifie seulement les ronds et le résumé.

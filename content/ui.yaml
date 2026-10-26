@@ -620,6 +620,122 @@ main:
       close: "Fermer"
       error:
         no_answer: "WaveStack ne répond pas : le cas n'a pas été enregistré."
+  agent_eval:
+    toggle: "Évaluer l'agent"
+    title: "Évaluer l'agent"
+    loading: "Chargement des cas…"
+    badge: "Cas : {title}"
+    head:
+      model: "Modèle : {model}"
+      no_model: "aucun"
+      prompt: "Prompt système : « {start} » ({state})"
+      prompt_default: "par défaut"
+      prompt_custom: "modifié"
+    banner: "Démonstration, pas un banc : quelques cas, un petit modèle, des résultats qui varient d'une exécution à l'autre."
+    group:
+      provided: "Suite fournie"
+      mine: "Mes cas"
+    mine:
+      empty: "Aucun cas de séance : faites « En faire un cas » sur un tour de la Vue humain."
+      unreadable: "Le fichier de vos cas est illisible : vos cas ne peuvent pas être lancés. « Effacer mes cas » le vide ; les cas fournis restent jouables."
+    case:
+      meta: "· {brick} · plafond {max}"
+      meta_session: "· séance · {turn} · plafond {max}"
+      window_hint: "Pour le jouer, choisissez cette fenêtre dans « Fenêtre ▾ » (le modèle se recharge), puis relancez ce cas."
+      ignored: "Joué sans : {ids} (absents de cette séance)."
+      run: "Lancer"
+      run_label: "Lancer le cas « {title} »"
+      trials_label: "Nombre d'essais pour « {title} »"
+      trials:
+        one: "{count} essai"
+        other: "{count} essais"
+      delete: "Supprimer"
+      delete_label: "Supprimer le cas « {title} »"
+    run_suite: "Lancer la suite"
+    busy: "Une exécution est en cours."
+    first_run:
+      text: "La conversation sera vidée ; votre configuration est rétablie à la fin."
+      go: "Lancer"
+      cancel: "Annuler"
+    progress:
+      suite: "Cas {index} sur {total}"
+      trials: "Essai {trial} sur {k}"
+    stop: "Arrêter"
+    stop_requested: "Arrêt demandé…"
+    status:
+      passed: "Réussi"
+      failed: "Échoué"
+      not_run: "Non lancé"
+      running: "En cours"
+      pending: "En attente"
+    failing: "{check} : {reason}."
+    check:
+      model_calls_max: "Appels au modèle sous le plafond"
+    trace:
+      show: "Voir le tour"
+      hide: "Masquer le tour"
+      label: "Trace du cas"
+      loading: "Lecture de la trace…"
+      fault: "(événement fautif)"
+      trial: "Essai {trial}"
+      gone: "Cette trace n'est plus en mémoire."
+    trials:
+      summary:
+        one: "{passed} réussi sur {ran} · pass@{k} : {at} · pass^{k} : {all}"
+        other: "{passed} réussis sur {ran} · pass@{k} : {at} · pass^{k} : {all}"
+      prefix: "{k} essais :"
+    "yes": "oui"
+    "no": "non"
+    undecided: "—"
+    runs:
+      title: "Exécutions de la séance"
+      col:
+        time: "Heure"
+        model: "Modèle"
+        prompt: "Prompt système"
+        result: "Résultat"
+      pick_a: "A"
+      pick_b: "B"
+      pick_label: "{pick} : l'exécution de {time}"
+      result:
+        one: "{passed} réussi sur {ran} lancés"
+        other: "{passed} réussis sur {ran} lancés"
+      not_run:
+        one: "· {count} non lancé"
+        other: "· {count} non lancés"
+      scope_case: "{title}, {trials}"
+      status:
+        cancelled: "· arrêtée"
+        budget: "· plafond de dépense atteint"
+        error: "· interrompue par une erreur"
+      empty: "Lancez la suite pour obtenir une première exécution."
+    compare:
+      title: "Comparer A et B"
+      diff: "Diffère : {fields}."
+      field:
+        model: "modèle"
+        system_prompt: "prompt système"
+      control: "Rejeu témoin : ce qui change ici vient du modèle, pas de vous."
+      same_run: "Choisissez deux exécutions différentes."
+      col:
+        case: "Cas"
+        change: "Changement"
+      change:
+        regressed: "régressé"
+        fixed: "corrigé"
+        unchanged: "inchangé"
+        absent_a: "absent de A"
+        absent_b: "absent de B"
+      missing: "—"
+    clear: "Effacer mes cas"
+    clear_confirm:
+      ask:
+        one: "Effacer le cas de séance ? Les cas fournis restent."
+        other: "Effacer les {count} cas de séance ? Les cas fournis restent."
+      "yes": "Effacer"
+      "no": "Annuler"
+    error:
+      no_answer: "WaveStack ne répond pas : la vue n'a pas pu être mise à jour."
   orch:
     catalog:
       one: "{count} outil décrit au modèle dans le contexte : {tokens} tokens."
@@ -1029,6 +1145,7 @@ main:
       llm_lab: "atelier LLM"
       rag_lab: "atelier RAG"
       mcp_lab: "atelier MCP"
+      agent_eval: "évaluation de l'agent"
     lab_status:
       completed: "terminée"
       cancelled: "arrêtée"
