@@ -1054,6 +1054,8 @@ main:
       special_token_neutralized: "Spezial-Token neutralisiert"
       bricks_changed: "Bausteine geändert"
       conversation_cleared: "Unterhaltung geleert"
+      compaction_state: "Komprimierungsstrategien"
+      history_compacted: "Verlauf komprimiert"
       scenario_changed: "Szenario"
       harness_reset: "Zurücksetzen"
       language_changed: "Sprache geändert"

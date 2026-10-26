@@ -179,5 +179,9 @@ def test_an_invalid_glossary_is_refused(tmp_path, monkeypatch):
 def test_every_page_has_the_glossary_button_in_its_navigation_and_loads_the_script(page):
     html = (STATIC / f"{page}.html").read_text(encoding="utf-8")
     nav = html[html.index('<nav class="site-nav"') : html.index("</nav>")]
-    assert re.search(r'<button[^>]*id="glossary-toggle"[^>]*>Glossaire</button>', nav)
+    assert re.search(
+        r'<button[^>]*id="glossary-toggle"[^>]*>.*?'
+        r'<span class="glossary-word"[^>]*>Glossaire</span></button>',
+        nav,
+    )
     assert html.count('src="/static/glossary.js"') == 1

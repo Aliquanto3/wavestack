@@ -1054,6 +1054,8 @@ main:
       special_token_neutralized: "Special token neutralised"
       bricks_changed: "Bricks changed"
       conversation_cleared: "Conversation cleared"
+      compaction_state: "Compaction strategies"
+      history_compacted: "History compacted"
       scenario_changed: "Scenario"
       harness_reset: "Reset"
       language_changed: "Language changed"
