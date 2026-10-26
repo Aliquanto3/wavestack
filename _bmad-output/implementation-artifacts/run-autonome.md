@@ -148,3 +148,7 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-25 23:25 · 15.4 · review · 4b prête (4 medium et 4 low corrigés ; E2E agent_eval et agent_case 63/63 ; agent_eval efface les cas de séance au départ) · 3041ca79
 - 2026-10-25 23:25 · 15.4 · PR · #141 ouverte (partie 4b), CI en cours · 3041ca79
 - 2026-10-25 23:25 · 15.5 · PR · #142 ouverte, empilée sur #141 (CI de l'ensemble 4b + 15.5) · 97be225d
+- 2026-10-26 04:34 · run · décision · surveillance des CI #141 et #142 arrêtée par Claude Code (RAM du poste à 1,1 Go pendant le benchmark d'Anaël) ; reprise sur son accord · —
+- 2026-10-26 04:34 · 15.4 · CI · 4b verte (8/8) · 3041ca79
+- 2026-10-26 04:34 · 15.4 · fusion · #141 MERGED dans main (squash, partie 4b) · ba5ecfa0
+- 2026-10-26 04:34 · 15.5 · CI · verte (8/8) empilée sur 4b ; rebasée sur ba5ecfa0, CI relancée · c8c15e6f
