@@ -1,4 +1,4 @@
-# Cahier de recette V1.5 « Évaluer l'agent », incrément 1 (1.6.1)
+# Cahier de recette V1.5 « Évaluer l'agent », incrément 1 (1.6.2)
 
 Préparé le 2026-10-26 à partir de [rapport-run-v1-5.md](rapport-run-v1-5.md). Il couvre ce que les tests automatiques ne couvrent pas : un modèle réel, le réseau, un fournisseur cloud et la lecture humaine. Pour chaque test, cocher la case et noter l'écart constaté. Un écart devient un correctif 1.6.x.
 
@@ -14,7 +14,7 @@ Préparé le 2026-10-26 à partir de [rapport-run-v1-5.md](rapport-run-v1-5.md).
 | D6 | 15.4 | Un cas « Non lancé » des deux côtés compte comme « inchangé » dans la comparaison | Gardée |
 | D7 | 15.5 | Libellé allemand « Agent bewerten öffnen » sans guillemets internes | **Changée** : „Agent bewerten“ öffnen |
 
-**Correctif à faire pour D7** (petite story, chaîne `dev-story` → `second-avis` → `reviewer`) :
+**Correctif D7, livré en 1.6.2** (PR #146) :
 - `content/i18n/de/ui.yaml:607` : `open_view: "„Agent bewerten“ öffnen"` ;
 - `content/i18n/de/scenarios.yaml:603` : citation du libellé. Imbriqué dans des guillemets allemands, le nom s'écrit avec des guillemets simples : „‚Agent bewerten‘ öffnen“. Vérifier ce qu'accepte le décompte des libellés cités ;
 - `uv run pytest -q --tb=short tests/test_content_language.py tests/test_agent_eval_ui.py`, puis le scénario E2E `agent_case_form` (tiroir en allemand).
@@ -23,7 +23,7 @@ Préparé le 2026-10-26 à partir de [rapport-run-v1-5.md](rapport-run-v1-5.md).
 
 ## A. Sur ce poste (poste de développement)
 
-Prérequis : WaveStack 1.6.1 lancé depuis `main`, un modèle local chargé, le réseau ouvert et une clé d'API cloud valide pour A3.
+Prérequis : WaveStack 1.6.2 lancé depuis `main`, un modèle local chargé, le réseau ouvert et une clé d'API cloud valide pour A3.
 
 ### A1. Glossaire depuis les six pages
 - [ ] Ouvrir « Glossaire » depuis chacune des six pages : principale, Diagnostic, Atelier LLM, MCP, RAG, Sécurité.
@@ -34,7 +34,7 @@ Prérequis : WaveStack 1.6.1 lancé depuis `main`, un modèle local chargé, le 
 ### A2. Citations cliquables du module 9
 - [ ] Dans le programme, module « Évaluer l'agent », ouvrir les quatre scénarios et cliquer sur chaque terme lié : harnais, démo, banc d'essai, régression, journal, cas d'agent, vérification, verdict, plafond d'appels, provenance, rejeu témoin, pass@3, pass^3, rejeu, déterministe, juge LLM.
 - Attendu : chaque clic ouvre le glossaire sur le bon terme, et aucun lien n'est mort.
-- [ ] Faire de même en allemand, après le correctif D7 : le bouton du tiroir s'appelle „Agent bewerten“ öffnen, et le texte du scénario le cite à l'identique.
+- [ ] Faire de même en allemand, correctif D7 compris : le bouton du tiroir s'appelle „Agent bewerten“ öffnen, et le texte du scénario le cite à l'identique.
 - Écart constaté :
 
 ### A3. Plafond `max_session_usd` atteint au milieu d'un cas (modèle cloud)
