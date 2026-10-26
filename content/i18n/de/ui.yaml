@@ -604,7 +604,7 @@ main:
         "yes": "Verwerfen"
         "no": "Weiter bearbeiten"
       saved: "Fall gespeichert."
-      open_view: "Agent bewerten öffnen"
+      open_view: "„Agent bewerten“ öffnen"
       close: "Schließen"
       error:
         no_answer: "WaveStack antwortet nicht: Der Fall wurde nicht gespeichert."

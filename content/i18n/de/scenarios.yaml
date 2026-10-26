@@ -600,7 +600,7 @@ scenarios:
       die mitgelieferten Fälle spielt das Werkzeug tools/eval/measure_cases.py jeden Fall
       dreimal und behält das Maximum der bestandenen Versuche plus eins; ungemessen ist sie zu
       knapp (der Fall scheitert ohne Grund) oder zu weit (sie sieht die Schleife nicht mehr).
-      Klicken Sie auf „Speichern“, dann auf „Agent bewerten öffnen“. Der Fall wird mit der
+      Klicken Sie auf „Speichern“, dann auf „‚Agent bewerten‘ öffnen“. Der Fall wird mit der
       [[g:provenance|Herkunft]] „Sitzung“ gespeichert.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, compression]
     tools: [get_datetime, read_file]

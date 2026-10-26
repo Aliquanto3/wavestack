@@ -463,13 +463,18 @@ def _leaves(data: object) -> list[str]:
     return [data] if isinstance(data, str) else []
 
 
+_NESTED_MARKS = str.maketrans("„“", "‚‘")
+
+
 def _catalogue_values(lang: str) -> list[str]:
     from wavestack.skills import load_skills_content
 
     values = [v for rel in CATALOGUES for v in _leaves(_load(config.content_file(rel, lang)))]
     values += [load_brick_content(b, lang).label_text for b in BRICK_NAMES["en"]]
     values += [s.label_text for s in load_skills_content(SKILL_IDS, lang).skills.values()]
-    return [" ".join(v.split()) for v in values]
+    values = [" ".join(v.split()) for v in values]
+    # German labels holding quotation marks are cited with the nested ones: „X“ y -> ‚X‘ y.
+    return [v.translate(_NESTED_MARKS) for v in values] if lang == "de" else values
 
 
 def _is_label(quote: str, values: list[str]) -> bool:
@@ -626,3 +631,12 @@ def test_read_file_reads_the_shipped_translation(lang):
             assert read_file(rel, lang) == path.read_text(encoding="utf-8"), rel
             if lang != "fr":
                 assert read_file(rel, lang) != french.read_text(encoding="utf-8"), rel
+
+
+def test_german_agent_eval_open_view_label_is_quoted_and_cited_by_scenario() -> None:
+    """D7: the button label quotes the view name; the scenario cites it with nested quotes."""
+    ui = _load(CONTENT / "i18n" / "de" / "ui.yaml")
+    label = ui["main"]["agent_case"]["form"]["open_view"]
+    assert label == "\u201eAgent bewerten\u201c öffnen"
+    scenarios = (CONTENT / "i18n" / "de" / "scenarios.yaml").read_text(encoding="utf-8")
+    assert "\u201e\u201aAgent bewerten\u2018 öffnen\u201c" in scenarios
