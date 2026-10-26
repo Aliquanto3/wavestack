@@ -114,6 +114,6 @@ Jouer les quatre scénarios dans l'ordre depuis le programme, comme un stagiaire
 ---
 
 ## Après la recette
-- Consigner les résultats dans `resultats-recette-v1-5-2026-10.md`, puis ouvrir un correctif 1.6.x pour les écarts, avec le correctif D7.
+- Consigner les résultats dans `resultats-recette-v1-5-2026-10.md`, puis ouvrir un correctif 1.6.x pour les écarts.
 - Commiter les plafonds mesurés sur une branche de story, et publier la version suivante avec ses notes.
 - Ensuite seulement, Anaël décide s'il rouvre l'incrément 2.
