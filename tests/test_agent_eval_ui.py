@@ -183,7 +183,8 @@ def test_index_html_has_the_toggle_and_loads_neither_file():
     page = (STATIC / "index.html").read_text(encoding="utf-8")
     toggle = page.index('id="agent-eval-toggle"')
     assert page.index('<header class="top-bar">') < toggle < page.index('id="pane-chips"')
-    assert 'aria-pressed="false" data-i18n="main.agent_eval.toggle">Évaluer l\'agent<' in page
+    assert 'aria-label="Évaluer l\'agent" data-i18n-aria-label="main.agent_eval.toggle">' in page
+    assert 'class="agent-eval-word" data-i18n="main.agent_eval.toggle">Évaluer l\'agent<' in page
     assert "agent-eval.css" not in page and "agent-eval.js" not in page
     assert "agent-case-form.css" not in page
 

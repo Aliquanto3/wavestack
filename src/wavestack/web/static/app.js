@@ -6914,7 +6914,10 @@ function eventSummary(group) {
         p.impact_calls ? t("main.log.footprint", { footprint: footprintText(p, ""), calls: plural(p.impact_calls, "call") }) : null,
       ]
         .filter(Boolean)
-        .join(" · ");
+        .join(" · ") || plural(p.calls, "call"); // a total with no priced call (cache saving, reset)
+    case "compaction_state":
+      // The strategies offered on the short memory: what each one does, or why it is unavailable.
+      return p.choices.map((c) => (c.available ? c.detail_text : c.reason_text || c.detail_text)).join(" · ");
     case "model_call_started":
       return p.sampling ? `${p.phase_label} · ${samplingSummary(p.sampling)}` : p.phase_label;
     case "mcp_connect_started":

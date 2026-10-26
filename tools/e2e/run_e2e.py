@@ -15573,13 +15573,18 @@ def s_rag_lab_sheets(r: Run) -> None:
         page.click("#rag-tab-sheets")
         expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
         page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
-        expect(page.locator("#rag-sh-sheet .rag-sh-upcoming")).to_contain_text(
-            "architecture à venir dans l'atelier (story 13)", timeout=10_000
+        # Story 13 shipped GraphRAG's preset: every architecture is `available`, none « à venir ».
+        expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
+        listing = page.evaluate(
+            "() => fetch('/api/rag_lab/sheets').then((response) => response.json())"
         )
         r.check(
             page.locator("#rag-sh-sheet tr[data-axis]").count() == 7
-            and page.locator("#rag-sh-sheet .rag-sh-block").count() == 6,
-            "graphrag : fiche complète avec l'étiquette « à venir »",
+            and page.locator("#rag-sh-sheet .rag-sh-block").count() == 6
+            and page.locator("#rag-sh-sheet .rag-sh-upcoming").count() == 0
+            and all(a["available"] for a in listing["architectures"])
+            and "architecture à venir" not in page.inner_text("#rag-sh-list"),
+            "graphrag : fiche complète, sans étiquette « à venir » (aucune architecture à venir)",
         )
         r.shot("70-atelier-rag-fiches", full_page=True)
         light = _contrast_sweep(r, ["main"])
@@ -15590,20 +15595,20 @@ def s_rag_lab_sheets(r: Run) -> None:
         r.check(not light, "Fiches : contrastes AA en clair", str(light[:3]))
         r.check(not dark, "Fiches : contrastes AA en sombre", str(dark[:3]))
         for language, legal, upcoming in (
-            ("en", "not legal advice", "architecture coming to the workshop (story 13)"),
-            ("de", "keine Rechtsberatung", "Architektur kommt in die Werkstatt (Story 13)"),
+            ("en", "not legal advice", "architecture coming to the workshop"),
+            ("de", "keine Rechtsberatung", "Architektur kommt in die Werkstatt"),
         ):
             _rag_pick_language(r, language)
             page.click("#rag-tab-sheets")
             expect(entries).to_have_count(sheet_entries, timeout=10_000)
             page.locator('#rag-sh-list [data-sheet-id="graphrag"]').click()
-            expect(page.locator("#rag-sh-sheet .rag-sh-upcoming")).to_contain_text(
-                upcoming, timeout=10_000
-            )
+            expect(page.locator("#rag-sh-sheet tr[data-axis]")).to_have_count(7, timeout=10_000)
             r.check(
                 legal in page.inner_text("#rag-sh-banner")
-                and legal in page.inner_text(".rag-sh-legal"),
-                f"Fiches en {language} : bandeau de non-avis juridique, étiquette traduite",
+                and legal in page.inner_text(".rag-sh-legal")
+                and page.locator("#rag-sh-sheet .rag-sh-upcoming").count() == 0
+                and upcoming not in page.inner_text("#rag-sh-list"),
+                f"Fiches en {language} : bandeau de non-avis juridique, aucun « à venir »",
             )
         _rag_pick_language(r, "fr")
         r.check(not outside, "Fiches : aucune requête hors de 127.0.0.1", str(outside[:3]))

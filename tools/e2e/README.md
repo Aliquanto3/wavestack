@@ -14,8 +14,16 @@ Sous Windows, lancez-le avec `PYTHONUTF8=1` (PowerShell : `$env:PYTHONUTF8 = "1"
 la console en cp1252 fait planter des scénarios dont la sortie contient un caractère hors de
 cette page de code (par exemple « ◐ » dans `themes`).
 
-- `--only h5 caveman` : seulement ces scénarios (le diagnostic est toujours joué). Chaque
-  scénario se lance seul : aucun ne dépend de ceux qui le précèdent dans le parcours.
+- `--only h5 caveman` : seulement ces scénarios (le diagnostic est toujours joué). `--only`
+  prend des noms séparés par des espaces : avec une virgule (`--only h5,caveman`), aucun nom ne
+  correspond, seul le diagnostic est joué et le code de sortie est 0. Les scénarios se lancent
+  seuls, à une exception : les `rag_lab*` (`rag_lab`, `rag_lab_views`, `rag_lab_sheets`…)
+  dépendent de `rag` et `rag_rerank`, qui préparent les modèles et l'index. Jouez-les dans la
+  même commande, après eux, par exemple
+  `--only rag rag_rerank rag_lab rag_lab_views rag_lab_sheets` ; seuls, ils échouent sur l'index
+  ou les modèles manquants (ces échecs ne sont pas des régressions). Pour le découpage en
+  tranches de 4 à 6 scénarios, mettez `rag rag_rerank` en tête de chaque tranche qui contient un
+  `rag_lab*`.
 - `--keep` : garde le dossier de données temporaire (journaux `wavestack.log`,
   `fake_openai.log`, `settings.json`, `audit.log`) ; son chemin s'affiche au début.
 - `--headed` : navigateur visible.
