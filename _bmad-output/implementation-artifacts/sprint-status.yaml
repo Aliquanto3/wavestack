@@ -1,7 +1,7 @@
 # Statuts des runs autonomes, dérivés du journal de run-autonome.md (lu par avancement-run).
 # Correspondance : epic 15 = V1.5 (spec-wavestack-evaluer-l-agent), 13 = V1.3, 14 = V1.4,
 # 12 = V1.2 ; story N = id de son stories.yaml.
-last_updated: 2026-10-26 04:34
+last_updated: 2026-10-26 04:45
 development_status:
   epic-12: done
   12-1-corpus-exemplia-enrichi: done
@@ -38,10 +38,10 @@ development_status:
   14-2-carte-du-harnais: done
   14-3-search-documents: done
   14-4-compaction-et-fenetre-glissante: done
-  epic-15: in-progress
+  epic-15: done
   15-1-contrat-et-moteur-de-verification: done
   15-2-suite-de-cas-fournie: done
   15-3-en-faire-un-cas: done
   15-4-vue-evaluer-l-agent: done
-  15-5-module-9-et-contenus: review
+  15-5-module-9-et-contenus: done
   15-6-glossaire-du-harnais: done

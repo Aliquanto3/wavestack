@@ -152,3 +152,6 @@ Au plus 3 stories en développement à la fois (3e créneau seulement pour une s
 - 2026-10-26 04:34 · 15.4 · CI · 4b verte (8/8) · 3041ca79
 - 2026-10-26 04:34 · 15.4 · fusion · #141 MERGED dans main (squash, partie 4b) · ba5ecfa0
 - 2026-10-26 04:34 · 15.5 · CI · verte (8/8) empilée sur 4b ; rebasée sur ba5ecfa0, CI relancée · c8c15e6f
+- 2026-10-26 04:45 · 15.5 · CI · verte (8/8) après rebase · c8c15e6f
+- 2026-10-26 04:45 · 15.5 · fusion · #142 MERGED dans main (squash) · 64d50dc8
+- 2026-10-26 04:45 · run · PR · #143 version 1.6.0 ouverte, CI en cours · —
