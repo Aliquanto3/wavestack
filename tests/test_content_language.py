@@ -463,16 +463,18 @@ def _leaves(data: object) -> list[str]:
     return [data] if isinstance(data, str) else []
 
 
+_NESTED_MARKS = str.maketrans("„“", "‚‘")
+
+
 def _catalogue_values(lang: str) -> list[str]:
     from wavestack.skills import load_skills_content
 
     values = [v for rel in CATALOGUES for v in _leaves(_load(config.content_file(rel, lang)))]
     values += [load_brick_content(b, lang).label_text for b in BRICK_NAMES["en"]]
     values += [s.label_text for s in load_skills_content(SKILL_IDS, lang).skills.values()]
-    return [" ".join(v.split()) for v in values]
-
-
-_NESTED_MARKS = str.maketrans("„“", "‚‘")
+    values = [" ".join(v.split()) for v in values]
+    # German labels holding quotation marks are cited with the nested ones: „X“ y -> ‚X‘ y.
+    return [v.translate(_NESTED_MARKS) for v in values] if lang == "de" else values
 
 
 def _is_label(quote: str, values: list[str]) -> bool:
@@ -480,8 +482,6 @@ def _is_label(quote: str, values: list[str]) -> bool:
     one at a word boundary; « <Forcer l'appel> · <tool> » is the button of a forced call."""
     base = quote.split(" · ")[0]
     for value in values:
-        # A label holding quotation marks is cited with the nested ones: „X“ y -> ‚X‘ y.
-        value = value.translate(_NESTED_MARKS)
         head = _HEAD.split(value)[0].rstrip(" ,:(≈")
         at_boundary = head.startswith(base) and not head[len(base) : len(base) + 1].isalnum()
         if base == value or at_boundary:
