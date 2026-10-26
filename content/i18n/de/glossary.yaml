@@ -153,7 +153,7 @@ terms:
     definition: "Das Ergebnis der Bewertung eines Falls: bestanden oder gescheitert, bei Scheitern mit der fehlerhaften Prüfung."
   call_ceiling:
     term: "Aufrufobergrenze"
-    definition: "Die maximale Zahl an Modell- oder Werkzeugaufrufen, die eine Runde machen darf, bevor das Harness sie stoppt. Eine Obergrenze wird an echten Läufen gemessen, nie geraten."
+    definition: "Die maximale Zahl an Modellaufrufen, die des Sub-Agenten eingeschlossen, die ein Agentenfall in einer Runde zulässt; darüber scheitert der Fall. Eine Obergrenze wird an echten Läufen gemessen, nie geraten."
   budget_ceiling:
     term: "Ausgabenobergrenze"
     definition: "Der Höchstbetrag, den die Sitzung bei einem Modellanbieter ausgeben darf; das Harness lehnt Aufrufe darüber hinaus ab."

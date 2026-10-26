@@ -159,7 +159,7 @@ terms:
     definition: "Le résultat de l'évaluation d'un cas : réussi ou échoué, avec la vérification fautive quand il échoue."
   call_ceiling:
     term: "Plafond d'appels"
-    definition: "Le nombre maximal d'appels de modèle ou d'outils qu'un tour peut faire avant que le harnais l'arrête. Un plafond se mesure sur des essais réels, il ne se devine pas."
+    definition: "Le nombre maximal d'appels au modèle, sous-agent compris, qu'un cas d'agent accepte dans un tour ; au-delà, le cas échoue. Un plafond se mesure sur des essais réels, il ne se devine pas."
   budget_ceiling:
     term: "Plafond de dépense"
     definition: "Le montant maximal que la séance peut dépenser auprès d'un fournisseur de modèle ; le harnais refuse les appels au-delà."

@@ -76,8 +76,8 @@ l'empreinte estimées sont dans le bouton **Dépense** de la barre de navigation
 
 ## Programme de formation
 
-Le sélecteur de scénario de la barre du bas liste huit modules, dans l'ordre des briques, soit
-7 h au total, à répartir sur plusieurs séances :
+Le sélecteur de scénario de la barre du bas liste neuf modules, dans l'ordre des briques, soit
+7 h 45 au total, à répartir sur plusieurs séances :
 
 | Module | Durée | Scénarios |
 |---|---|---|
@@ -89,6 +89,7 @@ Le sélecteur de scénario de la barre du bas liste huit modules, dans l'ordre d
 | 6. Sous-agent | 45 min | sous-agent |
 | 7. Contexte long et carte | 60 min | compression du contexte, compaction et fenêtre glissante, carte du harnais |
 | 8. Cache | 45 min | lire le cache, casser le préfixe, faire expirer le cache, cache de Claude (facultatif), lire un bilan d'agent-cost-kit |
+| 9. Évaluer l'agent | 45 min | faire échouer l'agent, transformer l'échec en cas, lancer la suite et rejouer sans rien changer, changer, relancer, comparer |
 
 Lancer le premier scénario d'un module active les briques des modules précédents et restaure la
 mémoire globale de démonstration : on peut reprendre la formation à n'importe quel module, dans

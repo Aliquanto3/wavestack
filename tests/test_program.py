@@ -853,3 +853,37 @@ def test_snapshot_script_reports_an_unreachable_server(snapshot_script, web, tmp
     assert snapshot_script.main(["--server", "mslearn", "--out", str(tmp_path)]) == 1
 
     assert "injoignable" in capsys.readouterr().err and not list(tmp_path.iterdir())
+
+
+def test_module_9_evaluates_the_agent_in_45_minutes_and_the_programme_totals_7h45():
+    """V1.5 story 5 (CAP-5): a ninth module of four scenarios, 465 minutes in all (7 h 45),
+    each scenario's gestures written in its text; the programme is described the same way in
+    the guide and the README."""
+    content = _content()
+    module = content.program[-1]
+
+    assert len(content.program) == 9
+    assert sum(m.duration_min for m in content.program) == 465
+    assert module.title_text == "Évaluer l'agent" and module.duration_min == 45
+    assert module.scenarios == ["eval_fail", "eval_case", "eval_suite", "eval_compare"]
+    texts = {i: content.scenarios[i].description_text for i in module.scenarios}
+    assert "En faire un cas" in texts["eval_case"] and "Enregistrer" in texts["eval_case"]
+    assert "Lancer la suite" in texts["eval_suite"] and "rejeu témoin" not in texts["eval_fail"]
+    assert "[[g:witness_replay|rejeu témoin]]" in texts["eval_suite"]
+    assert "réexécute les outils" in texts["eval_suite"] and "outils figés" in texts["eval_suite"]
+    assert "[[g:llm_judge|juge LLM]]" in texts["eval_compare"]
+    assert "Comparer A et B" in texts["eval_compare"]
+    assert "il ne se devine pas" in texts["eval_case"]
+    assert "[[g:demo|démo]]" in texts["eval_fail"] and "[[g:regression|" in texts["eval_fail"]
+    # The hook of module 1: the agent fits in a few lines, the rest is the harness.
+    assert "L'agent tient\n      en quelques lignes" in (
+        Path(config.content_dir(), "scenarios.yaml").read_text("utf-8")
+    )
+    root = Path(__file__).parent.parent
+    guide = (root / "docs" / "guide.md").read_text("utf-8")
+    assert "liste neuf modules" in guide and "7 h 45 au total" in guide
+    assert "9. Évaluer l'agent | 45 min" in guide
+    assert "neuf modules (7 h 45)" in (root / "README.md").read_text("utf-8")
+    assert "9 modules de formation · 7 h 45" in (
+        (root / "tools" / "demo" / "compose.py").read_text("utf-8")
+    )

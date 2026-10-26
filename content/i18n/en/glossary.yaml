@@ -153,7 +153,7 @@ terms:
     definition: "The result of evaluating a case: passed or failed, with the faulty check when it fails."
   call_ceiling:
     term: "Call ceiling"
-    definition: "The maximum number of model or tool calls a turn may make before the harness stops it. A ceiling is measured on real runs, never guessed."
+    definition: "The maximum number of model calls, the sub-agent's included, that an agent case accepts in a turn; beyond it, the case fails. A ceiling is measured on real runs, never guessed."
   budget_ceiling:
     term: "Spend ceiling"
     definition: "The maximum amount the session may spend with a model provider; the harness refuses calls beyond it."
