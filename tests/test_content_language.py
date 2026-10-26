@@ -472,11 +472,16 @@ def _catalogue_values(lang: str) -> list[str]:
     return [" ".join(v.split()) for v in values]
 
 
+_NESTED_MARKS = str.maketrans("„“", "‚‘")
+
+
 def _is_label(quote: str, values: list[str]) -> bool:
     """A label of the catalogues: a value, a value's text before its variable, or the start of
     one at a word boundary; « <Forcer l'appel> · <tool> » is the button of a forced call."""
     base = quote.split(" · ")[0]
     for value in values:
+        # A label holding quotation marks is cited with the nested ones: „X“ y -> ‚X‘ y.
+        value = value.translate(_NESTED_MARKS)
         head = _HEAD.split(value)[0].rstrip(" ,:(≈")
         at_boundary = head.startswith(base) and not head[len(base) : len(base) + 1].isalnum()
         if base == value or at_boundary:
@@ -626,3 +631,12 @@ def test_read_file_reads_the_shipped_translation(lang):
             assert read_file(rel, lang) == path.read_text(encoding="utf-8"), rel
             if lang != "fr":
                 assert read_file(rel, lang) != french.read_text(encoding="utf-8"), rel
+
+
+def test_german_agent_eval_open_view_label_is_quoted_and_cited_by_scenario() -> None:
+    """D7: the button label quotes the view name; the scenario cites it with nested quotes."""
+    ui = _load(CONTENT / "i18n" / "de" / "ui.yaml")
+    label = ui["main"]["agent_case"]["form"]["open_view"]
+    assert label == "\u201eAgent bewerten\u201c öffnen"
+    scenarios = (CONTENT / "i18n" / "de" / "scenarios.yaml").read_text(encoding="utf-8")
+    assert "\u201e\u201aAgent bewerten\u2018 öffnen\u201c" in scenarios
