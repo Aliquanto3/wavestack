@@ -115,6 +115,7 @@ common:
       summary_kv: "Lokal hat der Modell-Cache {seconds} s Rechenzeit gespart."
       summary_none: "Noch keine Einsparung gemessen."
       summary_overcost: "Der Prompt-Cache hat {amount} mehr gekostet als er eingespart hat: seine Schreibvorgänge kosten mehr, als seine Lesevorgänge eingebracht haben."
+      free_tier: "Kostenloses Angebot: kein angegebener Preis für dieses Modell."
       cache:
         conversation: "Diese Unterhaltung"
         launch: "Seit dem Start"
@@ -144,6 +145,16 @@ common:
       panel_title: "Letzte Ereignisse"
       all_link: "Gesamtes Protokoll"
       empty: "Noch kein Ereignis."
+      filter_security: "Nur Sicherheit"
+      more: "Mehr anzeigen"
+      less: "Weniger anzeigen"
+      free_tier: "kostenloses Angebot"
+      model_call_detail: "{tokens_in} → {tokens_out} Tokens · {cost} · {footprint} · {duration} s"
+      tab_conversation: "Unterhaltung"
+      tab_llm: "LLM-Werkstatt"
+      tab_rag: "RAG-Werkstatt"
+      tab_mcp: "MCP-Werkstatt"
+      tab_models: "Modelle"
       count:
         one: "{count} Ablehnung"
         other: "{count} Ablehnungen"
@@ -1028,6 +1039,7 @@ main:
     reset_total: "Nur ein Neustart von WaveStack setzt diese Summe auf null zurück."
     reset_totals: "Nur ein Neustart von WaveStack setzt diese Summen auf null zurück."
     cap_sentence: "Ausgabenobergrenze der Sitzung: {total} von {cap}; sobald sie erreicht ist, wird kein kostenpflichtiger Aufruf gesendet."
+    free_sentence: "API-Ausgaben der Sitzung: 0 €, kostenloses Angebot ({calls}, kein angegebener Preis)."
   log:
     kinds:
       diagnostic_check: "Diagnoseprüfung"

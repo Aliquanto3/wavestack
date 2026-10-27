@@ -9,9 +9,17 @@
 //   full navigation).
 // - Its state: `GET /api/state` at load, and again each time a panel opens. Every page's own
 //   `/api/stream` reader (app.js, llm.js, rag.js, mcp.js, the diagnostic's) hands each
-//   envelope to `feedBar`, which keeps only `consumption_updated` and `security_event`, in
-//   O(1), never a walk of the journal (a structure that only grows during a session). `seq`
-//   orders the two sources: a snapshot older than the last event fed is ignored.
+//   envelope to `feedBar`, which keeps `consumption_updated`, `security_event` and
+//   `model_call_ended`, in O(1), never a walk of the journal (a structure that only grows
+//   during a session). `seq` orders the sources: a snapshot older than the last event fed is
+//   ignored.
+// - Story 1 (CAP-2, 2026-10-27): the Journal also lists every model call, of every onglet
+//   (contrat figé, `story-1.md`), derived client-side from the envelopes as they are
+//   (Décision Q1): the onglet from `context_id`, the model from the last `active_model` the
+//   stream gave (`session_state`, `turn_started`), so a replay labels each call as it was.
+//   These entries never carry a prompt nor an answer. Bounded in memory to 500, like
+//   `SecurityJournal`, kept in the tab's `sessionStorage` across its pages; a filter keeps
+//   only the security decisions.
 // - It replaces the main screen's former « Dépense estimée » gauge (ux/EXPERIENCE.md): the
 //   panel carries what the gauge said (the euros, the cap, the footprint, the reset).
 
@@ -20,52 +28,175 @@ import { dateTimeFormat, has, numberFormat, rangeText, ready, t } from "./i18n.j
 const $ = (id) => document.getElementById(id);
 
 let consumption = null; // the `consumption_updated` shape, or null before any paid/impactful call
-let preview = { denied_count: 0, entries: [] }; // newest first, 5 at most
+let deniedCount = 0; // the session's refusals and blocks (the red badge), security only
+let logEntries = []; // newest first, kind "security" or "model_call", bounded to LOG_KEPT
+let securityOnly = false; // the « Sécurité seulement » filter
+let logExpanded = false; // the dépliable history, past the 5-line preview
 let maxSessionUsd = null; // finition V1 (#27): `[finops] max_session_usd`, from `/api/state`
 let seq = 0; // the newest journal `seq` the figures above reflect
+// Story 1 (CAP-2): the model calls have their own mark, never the snapshot's `seq` (an
+// `/api/state` tip would drop a call emitted but not yet streamed: the server keeps no copy).
+let modelSeq = 0; // the newest `model_call_ended` fed
+let model = null; // `{label, hosting}` the stream last named, in `seq` order
+let modelAt = 0; // the `seq` of the envelope that named it (0: none yet)
+let saved = null; // the previous page's calls, merged once `/api/state` confirms its process
+let instanceId = null; // the journal's process, `/api/state`'s
+
+const LOG_KEPT = 500; // the same order of magnitude as `SecurityJournal` (`_KEPT`)
+const LOG_PREVIEW = 5;
+const STORAGE_KEY = "wavestack.bar.log"; // this browser tab only, across its page loads
+// The onglet, from the envelope's own `context_id`: `main`, a sub-agent's or none is the
+// conversation.
+const TAB_OF = { llm: "tab_llm", rag_lab: "tab_rag", mcp_lab: "tab_mcp", diag: "tab_models" };
+// What a page that listens by name (EventSource) adds for the Journal's model calls.
+export const BAR_MODEL_KINDS = ["model_call_ended", "session_state", "turn_started"];
+
+const modelOf = (active) => (active ? { label: active.label, hosting: active.hosting } : null);
 
 export function feedBar(envelope) {
   const kind = envelope.kind;
+  const payload = envelope.payload;
+  if (kind === "session_state" || kind === "turn_started") {
+    // AD-12: the model of the calls that follow, as the stream said it then.
+    if (payload.active_model !== undefined && envelope.seq > modelAt) {
+      model = modelOf(payload.active_model);
+      modelAt = envelope.seq;
+    }
+    return;
+  }
+  if (kind === "model_call_ended") {
+    if (envelope.seq <= modelSeq) return;
+    modelSeq = envelope.seq;
+    // The diagnostic tests each cloud entry, not the session's model: no label to give.
+    pushLogEntry(modelCallEntry(envelope, payload, envelope.context_id === "diag" ? null : model));
+    return;
+  }
   if ((kind !== "consumption_updated" && kind !== "security_event") || envelope.seq <= seq) return;
   seq = envelope.seq;
-  const payload = envelope.payload;
   if (kind === "consumption_updated") {
     consumption = payload;
     renderSpend();
     return;
   }
-  preview = {
-    denied_count: payload.denied_count,
-    entries: [
-      {
-        ts: payload.ts,
-        source: payload.source,
-        name: payload.name,
-        label_text: payload.label_text,
-        decision: payload.decision,
-        reason_text: payload.reason_text,
-      },
-      ...preview.entries,
-    ].slice(0, 5),
+  deniedCount = payload.denied_count;
+  pushLogEntry({
+    kind: "security",
+    ts: payload.ts,
+    source: payload.source,
+    name: payload.name,
+    label_text: payload.label_text,
+    decision: payload.decision,
+    reason_text: payload.reason_text,
+  });
+}
+
+// Contrat figé (story 1, `story-1.md`) : jamais `text`, `raw_output`, `reasoning` ni
+// `tool_calls` — aucune entrée ne porte le prompt ni la réponse. `seq` : interne, pour ne
+// pas doubler les appels qu'une page rejoue et que la page précédente avait gardés.
+function modelCallEntry(envelope, payload, modele) {
+  return {
+    kind: "model_call",
+    seq: envelope.seq,
+    ts: envelope.ts,
+    onglet: t(`common.bar.log.${TAB_OF[envelope.context_id] ?? "tab_conversation"}`),
+    modele,
+    tokens_in: payload.prompt_tokens,
+    tokens_out: payload.output_tokens,
+    cout_usd: payload.cost_in_usd != null && payload.cost_out_usd != null ? payload.cost_in_usd + payload.cost_out_usd : null,
+    empreinte:
+      payload.impact_method != null
+        ? {
+            energy_wh_min: payload.energy_wh_min,
+            energy_wh_max: payload.energy_wh_max,
+            gco2e_min: payload.gco2e_min,
+            gco2e_max: payload.gco2e_max,
+            impact_method: payload.impact_method,
+          }
+        : null,
+    duree_ms: payload.duration_ms,
   };
-  renderLog();
+}
+
+// The badge, and one row prepended when the panel is open (its other rows, one unfolded or
+// focused, stay as they are); a closed panel is drawn when it opens. Never the whole list.
+function pushLogEntry(entry) {
+  logEntries.unshift(entry);
+  if (logEntries.length > LOG_KEPT) logEntries.pop();
+  renderLogBadge();
+  const list = $("bar-log-list");
+  if (!list || $("bar-log-panel")?.hidden !== false) return;
+  if (securityOnly && entry.kind !== "security") return;
+  if (list.querySelector(".bar-flyout-empty")) return renderLogPanel();
+  list.prepend(logRow(entry));
+  while (list.children.length > (logExpanded ? LOG_KEPT : LOG_PREVIEW)) list.lastElementChild.remove();
+  renderLogMore(filteredLog().length);
+}
+
+// The server keeps no Journal of the model calls (Décision Q1): this tab's `sessionStorage`
+// carries them from one page to the next, gone with the tab.
+// shortcut: a call ended while no page of the tab streams (between two loads) is missed;
+// a server-side Journal would close that gap.
+function restoreModelCalls() {
+  try {
+    saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "null");
+  } catch {
+    saved = null; // a storage refused or unreadable: the Journal starts with this page
+  }
+}
+
+function saveModelCalls() {
+  try {
+    const entries = logEntries.filter((e) => e.kind === "model_call");
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ instanceId, modelSeq, model, modelAt, entries }));
+  } catch {
+    // Same: nothing more to keep.
+  }
+}
+
+// Once `/api/state` names the process: the previous page's calls join this page's (a replay
+// from 0 may have fed some of them again: `seq` dedups), another process's are dropped.
+function mergeSaved() {
+  const from = saved;
+  saved = null;
+  if (!from || from.instanceId !== instanceId || !Array.isArray(from.entries)) return;
+  const fed = new Set(logEntries.map((e) => e.seq));
+  logEntries.push(...from.entries.filter((e) => !fed.has(e.seq)));
+  // Once per page: a replay may have fed newer calls than some kept ones, or older.
+  logEntries.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  logEntries.length = Math.min(logEntries.length, LOG_KEPT);
+  modelSeq = Math.max(modelSeq, from.modelSeq ?? 0);
+  if ((from.modelAt ?? 0) > modelAt) ({ model, modelAt } = from);
 }
 
 async function refresh() {
   try {
     const body = await (await fetch("/api/state")).json();
     maxSessionUsd = body.max_session_usd ?? null;
+    instanceId = body.instance_id ?? instanceId;
+    mergeSaved();
+    // A page streaming from the tip has no `session_state` yet: the current model meanwhile.
+    if (modelAt === 0) model = modelOf(body.active_model);
     // An answer older than an event already fed would put stale figures back.
     if ((body.seq ?? 0) >= seq) {
       seq = body.seq ?? 0;
       consumption = body.consumption_updated ?? null;
-      preview = body.security_journal_preview ?? { denied_count: 0, entries: [] };
+      const preview = body.security_journal_preview ?? { denied_count: 0, entries: [] };
+      deniedCount = preview.denied_count;
+      mergeSecurityEntries(preview.entries);
     }
   } catch {
     // Kept as it was: a page briefly unreachable shows the last known state, not a blank one.
   }
   renderSpend();
   renderLog();
+}
+
+// The server only knows the security entries (bounded to the journal's own 500); the model
+// calls, client-side (Décision Q1), are kept as they are. Sorted on open only, never per event.
+function mergeSecurityEntries(entries) {
+  const modelCalls = logEntries.filter((e) => e.kind === "model_call");
+  const security = entries.map((e) => ({ kind: "security", ...e }));
+  logEntries = [...security, ...modelCalls].sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, LOG_KEPT);
 }
 
 // ---------- formatting (figures are the session's; this only shapes them) ----------
@@ -96,13 +227,19 @@ function renderSpend() {
   toggle.hidden = !consumption;
   if (!consumption) return;
   const c = consumption;
+  const paid = c.calls > 0;
   const amount = $("bar-spend-amount");
-  amount.textContent = c.calls > 0 ? money(c.total_usd) : shortUsd(0);
+  // Story 1 (CAP-1): a montant toujours affiché, jamais `c.calls > 0` seul : un modèle sans
+  // `pricing` (Gemma) a `calls === 0` mais `unpriced_calls > 0`, 0 € + l'offre gratuite,
+  // jamais confondu avec un vrai 0 $.
+  amount.textContent = paid ? money(c.total_usd) : shortUsd(0);
   const saved = $("bar-spend-saved");
   const net = economy(c);
-  if (c.calls > 0 && net !== null) {
+  if (paid && net !== null) {
     saved.textContent =
       net >= 0 ? t("common.bar.spend.saved", { amount: money(net) }) : t("common.bar.spend.overcost", { amount: money(-net) });
+  } else if (!paid && c.unpriced_calls > 0) {
+    saved.textContent = t("common.bar.spend.free_tier");
   } else if (c.kv_time_saved_s > 0) {
     // A local session costs nothing: the time the KV-cache saved is its one economy.
     saved.textContent = t("common.bar.spend.time_saved", { seconds: kvSeconds(c.kv_time_saved_s) });
@@ -137,6 +274,8 @@ function detailSentence(c) {
     if (maxSessionUsd != null) {
       sentences.push(t("main.consumption.cap_sentence", { total: `${guess()}${usd(c.total_usd)}`, cap: usd(maxSessionUsd) }));
     }
+  } else if (c.unpriced_calls > 0) {
+    sentences.push(t("main.consumption.free_sentence", { calls: t("common.count.call", { count: c.unpriced_calls }) }));
   }
   if (green) {
     sentences.push(
@@ -417,31 +556,52 @@ function renderCacheBilan(c) {
 // ---------- « Journal » ----------
 
 function renderLog() {
+  renderLogBadge();
+  renderLogPanel();
+}
+
+function renderLogBadge() {
   const toggle = $("bar-log-toggle");
   if (!toggle) return;
   const count = $("bar-log-count");
-  const n = preview.denied_count;
+  const n = deniedCount;
   count.textContent = t("common.bar.log.count", { count: n });
   count.hidden = n === 0;
   toggle.setAttribute(
     "aria-label",
     n === 0 ? t("common.bar.log.aria_label_zero") : t("common.bar.log.aria_label", { count: n }),
   );
-  renderLogPanel();
+}
+
+// Story 1 (CAP-2): « Sécurité seulement » ne garde que les décisions de sécurité.
+function filteredLog() {
+  return securityOnly ? logEntries.filter((e) => e.kind === "security") : logEntries;
 }
 
 function renderLogPanel() {
   const list = $("bar-log-list");
   if (!list) return;
+  const filtered = filteredLog();
   list.replaceChildren();
-  if (preview.entries.length === 0) {
+  if (filtered.length === 0) {
     const empty = document.createElement("p");
     empty.className = "bar-flyout-empty";
     empty.textContent = t("common.bar.log.empty");
     list.append(empty);
-    return;
+  } else {
+    const shown = filtered.slice(0, logExpanded ? LOG_KEPT : LOG_PREVIEW);
+    for (const entry of shown) list.append(logRow(entry));
   }
-  for (const entry of preview.entries) list.append(logRow(entry));
+  renderLogMore(filtered.length);
+}
+
+// Décision Q2 : 5 lignes visibles, un historique dépliable pour les plus anciennes.
+function renderLogMore(total) {
+  const more = $("bar-log-more");
+  if (!more) return;
+  more.hidden = total <= LOG_PREVIEW;
+  more.textContent = logExpanded ? t("common.bar.log.less") : t("common.bar.log.more");
+  more.setAttribute("aria-expanded", String(logExpanded));
 }
 
 const LEVEL_OF = {
@@ -459,6 +619,66 @@ const LEVEL_OF = {
 };
 
 function logRow(entry) {
+  const row = entry.kind === "model_call" ? modelCallRow(entry) : securityRow(entry);
+  row.dataset.kind = entry.kind; // the E2E's handle on the filter and on duplicates
+  if (entry.seq) row.dataset.seq = entry.seq;
+  return row;
+}
+
+const DASH = () => t("common.bar.spend.cache.none"); // "—", already a glyph the app uses
+
+function modelText(modele) {
+  return modele ? `${modele.label} (${t(`main.hosting.${modele.hosting}`)})` : DASH();
+}
+
+function footprintText(empreinte) {
+  if (!empreinte) return DASH(); // Décision Q4 : « — » seulement sans mesure
+  return `${rangeText(empreinte.energy_wh_min, empreinte.energy_wh_max, "Wh")} · ${rangeText(empreinte.gco2e_min, empreinte.gco2e_max, "g CO₂e")}`;
+}
+
+// A local model costs nothing: « local », the free tier being an API's with no price.
+function costText(coutUsd, modele) {
+  if (coutUsd != null) return usd(coutUsd); // dollars, like the bar's amount (never a USD figure with a € sign)
+  return `${shortUsd(0)} (${modele?.hosting === "local" ? t("main.hosting.local") : t("common.bar.log.free_tier")})`;
+}
+
+function modelCallRow(entry) {
+  const row = document.createElement("li");
+  row.className = "bar-log-row disclosure-row";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "bar-log-row-head disclosure-row-head";
+  const chevron = document.createElement("span");
+  chevron.className = "disclosure-row-chevron";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "▸";
+  const name = document.createElement("span");
+  name.className = "disclosure-row-label";
+  name.textContent = `${entry.onglet} · ${modelText(entry.modele)}`;
+  button.append(chevron, name);
+  const body = document.createElement("div");
+  body.className = "disclosure-row-body";
+  body.hidden = true;
+  const p = document.createElement("p");
+  p.textContent = t("common.bar.log.model_call_detail", {
+    tokens_in: numberFormat({}).format(entry.tokens_in),
+    tokens_out: numberFormat({}).format(entry.tokens_out),
+    cost: costText(entry.cout_usd, entry.modele),
+    footprint: footprintText(entry.empreinte),
+    duration: numberFormat({ maximumFractionDigits: 1 }).format(entry.duree_ms / 1000),
+  });
+  body.append(p);
+  button.addEventListener("click", () => {
+    body.hidden = !body.hidden;
+    button.setAttribute("aria-expanded", String(!body.hidden));
+    chevron.classList.toggle("is-open", !body.hidden);
+  });
+  button.setAttribute("aria-expanded", "false");
+  row.append(button, body);
+  return row;
+}
+
+function securityRow(entry) {
   const row = document.createElement("li");
   row.className = "bar-log-row disclosure-row";
   const button = document.createElement("button");
@@ -540,6 +760,17 @@ function bind() {
     event.stopPropagation();
     openPanel("bar-log-toggle", "bar-log-panel");
   });
+  const securityFilter = $("bar-log-filter-security");
+  securityFilter?.addEventListener("change", () => {
+    securityOnly = securityFilter.checked;
+    logExpanded = false;
+    renderLogPanel();
+  });
+  const more = $("bar-log-more");
+  more?.addEventListener("click", () => {
+    logExpanded = !logExpanded;
+    renderLogPanel();
+  });
   for (const link of document.querySelectorAll(".bar-flyout-link[data-href]")) {
     link.addEventListener("click", () => {
       location.href = link.dataset.href;
@@ -555,6 +786,8 @@ function bind() {
     event.preventDefault();
     closeAll($(open.toggle));
   });
+  restoreModelCalls();
+  addEventListener("pagehide", saveModelCalls); // once per page, never per event
   ready.then(refresh);
 }
 

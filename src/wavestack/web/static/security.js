@@ -8,7 +8,7 @@
 // loaded journal already shows.
 
 import { dateTimeFormat, has, ready, t } from "./i18n.js";
-import { feedBar } from "./bar.js";
+import { BAR_MODEL_KINDS, feedBar } from "./bar.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -328,6 +328,8 @@ async function load() {
 function openStream() {
   const source = new EventSource("/api/diagnostic/stream");
   source.addEventListener("consumption_updated", (event) => feedBar(JSON.parse(event.data)));
+  // Story 1 (CAP-2): the Journal's model calls, and the model each one ran on.
+  for (const kind of BAR_MODEL_KINDS) source.addEventListener(kind, (event) => feedBar(JSON.parse(event.data)));
   source.addEventListener("security_event", (event) => {
     const envelope = JSON.parse(event.data);
     feedBar(envelope);

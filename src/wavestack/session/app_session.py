@@ -13812,11 +13812,12 @@ class AppSession:
 
     def security_journal_preview(self) -> dict[str, Any]:
         """Story 9, the bar's « Journal » button and its flyout: the count (its red badge)
-        and the 5 most recent entries, newest first (bounded by the journal's own cap, never
-        a growing walk)."""
+        and the most recent entries, newest first, bounded like the journal itself (story 1,
+        CAP-2, Décision Q2: 500, so the client's dépliable history has more than 5 to show;
+        the panel itself still opens on the 5 most recent)."""
         return {
             "denied_count": self._security_journal.denied_count(),
-            "entries": [self._journal_entry_dict(e) for e in self._security_journal.recent(5)],
+            "entries": [self._journal_entry_dict(e) for e in self._security_journal.recent(500)],
         }
 
     def security_journal_csv(self) -> str:

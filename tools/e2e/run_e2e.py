@@ -17652,6 +17652,149 @@ def s_bar_panels(r: Run) -> None:
     r.goto_app()
 
 
+# Story 1 (CAP-1): a session whose only calls had no declared price (Gemma): `calls` 0.
+BAR_FREE_SPEND = BAR_FAKE_SPEND | {
+    "total_in_usd": 0.0,
+    "total_out_usd": 0.0,
+    "total_usd": 0.0,
+    "total_eur": 0.0,
+    "calls": 0,
+    "unpriced_calls": 2,
+    "cache_saved_usd": 0.0,
+    "saved_calls": 0,
+}
+
+# Story 1 (CAP-2): one security decision, as `/api/state`'s preview gives it.
+BAR_FAKE_SECURITY = {
+    "denied_count": 1,
+    "entries": [
+        {
+            "ts": "2026-10-27T08:00:00+00:00",
+            "source": "mcp_tool",
+            "name": "delete_file",
+            "label_text": "delete_file",
+            "decision": "deny",
+            "reason_text": "Refusé par la politique",
+        }
+    ],
+}
+
+
+def _bar_log_rows(r: Run) -> list[dict[str, str]]:
+    """The Journal's rows: their kind and their head's text, the panel opened."""
+    page = r.page
+    if not page.locator("#bar-log-panel").is_visible():
+        page.locator("#bar-log-toggle").click()
+    expect(page.locator("#bar-log-panel")).to_be_visible(timeout=3000)
+    return page.locator("#bar-log-list > li").evaluate_all(
+        "rows => rows.map(li => ({kind: li.dataset.kind,"
+        " seq: li.dataset.seq ?? '', head: li.querySelector('.disclosure-row-label').textContent}))"
+    )
+
+
+def _bar_overflows(r: Run, panel: str) -> list[str]:
+    """What sticks out of a flyout (its own box) at the current width, by class."""
+    return r.page.locator(f"#{panel}").evaluate(
+        """p => { const box = p.getBoundingClientRect(); const out = [];
+        if (p.scrollWidth > p.clientWidth + 1) out.push('panel:scroll');
+        for (const el of p.querySelectorAll('*')) {
+          const b = el.getBoundingClientRect();
+          if (b.width && (b.right > box.right + 1 || b.left < box.left - 1))
+            out.push(el.className || el.tagName); }
+        return out; }"""
+    )
+
+
+def s_bar_journal(r: Run) -> None:
+    """Story 1 (CAP-1, CAP-2): the Bilan always shows an amount (0 + the free tier for a
+    model with no price) and holds in its popup at 360 px; the Journal lists the model calls,
+    labelled from the envelope (onglet), kept from one page to the next (`/mcp` streams from
+    the tip), never doubled by the main page's replay, and « Sécurité seulement » keeps only
+    the security decisions. Spend and security preview injected into `/api/state` (the bar's
+    own source); the model call is a real turn on the fake model."""
+    page = r.page
+
+    def fake_state(route) -> None:  # noqa: ANN001
+        response = route.fetch()
+        body = response.json() | {
+            "consumption_updated": BAR_FREE_SPEND,
+            "security_journal_preview": BAR_FAKE_SECURITY,
+        }
+        route.fulfill(response=response, json=body)
+
+    r.goto_app()
+    r.wait_idle()
+    seq = r.ev.mark()
+    page.click("#clear-conversation")
+    r.ev.wait("conversation_cleared", seq, timeout=10)
+    seq = r.ev.mark()
+    r.send("Bonjour, comment ça va ?")
+    calls = len(r.ev.since(seq, "model_call_ended"))
+    page.route("**/api/state", fake_state)
+    try:
+        # bar_spend_shows_amount_without_pricing
+        r.goto_app()
+        expect(page.locator("#bar-spend-toggle")).to_be_visible(timeout=5000)
+        amount = page.locator("#bar-spend-amount").inner_text()
+        saved = page.locator("#bar-spend-saved").inner_text()
+        r.check(
+            amount == "0 $" and "Offre gratuite" in saved,
+            "Bilan : un modèle sans prix affiche « 0 $ » et la mention d'offre gratuite",
+            f"{amount!r} · {saved!r}",
+        )
+        # bar_log_lists_model_calls (the main page replays from 0: no call doubled)
+        rows = _bar_log_rows(r)
+        model_rows = [row for row in rows if row["kind"] == "model_call"]
+        newest = model_rows[: min(calls, 5)]
+        seqs = [row["seq"] for row in model_rows]
+        r.check(
+            calls >= 1
+            and len(newest) == min(calls, 5)
+            and all(row["head"].startswith("Conversation · ") for row in newest)
+            and all("—" not in row["head"] for row in newest)
+            and len(set(seqs)) == len(seqs),
+            "Journal (Harnais) : une ligne par appel, jamais doublée, onglet « Conversation » "
+            "et son modèle",
+            f"{calls} appel(s) · {rows}",
+        )
+        page.keyboard.press("Escape")
+        _goto_mcp(r)
+        mcp_rows = [row for row in _bar_log_rows(r) if row["kind"] == "model_call"]
+        r.check(
+            [row["head"] for row in mcp_rows] == [row["head"] for row in model_rows],
+            "Journal (MCP) : les appels de la page précédente y sont encore, mêmes libellés",
+            str(mcp_rows),
+        )
+        # bar_log_security_only_filter
+        page.locator("#bar-log-filter-security").check()
+        kinds = {row["kind"] for row in _bar_log_rows(r)}
+        r.check(
+            kinds == {"security"},
+            "Journal : « Sécurité seulement » ne garde que les décisions de sécurité",
+            str(kinds),
+        )
+        page.locator("#bar-log-filter-security").uncheck()
+        page.keyboard.press("Escape")
+        # bar_spend_popup_no_overflow_360px
+        page.set_viewport_size({"width": 360, "height": 800})
+        r.goto_app()
+        for toggle, panel in (
+            ("bar-spend-toggle", "bar-spend-panel"),
+            ("bar-log-toggle", "bar-log-panel"),
+        ):
+            page.locator(f"#{toggle}").click()
+            expect(page.locator(f"#{panel}")).to_be_visible(timeout=3000)
+            for head in page.locator(f"#{panel} .disclosure-row-head").all():
+                head.click()  # the detail lines too
+            out = _bar_overflows(r, panel)
+            r.check(not out, f"{panel} à 360 px : aucun texte ne dépasse", str(out[:5]))
+            page.keyboard.press("Escape")
+    finally:
+        page.unroute("**/api/state", fake_state)
+        page.set_viewport_size({"width": 1600, "height": 1000})
+    r.goto_app()
+
+
 def _cache_bilan_columns(r: Run) -> dict[str, str]:
     """V1.3 story 4: opens « Dépense », reads the cache bilan's two columns (title -> text),
     closes it again (Échap)."""
@@ -20116,6 +20259,7 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("llm_loop", s_llm_loop),  # lot 6 of 2026-10-04: the model's loop in three stages
     ("relaunch", s_relaunch),
     ("bar_panels", s_bar_panels),  # story 9 (V1.1 vague 2): the barre commune's two flyouts
+    ("bar_journal", s_bar_journal),  # story 1 (27/10, CAP-1, CAP-2): Bilan and Journal
     ("cache_bilan", s_cache_bilan),  # V1.3 story 4 (CAP-3): the bilan's two columns
     ("glossary", s_glossary),  # V1.5 story 6 (CAP-6): le glossaire du harnais
     ("security_page", s_security_page),  # story 10 (V1.1 vague 2): la page Sécurité, flux 1

@@ -88,3 +88,27 @@ context:
 - Q2 : 5 lignes visibles dans la popup, plus un historique dépliable pour voir les entrées plus anciennes (dans la limite des 500 gardées en mémoire).
 - Q3 : « Conversation », ou le libellé réel de l'onglet dans la navigation.
 - Q4 : l'empreinte d'un appel local est estimée par CodeCarbon (`impact_method: "codecarbon"`, LocalMeter) et doit s'afficher quand elle existe ; « — » seulement quand aucune mesure n'a été faite.
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu 77717145)
+
+Rebasée sur origin/main (16.2) avant la revue, puis sur 16.3 avant le push.
+
+- Important, high, second avis 1 : corrigé. Onglet et modèle pris de l'état courant de la page : au rejeu depuis 0 (page principale, Sécurité, Modèles), tout l'historique prenait l'onglet de la page et le modèle du moment. Désormais dérivés de l'enveloppe, côté client (Q1) : onglet par `context_id` (`llm`, `rag_lab`, `mcp_lab`, `diag`, sinon « Conversation »), modèle = dernier `active_model` vu dans le flux (`session_state`, `turn_started`), dans l'ordre des `seq`. `feedBar(envelope)` reprend sa signature d'avant ; `active_model` retiré de `rag_lab_state`/`mcp_lab_state` (et leurs deux tests, constat 5).
+- Important, high, second avis 2 : corrigé. Sécurité et Modèles écoutent aussi `model_call_ended`, `session_state`, `turn_started` (`BAR_MODEL_KINDS`).
+- Important, high, revue : corrigé. Les pages LLM, RAG et MCP lisent le flux depuis la pointe : le Journal perdait les appels des autres onglets à chaque navigation (CAP-2 « de tous les onglets »). Appels gardés dans le `sessionStorage` de l'onglet du navigateur (écrit au `pagehide`, invalidé si `instance_id` change, dédoublonnés par `seq` au rejeu). Limite commentée : un appel terminé pendant une navigation est manqué.
+- Important, medium, second avis 3 : corrigé. Les appels de modèle ont leur propre repère (`modelSeq`), indépendant du `seq` de l'instantané.
+- Important, medium, second avis 4 : corrigé. Un événement ajoute une ligne en tête du panneau ouvert (les autres lignes, dépliées ou focalisées, restent), rien quand il est fermé.
+- Important, medium, second avis 5 : corrigé. Scénario E2E `bar_journal` (montant sans prix, lignes du Journal sans doublon et gardées d'une page à l'autre, filtre « Sécurité seulement », débordement à 360 px) ; tests `active_model` supprimés avec le champ. Non lancé ici (règle du run).
+- Important, medium, revue : corrigé. Coût d'un appel tarifé formaté en € alors que la valeur est en dollars : affiché en $, comme le montant de la barre.
+- Nit, low, second avis 6 : rejeté. `recent(500)` dans `/api/state` : borné, seulement des décisions de sécurité, et la Décision Q2 demande l'historique jusqu'à 500.
+- Nit, low, second avis 7 : corrigé. Appel local sans coût : « 0 $ (Local) », la mention d'offre gratuite restant aux API sans prix.
+- Nit, low, second avis 8 : corrigé. `overflow-wrap: anywhere` sur `.disclosure-row-body` (le libellé l'avait déjà).
+- Nit, low, revue : reporté. La spec dit « 0 € », la barre affiche « 0 $ » (devise de la barre depuis la story 9) : à confirmer par Anaël.
+- Nit, low, revue : reporté. Un appel du diagnostic (« Modèles ») n'a pas de libellé de modèle (« — ») : il teste chaque entrée cloud, pas le modèle de la séance, et l'enveloppe ne le nomme pas.
+- Complexité : 1 constat (second avis 4), corrigé ; tri et filtre en O(500) seulement à l'ouverture du panneau ou au chargement.
+
+### Passe 2 (2026-10-27, SHA revu c8ac88e1)
+
+- Important, medium, E2E `bar_journal` (orchestrateur) : corrigé. Vrai débordement à 360 px, pas un faux positif : `.bar-flyout` est dans `.site-nav`, qui pose `white-space: nowrap` ; les notes du Bilan et les lignes du Journal ne passaient pas à la ligne (contenu jusqu'à 562 px pour un panneau de 326 px). `.bar-flyout { white-space: normal }`, mesuré avant et après par une sonde statique de `index.html` à 360 px (contenu 562 puis 326 px pour 326 px de panneau). Contrôle E2E inchangé. `bar_journal` : 21 vérifications, 0 échec.
