@@ -100,3 +100,7 @@ Q1 à Q4 : recommandations retenues telles quelles.
 - Nit · low · reviewer · signalé : Caveman passe par un second prompt (choix à valider par Anaël) ; techniquement sain (le faux fournisseur suit `skill caveman` en fr/en, la sortie du second tour reste plus courte).
 - Complexité : 0 constat (code retiré, aucune structure nouvelle).
 - E2E non lancés ici (règle du run) : `compression` (nouveau troisième tour, environ 5 k tokens sur une fenêtre de 32 k, pas de débordement attendu), `caveman`, `global_memory`, `content_language`, `native_tools` à surveiller dans les tranches de l'orchestrateur.
+
+### Passe 2 (2026-10-27, SHA revu 733875ec)
+
+- Important · medium · E2E tranche 2 · corrigé : `s_subagent` attendait l'onglet « Agent principal » sélectionné au tour suivant, mais ce tour (« Bonjour ») ne délègue plus depuis le retrait de la délégation forcée : sans sous-agent, les onglets ne sont pas dessinés. L'attente du test était fausse, pas l'application. Le tour suivant renvoie le prompt du scénario (délégation par le modèle). `--only subagent` : 48 OK, 0 échec.

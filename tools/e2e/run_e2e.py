@@ -5470,7 +5470,8 @@ def s_subagent(r: Run) -> None:
     )
     r.shot("19-sous-agent-delegation")
 
-    ended = r.send("Bonjour")
+    # The next turn delegates again (by the model): the tabs are redrawn, main selected.
+    ended = r.send(_prompts("subagent")[0])
     r.check(ended["payload"]["status"] == "completed", "tour suivant terminé")
     ok, _ = r.poll(
         lambda: main_tab.count() == 1 and main_tab.get_attribute("aria-selected") == "true", 5
