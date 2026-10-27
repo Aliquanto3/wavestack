@@ -383,6 +383,31 @@ def test_every_server_has_its_source_texts_github_included(lang):
     assert "GitHub" in servers["github"].source_label_text
 
 
+def test_columns_model_needs_its_cloud_variant():
+    """Story 17.3: `columns.model` must carry a cloud name and explanation, used instead of
+    the local ones when the active model's hosting is `network` (mcp.js)."""
+    from pydantic import ValidationError
+
+    data = mcp_lab.load_lab_content("fr").model_dump()
+    assert data["columns"]["model"]["name_cloud_text"] == "LLM cloud"
+    assert data["columns"]["model"]["explain_cloud_text"]
+    data["columns"]["model"]["name_cloud_text"] = None
+    try:
+        mcp_lab.McpLabContent.model_validate(data)
+    except ValidationError as exc:
+        assert "columns.model" in str(exc)
+    else:
+        raise AssertionError("columns.model without its cloud name text")
+    data = mcp_lab.load_lab_content("fr").model_dump()
+    data["columns"]["model"]["explain_cloud_text"] = "  "
+    try:
+        mcp_lab.McpLabContent.model_validate(data)
+    except ValidationError as exc:
+        assert "columns.model" in str(exc)
+    else:
+        raise AssertionError("columns.model with a blank cloud explanation")
+
+
 def test_before_integrations_missing_a_server_fails_validation():
     from pydantic import ValidationError
 

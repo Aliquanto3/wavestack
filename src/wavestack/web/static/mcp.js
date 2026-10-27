@@ -467,7 +467,12 @@ let unseen = 0;
 let programmatic = false;
 
 function columnName(i) {
-  return text(`columns.${COLS[i]}.name_text`) || COLS[i];
+  const id = COLS[i];
+  // Story 17.3: the model lifeline's name follows the active model's hosting (local/cloud).
+  if (id === "model" && modelInfo()?.hosting === "network") {
+    return text("columns.model.name_cloud_text") || text("columns.model.name_text") || id;
+  }
+  return text(`columns.${id}.name_text`) || id;
 }
 
 function modelInfo() {
@@ -513,7 +518,11 @@ function renderHeads() {
       sub = model?.label ?? sub;
     }
     head.querySelector(".mcp-head-name").textContent = name;
-    head.querySelector(".mcp-head-sub").textContent = sub;
+    const subEl = head.querySelector(".mcp-head-sub");
+    subEl.textContent = sub;
+    // Story 17.3: the model's name can be long; the full text stays available on hover/a11y.
+    if (id === "model" && sub) subEl.title = sub;
+    else subEl.removeAttribute("title");
     explain(head, columnExplain(id, info));
   }
 }
@@ -524,7 +533,10 @@ function analogy(piece) {
 }
 
 function columnExplain(id, info) {
-  const base = text(`columns.${id}.explain_text`);
+  // Story 17.3: the model lifeline's explanation follows the active model's hosting too.
+  const base = id === "model" && modelInfo()?.hosting === "network"
+    ? text("columns.model.explain_cloud_text") || text("columns.model.explain_text")
+    : text(`columns.${id}.explain_text`);
   const piece = { user: null, model: "model", host: "host", client: "client", source: "source",
     server: info?.network ? "server_http" : "server_stdio" }[id];
   const extra = id === "source" ? info?.source_explain_text : null;
@@ -1214,8 +1226,11 @@ function robot(model) {
     '<rect class="mcp-robot-body" x="4" y="5" width="22" height="18" rx="6"/>' +
     '<rect class="mcp-robot-visor" x="8" y="10" width="14" height="8" rx="4"/>' +
     '<circle class="mcp-robot-eye" cx="12" cy="14" r="1.6"/><circle class="mcp-robot-eye" cx="18" cy="14" r="1.6"/>';
-  const cloud = model?.hosting === "network";
-  button.append(svg, el("span", "mcp-robot-name", cloud ? t("mcp.columns.cloud", { provider: model.provider ?? "" }) : columnName(MODEL)), el("small", null, model?.label ?? ""));
+  // Story 17.3: a long model name wraps in its box; the full name stays in the title (hover,
+  // accessible text) even when it does not.
+  const small = el("small", null, model?.label ?? "");
+  if (model?.label) small.title = model.label;
+  button.append(svg, el("span", "mcp-robot-name", columnName(MODEL)), small);
   explain(button, columnExplain("model"));
   return button;
 }

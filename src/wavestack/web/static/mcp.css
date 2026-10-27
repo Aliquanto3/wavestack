@@ -498,6 +498,20 @@ body.mcp-page {
   }
 }
 
+/* Story 17.3: WaveStack's own neutral pictograms (data.gouv.fr, Microsoft Learn, the local
+   glossary and the fallback), unlike a brand logo, can be recoloured for the dark theme. Their
+   dark navy ink (#33257A) is near-invisible on a dark background; inverted it becomes light. A
+   server with its own dark variant (`has-dark`/`is-dark`, GitHub) is excluded. */
+:root[data-theme="dark"] .mcp-server-logo:not(.has-dark):not(.is-dark) {
+  filter: invert(1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .mcp-server-logo:not(.has-dark):not(.is-dark) {
+    filter: invert(1);
+  }
+}
+
 .mcp-server-name {
   font: var(--typography-label-font-weight) var(--typography-label-font-size) /
     var(--typography-label-line-height) var(--typography-label-font-family);
@@ -1490,6 +1504,7 @@ button.mcp-arrow:hover {
 .mcp-robot {
   grid-column: 1;
   grid-row: 2 / 4;
+  min-width: 0;
   display: grid;
   justify-items: center;
   align-content: center;
@@ -1511,6 +1526,9 @@ button.mcp-arrow:hover {
 }
 
 .mcp-robot small {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: var(--color-on-ink-soft);
 }
 
