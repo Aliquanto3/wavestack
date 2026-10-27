@@ -11100,15 +11100,20 @@ def _window_panel(r: Run) -> None:
     expect(r.page.locator("#window-choices .window-choice")).to_have_count(3, timeout=5000)
 
 
-def _apply_window(r: Run, window: int) -> dict[str, Any]:
-    """Notes `window` in the panel, « Appliquer », and waits for the session's new state."""
+def _apply_window(r: Run, window: int, *, page_idle: bool = True) -> dict[str, Any]:
+    """Notes `window` in the panel, « Appliquer », and waits for the session's new state.
+    `page_idle=False` (story 16.9, the RAG workshop's picker): the session idle by the API,
+    not the Conversation page's replay and composer, which that page does not have."""
     seq = r.ev.mark()
     _window_panel(r)
     r.page.locator(f'#window-choices input[name="window-choice"][value="{window}"]').check()
     expect(r.page.locator("#window-apply")).to_be_enabled(timeout=5000)
     r.page.click("#window-apply")
     state = r.ev.wait("context_window_state", seq, lambda p: p["configured"] == window, 30)
-    r.wait_idle()
+    if page_idle:
+        r.wait_idle()
+    else:
+        r.poll(lambda: (r.state()["session_state"] or {}).get("state") == "idle", 30)
     return state["payload"]
 
 
@@ -18925,7 +18930,7 @@ def s_rag_lab_no_index(r: Run) -> None:
 
         # (2) Story 16.9 (CAP-7): 16 384 from the workshop's own « Fenêtre » picker (the
         # Conversation page's), bounded to 8 192 by the server; the reason follows, no reload.
-        state = _apply_window(r, 16384)
+        state = _apply_window(r, 16384, page_idle=False)
         expect(
             page.locator('#rag-presets .rag-preset-reason[data-preset="long_context"]')
         ).to_contain_text("8 192", timeout=10_000)
