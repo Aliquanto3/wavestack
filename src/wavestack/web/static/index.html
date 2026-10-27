@@ -292,34 +292,8 @@
       <div class="cache-gauge-bar" id="cache-gauge-bar"></div>
       <span class="cache-gauge-text" id="cache-gauge-text"></span>
     </div>
-    <div class="window-picker" id="window-picker">
-      <button type="button" id="window-toggle" class="window-toggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="window-panel"><span class="window-toggle-long" data-i18n="main.window.toggle">Fenêtre</span> <span id="window-toggle-value">…</span> ▾</button>
-      <section id="window-panel" class="window-panel" role="dialog" aria-labelledby="window-panel-title" hidden>
-        <div class="window-scroll">
-        <h3 id="window-panel-title" class="window-panel-title" data-i18n="main.window.panel_title">Fenêtre de contexte</h3>
-        <p class="window-help" id="window-help"></p>
-        <p class="window-help" data-i18n="main.window.saved_help">Le choix appliqué est mémorisé dans settings.json, qui prend le pas sur [context] window de wavestack.toml au lancement suivant.</p>
-        <p class="window-current" id="window-current" hidden></p>
-        <fieldset class="window-choices">
-          <legend class="window-choices-legend" data-i18n="main.window.size_legend">Taille de la fenêtre</legend>
-          <div id="window-choices"></div>
-        </fieldset>
-        <p class="window-note" id="window-note"></p>
-        <fieldset class="window-choices" id="claude-cache" data-testid="claude-cache">
-          <legend class="window-choices-legend" data-i18n="main.window.claude_cache_legend">Cache de prompt de Claude</legend>
-          <label class="window-choice-label"><input type="radio" name="claude-cache" value="off"> <span data-i18n="main.window.claude_cache_off">Désactivé</span></label>
-          <label class="window-choice-label"><input type="radio" name="claude-cache" value="5m"> <span data-i18n="main.window.claude_cache_5m">5 minutes (écriture ×1,25)</span></label>
-          <label class="window-choice-label"><input type="radio" name="claude-cache" value="1h"> <span data-i18n="main.window.claude_cache_1h">1 heure (écriture ×2)</span></label>
-        </fieldset>
-        <p class="window-note" id="claude-cache-note"></p>
-        </div>
-        <p class="window-alert" id="window-alert" role="alert" hidden></p>
-        <div class="window-actions">
-          <button type="button" id="window-apply" class="window-apply" data-i18n="main.window.apply">Appliquer</button>
-          <button type="button" id="window-close" class="window-close" data-i18n="common.close">Fermer</button>
-        </div>
-      </section>
-    </div>
+    <!-- Story 16.9 (CAP-7): the « Fenêtre » button and its panel, built by window-picker.js. -->
+    <div class="window-picker" id="window-picker"></div>
     <!-- V1.5 story 4 (CAP-4): « Évaluer l'agent », a panel over Contexte LLM and Orchestration. -->
     <button type="button" id="agent-eval-toggle" class="agent-eval-toggle" aria-pressed="false" title="Évaluer l'agent" data-i18n-title="main.agent_eval.title" aria-label="Évaluer l'agent" data-i18n-aria-label="main.agent_eval.toggle"><span class="agent-eval-icon" aria-hidden="true">✓</span><span class="agent-eval-word" data-i18n="main.agent_eval.toggle">Évaluer l'agent</span></button>
     <div class="pane-chips" id="pane-chips"></div>

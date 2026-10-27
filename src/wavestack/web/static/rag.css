@@ -854,6 +854,29 @@ body.rag-page {
   font-weight: 600;
 }
 
+/* Story 16.9 (CAP-7): why a preset is greyed, visible on its own line under the buttons. */
+.rag-preset-reason {
+  flex: 1 1 100%;
+}
+
+/* Story 16.9 (CAP-7): the « Fenêtre » picker (pages.css) beside « Lancer la chaîne »: on the
+   page's surface rather than the ink bar, its panel dropping under its button. */
+.rag-window-picker .window-toggle {
+  background: var(--color-surface-raised);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.rag-window-picker .window-toggle[aria-expanded="true"] {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.rag-window-picker .window-panel {
+  top: calc(100% + var(--spacing-1));
+  bottom: auto;
+}
+
 /* Lot 5a-2: « Dérouler »'s stepper (diagram.js, its rules in pages.css) and its legend. */
 .rag-stepper-box {
   display: flex;

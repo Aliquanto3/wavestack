@@ -61,3 +61,37 @@ La raison existe déjà : `cag_local_only` (`messages.yaml:621`, posée en `app_
 
 - Q1 : le sélecteur propose aussi les autres modèles locaux, comme le sélecteur de la séance. Choisir un modèle local change le modèle chargé en RAM pour toute l'application (même effet et même chemin que le changement de modèle de séance) ; choisir un modèle cloud ne change pas le modèle de la séance. Cela amende le non-goal de SPEC.md « Changer le modèle de la séance depuis l'onglet RAG » pour les seuls modèles locaux. Réutiliser le chemin existant du changement de modèle, sans le dupliquer, et le dire dans l'interface (« change le modèle de toute l'application »).
 - Q2 à Q4 : recommandations retenues.
+
+## Réalisation (2026-10-27)
+
+- **Reproduction du CAG grisé** (par lecture du code) : sous un modèle cloud, la raison `cag_local_only` n'était visible nulle part sans action. Le bouton de préréglage « CAG (indisponible) » de la famille « Sans index » ne la donnait qu'en infobulle (`title`) et en texte masqué ; sous l'étape Contexte de la séquence, `.rag-chain-unavailable` est masqué tant que la ligne n'est pas sélectionnée (`rag.css`, `.rag-seq-step:not(.is-selected)`). Correctif : sous les boutons de chaque famille, une ligne visible `.rag-preset-reason` par préréglage grisé (CAG, mais aussi Contexte long faute de fenêtre). Texte de `cag_local_only` remplacé par celui de la spec ; sans aucun modèle chargé, une clé distincte `cag_no_model` garde l'ancien sens (« Chargez un modèle local »).
+- **Modèle de génération** : options `model:<id>` par modèle cloud déclaré (`app_session._rag_lab_catalog`), grisées sans clé avec le texte de la barre des modèles (`no_key_text`, `host_changed_text`). `GenerationAsk.model` porte le choix ; `_rag_lab_generate` ouvre l'adaptateur du modèle choisi (`_cloud_factory`) pour l'appel seul et le ferme, via `_lab_cloud_call(engine=…)`. Refus `cached_corpus` + `model:*` dans `check_pipeline`, sur l'étape Génération.
+- **Modèles locaux (Q1)** : ajoutés côté page dans la liste de l'étape Génération, d'après les groupes de `/api/diagnostic` (ceux du sélecteur de séance, sans le modèle chargé). Les choisir appelle `POST /api/intentions/select_model`, le chemin de la barre ; l'étape revient à « Modèle actif ». Une note visible sous l'étape le dit (`rag.generation_models_note`), et chaque libellé local porte « (change le modèle de toute l'application) ».
+- **Fenêtre** : `window-picker.js` (bloc extrait d'`app.js`, panneau construit en JS) monté dans `index.html` et dans la barre « Lancer la chaîne » de `rag.html` ; règles `.window-*` déplacées dans `pages.css` en un bloc (la media query de la barre du poste reste dans `app.css`), réglages propres à l'atelier dans `rag.css` (`.rag-window-picker`).
+- **Reports** : la liste des modèles locaux ne lit que `models.groups` (pas l'ancien repli par `candidates`) ; le test « Contexte long disponible après 16 384 » existe déjà dans `tests/test_rag_lab_no_index.py` (`test_a_small_window_greys_both_and_the_api_refuses_them`), non dupliqué dans `test_rag_lab_context.py` ; l'E2E est étendu dans `s_rag_lab_no_index` (fenêtre réglée depuis l'onglet RAG, génération par le cloud A, raisons visibles) plutôt que `s_rag_lab_context`.
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu aef84aab)
+
+Rebasée sur origin/main (16.2 et 16.3), sans conflit.
+
+- Nit, low, second avis 1 : rejeté. `.window-toggle-long` masqué sous 1400 px et en projection sert à faire de la place dans la barre du poste ; sur rag.html le bouton est dans la barre « Lancer la chaîne », où le libellé complet reste lisible, et le mode projection n'existe que sur l'écran principal.
+- Nit, medium, second avis 2 : rejeté, couvert. `set_context_window(16384)` puis `full_corpus` disponible est testé dans `tests/test_rag_lab_no_index.py` (`test_a_small_window_greys_both_and_the_api_refuses_them`) ; l'E2E demandé (cloud choisi, modèle de la barre inchangé, 16 384 depuis l'onglet RAG, raison du CAG visible) est dans `s_rag_lab_no_index`, pas dans `s_rag_lab_context`.
+- Nit, medium, second avis 3 : rejeté. Une exception de `_cloud_factory` remonte à `LabRun`, qui met l'étape en erreur (`stage.failed`) et arrête la chaîne ; l'adaptateur est fermé par le `finally` dès qu'il est construit.
+- Important, medium, second avis 4 : corrigé. Le test du cloud choisi vérifie maintenant `model_call_ended` (coût `api`, empreinte EcoLogits au nom de Groq), la phase « Envoi du prompt à Groq » et la consommation de séance (1 appel, 1 empreinte).
+- Important, low, second avis 5 : corrigé. Clé retirée depuis le catalogue : l'étape est sautée avec la raison de la barre des modèles (« Désactivé : saisissez d'abord la clé API de Groq. ») ; modèle retiré de la configuration : `rag_lab.generation.no_model`. Test ajouté.
+- Nit, low, second avis 6 : rejeté. La page RAG lit le flux depuis le début, dans l'ordre des `seq` : le dernier `context_window_state` rejoué est l'état courant ; pas de `liveFrom` sur cette page.
+- Nit, low, second avis 7 : rejeté. La spec demande le refus à la validation de chaîne ; `changed()` revalide à chaque choix, la raison s'affiche aussitôt.
+- Nit, low, second avis 8 : rejeté, déjà fait. `subtitle()` (rag.js) affiche le `label_text` de l'option choisie, qui nomme le fournisseur et le modèle.
+- Nit, low, second avis 9 : rejeté. Aucune règle d'app.css de même spécificité ne vise les classes `.window-*` ou les éléments du panneau (`.top-bar > :not(.gauge)` est de spécificité 0,2,0 et ne touche pas `position`).
+- Complexité : 0 constat (aucune structure qui grossit parcourue à chaque événement).
+
+### Passe 2 (2026-10-27, SHA revu 5b53ceac) : régressions E2E signalées par l'orchestrateur
+
+- Important, high, orchestrateur (E2E sur 5b53ceac : diagnostic, rag, rag_rerank, rag_lab_no_index) : reproduction partielle. Poste saturé (un `import wavestack.web.app` prend de 26 à 63 s, y compris dans le dépôt principal ; d'autres E2E tournaient en même temps). Relances depuis le worktree : `diagnostic rag` vert (46/46) ; `rag rag_rerank context_window rag_lab_no_index rag_lab_context` à 103/105, `rag_lab_context` rouge comme sur main, `rag_lab_no_index` en `ReadTimeout` sur `GET /api/rag_lab` (10 s) à l'ouverture de rag.html ; les relances suivantes n'ont pas pu démarrer l'application en 60 s. Seule différence de démarrage de rag.html due à la story : `/api/state` et `/api/diagnostic` (lent) lancés en même temps que le catalogue `/api/rag_lab`. Corrigé à titre préventif : ces deux lectures partent après le premier catalogue reçu. Reporté : relancer la tranche sur un poste au repos, sans autre E2E en parallèle.
+
+### Passe 3 (2026-10-27, SHA revu 9dc8bde8) : dernière passe
+
+- Important, high, orchestrateur (E2E poste calme, `rag_lab_no_index` seul rouge) : corrigé. Cause dans le test : `_apply_window` attend `r.wait_idle()` (rejeu du journal et compositeur d'app.js), absents de rag.html. Paramètre `page_idle=False` pour le sélecteur de l'atelier, qui attend l'état `idle` de la séance par l'API ; `s_context_window` inchangé. `--only rag rag_rerank rag_lab_no_index` : 89/89.
+- Nit, low, reviewer : reporté. La raison de « Contexte long » et du CAG grisés dit encore « avec le sélecteur « Fenêtre » de la barre de la page Conversation », alors que le sélecteur est aussi dans l'atelier ; à reformuler (fr, en, de) dans une story de textes.

@@ -1356,6 +1356,8 @@ rag:
   rank_absent: "fehlt"
   param_range: "Von {min} bis {max} {unit}"
   option_label: "Option des Schritts {stage}"
+  generation_local: "{model} (ändert das Modell der ganzen Anwendung)"
+  generation_models_note: "Ein hier gewähltes lokales Modell ändert das Modell der ganzen Anwendung. Ein Cloud-Modell generiert nur in der Werkstatt: Das Modell der Sitzung bleibt unverändert, und Langer Kontext folgt weiter dem Fenster der Sitzung."
   move_before: "Nach vorn"
   move_after: "Nach hinten"
   remove: "Entfernen"

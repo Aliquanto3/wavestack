@@ -573,6 +573,7 @@ session:
     lab_reranker_effect: "The workshop's other reranking models are still offered."
     # Lot 5c-3: the Generation stage run by the workshop's active model.
     generation_active: "The workshop's active model: {model}"
+    generation_cloud: "Cloud model: {provider} · {model} (the session's model does not change)"
     generation_no_model: "No model loaded in the workshop: the Generation step will be skipped. Load a model, then run the chain again."
     generation_stops: "The RAG workshop's generation stops; WaveStack remains usable."
     query_no_model: "No model loaded in the workshop: the query understanding will be skipped and the question searched as typed. Load a model, then run the chain again."
@@ -610,7 +611,8 @@ session:
     window_needed: "Unavailable: an effective window of at least {needed} tokens is needed, the session has {effective}. {where}"
     window_set: "Raise the window to {needed} with the “Window” selector in the bar of the Conversation page."
     window_bound: "The configured window is already {configured}{bound}: choose a model or a server that offers more."
-    cag_local_only: "Unavailable: the CAG keeps the corpus in the memory of a local model. Load a local model (a GGUF file or a local server); the workshop does not drive a cloud provider's cache."
+    cag_local_only: "Unavailable with a cloud model: the CAG keeps the corpus in the memory (KV cache) of a local model, and the workshop does not drive a provider's cache. Choose a local model."
+    cag_no_model: "Unavailable: the CAG keeps the corpus in the memory of a local model. Load a local model (a GGUF file or a local server)."
     cag_label: "the workshop's CAG cache"
     cag_memory: "CAG cache not kept. {reason} No state is kept for the next questions."
     cag_snapshot_failed: "Copying the model's state failed ({error})."
