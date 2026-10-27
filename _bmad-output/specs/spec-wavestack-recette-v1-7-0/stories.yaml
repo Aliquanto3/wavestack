@@ -1,0 +1,60 @@
+- id: "1"
+  title: Barre, montants en dollars et largeur
+  description: >-
+    CT-01. (a) Le Bilan de la Dépense parle en € : phrases spend_sentence et free_sentence
+    (content/ui.yaml:1020 et 1025, et leurs surcouches en et de) et total via eur()
+    (bar.js:269, total_eur). Tout passer en $, sans taux de change, comme le montant du bouton.
+    (b) Après un appel à un modèle sans prix, le bouton « Dépense » affiche en ligne « Offre
+    gratuite : pas de prix déclaré pour ce modèle. » et fait 393 px : à 1272 px de large, la page
+    Modèles déborde de 7 px (défilement horizontal). La note passe en infobulle accessible
+    (title + aria-describedby ou équivalent maison) ou est raccourcie, pour que la barre tienne.
+    (c) À 360 px de large, Bilan et Journal ne doivent pas déborder (constat de recette).
+  invoke_dev_with: >-
+    Vague V0. Fichiers : bar.js, content/ui.yaml (+ i18n en/de), CSS de la barre. Vérifier
+    qu'aucun autre texte de la barre n'affiche €. E2E de la barre à réaligner (ne pas les lancer,
+    les nommer dans le rapport).
+- id: "2"
+  title: Atelier LLM, coût d'un modèle gratuit
+  description: >-
+    CT-02. À l'étape 6 de l'Atelier LLM, un modèle sans prix déclaré (offre gratuite) affiche un
+    coût comme s'il était payant. Afficher ce que la barre affiche pour ce cas (0 $ et offre
+    gratuite), en réutilisant la même règle (unpriced_calls, bar.js:233) sans dupliquer le calcul.
+  invoke_dev_with: >-
+    Vague V0. Fichiers : llm.js, éventuellement le calcul côté Python (cloud_base.py). Reproduire
+    d'abord avec un modèle cloud sans prix ; dire dans le rapport d'où venait le montant.
+- id: "3"
+  title: Atelier MCP, pictogrammes, colonne Modèle et nom qui déborde
+  description: >-
+    CT-03. (a) En thème sombre, les pictogrammes neutres des serveurs (Microsoft Learn,
+    data.gouv.fr, et tout logo monochrome) sont illisibles : les rendre lisibles dans les deux
+    thèmes (currentColor ou variante sombre). (b) La colonne Modèle du schéma s'appelle
+    « SLM local » en dur (content/mcp_lab.yaml:92), même quand le modèle choisi est cloud : le
+    libellé et l'explication suivent l'hébergement du modèle actif (local ou cloud). (c) Le nom du
+    modèle affiché dans le schéma déborde de sa case : le contenir (retour à la ligne ou
+    ellipse avec nom complet en infobulle).
+  invoke_dev_with: >-
+    Vague V0. Fichiers : mcp.js, mcp.css, content/mcp_lab.yaml (+ i18n en/de), logos/. Le schéma
+    doit rester cohérent avec mcp/lab.py (validation des colonnes).
+- id: "4"
+  title: Atelier RAG, Contexte long après Appliquer et renvoi au bon réglage
+  description: >-
+    CT-04. (a) Après « Appliquer » sur la fenêtre de contexte depuis l'onglet RAG, l'état de
+    Contexte long (grisé ou non, et sa raison) ne se met pas à jour sans recharger : le
+    rafraîchir aussitôt. (b) La raison affichée pour CAG et Contexte long grisés renvoie à la
+    seule page Conversation, alors que le réglage se fait aussi dans l'onglet RAG : nommer les
+    deux endroits (ou le plus proche), en fr, en et de.
+  invoke_dev_with: >-
+    Vague V1. Fichiers : rag-*.js concernés, app.js si l'état y vit, content (raisons). Reprendre le
+    travail de 16.9 (spec-wavestack-retours-2026-10-27/stories/story-9.md).
+- id: "5"
+  title: Sécurité, règle en pastille et filtre vide
+  description: >-
+    CT-05. (a) Dans la matrice des risques, la colonne Règle affiche « Autoriser », « Demander »,
+    « Refuser » en texte simple dans les 18 cellules (lignes et dépliés), alors que la maquette
+    validée prévoit une pastille (maquette-securite.html:463, chip(RULE[rule])) : verte pour
+    Autoriser, jaune pour Demander, rouge pour Refuser, neutre pour Mixte, comme la légende.
+    Pastille non cliquable (aucun signe d'affordance). (b) Un filtre qui ne garde aucune entrée
+    laisse une zone vide : afficher un message d'état vide (fr, en, de).
+  invoke_dev_with: >-
+    Vague V1. Fichiers : security.js, CSS de l'onglet, content/ui.yaml (+ i18n). Maquette et
+    ux-securite.md dans spec-wavestack-retours-2026-10-27/.
