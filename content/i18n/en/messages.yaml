@@ -2235,8 +2235,8 @@ security:
       other: "{count} messages blocked"
     nothing_blocked: "No refusal nor block for now."
     not_covered:
-      one: "{count} known limit, further down the page"
-      other: "{count} known limits, further down the page"
+      one: "{count} known limit, to tell the client"
+      other: "{count} known limits, to tell the client"
   limits:
     guardrails_wrong:
       statement: "The guardrails get it wrong sometimes."

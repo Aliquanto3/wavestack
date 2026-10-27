@@ -420,6 +420,37 @@
   cursor: pointer;
 }
 
+/* Story 16.7 (CAP-10): a single affordance for every disclosure row built of a
+   `.disclosure-row-head` button, this one (`.bar-log-row`, the barre's Journal) and the page
+   Sécurité's own (`.sec-row`) : a primary contour and chevron on hover, a focus ring on the
+   keyboard focus, never hover alone. Scoped to the two row classes, never the bare
+   `.disclosure-row` alone: `app.js`'s FinOps `<details>` carry that class too, with no
+   `.disclosure-row-head` of their own, and keep their own look. A transparent border by
+   default keeps the row's size from shifting when it gains one on hover. */
+.bar-log-row,
+.sec-row {
+  box-sizing: border-box;
+  border: 1px solid transparent;
+}
+
+.bar-log-row:hover,
+.sec-row:hover,
+.sec-row.is-hover {
+  border-color: var(--color-primary);
+}
+
+.bar-log-row:hover .disclosure-row-chevron,
+.sec-row:hover .disclosure-row-chevron,
+.sec-row.is-hover .disclosure-row-chevron {
+  color: var(--color-primary);
+}
+
+.disclosure-row-head:focus-visible,
+.disclosure-row-head.is-focus {
+  outline: var(--spacing-stroke-min) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .disclosure-row-chevron {
   display: inline-block;
   width: 26px;
@@ -434,6 +465,12 @@
 .disclosure-row-label {
   flex: 1;
   overflow-wrap: anywhere;
+}
+
+.disclosure-row-label small {
+  display: block;
+  color: var(--color-ink-soft);
+  font-size: var(--typography-body-sm-font-size);
 }
 
 .disclosure-row-body {

@@ -1992,6 +1992,34 @@ security:
     authorized_by_you: "Qui a autorisé quoi ?"
     blocked: "Qu'est-ce qui a été bloqué ?"
     not_covered: "Qu'est-ce qui n'est pas couvert ?"
+    go_matrix: "Voir dans la matrice"
+    go_journal: "Voir dans le journal"
+    go_limits: "Voir les limites"
+  # Story 16.7 (CAP-10) : le schéma « Le chemin d'un message », 5 étapes.
+  path:
+    title: "Le chemin d'un message"
+    subtitle: "Les contrôles s'appliquent dans cet ordre. Cliquez une étape pour voir son réglage."
+    message:
+      title: "Votre message"
+      text: "Ce que vous tapez dans la conversation."
+    guardrails:
+      title: "Garde-fous"
+      text: "Ils lisent le message et la réponse : ils bloquent, masquent ou signalent."
+      go: "Contrôles actifs"
+    model:
+      title: "Le modèle"
+      text: "Il répond, ou il demande un outil. Il ne décide pas seul de l'appeler."
+    rule:
+      title: "Règle de l'outil"
+      text: "Le harnais applique la règle de l'outil : autoriser, vous demander, refuser."
+      go: "Matrice des risques"
+    journal:
+      title: "Journal"
+      text: "Chaque décision y est notée, sans aucun secret."
+      go: "Journal de sécurité"
+    events:
+      one: "{count} événement"
+      other: "{count} événements"
   matrix:
     title: "Matrice des risques"
     subtitle: "Règle appliquée à chaque appel d'outil."
@@ -2001,14 +2029,44 @@ security:
     column_risk: "Risque"
     rule_mixed: "Mixte (selon l'outil)"
     column_rule: "Règle"
+    why: "Un outil agit hors de la conversation : il lit vos fichiers, écrit sur le disque, touche GitHub. Plus l'action est grave, plus la règle est stricte."
+    why_label: "Pourquoi ce risque."
+    filter_all: "Tous les outils"
+    filter_write: "Seulement ceux qui écrivent"
+    legend_allow: "l'appel part seul."
+    legend_ask: "vous décidez à chaque appel."
+    legend_deny: "l'appel n'a jamais lieu."
+    glossary:
+      why: "Il lit un fichier livré avec WaveStack, rien de vous."
+    system:
+      why: "Il lit la mémoire libre et le modèle du processeur, rien de personnel."
+    create_path:
+      why: "Il écrit sur le disque, mais seulement dans le bac à sable."
+    screenshot:
+      why: "Il voit tout l'écran, autres fenêtres comprises."
+    network:
+      why: "Il interroge des sites publics : la requête sort du poste."
+    github_read:
+      why: "Il lit des dépôts avec votre compte : il peut voir du code privé."
+    github_write:
+      why: "Il modifie un dépôt partagé : l'action est visible de tous et difficile à défaire."
   controls:
     title: "Contrôles actifs"
     subtitle: "Dépliez pour voir le réglage exact."
+    why: "Chaque contrôle couvre un risque différent. Aucun ne suffit seul."
     tool_rules: "Autorisations des outils"
     guardrails: "Garde-fous"
     hooks: "Hooks"
     network_whitelist: "Liste blanche réseau"
     github: "Connexion GitHub"
+    what:
+      tool_rules: "Une règle par outil, appliquée avant chaque appel."
+      toxicity: "Garde-fou : bloque un message ou une réponse injurieuse."
+      pii: "Garde-fou : masque téléphones, e-mails et noms avant l'envoi."
+      injection: "Garde-fou : repère les consignes cachées dans un message."
+      hooks: "Du code du harnais qui s'exécute à un moment précis, sans le modèle."
+      network_whitelist: "Les seuls sites que l'application peut joindre."
+      github: "Le jeton qui permet les outils GitHub, à droits limités."
     allow_count:
       one: "{count} autorisé"
       other: "{count} autorisés"
@@ -2044,8 +2102,26 @@ security:
     subtitle: "Tous les événements de la séance, le plus récent en haut. Aucun secret n'y figure."
     download: "Télécharger (CSV)"
     empty: "Aucun événement pour l'instant."
+    why: "Une décision qu'on ne peut pas relire ne se contrôle pas. Le journal montre qui a décidé quoi, et pourquoi."
+    filters:
+      all: "Tout ({count})"
+      refused: "Refusés et bloqués ({count})"
+      allow_once: "Autorisés par vous ({count})"
   limits:
     title: "Ce que le harnais ne protège pas"
     subtitle: "À dire au client. Dépliez pour la raison et ce qu'il faudrait en production."
     reason_label: "Pourquoi"
     production_label: "En production"
+  # Story 16.7 (CAP-10) : la légende « Ce qui se clique », repliée par défaut.
+  legend:
+    label: "Ce qui se clique sur cette page"
+    sub: "Repères pour l'animateur et l'apprenant."
+    states:
+      rest: "au repos"
+      hover: "au survol"
+      focus: "au focus"
+    disclosure: "Ligne à déplier : le chevron ▸ tourne d'un quart de tour quand c'est ouvert."
+    card: "Carte-question : relief et flèche → ; elle mène à la réponse."
+    filter: "Filtre en pastille : coché, il passe sur fond plein avec un ✓."
+    action: "Bouton et lien d'action : relief pour un bouton, souligné et → pour un lien."
+    static: "Ce qui ne se clique pas : pastilles d'état, chiffres, étapes « Votre message » et « Le modèle »."

@@ -30,6 +30,12 @@ def test_security_state_computes_the_question_cards_from_policy_and_journal(loop
     assert len(state["risk_matrix"]) == 7
     write_rows = [r for r in state["risk_matrix"] if r["write"]]
     assert {r["id"] for r in write_rows} == {"create_path", "github_write"}
+    # Story 16.7 (CAP-10): each row's own tools (the dépliable detail), tiré de `row["rules"]`.
+    by_row = {r["id"]: r for r in state["risk_matrix"]}
+    glossary_tools = by_row["glossary"]["tools"]
+    assert {t["id"] for t in glossary_tools} == {"local__list_terms", "local__define_term"}
+    assert all(t["label_text"] and t["rule"] for t in glossary_tools)
+    assert by_row["network"]["tools"] == []  # no named tool for that row
     # The write tools themselves: create_path (ask), merge and create PR (deny).
     can_write = state["questions"]["can_write"]
     assert can_write["count"] == 3

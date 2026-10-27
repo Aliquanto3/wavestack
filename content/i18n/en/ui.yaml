@@ -1971,6 +1971,33 @@ security:
     authorized_by_you: "Who authorized what?"
     blocked: "What got blocked?"
     not_covered: "What is not covered?"
+    go_matrix: "See it in the matrix"
+    go_journal: "See it in the journal"
+    go_limits: "See the limits"
+  path:
+    title: "The path of a message"
+    subtitle: "Controls apply in this order. Click a step to see its setting."
+    message:
+      title: "Your message"
+      text: "What you type in the conversation."
+    guardrails:
+      title: "Guardrails"
+      text: "They read the message and the answer: they block, mask or flag."
+      go: "Active controls"
+    model:
+      title: "The model"
+      text: "It answers, or it asks for a tool. It never decides to call it alone."
+    rule:
+      title: "Tool rule"
+      text: "The harness applies the tool's rule: allow, ask you, refuse."
+      go: "Risk matrix"
+    journal:
+      title: "Journal"
+      text: "Every decision is logged there, with no secret."
+      go: "Security journal"
+    events:
+      one: "{count} event"
+      other: "{count} events"
   matrix:
     title: "Risk matrix"
     subtitle: "The rule applied to every tool call."
@@ -1980,14 +2007,44 @@ security:
     column_risk: "Risk"
     rule_mixed: "Mixed (per tool)"
     column_rule: "Rule"
+    why: "A tool acts outside the conversation: it reads your files, writes to disk, touches GitHub. The graver the action, the stricter the rule."
+    why_label: "Why this risk."
+    filter_all: "All the tools"
+    filter_write: "Only the ones that write"
+    legend_allow: "the call goes alone."
+    legend_ask: "you decide on each call."
+    legend_deny: "the call never happens."
+    glossary:
+      why: "It reads a file shipped with WaveStack, nothing of yours."
+    system:
+      why: "It reads free RAM and the processor model, nothing personal."
+    create_path:
+      why: "It writes to disk, but only in the sandbox."
+    screenshot:
+      why: "It sees the whole screen, other windows included."
+    network:
+      why: "It queries public sites: the request leaves the machine."
+    github_read:
+      why: "It reads repositories with your account: it can see private code."
+    github_write:
+      why: "It changes a shared repository: the action is visible to everyone and hard to undo."
   controls:
     title: "Active controls"
     subtitle: "Unfold to see the exact setting."
+    why: "Each control covers a different risk. None of them is enough alone."
     tool_rules: "Tool authorizations"
     guardrails: "Guardrails"
     hooks: "Hooks"
     network_whitelist: "Network allowlist"
     github: "GitHub connection"
+    what:
+      tool_rules: "One rule per tool, applied before every call."
+      toxicity: "Guardrail: blocks an abusive message or answer."
+      pii: "Guardrail: masks phones, emails and names before sending."
+      injection: "Guardrail: spots hidden instructions in a message."
+      hooks: "Code of the harness that runs at a precise moment, without the model."
+      network_whitelist: "The only sites the app can reach."
+      github: "The token that enables the GitHub tools, with limited rights."
     allow_count:
       one: "{count} allowed"
       other: "{count} allowed"
@@ -2023,8 +2080,25 @@ security:
     subtitle: "Every event of the session, most recent first. No secret ever appears in it."
     download: "Download (CSV)"
     empty: "No event yet."
+    why: "A decision you cannot read back is not under control. The journal shows who decided what, and why."
+    filters:
+      all: "All ({count})"
+      refused: "Refused and blocked ({count})"
+      allow_once: "You authorized ({count})"
   limits:
     title: "What the harness does not protect"
     subtitle: "To tell the client. Unfold for the reason and what production would need."
     reason_label: "Why"
     production_label: "In production"
+  legend:
+    label: "What is clickable on this page"
+    sub: "Cues for the facilitator and the learner."
+    states:
+      rest: "at rest"
+      hover: "on hover"
+      focus: "on focus"
+    disclosure: "A row to unfold: the ▸ chevron turns a quarter turn when open."
+    card: "Question card: relief and a → arrow; it leads to the answer."
+    filter: "Toggle chip: checked, it turns solid with a ✓."
+    action: "Button and action link: relief for a button, underline and → for a link."
+    static: "What is not clickable: status chips, figures, the “Your message” and “The model” steps."

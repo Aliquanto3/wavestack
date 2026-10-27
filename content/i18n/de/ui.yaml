@@ -1971,6 +1971,33 @@ security:
     authorized_by_you: "Wer hat was autorisiert?"
     blocked: "Was wurde blockiert?"
     not_covered: "Was ist nicht abgedeckt?"
+    go_matrix: "In der Matrix ansehen"
+    go_journal: "Im Protokoll ansehen"
+    go_limits: "Die Grenzen ansehen"
+  path:
+    title: "Der Weg einer Nachricht"
+    subtitle: "Die Kontrollen greifen in dieser Reihenfolge. Klicken Sie auf einen Schritt, um seine Einstellung zu sehen."
+    message:
+      title: "Ihre Nachricht"
+      text: "Was Sie in das Gespräch eingeben."
+    guardrails:
+      title: "Schutzmechanismen"
+      text: "Sie lesen die Nachricht und die Antwort: sie blockieren, maskieren oder melden."
+      go: "Aktive Kontrollen"
+    model:
+      title: "Das Modell"
+      text: "Es antwortet, oder es fragt nach einem Werkzeug. Es entscheidet nie allein, es aufzurufen."
+    rule:
+      title: "Regel des Werkzeugs"
+      text: "Der Harness wendet die Regel des Werkzeugs an: erlauben, nachfragen, ablehnen."
+      go: "Risikomatrix"
+    journal:
+      title: "Protokoll"
+      text: "Jede Entscheidung wird dort vermerkt, ohne jedes Geheimnis."
+      go: "Sicherheitsprotokoll"
+    events:
+      one: "{count} Ereignis"
+      other: "{count} Ereignisse"
   matrix:
     title: "Risikomatrix"
     subtitle: "Die bei jedem Werkzeugaufruf angewendete Regel."
@@ -1980,14 +2007,44 @@ security:
     column_risk: "Risiko"
     rule_mixed: "Gemischt (je nach Werkzeug)"
     column_rule: "Regel"
+    why: "Ein Werkzeug handelt außerhalb des Gesprächs: es liest Ihre Dateien, schreibt auf die Festplatte, berührt GitHub. Je schwerer die Aktion, desto strenger die Regel."
+    why_label: "Warum dieses Risiko."
+    filter_all: "Alle Werkzeuge"
+    filter_write: "Nur die schreibenden"
+    legend_allow: "der Aufruf erfolgt allein."
+    legend_ask: "Sie entscheiden bei jedem Aufruf."
+    legend_deny: "der Aufruf findet nie statt."
+    glossary:
+      why: "Es liest eine mit WaveStack gelieferte Datei, nichts von Ihnen."
+    system:
+      why: "Es liest den freien Arbeitsspeicher und das Prozessormodell, nichts Persönliches."
+    create_path:
+      why: "Es schreibt auf die Festplatte, aber nur im Sandkasten."
+    screenshot:
+      why: "Es sieht den gesamten Bildschirm, andere Fenster eingeschlossen."
+    network:
+      why: "Es fragt öffentliche Seiten ab: die Anfrage verlässt den Rechner."
+    github_read:
+      why: "Es liest Repositorys mit Ihrem Konto: es kann privaten Code sehen."
+    github_write:
+      why: "Es ändert ein gemeinsames Repository: die Aktion ist für alle sichtbar und schwer rückgängig zu machen."
   controls:
     title: "Aktive Kontrollen"
     subtitle: "Zum Entfalten für die genaue Einstellung."
+    why: "Jede Kontrolle deckt ein anderes Risiko ab. Keine reicht allein."
     tool_rules: "Autorisierungen der Werkzeuge"
     guardrails: "Garde-fous"
     hooks: "Hooks"
     network_whitelist: "Netzwerk-Positivliste"
     github: "GitHub-Verbindung"
+    what:
+      tool_rules: "Eine Regel pro Werkzeug, angewendet vor jedem Aufruf."
+      toxicity: "Schutzmechanismus: blockiert eine beleidigende Nachricht oder Antwort."
+      pii: "Schutzmechanismus: maskiert Telefonnummern, E-Mails und Namen vor dem Versand."
+      injection: "Schutzmechanismus: erkennt versteckte Anweisungen in einer Nachricht."
+      hooks: "Code des Harness, der zu einem genauen Zeitpunkt läuft, ohne das Modell."
+      network_whitelist: "Die einzigen Seiten, die die Anwendung erreichen kann."
+      github: "Das Token, das die GitHub-Werkzeuge mit begrenzten Rechten ermöglicht."
     allow_count:
       one: "{count} erlaubt"
       other: "{count} erlaubt"
@@ -2023,8 +2080,25 @@ security:
     subtitle: "Alle Ereignisse der Sitzung, die neuesten zuerst. Es enthält kein Geheimnis."
     download: "Herunterladen (CSV)"
     empty: "Noch kein Ereignis."
+    why: "Eine Entscheidung, die man nicht nachlesen kann, lässt sich nicht kontrollieren. Das Protokoll zeigt, wer was entschieden hat, und warum."
+    filters:
+      all: "Alle ({count})"
+      refused: "Abgelehnt und blockiert ({count})"
+      allow_once: "Von Ihnen autorisiert ({count})"
   limits:
     title: "Was der Harness nicht schützt"
     subtitle: "Dem Kunden zu sagen. Zum Entfalten für den Grund und was in der Produktion nötig wäre."
     reason_label: "Warum"
     production_label: "In der Produktion"
+  legend:
+    label: "Was auf dieser Seite klickbar ist"
+    sub: "Anhaltspunkte für die Moderation und die Lernenden."
+    states:
+      rest: "Ruhe"
+      hover: "Hover"
+      focus: "Fokus"
+    disclosure: "Eine auszufaltende Zeile: der Chevron ▸ dreht sich um eine Vierteldrehung, wenn sie offen ist."
+    card: "Fragekarte: Relief und ein Pfeil →; sie führt zur Antwort."
+    filter: "Umschaltbare Pastille: angehakt, wird sie voll gefüllt mit einem ✓."
+    action: "Schaltfläche und Aktionslink: Relief für eine Schaltfläche, unterstrichen und → für einen Link."
+    static: "Was nicht klickbar ist: Status-Pastillen, Zahlen, die Schritte „Ihre Nachricht“ und „Das Modell“."
