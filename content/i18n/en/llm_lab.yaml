@@ -416,12 +416,16 @@ generation:
     other: "{tokens} fragments received"
   rate_text: "Output rate: {debit} tokens/s"
   cloud_text: >-
-    Cloud model: these are fragments received from the provider, not tokens one by one. The
-    provider groups the tokens as it likes before sending them.
+    Cloud model: these are [[g:fragment|fragments]] received from the provider, not tokens one
+    by one. The provider groups the tokens as it likes before sending them.
   server_text: >-
-    Served model: these are the chunks of the server's stream, usually one token each, but
-    not always. The exact token count is the server's, in the event log.
+    Served model: these are the [[g:fragment|fragments]] of the server's stream, usually one
+    token each, but not always. The exact token count is the server's, in the event log.
   more_text: "… and {reste} more, not shown (512 chips at most)."
+  legend_text: >-
+    The colours (green, purple) alternate from one chip to the next without meaning anything:
+    they only separate a token from its neighbour.
+  sent_summary_text: "See the prompt sent to the model"
   status:
     completed: "Answer complete."
     cancelled: "Generation stopped."

@@ -8,11 +8,14 @@
 // `content/llm_lab.yaml`, read in the session's language by `GET /api/llm_lab`.
 
 import { createStepper, explain, light, svgEl } from "./diagram.js";
-import { locale, numberFormat, ready as textsReady, section, t } from "./i18n.js";
+import { locale, numberFormat, rangeText, ready as textsReady, section, t } from "./i18n.js";
 import { feedBar } from "./bar.js";
 
 const $ = (id) => document.getElementById(id);
 const quote = (value) => t("common.format.quote", { text: value });
+// FinOps (CAP-6): same formatting as `app.js` and `bar.js`'s own `usd` (not shared: each
+// page's script stays standalone); the figures themselves come from the session.
+const usd = (n) => t("common.format.usd", { amount: numberFormat({ maximumSignificantDigits: 4 }).format(n) });
 
 const store = {
   content: null,
@@ -1927,6 +1930,13 @@ function renderGenerationStarted(p) {
   unitNote.hidden = !store.gen.fragments;
   unitNote.textContent = text(p.exact ? "generation.server_text" : "generation.cloud_text");
   $("generation-more").textContent = "";
+  // Story 16.2 (retours du 27/10, CAP-6): the exact text sent to the model, echoed here too
+  // (étape 5 already shows it above); collapsed, so it never crowds the token stream.
+  $("generation-sent").hidden = false;
+  $("generation-sent-rendered").textContent = p.rendered;
+  const impact = $("generation-impact");
+  impact.hidden = true;
+  impact.textContent = "";
   clearLanes();
   const status = $("generate-status");
   status.classList.remove("is-error");
@@ -2010,6 +2020,37 @@ function renderGenerationEnded(p) {
   for (const id of ["lane-thinking", "lane-answer"]) {
     if (!$(id).textContent) $(id).textContent = text("reasoning.empty_text");
   }
+  renderImpact(p);
+}
+
+// Story 16.2 (retours du 27/10, CAP-6): next to the debit, a cloud call's cost and footprint
+// (GreenOps/FinOps, already computed by `model_call_ended`, carried as is on this event); a
+// local call's energy only (CodeCarbon), never its g CO₂e (a world average, less meaningful
+// for a single machine). Nothing shown without a footprint nor a cost.
+function renderImpact(p) {
+  const node = $("generation-impact");
+  const parts = [];
+  if (p.cost_in_usd != null && p.cost_out_usd != null) {
+    const guess = p.cost_source === "estimate" ? "≈ " : "";
+    parts.push(
+      t("main.cost.text", {
+        label: t("main.cost.call_label"),
+        input: `${guess}${usd(p.cost_in_usd)}`,
+        output: `${guess}${usd(p.cost_out_usd)}`,
+      })
+    );
+  }
+  if (p.energy_wh_min != null) {
+    const energy = rangeText(p.energy_wh_min, p.energy_wh_max, "Wh");
+    parts.push(
+      store.gen.cloud && p.gco2e_min != null
+        ? `${t("main.footprint.call_label")}${energy} · ${rangeText(p.gco2e_min, p.gco2e_max, "g CO₂e")}`
+        : `${t("main.footprint.call_label")}${energy}`
+    );
+  }
+  node.hidden = !parts.length;
+  node.textContent = parts.join(" · ");
+  node.title = p.impact_note_text || "";
 }
 
 async function generate() {

@@ -435,12 +435,17 @@ generation:
     other: "{tokens} fragments reçus"
   rate_text: "Débit de sortie : {debit} tokens/s"
   cloud_text: >-
-    Modèle cloud : ce sont des fragments reçus du fournisseur, pas des tokens un par un. Le
-    fournisseur regroupe les tokens comme il veut avant de les envoyer.
+    Modèle cloud : ce sont des [[g:fragment|fragments]] reçus du fournisseur, pas des tokens un
+    par un. Le fournisseur regroupe les tokens comme il veut avant de les envoyer.
   server_text: >-
-    Modèle servi : ce sont les morceaux du flux du serveur, en général un token chacun, pas
-    toujours. Le compte exact de tokens est celui du serveur, dans le journal des événements.
+    Modèle servi : ce sont les [[g:fragment|fragments]] du flux du serveur, en général un token
+    chacun, pas toujours. Le compte exact de tokens est celui du serveur, dans le journal des
+    événements.
   more_text: "… et {reste} de plus, non affichés (512 puces au plus)."
+  legend_text: >-
+    Les couleurs (vert, violet) alternent d'une puce à l'autre sans rien signifier : elles
+    séparent seulement un token de son voisin.
+  sent_summary_text: "Voir le prompt envoyé au modèle"
   status:
     completed: "Réponse terminée."
     cancelled: "Génération arrêtée."

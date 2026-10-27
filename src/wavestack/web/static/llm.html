@@ -300,12 +300,21 @@
         <span data-text="candidates.toggle_text">Montrer les tokens candidats</span>
       </label>
       <p class="llm-note" id="candidates-reason"></p>
+      <details id="generation-sent" hidden>
+        <summary data-text="generation.sent_summary_text">Voir le prompt envoyé au modèle</summary>
+        <pre class="rendered-prompt" id="generation-sent-rendered"></pre>
+      </details>
+      <p class="llm-note llm-legend" id="generation-legend">
+        <span class="legend-swatch is-even" aria-hidden="true"></span><span class="legend-swatch is-odd" aria-hidden="true"></span>
+        <span data-text="generation.legend_text"></span>
+      </p>
       <p class="llm-note" id="generation-cloud" data-text="generation.cloud_text" hidden></p>
       <p class="llm-counts" id="generation-count"></p>
       <ol class="token-chips token-stream" id="generation-tokens" aria-label="Tokens produits" data-i18n-aria-label="llm.generated_list"></ol>
       <p class="llm-note" id="generation-empty" data-text="generation.empty_text"></p>
       <p class="llm-note" id="generation-more"></p>
       <p class="llm-figure" id="generation-rate"></p>
+      <p class="llm-figure" id="generation-impact" hidden></p>
       <!-- Story 5 (2026-09-30): the same prompt with two samplings, A then B, side by side. -->
       <div class="compare" id="compare">
         <h3 class="compare-title" data-text="compare.title_text">Comparer deux réglages</h3>

@@ -22,6 +22,9 @@ terms:
   token:
     term: "Token"
     definition: "L'unité de texte que lit et produit le modèle : un mot, un morceau de mot ou un signe. Le coût, la vitesse et la taille de la fenêtre de contexte se comptent en tokens."
+  fragment:
+    term: "Fragment"
+    definition: "Le morceau de texte qu'un fournisseur cloud envoie dans un `delta` de sa réponse en flux : il ne correspond pas forcément à un seul token du modèle, puisque WaveStack ne voit que ce que l'API laisse passer, jamais le découpage exact du fournisseur."
   context_window:
     term: "Fenêtre de contexte"
     definition: "Le nombre maximal de tokens que le modèle peut lire en un appel : prompt système, historique, résultats d'outils et question. Au-delà, il faut retirer ou résumer quelque chose."
