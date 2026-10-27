@@ -27,7 +27,7 @@ from test_rag import (
     rag_config,
     segments,
 )
-from test_tools import QWEN
+from test_tools import QWEN, call
 
 from wavestack import config
 from wavestack.config import RerankerModel
@@ -760,12 +760,15 @@ def test_the_sub_agent_context_is_never_reranked(index):
     place_model()
     place_reranker()
     qwen = FakeEngine(
-        outputs=["Résultat du sous-agent.", "Voilà."],
+        outputs=[
+            call("delegate", task="Résume le guide du harnais."),
+            "Résultat du sous-agent.",
+            "Voilà.",
+        ],
         template=QWEN.decode("utf-8"),
         architecture="qwen35",
     )
     session, rerankers = session_for(rerank_config(index), bricks=("rag", "subagent"), engine=qwen)
-    session.arm("delegate", "delegate", {"task": "Résume le guide du harnais."})
 
     events = turn(session, HOTEL)
 

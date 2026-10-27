@@ -1,5 +1,5 @@
 # German translation of content/tools.yaml (languages 1/5, AD-19): same ids, same
-# parameters, same preset arguments (the demo files keep their French names).
+# parameters.
 demo_dir_label_text: Demo-Dateien
 tools:
   get_datetime:
@@ -15,9 +15,6 @@ tools:
       Klammern. Für jede Rechnung verwenden, statt im Kopf zu rechnen.
     parameters:
       expression: Zu berechnender Ausdruck, zum Beispiel 12*37 oder (3+4)**2.
-    presets:
-      - label_text: Multiplikation
-        args: {expression: "12*37"}
   read_file:
     label_text: Datei lesen
     description: >-
@@ -25,21 +22,6 @@ tools:
       verfügbaren Dateien aufzulisten.
     parameters:
       path: Relativer Pfad der Datei im Demo-Ordner, zum Beispiel notes_reunion.txt.
-    presets:
-      - label_text: Sensible Datei
-        args: {path: confidentiel/budget_projet.txt}
-      - label_text: Besprechungsnotizen
-        args: {path: notes_reunion.txt}
-      - label_text: Liste der Dateien
-        args: {path: "."}
-      - label_text: SIEM-Alarme (SOC)
-        args: {path: alertes_siem.log}
-      - label_text: Privilegierte Konten (SOC, vertraulich)
-        args: {path: confidentiel/comptes_privilegies.txt}
-      - label_text: Sicherungsprotokoll (Komprimierung)
-        args: {path: journal_serveur.log}
-      - label_text: Harness-Leitfaden (Fließtext, Komprimierung)
-        args: {path: guide_harnais.md}
   search_documents:
     label_text: Dokumentensuche
     description: >-
@@ -57,9 +39,6 @@ tools:
       Fragt einen öffentlichen Dienst im Internet ab.
     parameters:
       year: Gewünschtes Jahr, zum Beispiel 2026.
-    presets:
-      - label_text: Jahr 2026
-        args: {year: 2026}
   wikipedia_summary:
     label_text: Wikipedia-Zusammenfassung
     sends_text: den Titel des Artikels
@@ -68,9 +47,6 @@ tools:
       Fragt Wikipedia im Internet ab.
     parameters:
       title: Genauer Titel der Seite in der französischsprachigen Wikipedia, zum Beispiel Tour Eiffel.
-    presets:
-      - label_text: Eiffelturm
-        args: {title: Tour Eiffel}
   fetch_page:
     label_text: Webseite lesen
     sends_text: die Adresse der Seite
@@ -80,6 +56,3 @@ tools:
       akzeptiert.
     parameters:
       url: Vollständige Adresse der Seite, zum Beispiel https://fr.wikipedia.org/wiki/Paris.
-    presets:
-      - label_text: Seite Paris
-        args: {url: "https://fr.wikipedia.org/wiki/Paris"}

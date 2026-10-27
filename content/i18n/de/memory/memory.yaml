@@ -17,14 +17,10 @@ remember:
 
 drawer:
   empty_text: >-
-    Keine Information im globalen Gedächtnis. Das Modell kann welche schreiben, oder Sie
-    können einen Schreibvorgang erzwingen.
+    Keine Information im globalen Gedächtnis. Das Modell kann welche schreiben.
   empty_no_parser_text: >-
     Keine Information im globalen Gedächtnis. Das aktive Modell kann keine Tools aufrufen:
-    Es kann keine schreiben, auch nicht durch einen erzwungenen Schreibvorgang.
-  text_help_text: >-
-    Die zu merkende Information, in einem kurzen Satz (höchstens {max_chars} Zeichen).
-    Niemals ein Geheimnis: Sie wird bei jedem Aufruf erneut gelesen.
+    Es kann keine schreiben.
 
 demo:
   - Der Benutzer heißt Pascal.

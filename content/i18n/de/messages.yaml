@@ -321,7 +321,7 @@ session:
   availability:
     unknown_brick: "Den Baustein „{brick}“ gibt es in dieser Version nicht."
     requires: "Erfordert den Baustein „{brick}“: Aktivieren Sie ihn zuerst."
-    cloud_no_tools: "Das Cloud-Modell „{model}“ deklariert keinen Tool-Aufruf (tools): keine Tool-Aktion, auch keine erzwungene. Deklarieren Sie tools = true, wenn das Modell ihn unterstützt, oder wählen Sie ein anderes Modell."
+    cloud_no_tools: "Das Cloud-Modell „{model}“ deklariert keinen Tool-Aufruf (tools): keine Tool-Aktion. Deklarieren Sie tools = true, wenn das Modell ihn unterstützt, oder wählen Sie ein anderes Modell."
     lacks: "Das geladene Modell bietet {needs} nicht: Wählen Sie ein anderes Modell."
     no_model: "Nicht verfügbar: kein Modell geladen."
     cloud_no_reasoning: "Nicht verfügbar: Das aktive Modell kann nicht nachdenken. Das Cloud-Modell „{model}“ deklariert keinen Denkprozess (reasoning): Deklarieren Sie ihn, wenn das Modell ihn unterstützt, oder wählen Sie ein anderes Modell."
@@ -345,22 +345,6 @@ session:
     completed: "Vorbefüllung abgeschlossen: {evaluated} Tokens in {seconds} s ausgewertet. Die erste Nachricht lässt nur noch lesen, was auf sie folgt."
     abandoned: "Vorbefüllung nach {evaluated} von {tokens} Tokens abgebrochen (eine Runde, ein Ladevorgang, eine Werkstatt, eine Einstellung oder ein anderes Szenario kam zuvor): Der ausgewertete Teil bleibt wiederverwendbar."
     error: "Vorbefüllung nach {evaluated} von {tokens} Tokens durch einen Fehler unterbrochen: {cause}. Die erste Runde liest den Kontext wie gewohnt."
-  # Story 9 (AD-3): an action armed for the next turn, or why it is not.
-  arm:
-    unknown_tool: "Unbekanntes Tool: „{target}“ ist weder ein Tool des Bausteins Tools noch das Tool eines MCP-Servers. Nichts wird scharf geschaltet."
-    nothing_armed: "{why} Nichts wird scharf geschaltet."
-    unknown_skill: "Unbekannter Skill: „{target}“. Nichts wird scharf geschaltet."
-    unknown_mcp_tool: "Unbekanntes MCP-Tool: „{target}“ ist kein Tool eines verbundenen Servers. Nichts wird scharf geschaltet."
-    doc_label: "Dokumentation von {target}"
-    unknown_memory_action: "Unbekannte Gedächtnisaktion: „{target}“. Nichts wird scharf geschaltet."
-    memory_label: "Ins Gedächtnis schreiben ({text})"
-    not_delegation: "Unbekannte Aktion: „{target}“ ist nicht die Delegation an den Sub-Agenten. Nichts wird scharf geschaltet."
-    delegation_argument: "Unbekanntes Argument für die Delegation: {args}. Erwartet wird nur die Aufgabe („task“). Nichts wird scharf geschaltet."
-    task_not_text: "Die Aufgabe des Sub-Agenten muss ein Text sein. Nichts wird scharf geschaltet."
-    task_empty: "Die Aufgabe des Sub-Agenten ist leer. Nichts wird scharf geschaltet."
-    delegation_label: "Delegation: „{task}“"
-    unknown_action: "Unbekannte Aktion: „{kind}“. Nichts wird scharf geschaltet."
-    not_armed: "Keine scharf geschaltete Aktion „{armed_id}“: Sie wurde bereits verbraucht oder entschärft."
   subagent:
     unknown_tools: "[subagent] tools nennt unbekannte Tools: {tools}."
     known_tools: "Tools des Bausteins Tools: {tools}."
@@ -458,23 +442,6 @@ session:
     end_hooks:
       message: Die Hooks am Ende der Runde wurden unterbrochen.
       effect: Die Runde endet ohne sie.
-  # Story 9 (AD-3): why a forced action is dropped from the turn.
-  forced:
-    undeclared: "das Tool „{name}“ ist nicht mehr deklariert"
-    dropped: "Erzwungene Aktion „{label}“ verworfen: {reason}. Die Runde geht ohne sie weiter."
-    inactive:
-      mcp: der Baustein „MCP“ ist in dieser Runde nicht aktiv
-      tools: der Baustein „Tools“ ist in dieser Runde nicht aktiv
-      skills: der Baustein „Skills“ ist in dieser Runde nicht aktiv
-      global_memory: der Baustein „Globales Gedächtnis“ ist in dieser Runde nicht aktiv
-      subagent: der Baustein „Sub-Agent“ ist in dieser Runde nicht aktiv
-    server_off: "der Server des Tools „{target}“ ist nicht verbunden oder deaktiviert"
-    tool_unchecked: "das Tool „{tool}“ ist abgewählt"
-    skill_loaded: "der Skill „{skill}“ ist bereits geladen"
-    skill_unchecked: "der Skill „{skill}“ ist abgewählt"
-    no_parser: "das aktive Modell kann kein Tool aufrufen, und das erzwungene Schreiben läuft über das Tool remember"
-    doc_in_context: "der Baustein „MCP“ ist auf vollständige Dokumentation eingestellt: Die Dokumentation von „{target}“ ist bereits im Kontext"
-    doc_loaded: "die Dokumentation von „{target}“ ist bereits geladen"
   hooks:
     failed:
       message: "Der Hook „{label}“ ist fehlgeschlagen."

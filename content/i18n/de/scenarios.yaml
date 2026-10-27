@@ -99,8 +99,7 @@ scenarios:
       drei Informationen bereits in der Systemnachricht stehen. Senden Sie den ersten
       Prompt: Das Modell ruft remember auf, ein Tool des Harness selbst (der Ablauf eines
       Tool-Aufrufs wird in Modul 2 erklärt), und der Harness schreibt die Datei memory.json.
-      Tut es das nicht, erzwingen Sie „Ins Gedächtnis schreiben“ über die Karte des
-      Bausteins (nach „Erzwungene Aktionen anzeigen“) und senden Sie den Prompt erneut.
+      Tut es das nicht, klicken Sie auf „Letzten Prompt wiederholen“.
       Leeren Sie dann die Unterhaltung und senden Sie den zweiten Prompt: Die Vorliebe kommt
       über die Systemnachricht zurück, nicht über den Verlauf. Öffnen Sie schließlich
       „Gedächtnis bearbeiten“ (oder klicken Sie auf die Datei im Schema), um die Einträge
@@ -207,11 +206,7 @@ scenarios:
       ganzen langen Kontext samt vollständiger Dokumentation liest; das ist der Preis, den
       Lazy Loading vermeidet. Der Prompt nennt das Tool des Glossars, local__define_term: Ein
       kleines lokales Modell stellt nicht immer die Verbindung zwischen Frage und Tool her,
-      ein größeres (Cloud-)Modell schon. Antwortet das Modell aus dem Kopf, klicken Sie
-      „Aufruf erzwingen · local__define_term“ unter „WaveStack-Glossar“ auf der Karte MCP
-      (nach „Erzwungene Aktionen anzeigen“), wählen Sie die Voreinstellung „MCP“, „Scharf
-      schalten“, dann „Letzten Prompt wiederholen“: Der Aufruf erfolgt automatisch, und das
-      Modell antwortet mit der Definition. Wechseln Sie dann zum Szenario „Lazy Loading“, um
+      ein größeres (Cloud-)Modell schon. Antwortet das Modell aus dem Kopf, klicken Sie auf „Letzten Prompt wiederholen“. Wechseln Sie dann zum Szenario „Lazy Loading“, um
       zu sehen, wie derselbe Bedarf in einem viel leichteren Kontext Platz findet. Ohne
       Netzwerk bleibt data.gouv.fr als nicht verfügbar gezeichnet: Machen Sie mit dem
       lokalen Server weiter.
@@ -234,14 +229,7 @@ scenarios:
       kleinen Modell beobachtet: Es hört nach load_tool_doc auf und antwortet aus dem Kopf,
       manchmal mit „ich habe gesucht“, obwohl der Bereich Orchestrierung keinen Aufruf von
       local__define_term zeigt. Warum: Ein kleines Modell verkettet zwei Aufrufe schlecht
-      und hält die Dokumentation für die Antwort. Das ist die Demonstration: Klicken Sie
-      „Aufruf erzwingen · local__define_term“ unter „WaveStack-Glossar“ auf der Karte MCP
-      (nach „Erzwungene Aktionen anzeigen“), wählen Sie die Voreinstellung „MCP“, „Scharf
-      schalten“, dann „Letzten Prompt wiederholen“: Die Wiederholung setzt vor der Runde
-      an, der Aufruf erfolgt automatisch, seine Definition kommt zu den Tools des Modells,
-      und das Modell antwortet mit dem Ergebnis; der Harness garantiert den Aufruf, den das
-      Modell nicht macht. „Dokumentation laden“ (gleiche Karte) lädt nur die Dokumentation,
-      ohne das Tool aufzurufen. Der zweite Prompt fragt
+      und hält die Dokumentation für die Antwort. Das ist die Grenze eines kleinen Modells: Klicken Sie auf „Letzten Prompt wiederholen“ oder versuchen Sie es mit einem größeren Modell (Cloud), das die beiden Aufrufe verkettet. Der zweite Prompt fragt
       data.gouv.fr ab. Ohne Netzwerk bleibt data.gouv.fr als nicht verfügbar gezeichnet:
       Machen Sie mit dem lokalen Server weiter.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp]
@@ -263,10 +251,7 @@ scenarios:
       Der Prompt nennt den Skill und das Tool, weil ein kleines lokales Modell nicht immer
       die Verbindung zwischen Anfrage und Skill herstellt; ein größeres Modell lädt ihn
       allein auf die Anfrage hin (probieren Sie es mit einem Cloud-Modell): Den Skill zu nennen ist ein Gerüst für
-      das kleine Modell. Lädt das Modell
-      den Skill nicht, schalten Sie „Skill auslösen“ auf „Besprechungsprotokoll“ auf der
-      Karte Skills scharf (nach „Erzwungene Aktionen anzeigen“) und wiederholen Sie dann
-      den Prompt.
+      das kleine Modell. Lädt das Modell den Skill nicht, klicken Sie auf „Letzten Prompt wiederholen“.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills]
     mcp_lazy: true
     restore_memory: true
@@ -280,21 +265,19 @@ scenarios:
   caveman:
     title_text: Caveman
     description_text: >-
-      Senden Sie den Prompt, schalten Sie dann „Skill auslösen“ auf Caveman auf der Karte
-      Skills scharf (nach „Erzwungene Aktionen anzeigen“), wiederholen Sie den letzten
-      Prompt und öffnen Sie „Vergleichen“: dieselbe Frage, deutlich weniger Ausgabe-Tokens.
+      Senden Sie den ersten Prompt, dann den zweiten, mit dem das Modell den Skill Caveman lädt, und öffnen Sie „Vergleichen“: dieselbe Frage, deutlich weniger Ausgabe-Tokens.
     bricks: [short_memory, system_prompt, skills]
     prompts:
       - Erkläre in ein paar Sätzen, was ein Agent-Harness ist.
+      - >-
+        Lade zuerst den Skill caveman mit dem Tool load_skill und erkläre dann in ein paar
+        Sätzen, was ein Agent-Harness ist.
 
   hooks:
     title_text: Hooks
     description_text: >-
       Senden Sie den Prompt und sehen Sie sich dann das Band „Einhängepunkte“ im Schema an:
-      Der Schutz H1 blockiert das Lesen; es entscheidet Code, nicht das Modell. Ruft das
-      Modell das Tool nicht auf, erzwingen Sie den Aufruf von read_file mit der
-      Voreinstellung „Sensible Datei“ (nach „Erzwungene Aktionen anzeigen“) und wiederholen
-      Sie. Dieselbe Logik gilt für einen Skill oder ein Plugin von Dritten: ein Paket, das
+      Der Schutz H1 blockiert das Lesen; es entscheidet Code, nicht das Modell. Ruft das Modell das Tool nicht auf, klicken Sie auf „Letzten Prompt wiederholen“. Dieselbe Logik gilt für einen Skill oder ein Plugin von Dritten: ein Paket, das
       vor der Installation zu prüfen ist (Quelle, Skripte, angeforderte Rechte), denn ein
       Hook kontrolliert es zur Laufzeit, ersetzt diese Prüfung aber nicht.
     bricks: [short_memory, system_prompt, tools, hooks]
@@ -316,10 +299,7 @@ scenarios:
       eingespeisten Zusammenfassung, das ist die Ersparnis. Schalten Sie LLM-Kontext
       zwischen dem Hauptkontext (nur die Zusammenfassung, als „Ergebnis des Sub-Agenten“)
       und dem des Sub-Agenten (der ganze Leitfaden) um. Liest das Modell die Datei selbst,
-      kommt der Leitfaden in den Hauptkontext: Vergleichen Sie die Füllstandsanzeige und
-      schalten Sie dann „An den Sub-Agenten delegieren“ auf der Karte scharf (nach
-      „Erzwungene Aktionen anzeigen“), mit der Voreinstellung „Harness-Leitfaden
-      zusammenfassen“, und wiederholen Sie. Die drei folgenden Fragen testen die
+      kommt der Leitfaden in den Hauptkontext: Vergleichen Sie die Füllstandsanzeige und klicken Sie dann auf „Letzten Prompt wiederholen“. Die drei folgenden Fragen testen die
       Zusammenfassung: Was sie weggelassen hat, ist für den Haupt-Agenten verloren, der
       erneut delegieren oder zugeben muss, dass er es nicht weiß.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, subagent]
@@ -343,19 +323,13 @@ scenarios:
       Kompression kommt hinzu: Headroom kürzt große
       Tool-Ergebnisse vor dem Modellaufruf. Schalten Sie zuerst die Kompression aus und
       senden Sie den ersten Prompt: Das Modell ruft read_file auf, und das
-      Sicherungsprotokoll kommt vollständig in den Kontext. Liest es das Protokoll nicht,
-      klicken Sie „Aufruf erzwingen“ bei „Datei lesen“ auf der Karte Tools (nach
-      „Erzwungene Aktionen anzeigen“), wählen Sie die Voreinstellung „Sicherungsprotokoll
-      (Komprimierung)“, „Scharf schalten“, dann „Letzten Prompt wiederholen“, die Kompression
-      weiterhin ausgeschaltet. Schalten Sie sie wieder ein, wiederholen Sie den
+      Sicherungsprotokoll kommt vollständig in den Kontext. Liest es das Protokoll nicht, klicken Sie auf „Letzten Prompt wiederholen“, die Kompression weiterhin ausgeschaltet. Schalten Sie sie wieder ein, wiederholen Sie den
       Prompt und öffnen Sie „Vergleichen“. Klappen Sie den Schritt „Komprimierung des
       Kontexts“ im Bereich Orchestrierung auf: Tokens vorher und nachher, Originaltext und
       Kurzfassung, wo der Fehler geblieben ist. Im LLM-Kontext ist das Tool-Ergebnis mit
       „komprimiert“ markiert, und die Kopfzeile nennt die Summe ohne Komprimierung. Headroom
       verringert nur Redundanz: Ein Text ohne Redundanz, etwa Fließtext, geht unverändert
-      durch; das ist die Grenze des Tools. Um das zu zeigen, erzwingen Sie auf dieselbe
-      Weise die Voreinstellung „Harness-Leitfaden (Fließtext, Komprimierung)“, wiederholen
-      Sie und klappen Sie den Schritt auf: Der Leitfaden geht unverändert durch.
+      durch; das ist die Grenze des Tools. Um das zu zeigen, bitten Sie das Modell, guide_harnais.md zu lesen, und klappen Sie den Schritt auf: Der Leitfaden geht unverändert durch.
       Stellen Sie schließlich den zweiten Prompt: Was Headroom abgeschnitten hat, ist für
       das Modell verloren. Die Kompression verkleinert, was hineingeht, Caveman, was
       herauskommt. Meldet die Karte, dass Headroom nicht installiert ist, führen Sie
@@ -702,8 +676,7 @@ scenarios:
       Wartungsfenster, in dem Alarme stummgeschaltet waren; H2 protokolliert jeden Aufruf
       mit Zeitstempel. Der Prompt nennt den genauen Dateinamen: Schreibt das Modell ihn
       falsch, verweigert der Harness das Lesen und listet die verfügbaren Dateien auf, und
-      das Modell kann sich korrigieren; andernfalls erzwingen Sie das Lesen mit der
-      Voreinstellung „SIEM-Alarme (SOC)“ (siehe unten). Senden Sie den zweiten: Das Modell
+      das Modell kann sich korrigieren; andernfalls siehe unten. Senden Sie den zweiten: Das Modell
       sucht selbst in den Dateien, findet das Inventar der privilegierten Konten im
       vertraulichen Ordner, und H1 blockiert das Lesen. Der Agent hat dieses Privileg nicht:
       Der Harness entscheidet, nicht das Modell, und der Agent muss an einen befugten
@@ -711,11 +684,7 @@ scenarios:
       es ohne Eskalation ab (häufig bei einem kleinen Modell), ziehen Sie selbst den Schluss:
       Der Agent hat dieses Privileg nicht, die Entscheidung liegt bei einem befugten
       Analysten. Klicken Sie schließlich auf „Audit-Protokoll“ im Schema: Die erlaubten
-      Lesevorgänge und der blockierte stehen darin. Ruft das Modell das Tool nicht auf,
-      klicken Sie „Aufruf erzwingen“ bei „Datei lesen“ auf der Karte Tools (nach
-      „Erzwungene Aktionen anzeigen“), wählen Sie beim ersten Prompt die Voreinstellung
-      „SIEM-Alarme (SOC)“, beim zweiten „Privilegierte Konten (SOC, vertraulich)“, „Scharf
-      schalten“, dann „Letzten Prompt wiederholen“. Merken Sie sich: Das Protokoll des
+      Lesevorgänge und der blockierte stehen darin. Ruft das Modell das Tool nicht auf, klicken Sie auf „Letzten Prompt wiederholen“. Merken Sie sich: Das Protokoll des
       Harness zeichnet jede Aktion des Agenten auf, die Nachvollziehbarkeit, die NIS2 und
       DORA von einem Werkzeug verlangen, das auf das Informationssystem einwirkt; der Schutz
       setzt das Prinzip der minimalen Rechte durch, und die sensible Entscheidung bleibt bei
@@ -751,12 +720,7 @@ scenarios:
       (bis zu 1.200 behaltene Tokens): Zwei passen nicht zusammen ins Fenster, klicken Sie
       also auf „Unterhaltung leeren“ (Bereich Nutzeransicht), bevor Sie den zweiten Prompt
       senden; meldet die Füllstandsanzeige eine Überschreitung, sind das die echten Kosten
-      eines öffentlichen MCP. Antwortet das Modell, ohne zu suchen, klicken Sie „Aufruf
-      erzwingen · mslearn__microsoft_docs_search“ unter „Microsoft Learn“ auf der Karte MCP
-      (nach „Erzwungene Aktionen anzeigen“), wählen Sie beim ersten Prompt die
-      Voreinstellung „MFA für Administratoren (IAM)“, beim zweiten die Voreinstellung
-      „Just-in-Time-PIM (IAM)“,
-      „Scharf schalten“, dann „Letzten Prompt wiederholen“. Ohne Netzwerk (oder
+      eines öffentlichen MCP. Antwortet das Modell, ohne zu suchen, klicken Sie auf „Letzten Prompt wiederholen“. Ohne Netzwerk (oder
       hinter einem Proxy, der learn.microsoft.com blockiert) ist Microsoft Learn als nicht
       verfügbar gezeichnet, mit seinem Grund: Wählen Sie den Server auf der Karte MCP ab und
       wieder an, um es erneut zu versuchen. Merken Sie sich: eine Antwort mit Quellen, mit
@@ -791,18 +755,10 @@ scenarios:
       ablehnt) und antwortet aus dem Kopf, manchmal mit „ich habe gesucht“ und erfundenen
       Datensätzen, obwohl der Bereich Orchestrierung weder einen Aufruf des Tools noch eine ausgehende
       Anfrage zeigt. Warum: Ein kleines Modell verkettet zwei Aufrufe schlecht und hält die
-      Dokumentation für die Antwort. Das ist die Demonstration: Klicken Sie beim ersten
-      Prompt „Aufruf erzwingen · datagouv__search_datasets“ unter „data.gouv.fr“ auf der
-      Karte MCP (nach „Erzwungene Aktionen anzeigen“), wählen Sie die Voreinstellung
-      „Cybersicherheit“, „Scharf schalten“, dann „Letzten Prompt wiederholen“: Die
-      Wiederholung setzt vor der Runde an, die Suche erfolgt automatisch, und das Modell
-      antwortet mit ihrem Ergebnis; der Harness garantiert den Aufruf, den das Modell nicht
-      macht. Öffnen Sie die ausgehenden Daten
+      Dokumentation für die Antwort. Das ist die Grenze eines kleinen Modells: Klicken Sie auf „Letzten Prompt wiederholen“. Öffnen Sie die ausgehenden Daten
       dieses ersten Aufrufs. Zwei Suchergebnisse passen nicht zusammen ins Fenster: Klicken
       Sie auf „Unterhaltung leeren“ (Bereich Nutzeransicht), bevor Sie den zweiten Prompt
-      senden. Die Ausweichlösung dafür: „Aufruf erzwingen · mslearn__microsoft_docs_search“
-      unter „Microsoft Learn“, Voreinstellung „Protokollierung der Admin-Anmeldungen
-      (Souveränität)“, „Scharf schalten“, dann „Letzten Prompt wiederholen“. Das Schema
+      senden. Dieselbe Ausweichlösung gilt für den zweiten Prompt. Das Schema
       zeigt nur, was den Arbeitsplatz verlässt: Wo jeder MCP-Server läuft, bei welchem
       Hoster, mit welcher Qualifizierung (zum Beispiel SecNumCloud), bleibt Fluss für Fluss
       zu prüfen, und ein öffentlicher Dienst ist nicht von Natur aus souverän. Das Modell

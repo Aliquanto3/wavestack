@@ -4,10 +4,9 @@ harness's words, `content/prompts/subagent.md` for the sub-agent's system prompt
 from __future__ import annotations
 
 import yaml
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from wavestack import config
-from wavestack.tools.registry import ToolPreset
 
 
 class DelegateText(BaseModel):
@@ -20,18 +19,8 @@ class DelegateText(BaseModel):
 class SubagentContent(BaseModel):
     delegate: DelegateText
     phase_label_text: str = Field(min_length=1)  # « Appel au sous-agent »
-    force_label_text: str = Field(min_length=1)  # « Déléguer au sous-agent »
-    task_label_text: str = Field(min_length=1)  # the forced form's field help, for the user
-    presets: list[ToolPreset] = []
     overflow_cause_text: str = Field(min_length=1)
     prompt: str = Field(min_length=1)  # content/prompts/subagent.md
-
-    @model_validator(mode="after")
-    def _presets_fill_the_task(self) -> SubagentContent:
-        for preset in self.presets:
-            if set(preset.args) != {"task"} or not str(preset.args["task"]).strip():
-                raise ValueError(f"preset {preset.label_text!r}: `task` only, not empty")
-        return self
 
 
 def load_subagent_content(lang: str | None = None) -> SubagentContent:

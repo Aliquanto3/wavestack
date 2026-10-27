@@ -11,8 +11,7 @@ explanation_text:
     das Modell vor Ihren Nachrichten erhält).
   - >-
     Das Modell erinnert sich an nichts: Es schreibt ins Gedächtnis, indem es ein Tool des
-    Harness aufruft, remember, und der Harness schreibt die Datei. Sie können auch einen
-    Schreibvorgang erzwingen oder die Einträge über „Gedächtnis bearbeiten“ ansehen, ändern
+    Harness aufruft, remember, und der Harness schreibt die Datei. Sie können auch die Einträge über „Gedächtnis bearbeiten“ ansehen, ändern
     und löschen.
   - - "Nutzen: Das Modell „erinnert sich“ von einer Unterhaltung zur nächsten, sogar nach einem Neustart."
     - >-
@@ -22,7 +21,7 @@ explanation_text:
       Daten: Mit einem Cloud-Modell geht jeder Eintrag bei jedem Aufruf an den Anbieter, in
       der Systemnachricht. Legen Sie dort nie ein Geheimnis ab.
   - >-
-    Ein geschriebener Eintrag (vom Modell, durch einen erzwungenen Schreibvorgang oder in
+    Ein geschriebener Eintrag (vom Modell oder in
     „Gedächtnis bearbeiten“) steht sofort in der Datei, kommt aber erst in der nächsten
     Unterhaltung in die Systemnachricht: nach „Unterhaltung leeren“ oder einem
     Szenariowechsel. Löschen oder Ändern wirkt dagegen sofort. So bleibt die Systemnachricht

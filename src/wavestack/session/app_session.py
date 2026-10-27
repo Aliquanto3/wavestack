@@ -234,7 +234,6 @@ from wavestack.rag.retriever import Excerpt, SqliteVecRetriever
 from wavestack.scenarios import EMPTY_PROGRAM, ScenariosContent, load_scenarios
 from wavestack.session import compaction, llm_lab
 from wavestack.session.effects import (
-    ArmConsumed,
     AuditAppend,
     Effect,
     MemoryWrite,
@@ -252,7 +251,6 @@ from wavestack.tools.network import network_tools
 from wavestack.tools.parser import (
     Malformed,
     ToolCall,
-    convert_value,
     parse_tool_calls,
     tool_call_id,
 )
@@ -564,39 +562,6 @@ class _ModelOutput:
 
 
 @dataclass(frozen=True)
-class ArmedAction:
-    """An action the user armed for the next turn (AD-3, AD-25): the session alone holds
-    them. `kind`: a native tool call with its `args`, a skill, an MCP documentation, or a
-    memory write with its `text` (story 14)."""
-
-    armed_id: str
-    kind: str  # tool | skill | tool_doc | memory | delegate
-    brick: str
-    target: str
-    args: dict[str, Any]
-    label_text: str
-
-    def payload(self) -> dict[str, Any]:
-        return {
-            "armed_id": self.armed_id,
-            "kind": self.kind,
-            "brick": self.brick,
-            "target": self.target,
-            "args": self.args,
-            "label_text": self.label_text,
-        }
-
-
-class ArmRefused(Exception):
-    """An arming the session refuses: unknown target (`not_found`) or invalid arguments."""
-
-    def __init__(self, reason_text: str, *, not_found: bool = False) -> None:
-        super().__init__(reason_text)
-        self.reason_text = reason_text
-        self.not_found = not_found
-
-
-@dataclass(frozen=True)
 class TurnState:
     """What a turn reads for all its calls, frozen at its start (AD-17)."""
 
@@ -617,8 +582,6 @@ class TurnState:
     # Hooks (AD-13): the active ones, in call order; H3's text, set by `on_user_message`.
     hooks: tuple[str, ...] = ()
     injection: str = ""
-    # Story 9: the armed actions taken when the turn is sent, consumed in arming order.
-    armed: tuple[ArmedAction, ...] = ()
     # Story 14 (AD-4): the global memory's texts, read at the turn's start; empty when the
     # brick is not effective. A write during the turn waits for the next one.
     memory: tuple[str, ...] = ()
@@ -1186,9 +1149,6 @@ class AppSession:
         self._approval: _Approval | None = None
         self._approvals = 0
         self._hooks_off: set[str] = set()
-        # Story 9 (AD-3): the armed actions, in arming order, and their counter for ids.
-        self._armed: list[ArmedAction] = []
-        self._arms = 0
         # Story 9b (AD-17): the last turn started and the conversational state it started
         # from (turn id, message, history, skills and documentations loaded), for the replay.
         # Lot A (N1): with the global memory it read, frozen for the conversation.
@@ -1601,8 +1561,6 @@ class AppSession:
         with self._lock:
             enabled = set(self._mcp_enabled)
             drifts = dict(self._mcp_drift)
-        available = self._mcp_tool_names()
-        tools = {s: [n for n in available if n.startswith(f"{s}__")] for s in self._mcp_servers}
         return [
             {
                 "id": server.id,
@@ -1612,10 +1570,6 @@ class AppSession:
                     "session.hosting.network" if server.network else "session.hosting.local"
                 ),
                 "network": server.network,
-                # Story 9: the tools whose documentation « Charger la documentation » loads.
-                "tools": tools.get(server.id, []),
-                # Lot K: « Forcer l'appel » of each of them, its form and its presets.
-                "calls": [self._mcp_call_option(n) for n in tools.get(server.id, [])],
                 # AD-9 (E089): its live tools drift from its snapshot beyond the threshold.
                 "drift_text": self._drift_text(server.id, drifts[server.id])
                 if server.id in drifts
@@ -1626,27 +1580,6 @@ class AppSession:
             # sub-option (its own OAuth block lives on the MCP page, not here).
             if server.id != "github"
         ]
-
-    def _mcp_call_option(self, name: str) -> dict[str, Any]:
-        """Lot K: the form of an MCP tool's forced call: one field per parameter of its
-        schema, described by the server (« facultatif » when not required), and the presets
-        of `content/mcp.yaml` restricted to those parameters."""
-        spec = self._registry.get(name)
-        params = dict(spec.params) if spec else {}
-        properties = ((spec.schema if spec else None) or {}).get("properties") or {}
-        required = set(params) if spec is None or spec.required is None else set(spec.required)
-        parameters = {}
-        for arg in params:
-            described = properties.get(arg, {}) if isinstance(properties, dict) else {}
-            text = described.get("description") if isinstance(described, dict) else None
-            text = str(text).strip() if text else f"Argument {arg}."
-            parameters[arg] = text if arg in required else f"{text} (facultatif)"
-        content = self._mcp_content.call_presets.get(name, []) if self._mcp_content else []
-        presets = [
-            {"label_text": p.label_text, "args": {k: v for k, v in p.args.items() if k in params}}
-            for p in content
-        ]
-        return {"tool": name, "parameters": parameters, "presets": presets}
 
     def _skill_options(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -1685,7 +1618,6 @@ class AppSession:
             # MCP tools are the mcp brick's servers; harness tools are no sub-option.
             if spec is None or spec.is_mcp or spec.source == "harness":
                 continue
-            text = self._tools_content.tools.get(name) if self._tools_content else None
             options.append(
                 {
                     "id": name,
@@ -1695,11 +1627,6 @@ class AppSession:
                         "session.hosting.network" if spec.network else "session.hosting.local"
                     ),
                     "network": spec.network,
-                    # Story 9: the form of a forced call, one field per parameter.
-                    "parameters": {
-                        arg: text.parameters.get(arg, arg) if text else arg for arg in spec.params
-                    },
-                    "presets": [p.model_dump() for p in text.presets] if text else [],
                 }
             )
         return options
@@ -1711,20 +1638,13 @@ class AppSession:
             retries=self.cfg.tool_max_retries,
         )
 
-    def _subagent_card(self, text: SubagentContent) -> dict[str, Any]:
-        """Story 19: « Déléguer au sous-agent » on the card (no sub-option), and the bounds."""
+    def _subagent_card(self) -> dict[str, Any]:
+        """Story 19: the sub-agent card's bounds (no sub-option)."""
         tools = ", ".join(self._registry.label(n) for n in self.cfg.subagent_tools) or self._t(
             "tools.check.none"
         )
         n = self.cfg.subagent_max_calls
         return {
-            "force": {
-                "kind": "delegate",
-                "target": DELEGATE,
-                "label_text": text.force_label_text,
-                "parameters": {"task": text.task_label_text},
-                "presets": [p.model_dump() for p in text.presets],
-            },
             "limits_text": self._t("session.bricks.subagent_limits", count=n, tools=tools),
         }
 
@@ -1811,7 +1731,7 @@ class AppSession:
             if brick.id == "global_memory":
                 bricks[-1] |= self._memory_card()
             if brick.id == "subagent" and self._subagent_content is not None:
-                bricks[-1] |= self._subagent_card(self._subagent_content)
+                bricks[-1] |= self._subagent_card()
             if brick.id == "rag":
                 bricks[-1] |= self._rag_offers() | {"rerank": self._rerank_card()}
             if brick.id == "compression" and self._compression_content is not None:
@@ -4237,7 +4157,7 @@ class AppSession:
 
     def _memory_card(self) -> dict[str, Any]:
         """What the memory card and its drawer say (AD-19): the note without a tool parser
-        (H4), the empty drawer's text, the forced write's field help."""
+        (H4) and the empty drawer's text."""
         note_text = self._memory_note_fr()
         content = self._memory_content
         if content is None:
@@ -4246,9 +4166,6 @@ class AppSession:
         return {
             "note_text": note_text,
             "empty_text": drawer.empty_no_parser_text if note_text else drawer.empty_text,
-            "text_help_text": drawer.text_help_text.replace(
-                "{max_chars}", str(memory_file.MAX_CHARS)
-            ),
         }
 
     def _memory_note_fr(self) -> str | None:
@@ -4466,7 +4383,7 @@ class AppSession:
                     reply["tool_call_id"] = step["id"]
                 messages.append(reply | {"content": content})
                 continue
-            # A forced action's call is attributed to its brick (AD-25), the model's to it.
+            # A call is attributed to the step's brick (AD-25), the model's to it.
             kind, brick, component = (
                 memory
                 if history
@@ -5205,8 +5122,6 @@ class AppSession:
             cancel = self._cancel = CancelToken()
             # Switched under the lock, so a second `send` racing this one is refused.
             self.state, self.reason_text = "turn", self._turn_reason()
-            # AD-3: the armed actions this turn takes; one armed from now waits for the next.
-            armed = tuple(self._armed)
             self._last = (
                 turn_id,
                 message,
@@ -5225,7 +5140,7 @@ class AppSession:
                     self._memory_snapshot = tuple((e.id, e.text) for e in self._memory)
                 self._last = (*self._last[:5], self._memory_snapshot)  # type: ignore[index]
         # Frozen now: a later toggle waits for the next turn.
-        state = replace(self.build_turn_state(), armed=armed)
+        state = self.build_turn_state()
         had_pending = bool(self._pending_ids())
         mcp_tools = frozenset(self._mcp_tool_names())
         with self._lock:
@@ -5321,124 +5236,6 @@ class AppSession:
         self._emit_bricks()
         self._emit_architecture()
         self._refresh_preview()
-
-    # ---------- forced actions (story 9, AD-3, AD-25) ----------
-
-    def arm(self, kind: str, target: str, args: dict[str, Any] | None = None) -> str:
-        """Class (a): arms an action for the next turn; returns its `armed_id`. Raises
-        `ArmRefused` for an unknown target (`not_found`) or invalid arguments: nothing is
-        armed then. Whether the target is still available is checked at consumption."""
-        args = dict(args or {})
-        if kind == "tool":  # a tool of the tools brick, or an MCP server's (lot K, 2026-09-29)
-            spec = self._registry.get(target)
-            if (
-                spec is None
-                or spec.source == "harness"  # a meta-tool has its own action
-                or (spec.is_mcp and self._mcp_content is None)
-            ):
-                raise ArmRefused(Message("session.arm.unknown_tool", target=target), not_found=True)
-            # The form's fields are text: converted per the tool's schema, as a model's call;
-            # an optional argument left empty is not sent (an MCP tool's optional ones).
-            optional = set(spec.params) - set(spec.required) if spec.required is not None else set()
-            args = {
-                arg: convert_value(value, spec.params.get(arg)) if isinstance(value, str) else value
-                for arg, value in args.items()
-                if not (arg in optional and isinstance(value, str) and not value.strip())
-            }
-            detail = self._tool_executor.check(ToolCall(target, args), [target])
-            if detail is not None:
-                raise ArmRefused(Message("session.arm.nothing_armed", why=detail))
-            brick = spec.brick or spec.component.split(".")[0]
-            shown = ", ".join(str(value) for value in args.values())
-            label = self._registry.label(target)
-            label_text = f"{label} ({shown})" if shown else label
-        elif kind == "skill":
-            if self._skills_content is None or target not in self._skill_ids():
-                raise ArmRefused(
-                    Message("session.arm.unknown_skill", target=target), not_found=True
-                )
-            args, brick, label_text = {}, "skills", self._skill_label(target)
-        elif kind == "tool_doc":
-            spec = self._registry.get(target)
-            if self._mcp_content is None or spec is None or not spec.is_mcp:
-                raise ArmRefused(
-                    Message("session.arm.unknown_mcp_tool", target=target), not_found=True
-                )
-            args, brick, label_text = {}, "mcp", Message("session.arm.doc_label", target=target)
-        elif kind == "memory":
-            if self._memory_content is None or target != REMEMBER:
-                raise ArmRefused(
-                    Message("session.arm.unknown_memory_action", target=target), not_found=True
-                )
-            try:
-                text = memory_file.check_text(args.get("text"))
-            except ValueError as exc:
-                raise ArmRefused(Message("session.arm.nothing_armed", why=exc)) from None
-            shown = text if len(text) <= 40 else f"{text[:40].rstrip()}…"
-            args, brick, label_text = (
-                {"text": text},
-                "global_memory",
-                Message("session.arm.memory_label", text=shown),
-            )
-        elif kind == "delegate":  # story 19: the card's action, its target fixed
-            if self._subagent_content is None or target != DELEGATE:
-                raise ArmRefused(
-                    Message("session.arm.not_delegation", target=target), not_found=True
-                )
-            extra = sorted(set(args) - {"task"})
-            if extra:
-                raise ArmRefused(Message("session.arm.delegation_argument", args=", ".join(extra)))
-            task = args.get("task", "")
-            if not isinstance(task, str):
-                raise ArmRefused(Message("session.arm.task_not_text"))
-            task = task.strip()
-            if not task:
-                raise ArmRefused(Message("session.arm.task_empty"))
-            shown = task if len(task) <= 40 else f"{task[:40].rstrip()}…"
-            args, brick, label_text = (
-                {"task": task},
-                "subagent",
-                Message("session.arm.delegation_label", task=shown),
-            )
-        else:
-            raise ArmRefused(Message("session.arm.unknown_action", kind=kind), not_found=True)
-        with self._lock:
-            self._arms += 1
-            action = ArmedAction(f"arm{self._arms}", kind, brick, target, args, label_text)
-            self._armed.append(action)
-        self._emit_armed()
-        return action.armed_id
-
-    def disarm(self, armed_id: str) -> None:
-        """Class (a): removes an armed action. A turn that already took it still runs it.
-        Raises `ArmRefused` (`not_found`) when it is not armed."""
-        with self._lock:
-            kept = [a for a in self._armed if a.armed_id != armed_id]
-            found = len(kept) != len(self._armed)
-            self._armed = kept
-        if not found:
-            raise ArmRefused(
-                Message("session.arm.not_armed", armed_id=armed_id),
-                not_found=True,
-            )
-        self._emit_armed()
-
-    def _emit_armed(self) -> None:
-        """AD-1: the front projects the chips from this event, replayed on reload."""
-        with self._lock:
-            actions = [a.payload() for a in self._armed]
-        self._journal().emit("armed_actions_changed", {"actions": actions})
-
-    def _apply_arm_consumed(self, effects: list[ArmConsumed]) -> None:
-        """`ArmConsumed`: the actions a turn took leave the list at its end, whatever its
-        status (AD-3); an action armed during the turn stays for the next one."""
-        ids = {e.armed_id for e in effects}
-        with self._lock:
-            kept = [a for a in self._armed if a.armed_id not in ids]
-            changed = len(kept) != len(self._armed)
-            self._armed = kept
-        if changed:
-            self._emit_armed()
 
     # ---------- MCP servers (story 6, AD-15, AD-24) ----------
 
@@ -5723,7 +5520,7 @@ class AppSession:
     ) -> _SubOutcome:
         """AD-10, AD-11: the sub-agent's bounded loop, as the turn's (`_turn`) but in its own
         context: its calls on a counter of their own, the new attempts among them; the hooks
-        `before_model_call`, `before_tool` and `after_tool`; no armed action, no loading.
+        `before_model_call`, `before_tool` and `after_tool`; no loading.
         Fills `figures` (`calls`, `context_tokens`) as it goes."""
         journal = self._journal()
         turn_id, cid = current().turn_id or "", sub.context_id
@@ -7305,12 +7102,10 @@ class AppSession:
         self._memory_snapshot = None  # N1: the next conversation reads it again
         self._cache_cause = "reset"
         self._overflowed, self._overflow_plans = None, {}  # V1.4 story 4
-        self._armed.clear()
 
     def _reconfigured(self, before: set[str], after: set[str]) -> None:
-        """After a configuration changed: the armed actions, the scenario, the MCP
-        connections on the difference only (AD-15), the loads, the schema, the preview."""
-        self._emit_armed()
+        """After a configuration changed: the scenario, the MCP connections on the
+        difference only (AD-15), the loads, the schema, the preview."""
         self._emit_scenario()
         for server_id in sorted(before - after):
             self._mcp_disconnect(server_id)
@@ -7968,7 +7763,6 @@ class AppSession:
                     )
                     with self._lock:
                         self._history.append(exchange)
-                self._apply_arm_consumed([ArmConsumed(armed_id=a.armed_id) for a in state.armed])
                 journal.emit(
                     "turn_ended",
                     {"status": status, "duration_ms": _ms(time.monotonic() - started)}
@@ -8010,13 +7804,7 @@ class AppSession:
         # so the prefix stays append only; in chat mode, they enter `tools` from the next
         # call, since a provider refuses a call to a tool its `tools` lacks.
         loaded_in_turn: list[str] = []
-        # AD-3: the armed actions, after `on_user_message` and before the first call, outside
-        # the call budget (AD-10). Lot K: the MCP tools they called join `tools` at once.
-        defined: list[str] = []
-        stopped, step = self._consume_armed(turn_id, state, cancel, steps, loaded_in_turn, defined)
-        state = _with_loaded(state, defined)
-        if stopped:
-            return "cancelled", "", ""
+        step = 0
         if "guardrails" in state.effective:  # story 5 (CAP-5): once per turn, before any call
             message, blocked = self._guardrail_check(turn_id, "input", message)
             self._turn_input = message
@@ -8102,7 +7890,7 @@ class AppSession:
                 ),
                 "tools",
             )
-            # AD-25: what the model decided carries `trigger = model`, a forced action `user`.
+            # AD-25: what the model decided carries `trigger = model`.
             with scoped(
                 call_id=call_id, brick=harness_brick, component="core.harness", trigger="model"
             ):
@@ -8687,7 +8475,7 @@ class AppSession:
         """AD-14: the single path of a checked call, `before_tool`, execution, `after_tool`.
         Returns the text reinjected and the id of the hook that blocked the call (then the tool
         never runs, and has no step), or `None` when the turn is stopped. H5's `ask_human`
-        (story 8b) waits here; the forced action and the sub-agent (story 9) go through here."""
+        (story 8b) waits here; the sub-agent (story 9) goes through here."""
         decided = self._hook("before_tool", state, call=call, spec=spec)
         if decided is not None:
             hook_id, result = decided
@@ -8780,165 +8568,6 @@ class AppSession:
             elif isinstance(effect, SkillLoaded):
                 tool_step |= self._apply_skill_loaded(effect.skill_id)
         return tool_step
-
-    def _consume_armed(
-        self,
-        turn_id: str,
-        state: TurnState,
-        cancel: CancelToken,
-        steps: list[dict[str, Any]],
-        loaded_in_turn: list[str],
-        defined: list[str],
-    ) -> tuple[bool, int]:
-        """AD-3, AD-25: runs the actions the turn took, in arming order, each through the
-        single executor, hooks included, with `trigger = user`. Each is rendered as an
-        assistant call attributed to its brick, then its reply. A failure (H1's block, a tool
-        error) is reinjected, never a new attempt; an unavailable target is dropped with its
-        reason. Returns whether the turn was stopped, and the steps numbered so far.
-
-        Lot K: in chat mode, a forced call of an MCP tool whose documentation is not loaded
-        (lazy loading) adds its definition to `tools` (AD-25), for the conversation: its
-        name joins `defined`, and the caller moves it out of `loadable` for this turn's
-        calls. Locally (D16-c), the call is rendered with its result and the tool stays to
-        load: `tools` never changes within a conversation."""
-        step = 0
-        for action in state.armed:
-            if cancel.cancelled:
-                return True, step
-            call = self._armed_call(action)
-            spec = self._registry.get(call.name)
-            reason = self._armed_unavailable(action, state, loaded_in_turn)
-            if reason is None and spec is None:
-                reason = Message("session.forced.undeclared", name=call.name)
-            if reason is None:
-                reason = self._tool_executor.check(call, [call.name])
-            if reason is not None or spec is None:
-                with scoped(brick=action.brick, trigger="user"):
-                    self._journal().emit(
-                        "action_dropped",
-                        {
-                            "armed_id": action.armed_id,
-                            "reason_text": Message(
-                                "session.forced.dropped",
-                                label=action.label_text,
-                                reason=Lazy(lambda lang, r=reason: render(r, lang).rstrip(".")),
-                            ),
-                        },
-                    )
-                continue
-            if (
-                action.kind == "tool"
-                and spec.is_mcp
-                and call.name in state.loadable
-                and self._cloud is not None  # D16-c: chat mode only
-            ):
-                with self._lock:
-                    self._loaded_docs.add(call.name)
-                if call.name not in defined:
-                    defined.append(call.name)
-            step += 1
-            step_id = f"{turn_id}.main.s{step}"
-            call_ref = self._new_call_id(step_id, 0)  # AD-4: index 0, its own step
-            target = self._registry.get(action.target) if action.kind == "tool_doc" else spec
-            component = (
-                f"skills.{action.target}" if action.kind == "skill" else (target or spec).component
-            )
-            effects: list[Effect] = []
-            with scoped(trigger="user"):
-                ran = self._run_tool(call, spec, state, cancel, effects, step_id, action.brick)
-            if ran is None:
-                return True, step
-            result, blocker = ran
-            made: dict[str, Any] = {
-                "id": call_ref,
-                "name": call.name,
-                "arguments": call.arguments,
-                "arguments_json": json.dumps(call.arguments, ensure_ascii=False),
-            }
-            cloud = self._cloud
-            if cloud is not None and cloud.tool_call_extra:  # chat mode (Gemini 3.x)
-                made |= {"extra": dict(cloud.tool_call_extra), "extra_for": cloud.id}
-            steps.append(
-                {
-                    "role": "assistant",
-                    "content": "",
-                    "tool_calls": [made],
-                    "brick": action.brick,
-                    "component": component,
-                }
-            )
-            tool_step = self._reply_step(
-                call_ref, call.name, result, component, action.brick, blocker, spec
-            )
-            steps.append(self._apply_effects(effects, tool_step, loaded_in_turn))
-        return False, step
-
-    @staticmethod
-    def _armed_call(action: ArmedAction) -> ToolCall:
-        """The call a forced action makes: the tool itself, or its brick's meta-tool."""
-        if action.kind == "skill":
-            return ToolCall(LOAD_SKILL, {"skill": action.target})
-        if action.kind == "tool_doc":
-            return ToolCall(LOAD_TOOL_DOC, {"tool": action.target})
-        if action.kind == "memory":
-            return ToolCall(REMEMBER, {"text": action.args.get("text", "")})
-        if action.kind == "delegate":
-            return ToolCall(DELEGATE, {"task": action.args.get("task", "")})
-        return ToolCall(action.target, dict(action.args))
-
-    def _armed_unavailable(
-        self, action: ArmedAction, state: TurnState, loaded_in_turn: list[str]
-    ) -> str | None:
-        """Why a forced action's target is not available to this turn, in French; `None`
-        when it is. Read from the frozen `TurnState`, plus what this turn loaded."""
-        target = action.target
-
-        def why(key: str, **kw: Any) -> Message:
-            return Message(f"session.forced.{key}", **kw)
-
-        if action.kind == "tool" and action.brick == "mcp":  # lot K: an MCP tool's call
-            if "mcp" not in state.effective:
-                return why("inactive.mcp")
-            if target not in state.tools and target not in state.loadable:
-                return why("server_off", target=target)
-            return None
-        if action.kind == "tool":
-            if "tools" not in state.effective:
-                return why("inactive.tools")
-            if target not in state.tools:
-                return why("tool_unchecked", tool=self._registry.label(target))
-            return None
-        if action.kind == "skill":
-            if "skills" not in state.effective:
-                return why("inactive.skills")
-            with self._lock:
-                loaded = target in self._loaded_skills
-            if target in state.skills or loaded:
-                return why("skill_loaded", skill=self._skill_label(target))
-            if target not in state.skill_catalog:
-                return why("skill_unchecked", skill=self._skill_label(target))
-            return None
-        if action.kind == "memory":
-            if "global_memory" not in state.effective:
-                return why("inactive.global_memory")
-            if REMEMBER not in state.tools:  # H4: no tool parser
-                return why("no_parser")
-            return None
-        if action.kind == "delegate":
-            if "subagent" not in state.effective:
-                return why("inactive.subagent")
-            return None
-        if "mcp" not in state.effective:
-            return why("inactive.mcp")
-        with self._lock:
-            lazy = self._sent[4]  # the mode frozen for this turn by `send`
-        if not lazy and target in state.tools:
-            return why("doc_in_context", target=target)
-        if target in loaded_in_turn or target in state.tools or target in state.documented:
-            return why("doc_loaded", target=target)  # D16: read in the history too
-        if target not in state.loadable:
-            return why("server_off", target=target)
-        return None
 
     def _await_human(self, hook_id: str, call: ToolCall, preview: dict[str, str]) -> str:
         """H5 (AD-13): `awaiting_human` until the user answers or stops the turn, without

@@ -73,3 +73,34 @@ Correction de brownfield.md : le champ `force` des briques n'est ni dans `bricks
 ## Décisions d'Anaël (2026-10-27)
 
 Q1 à Q4 : recommandations retenues telles quelles.
+
+## Réalisation (dev, 2026-10-27)
+
+- Séance, routes, catalogue, modèles de contenu : `ArmedAction`, `ArmRefused`, `arm`/`disarm`, `_consume_armed`, `ArmConsumed`, les routes `/api/intentions/arm` et `/disarm`, les kinds `armed_actions_changed` et `action_dropped`, `BrickForce`, `ToolPresetState`, `McpCallOption`, les champs `parameters`, `presets`, `tools`, `calls` des options, `force` et `text_help_text` des cartes, `ToolPreset` et `presets` (tools.yaml, subagent.yaml), `force_label_text` et `task_label_text` retirés. `tools` des options MCP n'avait pas d'autre lecteur que le forçage.
+- Interface : bascule, boutons, formulaires, puces, badge « Forcé par l'utilisateur », ligne « Action forcée abandonnée » et leur CSS retirés, ainsi que `.brick-help` et `.brick-explanation`, qui ne servaient plus qu'au popover des actions forcées depuis 16.5. `.force-error` gardé.
+- Q1 : chaque secours cite « Rejouer le dernier prompt » (fr, en, de). Caveman, dont la démonstration reposait sur l'armement du skill, reçoit un second prompt qui fait charger le skill par le modèle, puis « Comparer » ; le faux fournisseur des E2E le suit (`skill caveman`).
+- Q3 : `tool_call_extra` reste dans `CloudModel`, ignoré ; retiré du `wavestack.toml` livré et de l'entrée Gemini des E2E. La référence octet par octet de `test_cloud_api` garde la signature de Gemini en dur (celle que Gemini renvoie), pour une empreinte inchangée.
+- Tests supprimés car sans objet : `test_forced.py`, les tests d'armement (cloud, compression, mémoire, rejeu, sous-agent, borne des résultats) et `test_before_model_call_hooks_apply_inside_the_sub_agent`, qui n'atteignait le sous-agent que par une délégation forcée. `test_the_sub_agent_context_is_never_reranked` passe par une délégation du modèle.
+- E2E : `forced_native` supprimé ; son contrôle D5 (outils consultés) passe dans `native_tools`. `mcp_full`, `mcp_lazy`, `hooks`, `subagent` perdent leur partie forcée ; `global_memory` écrit sa cinquième entrée par le modèle ; `compression` fait lire `guide_harnais.md` au modèle ; `content_language` lit les fichiers par le modèle.
+
+### Reports
+
+- `test-durations-*.json` gardent les entrées des tests supprimés : la CI les régénère.
+- `docs/recette/runs/*.html` (comptes rendus de recettes passées) citent encore l'action forcée : historiques, non modifiés.
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu fad387cc)
+
+- Important · medium · second avis · corrigé : `test_before_model_call_hooks_apply_inside_the_sub_agent` supprimé, plus aucun test du hook `before_model_call` dans le sous-agent. Réécrit avec une délégation du modèle et un hook qui ne bloque que hors de `main`.
+- Important · medium · reviewer · corrigé : E2E `compression` vérifiait encore « « Journal de sauvegarde (compression) » » (préréglage retiré) dans la consigne, échec certain. Vérifie désormais « Rejouer le dernier prompt ».
+- Nit · low · second avis · corrigé : coupe d'un résultat réseau sans test hors sous-agent ; `test_a_network_result_called_by_the_model_is_cut` (fetch_page appelé par le modèle, mode natif).
+- Nit · low · second avis · rejeté : `s_skills` vérifie le texte de la consigne ; c'est un contrôle d'affichage de la consigne, le comportement (load_skill) est vérifié plus loin dans le même scénario.
+- Nit · low · reviewer · corrigé : `.claude/skills/demo-recette-chrome/SKILL.md` citait encore « Afficher les actions forcées ».
+- Nit · low · reviewer · signalé : Caveman passe par un second prompt (choix à valider par Anaël) ; techniquement sain (le faux fournisseur suit `skill caveman` en fr/en, la sortie du second tour reste plus courte).
+- Complexité : 0 constat (code retiré, aucune structure nouvelle).
+- E2E non lancés ici (règle du run) : `compression` (nouveau troisième tour, environ 5 k tokens sur une fenêtre de 32 k, pas de débordement attendu), `caveman`, `global_memory`, `content_language`, `native_tools` à surveiller dans les tranches de l'orchestrateur.
+
+### Passe 2 (2026-10-27, SHA revu 733875ec)
+
+- Important · medium · E2E tranche 2 · corrigé : `s_subagent` attendait l'onglet « Agent principal » sélectionné au tour suivant, mais ce tour (« Bonjour ») ne délègue plus depuis le retrait de la délégation forcée : sans sous-agent, les onglets ne sont pas dessinés. L'attente du test était fausse, pas l'application. Le tour suivant renvoie le prompt du scénario (délégation par le modèle). `--only subagent` : 48 OK, 0 échec.

@@ -3,8 +3,8 @@
     uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py [--only NAME ...] [--keep]
 
 Starts `stack.running_stack`, picks the fake model at the diagnostic like a user, then
-plays each scenario of `content/scenarios.yaml` and the transverse features (forced
-actions, replay and compare, reset, H5). Every check is printed PASS/FAIL; a failing
+plays each scenario of `content/scenarios.yaml` and the transverse features (replay and
+compare, reset, H5). Every check is printed PASS/FAIL; a failing
 scenario does not stop the next one. Screenshots go to `tools/e2e/screenshots/` (JPEG),
 logs to the data dir (printed with `--keep`). Exit code 1 when a check failed.
 """
@@ -287,9 +287,7 @@ class Run:
             time.sleep(0.3)
 
     def open_options(self, brick: str) -> None:
-        """Unfolds the card's option list. D3 (2026-10-01): « Afficher les actions forcées »
-        unfolds it too, at the next render; a click landing just after that render folds it
-        back, so the list is checked open, and clicked again if not."""
+        """Unfolds the card's option list: checked open, and clicked again if not."""
         details = self.card(brick).locator("details.brick-options")
         for _ in range(3):
             if details.get_attribute("open") is None:
@@ -316,24 +314,6 @@ class Run:
             toggle.click()
             self.ev.wait("bricks_changed", seq, timeout=10)
             time.sleep(0.3)
-
-    def show_forced(self, on: bool = True) -> None:
-        toggle = self.page.locator("label.force-toggle input")
-        if toggle.is_checked() != on:
-            toggle.click()
-
-    def arm(self, button_label: str, preset: str | None = None) -> dict[str, Any]:
-        seq = self.ev.mark()
-        button = self.page.get_by_role("button", name=button_label)
-        needs_form = button.get_attribute("aria-expanded") is not None
-        button.click()
-        if needs_form:
-            form = self.page.locator(".force-form")
-            expect(form).to_be_visible(timeout=5000)
-            if preset is not None:
-                form.locator("select").first.select_option(label=preset)
-            form.get_by_role("button", name="Armer").click()
-        return self.ev.wait("armed_actions_changed", seq, lambda p: bool(p["actions"]), timeout=10)
 
     def poll(self, condition: Callable[[], bool], timeout: float = 15) -> tuple[bool, float]:
         """Whether `condition` becomes true within `timeout`, and after how long."""
@@ -1272,6 +1252,8 @@ def s_native_tools(r: Run) -> None:
         )
         if tool == "get_datetime":
             _read_and_produced(r, seq)
+        if tool == "calculator":
+            _consulted_tools(r)
     orch = r.page.locator("#orch-scroll").inner_text()
     r.check("Demande un outil" in orch, "Orchestration montre la demande d'outil")
     r.shot("05-outils-natifs-orchestration")
@@ -5046,16 +5028,6 @@ def s_mcp_full(r: Run) -> None:
     _ctx_focus_shot(r, "10b-contexte-outils-mcp-en-arbre")
     r.shot("10-mcp-documentation-complete")
     r.results.append((r.current, f"jauge avant envoi : {gauge}", True, ""))
-    # Lot K: in full documentation too, each tool of the local server has its forced call.
-    r.show_forced(True)
-    r.open_options("MCP")
-    button = r.page.get_by_role("button", name="Forcer l'appel : local__define_term")
-    r.check(
-        button.count() == 1 and "Forcer l'appel · local__define_term" in button.inner_text(),
-        "documentation complète : bouton « Forcer l'appel · local__define_term »",
-        button.inner_text() if button.count() else "absent",
-    )
-    r.show_forced(False)
     _mcp_server_switch(r)
 
 
@@ -5214,63 +5186,14 @@ def s_mcp_lazy(r: Run) -> None:
         "D16 : aucune relecture `system` au tour qui suit load_tool_doc",
         str(rereads)[:200],
     )
-    # Story 9: force an MCP documentation. D3 (2026-10-01): the switch unfolds the MCP list.
-    r.show_forced(False)
-    mcp_options = r.card("MCP").locator("details.brick-options")
-    if mcp_options.get_attribute("open") is not None:
-        mcp_options.locator("summary").click()
-    r.show_forced(True)
-    unfolded, _ = r.poll(lambda: mcp_options.get_attribute("open") is not None, 5)
-    r.check(unfolded, "D3 : « Afficher les actions forcées » déplie la liste des serveurs MCP")
-    r.open_options("MCP")
-    armed = r.arm("Charger la documentation : Glossaire WaveStack")
-    r.check(armed["payload"]["actions"][0]["kind"] == "tool_doc", "documentation MCP armée")
-    seq = r.ev.mark()
-    r.send("Bonjour")
-    tools = [e["payload"] for e in r.ev.since(seq, "tool_started")]
-    r.check(
-        any(t["tool"] == "load_tool_doc" for t in tools),
-        "l'action forcée charge la documentation au tour suivant",
-        str(tools)[:200],
-    )
-    r.shot("11-mcp-lazy-force")
-    # Lot K (2026-09-29): force the MCP tool's call itself, with its preset.
-    armed = r.arm("Forcer l'appel : local__define_term", preset="MCP")
-    action = armed["payload"]["actions"][0]
-    r.check(
-        (action["kind"], action["target"], action["args"])
-        == ("tool", "local__define_term", {"term": "MCP"}),
-        "« Forcer l'appel » d'un outil MCP armé avec son préréglage",
-        str(action),
-    )
-    seq = r.ev.mark()
-    r.send("Bonjour")
-    started = [e for e in r.ev.since(seq, "tool_started")]
-    forced = [e for e in started if e["payload"]["tool"] == "local__define_term"]
-    r.check(
-        bool(forced) and forced[0]["trigger"] == "user" and forced[0]["brick"] == "mcp",
-        "l'appel MCP forcé part au tour suivant, déclenché par l'utilisateur",
-        str([(e["payload"]["tool"], e.get("trigger")) for e in started])[:200],
-    )
-    # A tool without parameter: armed in one click, its own name as the target.
-    armed = r.arm("Forcer l'appel : local__list_terms")
-    action = armed["payload"]["actions"][0]
-    r.check(
-        (action["kind"], action["target"], action["args"]) == ("tool", "local__list_terms", {}),
-        "« Forcer l'appel » d'un outil MCP sans paramètre armé en un clic",
-        str(action),
-    )
-    r.page.locator("#armed-chips button").first.click()  # disarm
-    r.show_forced(False)
 
 
 def s_skills(r: Run) -> None:
     r.launch("skills")
     guide = r.page.locator("#scenario-info-popover").text_content()
     r.check(
-        "« Déclencher le skill » sur « Compte rendu de réunion »" in guide
-        and not r.bricks()["rag"]["wanted"],
-        "consigne des skills : l'action forcée de secours ; RAG non voulu",
+        "« Rejouer le dernier prompt »" in guide and not r.bricks()["rag"]["wanted"],
+        "consigne des skills : le rejeu en secours ; RAG non voulu",
         guide[:200],
     )
     # E023 (story 5 of the deferred leftovers): the skill's switch, then its node « chargé ».
@@ -5312,25 +5235,27 @@ def s_skills(r: Run) -> None:
 
 def s_caveman(r: Run) -> None:
     r.launch("caveman")
-    r.send("Explique en quelques phrases ce qu'est un harnais d'agent.")
+    first, second = _prompts("caveman")
+    r.send(first)
     long_answer = r.last_answer()
-    r.show_forced(True)
-    r.open_options("Skills")
-    armed = r.arm("Déclencher le skill : Caveman")
-    r.check(armed["payload"]["actions"][0]["target"] == "caveman", "Caveman armé")
-    expect(r.page.locator("#armed-chips")).to_be_visible(timeout=5000)
-    r.check(True, "puce d'action armée au-dessus du champ")
-    ended = r.replay()
+    seq = r.ev.mark()
+    ended = r.send(second)
     short_answer = r.last_answer()
-    r.check(ended["payload"]["status"] == "completed", "rejeu avec Caveman terminé")
+    loaded = [e["payload"].get("arguments") for e in r.ev.since(seq, "tool_started")]
+    r.check(
+        {"skill": "caveman"} in loaded,
+        "le second prompt fait charger le skill Caveman par le modèle",
+        str(loaded)[:200],
+    )
+    r.check(ended["payload"]["status"] == "completed", "tour avec Caveman terminé")
     r.check(
         len(short_answer) < len(long_answer) / 2,
         "réponse Caveman bien plus courte",
         f"{len(long_answer)} → {len(short_answer)} caractères",
     )
-    r.page.locator("#chat .replay-badge").last.click()
+    r.page.click("#compare-turns")
     compare = r.page.locator("#ctx")
-    r.check("Comparaison de tours" in compare.inner_text(), "le badge Rejeu ouvre la comparaison")
+    r.check("Comparaison de tours" in compare.inner_text(), "« Comparer » ouvre la comparaison")
     r.check(
         "Sortie" in compare.inner_text() and "(-" in compare.inner_text().replace("−", "-"),
         "la comparaison montre moins de tokens en sortie",
@@ -5340,7 +5265,6 @@ def s_caveman(r: Run) -> None:
     )
     r.shot("13-caveman-comparer")
     compare.get_by_role("button", name="Fermer").click()
-    r.show_forced(False)
 
 
 def s_hooks(r: Run) -> None:
@@ -5381,34 +5305,6 @@ def s_hooks(r: Run) -> None:
         r.last_answer()[:200],
     )
     r.shot("14-hooks-h1-bloque")
-    # Forced read_file, « Fichier sensible » preset, then replay (story 9).
-    r.show_forced(True)
-    r.open_options("Outils")
-    armed = r.arm("Forcer l'appel : Lecture de fichier", preset="Fichier sensible")
-    args = armed["payload"]["actions"][0]["args"]
-    r.check(
-        args.get("path") == "confidentiel/budget_projet.txt",
-        "préréglage « Fichier sensible »",
-        str(args),
-    )
-    seq = r.ev.mark()
-    r.replay()
-    # H1 blocks before `tool_started`: the hook's decision carries the trigger.
-    decisions = r.ev.since(seq, "hook_decided")
-    r.check(
-        any(e.get("trigger") == "user" for e in decisions),
-        "l'appel forcé est attribué à l'utilisateur",
-        str([e.get("trigger") for e in decisions]),
-    )
-    decided = [e["payload"] for e in r.ev.since(seq, "hook_decided")]
-    r.check(
-        any(d["hook"] == "h1" and d["decision"] == "block" for d in decided),
-        "H1 bloque aussi l'appel forcé",
-    )
-    r.check(
-        "Forcé par l'utilisateur" in r.page.locator("#orch-scroll").inner_text(),
-        "Orchestration affiche « Forcé par l'utilisateur »",
-    )
     audit = r.api("GET", "/api/audit")
     text = audit.json().get("text", "") if audit.status_code == 200 else ""
     r.check(
@@ -5416,12 +5312,11 @@ def s_hooks(r: Run) -> None:
         "journal d'audit H2 écrit (blocage H1 compris)",
         text.strip().splitlines()[-1][:200] if text.strip() else str(audit.status_code),
     )
-    r.show_forced(False)
     _h1_block_cleared(r)
 
 
 def s_subagent(r: Run) -> None:
-    """Story 19: delegation by the model, then forced; the switch of Contexte LLM, the
+    """Story 19: delegation by the model; the switch of Contexte LLM, the
     delegation line and its child lines in Orchestration, the second robot of the schema."""
     page = r.page
     r.launch("subagent")
@@ -5575,79 +5470,13 @@ def s_subagent(r: Run) -> None:
     )
     r.shot("19-sous-agent-delegation")
 
-    # Story 22: « Annuler » and a second click on the button close the form.
-    r.show_forced(True)
-    delegate = page.get_by_role("button", name="Déléguer au sous-agent")
-    form = page.locator(".force-form")
-    page.set_viewport_size({"width": 1280, "height": 650})
-    # Lot K (A8), E125 (restes différés, story 6): the button says the form is open at once,
-    # read on the node clicked in the same task as the click, before the next frame rebuilds
-    # the panel (whose new button says it anyway); then on the rebuilt button.
-    expect(delegate).to_be_enabled(timeout=5000)
-    at_click = delegate.evaluate("b => { b.click(); return b.getAttribute('aria-expanded'); }")
-    expect(form).to_be_visible(timeout=5000)
-    r.check(
-        at_click == "true" and delegate.get_attribute("aria-expanded") == "true",
-        "1280 × 650 : formulaire « Déléguer au sous-agent » ouvert, aria-expanded=true lu "
-        "juste après le clic (avant la reconstruction du panneau), puis après",
-        f"au clic : {at_click} · après : {delegate.get_attribute('aria-expanded')}",
-    )
-    page.set_viewport_size({"width": 1600, "height": 1000})
-    form.get_by_role("button", name="Annuler").click()
-    closed, took = r.poll(lambda: form.count() == 0, 2)
-    focused = page.evaluate("() => document.activeElement?.dataset.focusKey || ''")
-    r.check(
-        closed
-        and delegate.get_attribute("aria-expanded") == "false"
-        and focused.startswith("force:subagent:"),
-        "« Annuler » ferme le formulaire « Déléguer au sous-agent », focus sur le bouton",
-        f"{took:.2f} s · focus {focused}",
-    )
-    delegate.click()
-    expect(form).to_be_visible(timeout=5000)
-    delegate.click()
-    closed, took = r.poll(lambda: form.count() == 0, 2)
-    r.check(
-        closed and delegate.get_attribute("aria-expanded") == "false",
-        "re-clic sur « Déléguer au sous-agent » : le formulaire se ferme",
-        f"{took:.2f} s",
-    )
-
-    # Forced delegation: the card's button, its preset, the chip (disarmed by keyboard too).
-    armed = r.arm("Déléguer au sous-agent", preset="Résumer le guide du harnais")
-    action = armed["payload"]["actions"][0]
-    r.check(
-        action["kind"] == "delegate" and "guide_harnais.md" in action["args"]["task"],
-        "« Déléguer au sous-agent » arme la délégation avec le préréglage",
-        str(action),
-    )
-    chip = page.locator("#armed-chips .armed-chip", has_text="Armé : Délégation")
-    expect(chip).to_be_visible(timeout=5000)
-    seq = r.ev.mark()
-    chip.focus()
-    page.keyboard.press("Enter")
-    r.ev.wait("armed_actions_changed", seq, lambda p: not p["actions"], timeout=10)
-    r.check(True, "la puce se désarme au clavier")
-    r.arm("Déléguer au sous-agent", preset="Résumer le guide du harnais")
-    seq = r.ev.mark()
-    ended = r.send("Bonjour")
-    forced = [e for e in r.ev.since(seq, "tool_started") if e["context_id"] == "main"]
-    r.check(
-        bool(forced)
-        and forced[0]["payload"]["tool"] == "delegate"
-        and forced[0]["trigger"] == "user",
-        "délégation forcée consommée par le tour (déclenchée par l'utilisateur)",
-    )
-    r.check(ended["payload"]["status"] == "completed", "tour forcé terminé")
+    # The next turn delegates again (by the model): the tabs are redrawn, main selected.
+    ended = r.send(_prompts("subagent")[0])
+    r.check(ended["payload"]["status"] == "completed", "tour suivant terminé")
     ok, _ = r.poll(
         lambda: main_tab.count() == 1 and main_tab.get_attribute("aria-selected") == "true", 5
     )
     r.check(ok, "au tour suivant, l'onglet « Agent principal » est de nouveau sélectionné")
-    delegation = rail.locator(".turn-step-line", has_text="Délégation au sous-agent").last
-    r.check(
-        "Forcé par l'utilisateur" in delegation.inner_text(), "badge « Forcé par l'utilisateur »"
-    )
-    r.show_forced(False)
 
     # H5 inside the sub-agent (independent review): the session waits, the Vue humain card
     # is answerable, a refusal goes back to the sub-agent and the turn ends.
@@ -6146,67 +5975,6 @@ def s_sovereignty(r: Run) -> None:
         )
 
 
-def _forced_section(r: Run) -> None:
-    """D3 (2026-10-01): the switch in its titled section with the ✋; turned on, it unfolds the
-    option list of the bricks whose Forcer buttons are in it (here « Outils »)."""
-    r.show_forced(False)
-    details = r.card("Outils").locator("details.brick-options")
-    if details.get_attribute("open") is not None:
-        details.locator("summary").click()  # folded first: the switch must be what unfolds it
-    r.check(details.get_attribute("open") is None, "D3 : liste des outils repliée au départ")
-    section = r.page.locator("#bricks .force-section")
-    title = section.locator(".force-section-title").inner_text()
-    hand = section.locator(".force-toggle-icon").inner_text()
-    r.check(
-        title.strip().lower() == "actions forcées" and hand.strip() == "✋",
-        "D3 : l'interrupteur des actions forcées a son titre de section et l'icône ✋",
-        f"{title!r} · {hand!r}",
-    )
-    r.check(
-        section.locator(".brick-toggle").count() == 1
-        and r.page.locator("#bricks .force-section article.brick-card").count() == 0,
-        "D3 : la section ne porte que l'interrupteur des actions forcées",
-    )
-    # Lot 1 of 2026-10-04: the « ? » by the title, the bricks' help popover, anchored to the
-    # button, still open after a rebuild of the panel (a brick switched by the API, so that no
-    # click light-dismisses it).
-    help_button = section.locator("#force-help")
-    help_button.click()
-    bubble = r.page.locator("#explain-force-section")
-    expect(bubble).to_be_visible(timeout=5000)
-    button_box, bubble_box = help_button.bounding_box(), bubble.bounding_box()
-    anchored = bool(button_box and bubble_box) and (
-        abs(bubble_box["y"] - (button_box["y"] + button_box["height"])) < 24
-        and bubble_box["x"] - 24 < button_box["x"] < bubble_box["x"] + bubble_box["width"]
-    )
-    r.check(
-        help_button.get_attribute("aria-label") == "Ce que font les actions forcées"
-        and bubble.inner_text().strip()
-        == "Le harnais déclenche lui-même l'outil, sans laisser le modèle décider."
-        and anchored,
-        "lot 1 : le « ? » d'« Actions forcées » ouvre son aide, ancrée sous le bouton",
-        f"{button_box} · {bubble_box}",
-    )
-    was = bool(r.bricks()["system_prompt"]["wanted"])
-    seq = r.ev.mark()
-    r.api("POST", "/api/intentions/brick", {"brick": "system_prompt", "wanted": not was})
-    r.ev.wait("bricks_changed", seq, timeout=10)
-    time.sleep(0.5)
-    r.check(
-        r.page.locator("#explain-force-section").evaluate("e => e.matches(':popover-open')"),
-        "lot 1 : l'aide d'« Actions forcées » reste ouverte après un nouveau rendu",
-    )
-    r.page.keyboard.press("Escape")
-    r.set_brick("Prompt système", was)
-    r.show_forced(True)
-    opened, _ = r.poll(lambda: details.get_attribute("open") is not None, 5)
-    r.check(opened, "D3 : « Afficher les actions forcées » déplie la liste des outils")
-    r.check(
-        details.get_by_role("button", name="Forcer l'appel : Heure et date").is_visible(),
-        "D3 : le bouton « Forcer l'appel » est visible sans autre clic",
-    )
-
-
 def _consulted_tools(r: Run) -> None:
     """D5 (2026-10-01): under the answer of a turn that called a tool, « Outils consultés
     pendant ce tour : … », each name leading to its Orchestration step; none without tool."""
@@ -6235,79 +6003,6 @@ def _consulted_tools(r: Run) -> None:
     r.send("Bonjour")
     after = r.page.locator("#chat .bubble-model").last.locator(".answer-tools")
     r.check(after.count() == 0, "D5 : un tour sans outil n'affiche aucune ligne d'outils")
-
-
-def _forced_kept_after_reload(r: Run) -> None:
-    """E035 (story 5 of the deferred leftovers): « Afficher les actions forcées », turned on,
-    is remembered by the browser: after a reload, the switch is on and the Forcer buttons are
-    there without a click."""
-    r.show_forced(True)
-    stored = r.page.evaluate("() => localStorage.getItem('wavestack.forcedActions')")
-    r.reload_app()
-    toggle = r.page.locator("label.force-toggle input")
-    # In the option list, folded after a reload: by its focus key, not by role (hidden).
-    button = r.page.locator('#bricks .force-button[data-focus-key="force:tools:get_datetime"]')
-    ok, _ = r.poll(lambda: toggle.count() == 1 and toggle.is_checked() and button.count() == 1, 10)
-    r.check(
-        stored == "1" and ok,
-        "E035 : « Afficher les actions forcées » gardé après rechargement (bouton « Forcer » là)",
-        f"localStorage {stored!r}, case {'cochée' if toggle.is_checked() else 'décochée'}, "
-        f"{button.count()} bouton(s) « Forcer l'appel » de l'heure",
-    )
-
-
-def _forced_dropped(r: Run) -> None:
-    """E035: an armed action whose tool is unticked before the turn is dropped, said by its
-    line « Action forcée abandonnée · … » in Orchestration."""
-    r.open_options("Outils")
-    r.arm("Forcer l'appel : Heure et date")
-    try:
-        r.set_option("Outils", "Heure et date", False)
-        seq = r.ev.mark()
-        r.send("Bonjour")
-        dropped = r.ev.since(seq, "action_dropped")
-        line = _step(r, "Action forcée abandonnée")
-        ok, _ = r.poll(lambda: line.count() == 1 and "Heure et date" in line.inner_text(), 5)
-        r.check(
-            bool(dropped) and ok,
-            "E035 : ligne « Action forcée abandonnée · Heure et date » dans Orchestration",
-            f"{len(dropped)} action_dropped ; "
-            + (line.inner_text()[:160] if line.count() else "ligne absente"),
-        )
-    finally:
-        r.set_option("Outils", "Heure et date", True)
-
-
-def s_forced_native(r: Run) -> None:
-    r.launch("native_tools")
-    _forced_section(r)
-    _forced_kept_after_reload(r)
-    r.open_options("Outils")
-    r.arm("Forcer l'appel : Heure et date")
-    expect(r.page.locator("#armed-chips")).to_be_visible(timeout=5000)
-    r.check(True, "outil sans paramètre armé en un clic")
-    r.page.locator("#armed-chips button").first.click()  # disarm
-    time.sleep(0.5)
-    r.check(not r.state()["armed_actions_changed"]["actions"], "la puce désarme l'action")
-    r.arm("Forcer l'appel : Calculatrice", preset="Multiplication")
-    seq = r.ev.mark()
-    ended = r.send("Bonjour")
-    starts = [e for e in r.ev.since(seq, "tool_started")]
-    r.check(
-        any(e["payload"]["tool"] == "calculator" and e.get("trigger") == "user" for e in starts),
-        "calculatrice forcée exécutée avant l'appel au modèle",
-    )
-    r.check(
-        "444" in r.last_answer() and ended["payload"]["status"] == "completed",
-        "le modèle reçoit le résultat forcé (12*37 = 444)",
-        r.last_answer()[:160],
-    )
-    # Story 34: the forced step's tile says the user acts.
-    tile = _step(r, "Calculatrice").locator(".turn-step-tile").inner_text()
-    r.check(tile == "U", "l'étape forcée porte la pastille « U »", tile)
-    _consulted_tools(r)
-    _forced_dropped(r)
-    r.show_forced(False)
 
 
 def _memory_file(r: Run) -> list[dict[str, Any]]:
@@ -6381,7 +6076,7 @@ def _memory_drawer_frame(r: Run) -> None:
 
 
 def s_global_memory(r: Run) -> None:
-    """Story 14: written by the model, then forced, read back after clearing, edited in the
+    """Story 14: written by the model, read back after clearing, edited in the
     drawer (from the schema's node and from the card), restored by the reset."""
     r.launch("global_memory")
     card = r.card("Mémoire globale")
@@ -6442,37 +6137,14 @@ def s_global_memory(r: Run) -> None:
         "aucun historique : seule la mémoire globale a porté l'information",
     )
 
-    # « Écrire en mémoire » forced from the card.
-    r.show_forced(True)
-    card.get_by_role("button", name="Écrire en mémoire : Mémoire globale").click()
-    form = card.locator(".force-form")
-    expect(form).to_be_visible(timeout=5000)
-    form.locator("input").fill("Pascal anime la formation à Nantes.")
-    seq = r.ev.mark()
-    form.get_by_role("button", name="Armer").click()
-    r.ev.wait("armed_actions_changed", seq, lambda p: bool(p["actions"]), timeout=10)
-    expect(card.locator(".armed-chip")).to_contain_text("Armé : Écrire en mémoire", timeout=5000)
-    r.check(True, "puce « Armé : Écrire en mémoire (…) » sur la carte")
-    seq = r.ev.mark()
-    r.send("Bonjour")
-    forced = [e for e in r.ev.since(seq, "tool_started") if e["payload"]["tool"] == "remember"]
-    r.check(
-        len(forced) == 1
-        and forced[0].get("trigger") == "user"
-        and forced[0]["seq"] < r.ev.since(seq, "model_call_started")[0]["seq"],
-        "écriture forcée : remember exécuté par l'utilisateur, avant l'appel au modèle",
-    )
-    r.check(
-        "Forcé par l'utilisateur" in _memory_step(r).locator(".turn-step-trigger").inner_text(),
-        "étape « Écriture en mémoire » avec le badge « Forcé par l'utilisateur »",
-    )
-    r.check(_memory_file(r)[-1]["source"] == "user", "memory.json : entrée forcée, source user")
-    # D5 (2026-10-01): `remember`, a harness tool, is no source of the answer.
+    # A fifth entry by the model. D5 (2026-10-01): `remember`, a harness tool, is no source
+    # of the answer.
+    r.send("Retiens que Pascal anime la formation à Nantes.")
+    r.check(len(_memory_file(r)) == 5, "memory.json : 5 entrées", str(len(_memory_file(r))))
     r.check(
         r.page.locator("#chat .bubble-model").last.locator(".answer-tools").count() == 0,
-        "D5 : une écriture en mémoire forcée n'est pas listée parmi les outils consultés",
+        "D5 : une écriture en mémoire n'est pas listée parmi les outils consultés",
     )
-    r.show_forced(False)
     # Story 22: a sixth entry, so that the drawer's list is long.
     r.send("Retiens que j'anime aussi un atelier sur les hooks le mardi.")
     r.check(len(_memory_file(r)) == 6, "memory.json : 6 entrées", str(len(_memory_file(r))))
@@ -8275,9 +7947,9 @@ def s_compression(r: Run) -> None:
     r.launch("compression")
     r.check(
         not r.bricks()["rag"]["wanted"]
-        and "« Journal de sauvegarde (compression) »"
+        and "« Rejouer le dernier prompt »"
         in r.page.locator("#scenario-info-popover").text_content(),
-        "compression : RAG non voulu, la consigne donne le préréglage de secours (story 27)",
+        "compression : RAG non voulu, la consigne donne le rejeu en secours (CAP-5)",
     )
     brick = r.bricks()["compression"]
     reason = brick.get("reason_text") or ""
@@ -8452,18 +8124,9 @@ def s_compression(r: Run) -> None:
         "second prompt : le lot 12 est dans le fichier, pas dans la version compressée",
     )
 
-    # Story 27: the limit of the tool, shown by forcing a prose file (no RAG any more).
-    r.show_forced(True)
-    r.open_options("Outils")
-    armed = r.arm(
-        "Forcer l'appel : Lecture de fichier", preset="Guide du harnais (prose, compression)"
-    )
-    r.check(
-        armed["payload"]["actions"][0]["args"].get("path") == "guide_harnais.md",
-        "préréglage « Guide du harnais (prose, compression) »",
-    )
+    # Story 27: the limit of the tool, shown on a prose file the model reads (no RAG any more).
     seq = r.ev.mark()
-    ended = r.replay()
+    ended = r.send("Lis le fichier guide_harnais.md et résume-le.")
     prose = [
         i
         for e in r.ev.since(seq, "compression_ended")
@@ -8475,7 +8138,6 @@ def s_compression(r: Run) -> None:
         "de la prose (le guide du harnais) passe inchangée : la limite de Headroom",
         str([(i["source_text"], i["tokens_before"], i["changed"]) for i in prose])[:200],
     )
-    r.show_forced(False)
 
 
 def s_busy_and_stop(r: Run) -> None:
@@ -9221,7 +8883,7 @@ def _paragraphs(brick: dict[str, Any]) -> list[str]:
 def s_content_language(r: Run) -> None:
     """Languages (3/5): in `en` then `de`, `native_tools` launched: its title, instructions and
     prompts, the Tools brick's explanation, all of the language and no French value of the
-    scope that differs; a forced `read_file` (preset) reads the translated demonstration file,
+    scope that differs; a `read_file` of the model reads the translated demonstration file,
     shown in Orchestration; in German, H1 refuses `confidentiel/`. Captures in German at 1280
     and 1600 px, normal and projection mode. Always ends in French, at rest."""
     page = r.page
@@ -9238,10 +8900,6 @@ def s_content_language(r: Run) -> None:
             r.api("POST", "/api/intentions/brick", {"brick": "hooks", "wanted": False})
         except Exception as exc:  # noqa: BLE001 - cleaning up only
             print(f"  nettoyage : brique Hooks non éteinte ({exc})")
-        try:
-            r.show_forced(False)
-        except Exception as exc:  # noqa: BLE001 - cleaning up only
-            print(f"  nettoyage : actions forcées non masquées ({exc})")
         if r.state().get("language") != "fr":
             r.wait_idle()
             _switch_language(r, "fr")
@@ -9311,10 +8969,9 @@ def _content_language(r: Run, lang: str) -> None:
     ]
     r.check(not left, f"{lang} : aucune valeur française du périmètre à l'écran", f"{left}")
 
-    # A forced `read_file` on a preset: the translated demonstration file, in Orchestration.
+    # A `read_file` of the model: the translated demonstration file, in Orchestration.
     tools = _content(lang, "tools.yaml")["tools"]["read_file"]
-    notes = next(p for p in tools["presets"] if p["args"]["path"] == "notes_reunion.txt")
-    ended = _forced_read(r, brick["label_text"], notes["label_text"], lang)
+    ended = _model_read(r, "notes_reunion.txt", lang)
     expected = _demo_text(lang, "notes_reunion.txt")
     first = next(line for line in expected.splitlines() if line.strip())
     step = page.locator("#orch-scroll .turn-step").filter(
@@ -9329,7 +8986,7 @@ def _content_language(r: Run, lang: str) -> None:
         and ended[-1]["status"] == "ok"
         and ended[-1]["result"].strip() == expected.strip()
         and expected != _demo_text("fr", "notes_reunion.txt"),
-        f"{lang} : read_file forcé (préréglage « {notes['label_text']} ») lit le fichier traduit",
+        f"{lang} : read_file lit le fichier traduit",
         str(ended[-1] if ended else None)[:200],
     )
     r.check(
@@ -9343,38 +9000,22 @@ def _content_language(r: Run, lang: str) -> None:
         seq = r.ev.mark()
         r.api("POST", "/api/intentions/brick", {"brick": "hooks", "wanted": True})
         r.ev.wait("bricks_changed", seq, timeout=10)
-        secret = next(
-            p for p in tools["presets"] if p["args"]["path"] == "confidentiel/budget_projet.txt"
-        )
         seq = r.ev.mark()
-        _forced_read(r, brick["label_text"], secret["label_text"], lang)
+        _model_read(r, "confidentiel/budget_projet.txt", lang)
         decided = [e["payload"] for e in r.ev.since(seq, "hook_decided")]
         r.check(
             any(d["hook"] == "h1" and d["decision"] == "block" for d in decided)
             and not r.ev.since(seq, "tool_ended"),
-            "de : H1 refuse confidentiel/budget_projet.txt (préréglage "
-            f"« {secret['label_text']} »)",
+            "de : H1 refuse confidentiel/budget_projet.txt",
             str([(d["hook"], d["decision"]) for d in decided]),
         )
 
 
-def _forced_read(r: Run, tools_card: str, preset: str, lang: str) -> list[dict[str, Any]]:
-    """Arms `read_file` with `preset` (its button and the form's « Armer » found by their
-    role, whatever the language), sends a prompt; returns this turn's `tool_ended`."""
-    page = r.page
-    r.show_forced(True)
-    r.open_options(tools_card)
+def _model_read(r: Run, path: str, lang: str) -> list[dict[str, Any]]:
+    """Sends a prompt naming `path` (the fake model reads it); returns this turn's
+    `tool_ended`."""
     seq = r.ev.mark()
-    button = page.locator('[data-focus-key="force:tools:read_file"]')
-    if button.get_attribute("aria-expanded") != "true":
-        button.click()
-    form = page.locator(".force-form")
-    expect(form).to_be_visible(timeout=5000)
-    form.locator("select").first.select_option(label=preset)
-    form.locator("button.force-arm").click()
-    r.ev.wait("armed_actions_changed", seq, lambda p: bool(p["actions"]), timeout=10)
-    seq = r.ev.mark()
-    r.send({"en": "Read this file.", "de": "Lies diese Datei."}[lang])
+    r.send({"en": f"Read the file {path}.", "de": f"Lies die Datei {path}."}[lang])
     r.wait_idle()
     time.sleep(0.5)
     return [e["payload"] for e in r.ev.since(seq, "tool_ended")]
@@ -11833,7 +11474,7 @@ def _local_footprint(r: Run, calls: list[dict]) -> None:
 
 
 def s_gemini_shape(r: Run) -> None:
-    """The fake Gemini (`fake_g`, the reasoning and `tool_call_extra` of the real preset): a
+    """The fake Gemini (`fake_g`, the reasoning of the real preset): a
     tool turn with the reasoning off (`reasoning_effort: minimal`, 512), then on
     (`extra_body…include_thoughts`, 1 536, `<thought>` read as reasoning), the thought
     signature sent back each time; the Reasoning card « activable »."""
@@ -20252,7 +19893,6 @@ SCENARIOS: list[tuple[str, Callable[[Run], None]]] = [
     ("soc", s_soc),
     ("iam", s_iam),
     ("sovereignty", s_sovereignty),
-    ("forced_native", s_forced_native),
     ("global_memory", s_global_memory),
     ("rag", s_rag),
     ("rag_rerank", s_rag_rerank),

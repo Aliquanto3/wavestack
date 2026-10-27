@@ -330,6 +330,8 @@ def _plan(
             ("load_tool_doc", {"tool": "local__define_term"}),
             ("local__define_term", {"term": "MCP"}),
         ]
+    if "skill caveman" in low:  # CAP-5 (16.8): the caveman scenario's second prompt
+        return [("load_skill", {"skill": "caveman"})]
     if "compte rendu" in low:
         return [("load_skill", {"skill": "meeting_minutes"})]
     remember = re.search(r"retiens que (.+)", user, re.IGNORECASE)

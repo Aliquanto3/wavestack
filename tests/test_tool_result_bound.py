@@ -300,18 +300,19 @@ def test_a_local_mcp_server_result_is_cut(loop):  # noqa: F811
     session.close()
 
 
-def test_a_forced_action_result_is_cut(net_web):  # noqa: F811
+def test_a_network_result_called_by_the_model_is_cut(net_web):  # noqa: F811
     net_web(lambda r: httpx.Response(200, text=PAGE, headers={"content-type": "text/plain"}))
-    _, session = tool_session(["Voilà."], values={"tools": {"result_max_tokens": FLOOR}})
+    _, session = tool_session(
+        [call("fetch_page", url=PARIS), "Voilà."], values={"tools": {"result_max_tokens": FLOOR}}
+    )
     session.set_tool("fetch_page", True)
     session.join()
-    session.arm("tool", "fetch_page", {"url": PARIS})
     mark = get_journal().last_seq()
 
     _run(session, "Lis la page Paris")
 
     (ended,) = [e for e in get_journal().events_since(mark) if e.kind == "tool_ended"]
-    assert ended.trigger == "user" and ended.payload["truncated"]["total_tokens"] > FLOOR
+    assert ended.trigger == "model" and ended.payload["truncated"]["total_tokens"] > FLOOR
     assert len(ended.payload["result"].encode("utf-8")) <= FLOOR
     session.close()
 

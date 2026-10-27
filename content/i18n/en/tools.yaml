@@ -1,5 +1,5 @@
 # English translation of content/tools.yaml (languages 1/5, AD-19): same ids, same
-# parameters, same preset arguments (the demo files keep their French names).
+# parameters.
 demo_dir_label_text: Demo files
 tools:
   get_datetime:
@@ -15,9 +15,6 @@ tools:
       and parentheses. Use it for any calculation instead of computing in your head.
     parameters:
       expression: Expression to compute, for example 12*37 or (3+4)**2.
-    presets:
-      - label_text: Multiplication
-        args: {expression: "12*37"}
   read_file:
     label_text: File reading
     description: >-
@@ -25,21 +22,6 @@ tools:
       the available files.
     parameters:
       path: Relative path of the file in the demo folder, for example notes_reunion.txt.
-    presets:
-      - label_text: Sensitive file
-        args: {path: confidentiel/budget_projet.txt}
-      - label_text: Meeting notes
-        args: {path: notes_reunion.txt}
-      - label_text: List of files
-        args: {path: "."}
-      - label_text: SIEM alerts (SOC)
-        args: {path: alertes_siem.log}
-      - label_text: Privileged accounts (SOC, confidential)
-        args: {path: confidentiel/comptes_privilegies.txt}
-      - label_text: Backup log (compression)
-        args: {path: journal_serveur.log}
-      - label_text: Harness guide (prose, compression)
-        args: {path: guide_harnais.md}
   search_documents:
     label_text: Document search
     description: >-
@@ -57,9 +39,6 @@ tools:
       the Internet.
     parameters:
       year: Year, for example 2026.
-    presets:
-      - label_text: Year 2026
-        args: {year: 2026}
   wikipedia_summary:
     label_text: Wikipedia summary
     sends_text: the article's title
@@ -68,9 +47,6 @@ tools:
       Wikipedia on the Internet.
     parameters:
       title: Exact title of the page on the French-language Wikipedia, for example Tour Eiffel.
-    presets:
-      - label_text: Eiffel Tower
-        args: {title: Tour Eiffel}
   fetch_page:
     label_text: Web page reading
     sends_text: the page's address
@@ -80,6 +56,3 @@ tools:
       accepted.
     parameters:
       url: Full address of the page, for example https://fr.wikipedia.org/wiki/Paris.
-    presets:
-      - label_text: Paris page
-        args: {url: "https://fr.wikipedia.org/wiki/Paris"}

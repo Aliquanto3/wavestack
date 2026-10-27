@@ -99,7 +99,7 @@ class LoadToolDocText(BaseModel):
 
 
 class CallPreset(BaseModel):
-    """Lot K: arguments that prefill the form of an MCP tool's forced call, shown by
+    """Lot K: arguments that prefill an MCP tool's call in the Atelier MCP, shown by
     `label_text` (the tool's parameters come from its server, at connection)."""
 
     label_text: str = Field(min_length=1)
@@ -112,7 +112,7 @@ class McpContent(BaseModel):
     servers: dict[str, ServerText]
     lazy_label_text: str = Field(min_length=1)
     load_tool_doc: LoadToolDocText
-    # Lot K: the presets of « Forcer l'appel », by full tool name (`{server}__{tool}`).
+    # Lot K: the Atelier MCP's call presets, by full tool name (`{server}__{tool}`).
     call_presets: dict[str, list[CallPreset]] = {}
 
 

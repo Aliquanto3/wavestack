@@ -325,7 +325,7 @@ session:
   availability:
     unknown_brick: "La brique « {brick} » n'existe pas dans cette version."
     requires: "Nécessite la brique « {brick} » : activez-la d'abord."
-    cloud_no_tools: "Le modèle cloud « {model} » ne déclare pas l'appel d'outils (tools) : aucune action d'outil, pas même forcée. Déclarez tools = true si le modèle le gère, ou choisissez un autre modèle."
+    cloud_no_tools: "Le modèle cloud « {model} » ne déclare pas l'appel d'outils (tools) : aucune action d'outil. Déclarez tools = true si le modèle le gère, ou choisissez un autre modèle."
     lacks: "Le modèle chargé n'offre pas {needs} : choisissez un autre modèle."
     no_model: "Indisponible : aucun modèle chargé."
     cloud_no_reasoning: "Indisponible : le modèle actif ne sait pas raisonner. Le modèle cloud « {model} » ne déclare pas de raisonnement (reasoning) : déclarez-le si le modèle le gère, ou choisissez un autre modèle."
@@ -349,22 +349,6 @@ session:
     completed: "Préremplissage terminé : {evaluated} tokens évalués en {seconds} s. Le premier message ne fera relire que ce qui le suit."
     abandoned: "Préremplissage abandonné après {evaluated} tokens sur {tokens} (un tour, un chargement, un atelier, un réglage ou un autre scénario est arrivé) : la partie évaluée reste réutilisable."
     error: "Préremplissage interrompu par une erreur après {evaluated} tokens sur {tokens} : {cause}. Le premier tour lira le contexte normalement."
-  # Story 9 (AD-3): an action armed for the next turn, or why it is not.
-  arm:
-    unknown_tool: "Outil inconnu : « {target} » n'est ni un outil de la brique Outils ni l'outil d'un serveur MCP. Rien n'est armé."
-    nothing_armed: "{why} Rien n'est armé."
-    unknown_skill: "Skill inconnu : « {target} ». Rien n'est armé."
-    unknown_mcp_tool: "Outil MCP inconnu : « {target} » n'est l'outil d'aucun serveur connecté. Rien n'est armé."
-    doc_label: "Documentation de {target}"
-    unknown_memory_action: "Action de mémoire inconnue : « {target} ». Rien n'est armé."
-    memory_label: "Écrire en mémoire ({text})"
-    not_delegation: "Action inconnue : « {target} » n'est pas la délégation au sous-agent. Rien n'est armé."
-    delegation_argument: "Argument inconnu pour la délégation : {args}. Seule la tâche (« task ») est attendue. Rien n'est armé."
-    task_not_text: "La tâche du sous-agent doit être un texte. Rien n'est armé."
-    task_empty: "La tâche du sous-agent est vide. Rien n'est armé."
-    delegation_label: "Délégation : « {task} »"
-    unknown_action: "Action inconnue : « {kind} ». Rien n'est armé."
-    not_armed: "Aucune action armée « {armed_id} » : elle a déjà été consommée ou désarmée."
   subagent:
     unknown_tools: "[subagent] tools nomme des outils inconnus : {tools}."
     known_tools: "Outils de la brique Outils : {tools}."
@@ -463,23 +447,6 @@ session:
     end_hooks:
       message: Les hooks de fin de tour se sont interrompus.
       effect: Le tour se termine sans eux.
-  # Story 9 (AD-3): why a forced action is dropped from the turn.
-  forced:
-    undeclared: "l'outil « {name} » n'est plus déclaré"
-    dropped: "Action forcée « {label} » abandonnée : {reason}. Le tour continue sans elle."
-    inactive:
-      mcp: la brique « MCP » n'est pas active dans ce tour
-      tools: la brique « Outils » n'est pas active dans ce tour
-      skills: la brique « Skills » n'est pas active dans ce tour
-      global_memory: la brique « Mémoire globale » n'est pas active dans ce tour
-      subagent: la brique « Sous-agent » n'est pas active dans ce tour
-    server_off: "le serveur de l'outil « {target} » n'est pas connecté ou est désactivé"
-    tool_unchecked: "l'outil « {tool} » est décoché"
-    skill_loaded: "le skill « {skill} » est déjà chargé"
-    skill_unchecked: "le skill « {skill} » est décoché"
-    no_parser: "le modèle actif ne sait pas appeler d'outil, et l'écriture forcée passe par l'outil remember"
-    doc_in_context: "la brique « MCP » est en documentation complète : la documentation de « {target} » est déjà dans le contexte"
-    doc_loaded: "la documentation de « {target} » est déjà chargée"
   hooks:
     failed:
       message: "Le hook « {label} » a échoué."

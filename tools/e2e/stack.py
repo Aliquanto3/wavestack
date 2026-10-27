@@ -41,7 +41,7 @@ SECOND_MODEL = "faux-modele-b"
 REASONING_ENTRY_ID = "fake_r"
 REASONING_MODEL = "faux-modele-raisonne"
 # A fourth fake model shaped as Gemini 3.x (`fake_openai.py`'s Gemini mode, by its name):
-# the reasoning and `tool_call_extra` of the real `gemini` preset, read in wavestack.toml.
+# the reasoning of the real `gemini` preset, read in wavestack.toml.
 GEMINI_ENTRY_ID = "fake_g"
 GEMINI_MODEL = "gemini-e2e-flash-lite"
 GEMINI_PROVIDER = "Faux Gemini (e2e)"
@@ -121,7 +121,6 @@ def _gemini_entry(fake_port: int) -> dict:
     entry = _entry(
         fake_port, GEMINI_ENTRY_ID, GEMINI_PROVIDER, GEMINI_MODEL, reasoning=preset["reasoning"]
     )
-    entry["tool_call_extra"] = preset["tool_call_extra"]
     entry["pricing"] = preset["pricing"]  # FinOps: the preset's prices, for the cost lines
     entry["impacts"] = preset["impacts"]  # GreenOps: its EcoLogits names, for the footprint
     return entry

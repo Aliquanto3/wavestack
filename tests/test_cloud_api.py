@@ -77,7 +77,9 @@ def reference_history(
             "arguments": Part(*_MODEL[:1], '{"zone": "Europe/Paris"}', *_MODEL[1:], "t1.s1.0"),
         },
     }
-    sent |= {k: v for k, v in entry.tool_call_extra.items() if k not in sent}
+    if entry.id in ("gemini", "gemma"):  # the signature Gemini returns, replayed (fixture)
+        signature = {"thought_signature": "skip_thought_signature_validator"}
+        sent["extra_content"] = {"google": signature}
     call["tool_calls"] = [sent]
     final = _assistant(entry, "Il est 9 h 30 à Paris.", "La réponse de l'outil suffit.")
     messages = [

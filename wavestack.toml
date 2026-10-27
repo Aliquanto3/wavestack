@@ -271,7 +271,7 @@ max_retries = 2
 fetch_page_hosts = ["fr.wikipedia.org", "calendrier.api.gouv.fr"]
 fetch_page_max_chars = 4000
 # Borne d'un résultat d'outil, en tokens, pour les outils réseau et MCP (locaux compris),
-# dans le tour, le sous-agent et les actions forcées ; jamais les outils natifs locaux comme
+# dans le tour et le sous-agent ; jamais les outils natifs locaux comme
 # read_file, ni un message d'erreur, ni le résultat du sous-agent (delegate). Le harnais coupe
 # au plus près de la borne, au dernier saut de ligne s'il tombe dans la seconde moitié du
 # texte gardé, avant la compression, et le signale au modèle et dans Orchestration.
@@ -482,15 +482,13 @@ impacts = { provider = "mistralai", model = "mistral-small-latest" }
 # reasoning_effort "minimal". reasoning_effort et thinking_config ne se combinent pas. Son
 # usage.completion_tokens ne compte pas les tokens de réflexion : WaveStack lit total_tokens −
 # prompt_tokens.
-# tool_call_extra : Gemini 3.x signe une réponse qui appelle des outils (une signature de
-# pensée, sur le premier appel seulement quand il y en a plusieurs en parallèle, relevé le
-# 2026-09-29) et refuse (400) un appel du tour en cours rejoué sans elle ; WaveStack la renvoie
-# telle quelle, à Gemini seulement. Un appel que le harnais fabrique (action forcée) n'en a
-# pas : il porte la valeur de contournement documentée par Google.
+# Gemini 3.x signe une réponse qui appelle des outils (une signature de pensée, sur le premier
+# appel seulement quand il y en a plusieurs en parallèle, relevé le 2026-09-29) et refuse (400)
+# un appel du tour en cours rejoué sans elle ; WaveStack la renvoie telle quelle, à Gemini
+# seulement.
 # Secours, dans settings.json (fusion par id, champ par champ). null ne retire qu'une clé de
 # premier niveau de reasoning.on ou reasoning.off (extra_body, reasoning_effort) : un null
-# plus profond est envoyé tel quel, et tool_call_extra ou tags à null rendent l'entrée
-# invalide.
+# plus profond est envoyé tel quel, et tags à null rend l'entrée invalide.
 # - gemini-3.6-flash accepte aussi minimal : {"id": "gemini", "model": "gemini-3.6-flash"}
 #   (0,75 $ / 3,75 $, puis 1,50 $ / 7,50 $ au 2027-01-01). Les 3.7 et 3.8 Flash n'ont pas
 #   minimal : il faudrait "off": {"reasoning_effort": "low"}, et le modèle raisonnerait alors
@@ -513,7 +511,6 @@ hosting_text = "Google (hébergement non précisé)"
 training = "no"
 notes_text = "Offre payante obligatoire (clause EEE : un client d'API mis à disposition d'utilisateurs de l'EEE, de Suisse ou du Royaume-Uni doit utiliser l'offre payante). Sur l'offre payante, rien n'est utilisé pour l'entraînement ; ces règles de données s'appliquent aussi aux utilisateurs de l'EEE sur le quota gratuit (conditions relues le 2026-09-30). Prix à vérifier dans la console : hausse au 2027-01-01 pour les 3.6 à 3.8 Flash."
 key_env = "GEMINI_API_KEY"
-tool_call_extra = { extra_content = { google = { thought_signature = "skip_thought_signature_validator" } } }
 # FinOps : prix de gemini-3.5-flash-lite, relevés sur ai.google.dev/pricing (offre payante).
 # Les tokens de réflexion sont facturés comme sortie.
 pricing = { input_usd_per_mtok = 0.30, output_usd_per_mtok = 2.50, checked = "2026-09-29" }
@@ -559,7 +556,6 @@ training = "no"
 trial = true
 notes_text = "Modèle ouvert servi seulement sur l'offre gratuite de Google AI Studio (aucun prix, aucun quota publié), et Google réserve l'offre payante aux clients d'API mis à disposition d'utilisateurs de l'EEE : usage personnel de votre clé sur votre poste, pas une mise à disposition. Données : la page tarifaire dit que l'offre gratuite sert à améliorer les produits Google, mais les utilisateurs de l'EEE, de Suisse et du Royaume-Uni ont les règles de l'offre payante, quota gratuit compris (conditions relues le 2026-09-30) : rien n'est utilisé pour l'entraînement. Même clé que Gemini : à saisir aussi sur cette ligne, ou GEMINI_API_KEY."
 key_env = "GEMINI_API_KEY"
-tool_call_extra = { extra_content = { google = { thought_signature = "skip_thought_signature_validator" } } }
 # FinOps : pas de pricing, le modèle est gratuit ; aucun coût n'est estimé ni affiché.
 # GreenOps : EcoLogits connaît les deux Gemma 4 chez google_genai (architecture publiée).
 impacts = { provider = "google_genai", model = "gemma-4-26b-a4b-it" }
@@ -747,8 +743,7 @@ resend = true
 # fournit la clé, par exemple "OPENROUTER_API_KEY"), min_interval_s (secondes au moins entre
 # deux envois au même modèle, de 0 exclu à 60), sampling (story 29 : les réglages que
 # l'écran « LLM nu » peut envoyer, parmi "temperature" et "top_p" ; vide par défaut, réglés
-# par le fournisseur) et tool_call_extra (ce qu'ajoute à chaque appel d'outil fabriqué par
-# le harnais un fournisseur qui l'exige, comme Gemini ci-dessus) et pricing (FinOps : prix
+# par le fournisseur) et pricing (FinOps : prix
 # d'entrée et de sortie en dollars par million de tokens, avec la date du relevé, et, facultatifs,
 # cache_read_usd_per_mtok, cache_write_usd_per_mtok et cache_write_1h_usd_per_mtok (écriture
 # gardée 1 heure ; absent : 2 fois le prix d'entrée), prix des tokens d'entrée lus ou écrits

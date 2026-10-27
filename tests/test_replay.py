@@ -121,25 +121,6 @@ def test_a_replay_of_a_replay_starts_from_the_same_history():
     assert branch(session) == ["t1", "t4"]
 
 
-def test_an_armed_action_is_consumed_by_the_replayed_turn():
-    _, session = skills_session(["Salut.", "Moi court."])
-    _run(session, "Bonjour")
-    session.arm("skill", "caveman")
-    mark = get_journal().last_seq()
-
-    session.replay()
-    session.join()
-
-    events = get_journal().events_since(mark)
-    (turn,) = [e for e in events if e.kind == "turn_started"]
-    assert turn.payload["replay_of"] == "t1"
-    started = [e for e in events if e.kind == "tool_started"]
-    assert [(e.payload["tool"], e.trigger) for e in started] == [("load_skill", "user")]
-    changes = [e for e in events if e.kind == "armed_actions_changed"]
-    assert changes and changes[-1].payload["actions"] == []  # consumed by the replayed turn
-    session.close()
-
-
 def test_a_stopped_origin_turn_is_replayed_from_the_turn_before():
     engine, session = memory_session(["Un.", "Deux.", "Deux bis."])
     _run(session, "Premier")

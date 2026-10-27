@@ -42,14 +42,6 @@ class AuditAppend(BaseModel):
     lines: list[str]
 
 
-class ArmConsumed(BaseModel):
-    """A turn took the armed action `armed_id` at its sending: it leaves the list at the
-    turn's end, whatever its status (AD-3, story 9)."""
-
-    kind: Literal["arm_consumed"] = "arm_consumed"
-    armed_id: str
-
-
 class SettingWrite(BaseModel):
     """One top-level key of `settings.json`, never a secret (AD-23): `selected_model`..."""
 
@@ -68,9 +60,7 @@ class ApiKeySet(BaseModel):
 
 
 # Each new harness tool or hook adds its own effect here (AD-23), discriminated by `kind`.
-Effect = (
-    ToolDocLoaded | SkillLoaded | MemoryWrite | AuditAppend | ArmConsumed | SettingWrite | ApiKeySet
-)
+Effect = ToolDocLoaded | SkillLoaded | MemoryWrite | AuditAppend | SettingWrite | ApiKeySet
 
 
 def apply_setting(effect: SettingWrite | ApiKeySet) -> None:

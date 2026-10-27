@@ -12,8 +12,7 @@ explanation_text:
       Seul son résultat revient dans le contexte principal, en « Résultat du sous-agent » :
       les tokens du document restent dans le contexte du sous-agent.
     - >-
-      Le modèle décide de déléguer en appelant delegate, un méta-outil (un outil qui confie la tâche sans agir lui-même) ; « Déléguer au
-      sous-agent » force la délégation au prochain tour.
+      Le modèle décide de déléguer en appelant delegate, un méta-outil (un outil qui confie la tâche sans agir lui-même).
     - >-
       Bornes : la délégation coûte au tour principal l'appel au modèle qui l'a demandée ;
       le sous-agent a ses propres appels, 4 au plus, nouveaux essais compris. Il ne raisonne
