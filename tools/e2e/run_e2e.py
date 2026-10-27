@@ -17559,7 +17559,8 @@ def s_glossary(r: Run) -> None:
         expect(panel).to_be_visible(timeout=10_000)
         expect(page.locator("#glossary-list dt").first).to_be_visible(timeout=10_000)
         count = page.locator("#glossary-list dt").count()
-        r.check(40 <= count <= 60, f"Glossaire ({name}) : 40 à 60 termes", str(count))
+        # Same ceiling as tests/test_glossary.py (16.2 and 16.5 brought the glossary to 62).
+        r.check(40 <= count <= 70, f"Glossaire ({name}) : 40 à 70 termes", str(count))
         r.check(
             toggle.get_attribute("aria-expanded") == "true",
             f"Glossaire ({name}) : le bouton se dit ouvert",
@@ -17690,6 +17691,12 @@ def s_security_page(r: Run) -> None:
         )
         page.locator('#sec-journal-filters [data-f="all"]').click()
         r.check(allowed.is_visible(), "Sécurité : le filtre « Tout » rend tout le journal")
+        # The « écriture » card left the matrix filtered: back to every tool.
+        page.locator('#sec-matrix-filters [data-mx="all"]').click()
+        r.check(
+            page.locator("#sec-matrix-body tr.mx-row").first.is_visible(),
+            "Sécurité : le filtre « Tous les outils » rend toute la matrice",
+        )
         # Every kind of clickable: the hand cursor, and a style of its own on hover.
         for selector in (
             "#sec-questions .sec-question-card",

@@ -82,3 +82,11 @@ Rebasée sur origin/main (16.9 fusionnée), sans conflit.
 - Nit · low · second avis 8 · rejeté : « Refusés et bloqués » suit `security_log._DENIED` (deny, blocked), comme le compte du badge ; y ajouter `timeout` ferait diverger les deux chiffres.
 - Nit · low · second avis 9 · rejeté : si `/api/security` échoue, toute la page reste vide (comportement d'avant la story) ; des pastilles sans compte n'y changent rien.
 - Complexité : 0 constat (filtres en O(n) par clic seulement, flux en O(1), journal borné à 500).
+
+### Passe 2 (2026-10-27, SHA revu e82bd501)
+
+E2E de l'orchestrateur `--only glossary security_page bar_journal` : 7 échecs, aucun dans l'application.
+
+- Important · medium · E2E · corrigé : `s_security_page` survolait la première `tr.mx-row` alors que la carte « écriture » avait laissé la matrice filtrée (ligne masquée, « element is not visible », rien ne bougeait). Le scénario repasse sur « Tous les outils » et le vérifie.
+- Important · medium · E2E, défaut croisé 16.2/16.5 · corrigé : `s_glossary` plafonnait à 60 termes (62 sur main) ; plafond 70, comme `tests/test_glossary.py`.
+- Relance : 77 vérifications réussies, 0 en échec (glossary, security_page, bar_journal).
