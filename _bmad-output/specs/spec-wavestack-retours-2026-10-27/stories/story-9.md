@@ -86,3 +86,7 @@ Rebasée sur origin/main (16.2 et 16.3), sans conflit.
 - Nit, low, second avis 8 : rejeté, déjà fait. `subtitle()` (rag.js) affiche le `label_text` de l'option choisie, qui nomme le fournisseur et le modèle.
 - Nit, low, second avis 9 : rejeté. Aucune règle d'app.css de même spécificité ne vise les classes `.window-*` ou les éléments du panneau (`.top-bar > :not(.gauge)` est de spécificité 0,2,0 et ne touche pas `position`).
 - Complexité : 0 constat (aucune structure qui grossit parcourue à chaque événement).
+
+### Passe 2 (2026-10-27, SHA revu 5b53ceac) : régressions E2E signalées par l'orchestrateur
+
+- Important, high, orchestrateur (E2E sur 5b53ceac : diagnostic, rag, rag_rerank, rag_lab_no_index) : reproduction partielle. Poste saturé (un `import wavestack.web.app` prend de 26 à 63 s, y compris dans le dépôt principal ; d'autres E2E tournaient en même temps). Relances depuis le worktree : `diagnostic rag` vert (46/46) ; `rag rag_rerank context_window rag_lab_no_index rag_lab_context` à 103/105, `rag_lab_context` rouge comme sur main, `rag_lab_no_index` en `ReadTimeout` sur `GET /api/rag_lab` (10 s) à l'ouverture de rag.html ; les relances suivantes n'ont pas pu démarrer l'application en 60 s. Seule différence de démarrage de rag.html due à la story : `/api/state` et `/api/diagnostic` (lent) lancés en même temps que le catalogue `/api/rag_lab`. Corrigé à titre préventif : ces deux lectures partent après le premier catalogue reçu. Reporté : relancer la tranche sur un poste au repos, sans autre E2E en parallèle.

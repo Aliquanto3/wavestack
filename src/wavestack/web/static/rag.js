@@ -2419,17 +2419,18 @@ async function main() {
       if (said) $("rag-status").textContent = said;
     },
   });
-  fetch("/api/state")
-    .then((response) => response.json())
-    .then((state) => handleWindowState(state.context_window_state))
-    .catch(() => {}); // the button waits for the next `context_window_state`
-  const locals = loadLocalModels(); // `/api/diagnostic` can take a while: never awaited first
   let body = await refresh();
   while (!body) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     body = await refresh();
   }
-  locals.then(() => renderViews());
+  // Story 16.9: `/api/state` and `/api/diagnostic` (slow) only once the workshop's own
+  // catalog came: never competing with it while the page starts. Neither is awaited.
+  fetch("/api/state")
+    .then((response) => response.json())
+    .then((state) => handleWindowState(state.context_window_state))
+    .catch(() => {}); // the button waits for the next `context_window_state`
+  loadLocalModels().then(() => renderViews());
   const question = $("rag-question");
   question.value = stored(QUESTION_KEY) ?? (text("default_question_text") || "");
   question.addEventListener("input", () => keep(QUESTION_KEY, question.value));
