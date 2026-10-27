@@ -229,7 +229,7 @@ function renderSpend() {
   const paid = c.calls > 0;
   const amount = $("bar-spend-amount");
   // Story 1 (CAP-1): a montant toujours affiché, jamais `c.calls > 0` seul : un modèle sans
-  // `pricing` (Gemma) a `calls === 0` mais `unpriced_calls > 0`, 0 € + l'offre gratuite,
+  // `pricing` (Gemma) a `calls === 0` mais `unpriced_calls > 0` : 0 $ + l'offre gratuite,
   // jamais confondu avec un vrai 0 $.
   amount.textContent = paid ? money(c.total_usd) : shortUsd(0);
   const saved = $("bar-spend-saved");
@@ -255,7 +255,7 @@ function renderSpend() {
 }
 
 // The former gauge's sentence: the spend in dollars, the cap, the footprint, and what resets
-// them. Story 1 (CAP-3): dollars only, like the button's own amount (`usd`); no currency
+// them. Story 17.1: dollars only, like the button (`usd` here, `shortUsd` there); no currency
 // conversion.
 function detailSentence(c) {
   const paid = c.calls > 0;

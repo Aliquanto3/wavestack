@@ -78,3 +78,17 @@ et (b)).
   (`#bar-spend-toggle`) porte déjà son `title` avec la phrase complète (`detailSentence`), et le
   panneau ouvert la redonne en texte visible (`#bar-spend-detail`) — ajouter une seconde
   info-bulle aurait dupliqué un mécanisme déjà accessible.
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu 0f5ac3f6)
+
+Rebasée sur origin/main (1b3e0c66). Mesures faites avec Edge headless sur `diagnostic.html` et la feuille réelle (pas d'E2E lancé).
+
+- **Important**, high, reviewer + second avis 2 : (c) non corrigé. À 360 px, `.bar-flyout` (content-box : `width` + padding + bordure = 354 px) sortait de 19 px à gauche de la fenêtre, et `.site-nav` en `nowrap` faisait 710 px (page à 735 px de large) ; `_bar_overflows` ne comparait les enfants qu'au panneau et ne voyait rien. Corrigé : `box-sizing: border-box` sur `.bar-flyout`, et `.site-nav` passe à la ligne sous 640 px (mesuré : page 360 px, panneau 7-335 px). Assertion E2E ajoutée : panneau dans la fenêtre et barre commune sans débordement.
+- **Important**, medium, second avis 1 : `s_gemini_shape` attendait « € au taux de » dans l'infobulle. Corrigé (« , soit » et aucun « € »), commentaire et libellé réalignés.
+- **Important**, medium, second avis 3 : (b) sans garde de non-régression. Mesuré : bouton de 399 px avec l'ancienne phrase (page à 1275 px pour 1272), 196 px avec « Offre gratuite » (page à 1272 px). Ajout dans `s_bar_journal` d'une vérification à 1272 px sur `/diagnostic` après l'appel gratuit (aucun défilement horizontal). Pas de troncature CSS : les badges sont des textes courts bornés, une ellipse cacherait « Mehrkosten des Cache … ».
+- **Nit**, low, second avis 4 : `eur()` d'`app.js` sans appelant (déjà avant la story) et clé `common.format.eur` orpheline : retirées (fr, en, de).
+- **Nit**, low, second avis 5 et 6 : commentaires de `bar.js` (« 0 € », « like the button's own amount (`usd`) ») corrigés.
+- **Nit**, low, reviewer : le panneau passe de 486 à 460 px de large au bureau (border-box) ; accepté.
+- Report : E2E `bar_journal`, `bar_panels` à jouer par l'orchestrateur ; `gemini_shape` demande une clé Gemini réelle (service externe), à rejouer quand elle est disponible.

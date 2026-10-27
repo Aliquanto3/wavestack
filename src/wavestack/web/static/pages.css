@@ -201,6 +201,18 @@
   }
 }
 
+/* Story 17.1: under 640 px (360 px phone), the links, « Dépense », « Journal » and the menu
+   wrap onto several lines instead of pushing the page sideways (the flyouts stay anchored to
+   the bar's right edge, inside the window). */
+@media (width < 640px) {
+  .site-nav {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-1);
+    height: auto;
+    padding-block: var(--spacing-1);
+  }
+}
+
 /* ---------- Story 9 (CAP-7, CAP-9): the barre commune's two buttons and their flyouts
    (`bar.js`), by the DESIGN.md tokens only (bar-button, bar-flyout, status-chip,
    disclosure-row). `.bar-group` wraps both buttons so the group is pushed right as one,
@@ -265,6 +277,7 @@
   z-index: 20;
   display: grid;
   gap: var(--spacing-3);
+  box-sizing: border-box; /* story 17.1: its padding inside the width, or 19 px out at 360 px */
   width: min(460px, calc(100vw - 2 * var(--spacing-4)));
   white-space: normal; /* story 1 (CAP-1): `.site-nav` keeps its links on one line, not this text */
   padding: var(--spacing-3);

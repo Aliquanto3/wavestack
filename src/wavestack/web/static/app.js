@@ -195,7 +195,6 @@ const seconds = (ms) => `${numberFormat().format(Math.max(ms, 0) / 1000)} s`;
 // (« 0,02 $ », « $0.02 »); formatting only.
 const moneyFormat = () => intlNumber({ maximumSignificantDigits: 4 });
 const usd = (n) => t("common.format.usd", { amount: moneyFormat().format(n) });
-const eur = (n) => t("common.format.eur", { amount: moneyFormat().format(n) });
 // What the user (or the model) wrote, quoted as the language quotes: « … », “…”, „…“.
 const quote = (text) => t("common.format.quote", { text });
 // « Outil : 3 », « Tool: 3 »: a label and its value, with the language's colon.

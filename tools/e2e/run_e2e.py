@@ -11235,7 +11235,7 @@ def _gemini_costs(r: Run, calls: list[dict]) -> None:
     )
     spend = r.state().get("consumption_updated") or {}
     # Story 9: the bar's « Dépense » replaces the former gauge `#consumption`; its tooltip and
-    # its panel keep the gauge's sentence (euros, cap, footprint, reset).
+    # its panel keep the gauge's sentence (dollars only since 17.1, cap, footprint, reset).
     top = page.locator("#bar-spend-toggle")
     expect(top).to_be_visible(timeout=5000)
     text = page.locator("#bar-spend-amount").inner_text()
@@ -11248,10 +11248,11 @@ def _gemini_costs(r: Run, calls: list[dict]) -> None:
         and spend.get("calls", 0) >= 2
         and title.startswith("Dépense API estimée de la séance : entrée ")
         and ", sortie " in title
-        and " € au taux de " in title
+        and ", soit " in title
+        and "€" not in title
         and detail == title
         and (not green or (footprint.startswith("🍃 ") and footprint.endswith(" g CO₂e"))),
-        "FinOps : « Dépense … $ » dans la barre commune, la phrase entière (euros compris) en "
+        "FinOps : « Dépense … $ » dans la barre commune, la phrase entière (en dollars, sans €) en "
         "infobulle et dans son panneau « Bilan de la séance » (« 🍃 » avec une empreinte)",
         f"{text!r} · {title} · {footprint!r} · {spend}",
     )
@@ -17338,6 +17339,15 @@ def _bar_log_rows(r: Run) -> list[dict[str, str]]:
     )
 
 
+# An element's box against the window, the page's own width (horizontal scroll) and the
+# shared bar's overflow (its content wider than its box).
+_BAR_IN_WINDOW = """el => { const b = el.getBoundingClientRect();
+    const nav = document.querySelector('nav.site-nav');
+    return {left: b.left, right: b.right, win: window.innerWidth,
+            page: document.documentElement.scrollWidth,
+            nav: nav.scrollWidth - nav.clientWidth}; }"""
+
+
 def _bar_overflows(r: Run, panel: str) -> list[str]:
     """What sticks out of a flyout (its own box) at the current width, by class."""
     return r.page.locator(f"#{panel}").evaluate(
@@ -17388,6 +17398,18 @@ def s_bar_journal(r: Run) -> None:
             "Bilan : un modèle sans prix affiche « 0 $ » et la mention d'offre gratuite",
             f"{amount!r} · {saved!r}",
         )
+        # 17.1 (b): at 1272 px, the page Modèles holds the button and its badge (was 7 px over).
+        page.set_viewport_size({"width": 1272, "height": 900})
+        _goto_diagnostic(r)
+        expect(page.locator("#bar-spend-saved")).to_be_visible(timeout=5000)
+        box = page.locator("#bar-spend-toggle").evaluate(_BAR_IN_WINDOW)
+        r.check(
+            box["page"] <= box["win"],
+            "Modèles à 1272 px : le badge d'offre gratuite ne fait pas déborder la page",
+            str(box),
+        )
+        page.set_viewport_size({"width": 1600, "height": 1000})
+        r.goto_app()
         # bar_log_lists_model_calls (the main page replays from 0: no call doubled)
         rows = _bar_log_rows(r)
         model_rows = [row for row in rows if row["kind"] == "model_call"]
@@ -17434,6 +17456,13 @@ def s_bar_journal(r: Run) -> None:
                 head.click()  # the detail lines too
             out = _bar_overflows(r, panel)
             r.check(not out, f"{panel} à 360 px : aucun texte ne dépasse", str(out[:5]))
+            # 17.1: the panel itself inside the window, the bar (wrapped) not wider than it.
+            box = page.locator(f"#{panel}").evaluate(_BAR_IN_WINDOW)
+            r.check(
+                box["left"] >= -1 and box["right"] <= box["win"] + 1 and box["nav"] <= 1,
+                f"{panel} à 360 px : dans la fenêtre, la barre commune sans débordement",
+                str(box),
+            )
             page.keyboard.press("Escape")
     finally:
         page.unroute("**/api/state", fake_state)

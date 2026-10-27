@@ -10,7 +10,6 @@ common:
   format:
     usd: "${amount}"
     usd_below: "< ${amount}"
-    eur: "€{amount}"
     quote: "“{text}”"
     label_value: "{label}: {value}"
   unavailable_outside_turn: "Available when no turn is running."
