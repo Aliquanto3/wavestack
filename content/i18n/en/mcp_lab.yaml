@@ -86,6 +86,8 @@ columns:
     name_text: "Local SLM"
     sub_text: ""
     explain_text: "An SLM (small language model) running on this workstation. The model never talks to the MCP server. It reads the tools in its context and asks the host for a call, which goes through the client."
+    name_cloud_text: "Cloud LLM"
+    explain_cloud_text: "An LLM (large language model) running at a cloud provider. This model never talks to the MCP server either: it reads the tools in its context and asks the host for a call, which goes through the client."
   host:
     name_text: "WaveStack host"
     sub_text: "the harness"

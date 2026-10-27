@@ -92,6 +92,8 @@ columns:
     name_text: "SLM local"
     sub_text: ""
     explain_text: "Un SLM (petit modèle de langage) qui tourne sur ce poste. Le modèle ne parle jamais au serveur MCP. Il lit les outils dans son contexte et demande un appel à l'hôte, qui passe par le client."
+    name_cloud_text: "LLM cloud"
+    explain_cloud_text: "Un LLM (grand modèle de langage) qui tourne chez un fournisseur cloud. Le modèle ne parle jamais au serveur MCP non plus : il lit les outils dans son contexte et demande un appel à l'hôte, qui passe par le client."
   host:
     name_text: "Hôte WaveStack"
     sub_text: "le harnais"

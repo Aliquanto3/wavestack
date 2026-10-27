@@ -1490,6 +1490,7 @@ button.mcp-arrow:hover {
 .mcp-robot {
   grid-column: 1;
   grid-row: 2 / 4;
+  min-width: 0;
   display: grid;
   justify-items: center;
   align-content: center;
@@ -1510,7 +1511,11 @@ button.mcp-arrow:hover {
   border: var(--spacing-stroke-min) dashed var(--color-hosting-boundary);
 }
 
+.mcp-robot-name,
 .mcp-robot small {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: var(--color-on-ink-soft);
 }
 
@@ -1665,6 +1670,12 @@ button.mcp-arrow:hover {
   grid-row: 2 / -1; /* CAP-8: down to the last row, whatever the server count */
   background: var(--color-ink-fill);
   color: var(--color-on-ink);
+}
+
+/* Story 17.3: a cloud model, beyond the boundary, in the network lanes' free first column. */
+.mcp-lanes-before-network .mcp-before-node.is-model {
+  grid-row: 1 / -1;
+  border: var(--spacing-stroke-min) dashed var(--color-hosting-boundary);
 }
 
 .mcp-before-node.is-source {

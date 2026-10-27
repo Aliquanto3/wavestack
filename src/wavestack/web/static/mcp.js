@@ -458,6 +458,7 @@ function primitivesText(end) {
 let stepper = null;
 let panes = null;
 let layer = null; // the architecture's wires
+let archModel = null; // the model the Architecture and « Avant MCP » were built for (story 17.3)
 const rows = new Map(); // arrow key -> {li, sig}
 const phaseNodes = new Map(); // phase key -> {section, list, toggle, meta, why, whyBox}
 let current = null; // the arrow shown by the stepper
@@ -467,11 +468,22 @@ let unseen = 0;
 let programmatic = false;
 
 function columnName(i) {
-  return text(`columns.${COLS[i]}.name_text`) || COLS[i];
+  const id = COLS[i];
+  // Story 17.3: the model lifeline's name follows the active model's hosting (local/cloud).
+  if (id === "model" && modelInfo()?.hosting === "network") {
+    return text("columns.model.name_cloud_text") || text("columns.model.name_text") || id;
+  }
+  return text(`columns.${id}.name_text`) || id;
 }
 
+// The series' model once it called one (the Séquence and the Architecture replay that series),
+// the active model before (story 17.3: never the hosting of a model that is not shown).
 function modelInfo() {
   return store.model?.model || store.ask?.model || null;
+}
+
+function modelKey(model) {
+  return model ? `${model.hosting}|${model.label}` : "";
 }
 
 function renderHeads() {
@@ -513,7 +525,11 @@ function renderHeads() {
       sub = model?.label ?? sub;
     }
     head.querySelector(".mcp-head-name").textContent = name;
-    head.querySelector(".mcp-head-sub").textContent = sub;
+    const subEl = head.querySelector(".mcp-head-sub");
+    subEl.textContent = sub;
+    // Story 17.3: the model's name can be long; the full text stays available on hover/a11y.
+    if (id === "model" && sub) subEl.title = sub;
+    else subEl.removeAttribute("title");
     explain(head, columnExplain(id, info));
   }
 }
@@ -524,7 +540,10 @@ function analogy(piece) {
 }
 
 function columnExplain(id, info) {
-  const base = text(`columns.${id}.explain_text`);
+  // Story 17.3: the model lifeline's explanation follows the active model's hosting too.
+  const base = id === "model" && modelInfo()?.hosting === "network"
+    ? text("columns.model.explain_cloud_text") || text("columns.model.explain_text")
+    : text(`columns.${id}.explain_text`);
   const piece = { user: null, model: "model", host: "host", client: "client", source: "source",
     server: info?.network ? "server_http" : "server_stdio" }[id];
   const extra = id === "source" ? info?.source_explain_text : null;
@@ -1214,8 +1233,11 @@ function robot(model) {
     '<rect class="mcp-robot-body" x="4" y="5" width="22" height="18" rx="6"/>' +
     '<rect class="mcp-robot-visor" x="8" y="10" width="14" height="8" rx="4"/>' +
     '<circle class="mcp-robot-eye" cx="12" cy="14" r="1.6"/><circle class="mcp-robot-eye" cx="18" cy="14" r="1.6"/>';
-  const cloud = model?.hosting === "network";
-  button.append(svg, el("span", "mcp-robot-name", cloud ? t("mcp.columns.cloud", { provider: model.provider ?? "" }) : columnName(MODEL)), el("small", null, model?.label ?? ""));
+  // Story 17.3: a long model name wraps in its box; the full name stays in the title (hover,
+  // accessible text) even when it does not.
+  const small = el("small", null, model?.label ?? "");
+  if (model?.label) small.title = model.label;
+  button.append(svg, el("span", "mcp-robot-name", columnName(MODEL)), small);
   explain(button, columnExplain("model"));
   return button;
 }
@@ -1224,6 +1246,7 @@ function buildArch() {
   const arch = $("mcp-arch");
   arch.replaceChildren();
   const model = modelInfo();
+  archModel = modelKey(model);
   const cloud = model?.hosting === "network";
   const local = el("div", "mcp-zone is-local");
   local.setAttribute("role", "group");
@@ -1397,12 +1420,14 @@ function buildBefore() {
   const lanes = el("div", "mcp-lanes-before");
   lanes.append(el("span", "mcp-zone-label", t("mcp.arch.local_label")));
   lanes.append(el("div", "mcp-before-node is-user", t("mcp.arch.user")));
-  lanes.append(el("div", "mcp-before-node is-model", columnName(MODEL)));
+  const netLanes = el("div", "mcp-lanes-before-network");
+  // Story 17.3: a cloud model sits beyond the boundary, as in the Architecture.
+  const cloud = modelInfo()?.hosting === "network";
+  (cloud ? netLanes : lanes).append(el("div", "mcp-before-node is-model", columnName(MODEL)));
   const host = el("div", "mcp-before-host");
   host.append(el("span", "mcp-before-host-label", t("mcp.arch.host")));
   const network = el("div", "mcp-zone is-network");
   network.append(el("span", "mcp-zone-label", t("mcp.arch.network_label")));
-  const netLanes = el("div", "mcp-lanes-before-network");
   const sr = el("ul", "mcp-sr-only");
   // CAP-8: as many rows as servers (`servers.ALL_IDS`), never the 3 of the first 3 servers: a
   // server added later grows the schema instead of overlapping its last row.
@@ -1470,6 +1495,15 @@ function drawBefore({ box }) {
     parts.push(connectorEnd(to.dataset.shape, end, b.cy));
   }
   return parts;
+}
+
+// Story 17.3: both schemas drawn again for the model shown (`modelInfo()`), the blocks the
+// stepper had revealed revealed again, the wires re-laid.
+function rebuildSchemas() {
+  buildArch();
+  buildBefore();
+  setArchView(store.archView, false);
+  renderArchReveal(revealedAt(shownIndex));
 }
 
 function setArchView(view, save = true) {
@@ -2227,6 +2261,8 @@ function redraw({ restoring = false } = {}) {
     if (envelope.kind === "mcp_lab_closed") store.openServer = null;
   }
   renderHeads();
+  // Story 17.3: a series run with another model moves and renames the robot (both schemas).
+  if (modelKey(modelInfo()) !== archModel) rebuildSchemas();
   renderSequence(model, { restoring });
   renderModelPane(model);
   const stepArrows = model.arrows.filter((a) => a.step);
@@ -2368,7 +2404,7 @@ async function refreshAsk() {
     const body = await fetchState();
     store.ask = body.ask;
     store.session = body.session_state;
-    buildArch();
+    rebuildSchemas();
   } catch {
     // the next event tries again
   }

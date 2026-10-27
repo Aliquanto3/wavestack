@@ -39,4 +39,6 @@ ses lignes `before.integrations` et `servers` dans `content/mcp_lab.yaml` et ses
 sans elles, la validation du contenu échoue au démarrage (erreur explicite). Sa forme dans le
 schéma vient de `BEFORE_SHAPES` dans `mcp.js` (rond par défaut). Pour son logo, déposer
 `logos/mcp/<id>.svg` et l'ajouter à `_LOGOS` dans `servers.py`, après vérification des règles
-de la marque.
+de la marque, et sa variante blanche pour le thème sombre (`<id>-white.svg`, dans `_LOGOS_DARK`) :
+les pictogrammes neutres de WaveStack (`local`, `datagouv`, `mslearn`) ont la leur, copie
+blanche du navy, jamais un filtre CSS (règle des jetons, `tests/test_web_tokens.py`).

@@ -99,11 +99,16 @@ class TransportText(_Strict):
 
 
 class ColumnText(_Strict):
-    """A lifeline of the Séquence: its name, its subtitle, its explanation (`explain()`)."""
+    """A lifeline of the Séquence: its name, its subtitle, its explanation (`explain()`).
+    Story 17.3: `columns.model` also carries a cloud variant (`*_cloud_text`), shown instead
+    of the local one when the active model's hosting is `network` (`McpServer`-unrelated:
+    read from `AppSession.active_model`)."""
 
     name_text: str = Field(min_length=1)
     sub_text: str = ""
     explain_text: str = Field(min_length=1)
+    name_cloud_text: str | None = None
+    explain_cloud_text: str | None = None
 
 
 class PhaseText(_Strict):
@@ -200,6 +205,12 @@ class McpLabContent(_Strict):
         for variable in ("{uri}", "{content}", "{question}"):
             if variable not in self.ask_resource_text:
                 raise ValueError(f"ask_resource_text : il manque {variable}")
+        model_col = self.columns["model"]
+        if (
+            not (model_col.name_cloud_text or "").strip()
+            or not (model_col.explain_cloud_text or "").strip()
+        ):
+            raise ValueError("columns.model : il faut name_cloud_text et explain_cloud_text")
         return self
 
 

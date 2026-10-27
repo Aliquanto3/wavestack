@@ -30,8 +30,14 @@ _LOGOS = {
     "github": "github.svg",
 }
 # CAP-8: the brand's own variant for the dark theme (GitHub's white Invertocat, never recoloured
-# in CSS); a server without one keeps its single logo in both themes.
-_LOGOS_DARK = {"github": "github-white.svg"}
+# in CSS); story 17.3: WaveStack's navy neutral pictograms get their white copy too (unreadable
+# on the dark background). A server without one keeps its single logo in both themes.
+_LOGOS_DARK = {
+    LOCAL: "local-white.svg",
+    "datagouv": "datagouv-white.svg",
+    "mslearn": "mslearn-white.svg",
+    "github": "github-white.svg",
+}
 
 
 @dataclass(frozen=True)
