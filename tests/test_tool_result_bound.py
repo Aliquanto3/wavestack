@@ -17,7 +17,7 @@ from pydantic import SecretStr
 from test_cloud import SENTINEL, Provider, delta, sse
 from test_compression import Compressors
 from test_mcp import MSLEARN_TOOLS, McpWeb, enable, loop, mcp_session  # noqa: F401 - fixture
-from test_tools import QWEN, _segments, call, tool_session
+from test_tools import QWEN, _segments, call
 from test_turn import _run
 
 from wavestack import config
@@ -297,22 +297,6 @@ def test_a_local_mcp_server_result_is_cut(loop):  # noqa: F811
 
     assert ended["result"].startswith("MCP : ") and MENTION in ended["result"]
     assert len(ended["result"].encode("utf-8")) <= FLOOR < ended["truncated"]["total_tokens"]
-    session.close()
-
-
-def test_a_forced_action_result_is_cut(net_web):  # noqa: F811
-    net_web(lambda r: httpx.Response(200, text=PAGE, headers={"content-type": "text/plain"}))
-    _, session = tool_session(["Voilà."], values={"tools": {"result_max_tokens": FLOOR}})
-    session.set_tool("fetch_page", True)
-    session.join()
-    session.arm("tool", "fetch_page", {"url": PARIS})
-    mark = get_journal().last_seq()
-
-    _run(session, "Lis la page Paris")
-
-    (ended,) = [e for e in get_journal().events_since(mark) if e.kind == "tool_ended"]
-    assert ended.trigger == "user" and ended.payload["truncated"]["total_tokens"] > FLOOR
-    assert len(ended.payload["result"].encode("utf-8")) <= FLOOR
     session.close()
 
 

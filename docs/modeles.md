@@ -415,7 +415,7 @@ appel rejoué sans cette signature : WaveStack la lui renvoie telle quelle, et �
 l'entrée `gemini` dans `settings.json`, sans toucher au code : les secours sont décrits en
 commentaire dans `wavestack.toml`. `null` n'y retire qu'une clé de premier niveau de
 `reasoning.on` ou `reasoning.off` (par exemple `"extra_body": null`) : un `null` plus profond
-est envoyé tel quel, et `tool_call_extra` ou `tags` à `null` rendent l'entrée invalide.
+est envoyé tel quel, et `tags` à `null` rend l'entrée invalide.
 
 **Gemma 4 (Google AI Studio).** `gemma-4-26b-a4b-it` est un modèle ouvert de Google : un MoE de
 26 milliards de paramètres au total, 4 milliards actifs par token (le sélecteur et le tableau

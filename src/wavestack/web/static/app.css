@@ -1399,20 +1399,6 @@ body {
     var(--typography-label-line-height) var(--typography-label-font-family);
 }
 
-/* DESIGN.md trigger-badge-user: an action the user forced (story 9), ink outline and hand
-   icon: it differs from the model's badge by its icon and label, not only its style. */
-.trigger-badge-user {
-  display: inline-block;
-  margin: 0 0 var(--spacing-1) var(--spacing-1);
-  border: 1px solid var(--color-ink);
-  border-radius: var(--rounded-full);
-  padding: 0 var(--spacing-2);
-  background: var(--color-surface-raised);
-  color: var(--color-ink);
-  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
-    var(--typography-label-line-height) var(--typography-label-font-family);
-}
-
 /* A step run by an MCP server (story 6): the tool is not the harness's own. A skill
    loaded (story 7) is shown the same way. */
 .step-badge.is-mcp,
@@ -2145,7 +2131,7 @@ body.focus-mode .pane.is-focused .pane-body-orch {
 }
 
 .brick-card {
-  position: relative; /* anchors .brick-help / .brick-explanation */
+  position: relative;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-line);
   border-radius: var(--rounded-md);
@@ -2156,62 +2142,8 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   gap: var(--spacing-2);
 }
 
-/* Story 10b: the "?" help button and its native popover, top-right of the card. */
-.brick-help {
-  position: absolute;
-  top: var(--spacing-2);
-  right: var(--spacing-2);
-  width: var(--spacing-hit-target-min);
-  height: var(--spacing-hit-target-min);
-  border-radius: var(--rounded-full);
-  border: 1px solid var(--color-line);
-  background: var(--color-surface-raised);
-  color: var(--color-primary);
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 var(--spacing-relief-offset) 0 var(--color-relief);
-}
-
-.brick-help:hover,
-.brick-help:focus-visible {
-  border-color: var(--color-primary);
-}
-
-.brick-help:active {
-  transform: translateY(calc(var(--spacing-relief-offset) - var(--spacing-relief-offset-pressed)));
-  box-shadow: 0 var(--spacing-relief-offset-pressed) 0 var(--color-relief-active);
-}
-
-/* Anchored (CSS anchor positioning) to the card via `anchor-name`/`position-anchor`,
-   set inline per card in app.js since each card needs its own anchor name. */
-.brick-explanation {
-  position: fixed;
-  top: var(--spacing-hit-target-min); /* fallback when anchor positioning is unsupported */
-  right: var(--spacing-2);
-  position-area: block-start inline-end;
-  position-try-fallbacks: flip-block, flip-inline;
-  margin: var(--spacing-1) 0 0 0;
-  max-width: 320px;
-  padding: var(--spacing-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--rounded-md);
-  background: var(--color-surface-raised);
-  box-shadow: 0 var(--spacing-relief-offset) 0 var(--color-relief);
-}
-
-.brick-explanation p,
-.brick-explanation ul {
-  margin: 0;
-}
-
-.brick-explanation p + p,
-.brick-explanation p + ul,
-.brick-explanation ul + p {
-  margin-top: var(--spacing-2);
-}
-
 /* CAP-4 (2026-10-27): the per-brick explanation, inline and folded by default (replaces the
-   « ? » popover above). The summary clamps to two lines until opened. */
+   former « ? » popover). The summary clamps to two lines until opened. */
 .brick-explain {
   font-size: var(--typography-body-sm-font-size);
   color: var(--color-ink-soft);
@@ -2423,8 +2355,7 @@ body.focus-mode .pane.is-focused .pane-body-orch {
 
 .brick-reason,
 .brick-note,
-.brick-pending,
-.brick-explanation {
+.brick-pending {
   margin: 0;
   font-size: var(--typography-body-sm-font-size);
   color: var(--color-ink-soft);
@@ -2511,162 +2442,10 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   min-width: 0;
 }
 
-/* D3 of 2026-10-01: the forced actions' switch in its own titled section, a dashed ink frame
-   that no brick card has, so it is not taken for one more brick. */
-.force-section {
-  padding: var(--spacing-1) var(--spacing-2);
-  border: 1px dashed var(--color-ink-soft);
-  border-radius: var(--rounded-sm);
-}
-
-/* Lot 1 of 2026-10-04: the title and its « ? » on one line; the button in the flow (the
-   cards' is absolute, top-right), its popover anchored to it (`anchor-name`, app.js). */
-.force-section-head {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.brick-help.brick-help-inline {
-  position: static;
-  flex: 0 0 auto;
-}
-
-.force-explanation {
-  inset: auto;
-  position-area: block-end span-inline-end;
-}
-
-.force-section-title {
-  margin: 0;
-  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
-    var(--typography-label-line-height) var(--typography-label-font-family);
-  color: var(--color-ink-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.force-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  min-height: var(--spacing-hit-target-min);
-  font-size: var(--typography-body-sm-font-size);
-  cursor: pointer;
-}
-
-.force-toggle-icon {
-  font-size: var(--typography-body-font-size);
-  line-height: 1;
-}
-
-/* DESIGN.md force-button: ink outline, hand icon, as the « Forcé par l'utilisateur » badge. */
-.force-button,
-.force-form button,
-.armed-chip {
-  min-height: var(--spacing-hit-target-min);
-  background: var(--color-surface-raised);
-  color: var(--color-ink);
-  border: 1px solid var(--color-ink);
-  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
-    var(--typography-label-line-height) var(--typography-label-font-family);
-  cursor: pointer;
-}
-
-.force-button,
-.force-form button {
-  border-radius: var(--rounded-sm);
-  padding: 0 var(--spacing-2);
-}
-
-.force-form button.force-arm {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.force-button:focus-visible,
-.force-form :focus-visible,
-.armed-chip:focus-visible,
-.force-toggle input:focus-visible {
-  outline: var(--spacing-stroke-min) solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.force-form {
-  flex: 1 0 100%;
-  display: grid;
-  gap: var(--spacing-2);
-  margin: var(--spacing-1) 0 var(--spacing-2);
-  padding: var(--spacing-2);
-  background: var(--color-surface);
-  border: 1px solid var(--color-ink);
-  border-radius: var(--rounded-md);
-}
-
-.force-field {
-  display: grid;
-  gap: 2px;
-  font-size: var(--typography-body-sm-font-size);
-}
-
-.force-field-name {
-  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
-    var(--typography-label-line-height) var(--typography-label-font-family);
-}
-
-.force-field input,
-.force-field select {
-  min-height: var(--spacing-hit-target-min);
-  min-width: 0;
-  border: 1px solid var(--color-line);
-  border-radius: var(--rounded-sm);
-  padding: 0 var(--spacing-2);
-  background: var(--color-surface-raised);
-  color: var(--color-ink);
-  font: inherit;
-}
-
-.force-help {
-  color: var(--color-ink-soft);
-}
-
-.force-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-}
-
 .force-error {
   margin: 0;
   color: var(--color-state-error);
   font-size: var(--typography-body-sm-font-size);
-}
-
-/* EXPERIENCE: « Armé : … » chips, on the brick card and above the composer; a click disarms. */
-.armed-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-1);
-}
-
-.armed-chip {
-  border-radius: var(--rounded-full);
-  padding: 0 var(--spacing-3);
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-
-.armed-chip-close {
-  margin-left: var(--spacing-2);
-}
-
-.armed-chips-row[hidden] {
-  display: none;
-}
-
-.brick-explanation p {
-  margin: var(--spacing-1) 0 0;
 }
 
 .brick-edit,
@@ -3607,7 +3386,7 @@ body.focus-mode .pane.is-focused .pane-body-orch {
 }
 
 /* The scenario's instructions: an « i » next to the Vue humain title (hidden without a
-   scenario) and its native popover, anchored under it (Chromium; see .brick-explanation). */
+   scenario) and its native popover, anchored under it (Chromium). */
 .pane-title-row {
   display: flex;
   align-items: center;
@@ -3804,17 +3583,6 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   padding: 8px 10px;
   border: 2px dashed var(--color-ink, currentColor);
   border-radius: 6px;
-}
-
-/* Story 14: « Écrire en mémoire » sits in the card itself, not in an option row: its form
-   takes its own height in the card's column (the row's `flex: 1 0 100%` is a width there). */
-.brick-card > .force-button {
-  align-self: flex-start;
-}
-
-.brick-card > .force-form {
-  flex: none;
-  margin: 0;
 }
 
 /* Story 26: the « Fenêtre » picker's own rules are in pages.css (story 16.9, shared with the
@@ -4014,11 +3782,6 @@ body.focus-mode .pane.is-focused .pane-body-orch {
 .ctx-view-button:focus-visible {
   outline: var(--spacing-stroke-min) solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.force-button-card {
-  align-self: flex-start;
-  margin-top: var(--spacing-1);
 }
 
 /* The two robots side by side: the model, then the same model in a second context. */

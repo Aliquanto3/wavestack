@@ -12,12 +12,11 @@ import pytest
 from fake_engine import CHATML, FakeEngine
 from test_bricks import HEADERS, _client
 from test_cloud import SENTINEL, Provider, _cloud_session, _journal_text, _no_sentinel, delta, sse
-from test_hooks import fake_hooks
 from test_tools import QWEN, _segments, call, web  # noqa: F401 - fixture
 
 from wavestack import config
 from wavestack.hooks import DEMO_HOOKS
-from wavestack.session.app_session import AppSession, ArmRefused
+from wavestack.session.app_session import AppSession
 from wavestack.trace.journal import get_journal
 
 TASK = "Lis le fichier notes_reunion.txt et liste les décisions."
@@ -148,71 +147,6 @@ def test_ids_steps_and_figures_of_the_sub_agent():
     assert ended["saved_tokens"] == kept - ended["result_tokens"] > 0
     assert ended["context_tokens"] > kept  # the whole context is not the saving
     assert ended["estimated"] is False
-    session.close()
-
-
-def test_forced_delegation_runs_before_the_first_main_call_and_costs_no_call():
-    outputs = [call("read_file", path="notes_reunion.txt"), RESULT, "Voilà."]
-    engine, session = sub_session(outputs)
-    session.arm("delegate", "delegate", {"task": TASK})
-
-    events = run(session, "Bonjour")
-
-    (started,) = of(events, "tool_started", "main")
-    assert (started.payload["tool"], started.trigger) == ("delegate", "user")
-    first_main = of(events, "model_call_started", "main")[0]
-    assert started.seq < first_main.seq
-    assert all(e.trigger == "user" for e in events if e.context_id == "sub1")
-    assert len(engine.calls) == 3  # two for the sub-agent, one main call
-    ctx = of(events, "context_rendered", "main")[0].payload
-    (result,) = _segments(ctx, "subagent_result")
-    assert result["text"] == RESULT and result["brick"] == "subagent"
-    assert status(events) == "completed" and session._armed == []
-    session.close()
-
-
-@pytest.mark.parametrize(
-    ("kind", "target", "args", "code", "reason"),
-    [
-        ("delegate", "delegate", {"task": "  "}, 422, "La tâche du sous-agent est vide."),
-        ("delegate", "read_file", {"task": TASK}, 404, "n'est pas la délégation"),
-    ],
-)
-def test_arming_refuses_an_empty_task_or_another_target(kind, target, args, code, reason):
-    _, session = sub_session(["Voilà."])
-    with pytest.raises(ArmRefused) as refused:
-        session.arm(kind, target, args)
-    assert reason in refused.value.reason_text and "Rien n'est armé." in refused.value.reason_text
-    assert refused.value.not_found is (code == 404)
-    with _client(session) as client:
-        response = client.post(
-            "/api/intentions/arm",
-            json={"kind": kind, "target": target, "args": args},
-            headers=HEADERS,
-        )
-        assert response.status_code == code
-        armed = client.post(
-            "/api/intentions/arm",
-            json={"kind": "delegate", "target": "delegate", "args": {"task": "x" * 60}},
-            headers=HEADERS,
-        )
-        assert armed.status_code == 200
-    (action,) = session._armed
-    assert action.label_text == f"Délégation : « {'x' * 40}… »" and action.brick == "subagent"
-    session.close()
-
-
-def test_brick_off_after_arming_drops_the_action_and_the_turn_goes_on():
-    engine, session = sub_session(["Voilà."])
-    session.arm("delegate", "delegate", {"task": TASK})
-    session.set_brick("subagent", False)
-
-    events = run(session, "Bonjour")
-
-    (dropped,) = of(events, "action_dropped")
-    assert "Sous-agent" in dropped.payload["reason_text"] and dropped.trigger == "user"
-    assert of(events, "subagent_started") == [] and len(engine.calls) == 1
-    assert status(events) == "completed"
     session.close()
 
 
@@ -358,24 +292,6 @@ def test_h5_asks_inside_the_sub_agent_and_its_refusal_goes_back_to_it(web):  # n
     session.close()
 
 
-def test_before_model_call_hooks_apply_inside_the_sub_agent():
-    hooks = fake_hooks("h1", "before_model_call", "block")
-    engine, session = sub_session(
-        ["Jamais lu."], bricks=("tools", "subagent", "hooks"), hooks=hooks
-    )
-    session.arm("delegate", "delegate", {"task": TASK})  # forced: the sub-agent calls first
-
-    events = run(session, "Bonjour")
-
-    blocked = [e for e in of(events, "hook_decided") if e.payload["decision"] == "block"]
-    assert [e.context_id for e in blocked] == ["sub1", "main"]
-    assert blocked[0].step_id.startswith("t1.sub1.h")
-    (ended,) = of(events, "tool_ended", "main")
-    assert ended.payload["status"] == "error" and "a bloqué" in ended.payload["error_text"]
-    assert engine.calls == [] and status(events) == "blocked"
-    session.close()
-
-
 def test_stop_during_the_sub_agent_cancels_the_turn_without_another_call():
     engine, session = sub_session([delegation(), "x" * 400, "Jamais lu."])
     engine.delay = 0.005
@@ -469,9 +385,7 @@ def test_the_schema_draws_a_second_model_and_the_card_its_force():
     assert all(e["to"] != "core.model_sub" for e in arch["edges"])
     cards = of(get_journal().events_since(mark), "bricks_changed")[-1].payload["bricks"]
     card = next(b for b in cards if b["id"] == "subagent")
-    assert card["force"]["label_text"] == "Déléguer au sous-agent"
-    assert card["force"]["kind"] == "delegate" and card["force"]["target"] == "delegate"
-    assert list(card["force"]["parameters"]) == ["task"] and card["force"]["presets"]
+    assert "force" not in card
     assert card["limits_text"].startswith("Sous-agent : 4 appels au modèle au plus")
     assert "Lecture de fichier" in card["limits_text"]
     session.set_brick("subagent", False)
@@ -855,23 +769,6 @@ def test_a_refused_delegate_call_is_not_a_sub_agent_result():
     second = of(events, "context_rendered", "main")[1].payload
     assert _segments(second, "subagent_result") == []
     assert "argument « task » manquant" in _segments(second, "tool_result")[0]["text"]
-    session.close()
-
-
-@pytest.mark.parametrize(
-    ("args", "reason"),
-    [({"task": 12}, "doit être un texte"), ({"task": "Lis.", "path": "x"}, "Argument inconnu")],
-)
-def test_arming_refuses_a_non_text_task_or_another_argument(args, reason):
-    _, session = sub_session(["Voilà."])
-    with _client(session) as client:
-        response = client.post(
-            "/api/intentions/arm",
-            json={"kind": "delegate", "target": "delegate", "args": args},
-            headers=HEADERS,
-        )
-    assert response.status_code == 422 and reason in response.json()["detail"]
-    assert session._armed == []
     session.close()
 
 

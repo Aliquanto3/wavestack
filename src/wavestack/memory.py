@@ -95,7 +95,6 @@ class DrawerText(BaseModel):
 
     empty_text: str = Field(min_length=1)
     empty_no_parser_text: str = Field(min_length=1)
-    text_help_text: str = Field(min_length=1)  # `{max_chars}` is replaced
 
 
 class MemoryContent(BaseModel):

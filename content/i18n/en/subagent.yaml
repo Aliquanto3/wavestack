@@ -10,21 +10,6 @@ delegate:
     For example: Read the file guide_harnais.md and summarise it in five one-line points, 80
     words at most.
 phase_label_text: Calling the sub-agent
-force_label_text: Delegate to the sub-agent
-task_label_text: >-
-  Task handed to the sub-agent, complete: it does not see the conversation.
-presets:
-  - label_text: Summarise the harness guide
-    args:
-      task: Read the file guide_harnais.md and summarise it in five one-line points, 80 words at most.
-  - label_text: Bounds of the loop
-    args:
-      task: >-
-        Read the file guide_harnais.md and say which bounds the harness sets on an agent's
-        loop.
-  - label_text: Meeting notes
-    args:
-      task: Read the file notes_reunion.txt and list the decisions taken.
 overflow_cause_text: >-
   Cause: the sub-agent's context is full, most often because of a tool's result (a document
   that is too long). To carry on with the demo: hand it a shorter document, or a task that

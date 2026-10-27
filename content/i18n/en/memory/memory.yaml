@@ -17,14 +17,9 @@ remember:
 
 drawer:
   empty_text: >-
-    No information in the global memory. The model can write some, or you can force a
-    write.
+    No information in the global memory. The model can write some.
   empty_no_parser_text: >-
-    No information in the global memory. The active model cannot call tools: it cannot
-    write any, not even through a forced write.
-  text_help_text: >-
-    The information to remember, in one short sentence ({max_chars} characters at most).
-    Never a secret: it is read again at every call.
+    No information in the global memory. The active model cannot call tools: it cannot write any.
 
 demo:
   - The user's name is Pascal.

@@ -93,9 +93,7 @@ scenarios:
       launching this scenario restores the demonstration memory, whose three pieces of
       information are already in the system message. Send the first prompt: the model
       calls remember, a tool of the harness itself (the cycle of a tool call is detailed in
-      module 2), and the harness writes the memory.json file. If it does not, force “Write
-      to memory” from the brick's card (after “Show the forced actions”) and send the
-      prompt again. Then clear the conversation and send the second prompt: the preference
+      module 2), and the harness writes the memory.json file. If it does not, click “Replay the last prompt”. Then clear the conversation and send the second prompt: the preference
       comes back through the system message, not through the history. Finally, open “Edit
       the memory” (or click the file in the diagram) to view, edit or erase the entries.
       Global memory stays on in the following modules; their first scenario restores the
@@ -196,11 +194,7 @@ scenarios:
       minutes, because the model first reads this whole long context, full documentation
       included; that is the price lazy loading avoids. The prompt names the glossary tool,
       local__define_term: a small local model does not always link the question to the
-      tool, a bigger (cloud) model does. If the model answers from memory,
-      click “Force the call · local__define_term” under “WaveStack glossary” in the MCP
-      card (after “Show the forced actions”), choose the preset “MCP”, “Arm”, then “Replay
-      the last prompt”: the call goes out automatically and the model answers with the
-      definition. Then move on to the “Lazy loading” scenario to see the same need fit in
+      tool, a bigger (cloud) model does. If the model answers from memory, click “Replay the last prompt”. Then move on to the “Lazy loading” scenario to see the same need fit in
       a much lighter context. Without a network, data.gouv.fr stays drawn as unavailable:
       carry on with the local server.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp]
@@ -221,14 +215,7 @@ scenarios:
       local__define_term. What you observe with a small model: it stops after
       load_tool_doc and answers from memory, sometimes writing “I searched” although
       Orchestration shows no call of local__define_term. Why: a small model is poor at
-      chaining two calls and takes the documentation for the answer. That is the
-      demonstration: click “Force the call · local__define_term” under “WaveStack
-      glossary” in the MCP card (after “Show the forced actions”), choose the preset
-      “MCP”, “Arm”, then “Replay the last prompt”: the replay starts again from before the
-      turn, the call goes out automatically, its definition joins the model's tools and the
-      model answers with the result; the harness guarantees the call the model does not
-      make. “Load the documentation” (same card) only loads the documentation, without
-      calling the tool. The second prompt queries data.gouv.fr. Without a network,
+      chaining two calls and takes the documentation for the answer. That is the limit of a small model: click “Replay the last prompt”, or try a bigger (cloud) model, which chains the two calls. The second prompt queries data.gouv.fr. Without a network,
       data.gouv.fr stays drawn as unavailable: carry on with the local server.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp]
     mcp_servers: [local, datagouv]
@@ -248,8 +235,7 @@ scenarios:
       content of the skill joins the context and the gauge grows. The prompt names the
       skill and the tool, because a small local model does not always link the request to
       the skill; a bigger model loads it from the request alone (try with a cloud model):
-      naming the skill is scaffolding for the small model. If the model does not load the skill, arm “Trigger the skill” on “Meeting minutes”
-      in the Skills card (after “Show the forced actions”), then replay the prompt.
+      naming the skill is scaffolding for the small model. If the model does not load the skill, click “Replay the last prompt”.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills]
     mcp_lazy: true
     restore_memory: true
@@ -262,20 +248,19 @@ scenarios:
   caveman:
     title_text: Caveman
     description_text: >-
-      Send the prompt, then arm “Trigger the skill” on Caveman in the Skills card (after
-      “Show the forced actions”), replay the last prompt and open “Compare”: same
-      question, far fewer output tokens.
+      Send the first prompt, then the second, which makes the model load the Caveman skill, and open “Compare”: same question, far fewer output tokens.
     bricks: [short_memory, system_prompt, skills]
     prompts:
       - Explain in a few sentences what an agent harness is.
+      - >-
+        First load the skill caveman with the load_skill tool, then explain in a few
+        sentences what an agent harness is.
 
   hooks:
     title_text: Hooks
     description_text: >-
       Send the prompt, then look at the “Hook points” strip of the diagram: the H1 guard
-      blocks the reading; it is code, not the model, that decides. If the model does not
-      call the tool, force the read_file call with the preset “Sensitive file” (after
-      “Show the forced actions”) and replay. Same logic for a third-party skill or plugin: a
+      blocks the reading; it is code, not the model, that decides. If the model does not call the tool, click “Replay the last prompt”. Same logic for a third-party skill or plugin: a
       package to check before installing (source, scripts, requested rights), because a hook
       controls it at run time but does not replace that check.
     bricks: [short_memory, system_prompt, tools, hooks]
@@ -295,9 +280,7 @@ scenarios:
       Orchestration: the tool results that stayed with the sub-agent against the
       reinjected summary; that is the saving. Switch LLM context between the main context
       (the summary alone, as “Sub-agent result”) and the sub-agent's (the whole guide). If
-      the model reads the file itself, the guide enters the main context: compare the
-      gauge, then arm “Delegate to the sub-agent” on the card (after “Show the forced
-      actions”) with the preset “Summarise the harness guide” and replay. The next three
+      the model reads the file itself, the guide enters the main context: compare the gauge, then click “Replay the last prompt”. The next three
       questions test the summary: what it left out is lost to the main agent, which has to
       delegate again or admit it does not know.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, subagent]
@@ -320,17 +303,12 @@ scenarios:
       sub-agent, without context injection (H3), and without the reasoning or the RAG, and the
       Compression brick is added: Headroom shortens large
       tool results before the model call. First turn compression off and send the first
-      prompt: the model calls read_file and the backup log enters the context in full. If
-      it does not read the log, click “Force the call” on “File reading” in the Tools card
-      (after “Show the forced actions”), choose the preset “Backup log (compression)”,
-      “Arm”, then “Replay the last prompt”, with compression still off. Turn it back on,
+      prompt: the model calls read_file and the backup log enters the context in full. If it does not read the log, click “Replay the last prompt”, with compression still off. Turn it back on,
       replay the prompt and open “Compare”. Unfold the “Compression (Headroom)” step in
       Orchestration: tokens before and after, original text and short version, where the
       error was kept. In LLM context, the tool result is marked “compressed” and the header
       gives the total without compression. Headroom only reduces redundancy: a text without
-      redundancy, such as prose, goes through as it is; that is the tool's limit. To show
-      it, force the preset “Harness guide (prose, compression)” in the same way, replay,
-      and unfold the step: the guide goes through unchanged. Finally, ask the second
+      redundancy, such as prose, goes through as it is; that is the tool's limit. To show it, ask the model to read guide_harnais.md and unfold the step: the guide goes through unchanged. Finally, ask the second
       prompt: what Headroom cut is lost to the model. Compression reduces what goes in,
       Caveman what comes out. If the card says Headroom is not installed, run
       `uv sync --extra compression` then restart WaveStack.
@@ -650,19 +628,14 @@ scenarios:
       adm.leroy account, which occurred during a maintenance window when some alerts were
       muted; H2 records each call, timestamped. The prompt gives the exact file name: if
       the model misspells it, the harness refuses the reading and lists the available
-      files, and the model can correct itself; otherwise, force the reading with the preset
-      “SIEM alerts (SOC)” (see below). Send the second: the model searches the files
+      files, and the model can correct itself; otherwise, see below. Send the second: the model searches the files
       itself, finds the inventory of privileged accounts in the confidential folder, and H1
       blocks its reading. The agent does not have this privilege: the harness decides, not
       the model, and the agent must escalate to an authorised analyst, as the prompt asks
       it to. If the model keeps searching or concludes without escalating (frequent with a
       small model), draw the conclusion yourself: the agent does not have this privilege,
       the decision belongs to an authorised analyst. Finally, click “Audit log” in the
-      diagram: the allowed readings and the blocked reading are there. If the model does
-      not call the tool, click “Force the call” on “File reading” in the Tools card (after
-      “Show the forced actions”), choose the preset “SIEM alerts (SOC)” for the first
-      prompt, “Privileged accounts (SOC, confidential)” for the second, “Arm”, then
-      “Replay the last prompt”. Key takeaway: the harness log traces every action of the
+      diagram: the allowed readings and the blocked reading are there. If the model does not call the tool, click “Replay the last prompt”. Key takeaway: the harness log traces every action of the
       agent, the traceability that NIS2 and DORA expect from a tool acting on the
       information system; the guard applies least privilege, and the sensitive decision
       stays with a human.
@@ -694,11 +667,7 @@ scenarios:
       goes to Microsoft, the model stays on the workstation. The search results are large
       (up to 1,200 tokens kept): two do not fit together in the window, so click “Clear the
       conversation” (Human view pane) before sending the second prompt; if the gauge
-      announces an overflow, that is the real cost of a public MCP. If the model answers
-      without searching, click “Force the call · mslearn__microsoft_docs_search” under
-      “Microsoft Learn” in the MCP card (after “Show the forced actions”), choose the
-      preset “MFA for administrators (IAM)” for the first prompt, the preset “Just-in-time
-      PIM (IAM)” for the second, “Arm”, then “Replay the last prompt”. Without a network
+      announces an overflow, that is the real cost of a public MCP. If the model answers without searching, click “Replay the last prompt”. Without a network
       (or behind a proxy that blocks learn.microsoft.com), Microsoft Learn is drawn as
       unavailable with its reason: untick then tick the server again in the MCP card to
       retry. Key takeaway: a sourced answer, with Microsoft Learn links, rather than an
@@ -730,17 +699,9 @@ scenarios:
       calls the tool without its documentation, which the harness refuses) and answers from
       memory, sometimes writing “I searched” with invented datasets, although
       Orchestration shows neither a call of the tool nor an outbound request. Why: a small
-      model is poor at chaining two calls and takes the documentation for the answer. That
-      is the demonstration: for the first prompt, click “Force the call ·
-      datagouv__search_datasets” under “data.gouv.fr” in the MCP card (after “Show the
-      forced actions”), choose the preset “Cybersecurity”, “Arm”, then “Replay the last
-      prompt”: the replay starts again from before the turn, the search goes out
-      automatically and the model answers with its result; the harness guarantees the call
-      the model does not make. Open the outbound data of this first call. Two search
+      model is poor at chaining two calls and takes the documentation for the answer. That is the limit of a small model: click “Replay the last prompt”. Open the outbound data of this first call. Two search
       results do not fit together in the window: click “Clear the conversation” (Human view
-      pane) before sending the second prompt. Its fallback: “Force the call ·
-      mslearn__microsoft_docs_search” under “Microsoft Learn”, preset “Logging of admin
-      sign-ins (Sovereignty)”, “Arm”, then “Replay the last prompt”. The diagram only shows
+      pane) before sending the second prompt. Same fallback for the second prompt. The diagram only shows
       what leaves the workstation: where each MCP server runs, with which host, with which
       certification (SecNumCloud for example), remains to be checked flow by flow, and a
       public service is not sovereign by nature. The model, for its part, stays on the

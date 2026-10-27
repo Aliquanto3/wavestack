@@ -633,22 +633,6 @@ class SpecialTokenNeutralizedPayload(BaseModel):
 # ---------- story 4: bricks, system prompt, conversation (AD-3, AD-12, AD-17) ----------
 
 
-class ToolPresetState(BaseModel):
-    """A preset of a forced tool call's arguments (story 9), from `content/tools.yaml`."""
-
-    label_text: str
-    args: dict[str, object]
-
-
-class McpCallOption(BaseModel):
-    """Lot K: the forced call of one MCP tool of a connected server: its parameters (name ->
-    French description, from the server's schema) and the presets of `content/mcp.yaml`."""
-
-    tool: str
-    parameters: dict[str, str]
-    presets: list[ToolPresetState] = []
-
-
 class BrickOption(BaseModel):
     """A sub-option of a brick card (story 5: one native tool)."""
 
@@ -657,28 +641,9 @@ class BrickOption(BaseModel):
     enabled: bool
     hosting_text: str
     network: bool
-    # Story 9, tools: the parameters of a forced call (name -> French description, in the
-    # call's order) and the presets that fill its form.
-    parameters: dict[str, str] | None = None
-    presets: list[ToolPresetState] = []
-    # Story 9, MCP servers: the tools whose documentation can be loaded by force.
-    tools: list[str] = []
-    # Lot K, MCP servers: the form of each tool's forced call (« Forcer l'appel »).
-    calls: list[McpCallOption] = []
     # AD-9 (E089), public MCP servers: the live tools drift from the versioned snapshot
     # beyond `[mcp] snapshot_drift_threshold` (None: no snapshot, or within it).
     drift_text: str | None = None
-
-
-class BrickForce(BaseModel):
-    """Story 19: a forced action at the card's level (a brick without sub-option), with the
-    form of its parameters (name -> French description) and the presets that fill it."""
-
-    kind: Literal["delegate"]
-    target: str
-    label_text: str
-    parameters: dict[str, str]
-    presets: list[ToolPresetState] = []
 
 
 class DownloadOffer(BaseModel):
@@ -767,12 +732,9 @@ class BrickState(BaseModel):
     always_text: str | None = None
     # Story 14, `global_memory` brick: what the card adds (e.g. no tool parser, AD-6).
     note_text: str | None = None
-    # Story 14, `global_memory` brick: the empty drawer's text and the forced write's help
-    # (AD-19), which depend on the model's tool parser.
+    # Story 14, `global_memory` brick: the empty drawer's text (AD-19), which depends on
+    # the model's tool parser.
     empty_text: str | None = None
-    text_help_text: str | None = None
-    # Story 19, `subagent` brick only: « Déléguer au sous-agent », on the card itself.
-    force: BrickForce | None = None
     # Story 15, `rag` brick: offered when the embedding model's files are missing (AD-21).
     download: DownloadOffer | None = None
     build_index: IndexBuildOffer | None = None
@@ -1008,29 +970,6 @@ class ApprovalResolvedPayload(BaseModel):
     hook_disabled: bool
 
 
-# ---------- story 9: forced actions (AD-3, AD-25) ----------
-
-
-class ArmedActionState(BaseModel):
-    """An armed action, as the session holds it (AD-3): the front projects its chips."""
-
-    armed_id: str
-    kind: Literal["tool", "skill", "tool_doc", "memory", "delegate"]
-    brick: str
-    target: str
-    args: dict[str, object] = {}
-    label_text: str
-
-
-class ArmedActionsChangedPayload(BaseModel):
-    actions: list[ArmedActionState]
-
-
-class ActionDroppedPayload(BaseModel):
-    armed_id: str
-    reason_text: str
-
-
 # ---------- story 10: scenarios, programme, reset (AD-19, FR-38, FR-39) ----------
 
 
@@ -1100,7 +1039,7 @@ class MemoryChangedPayload(BaseModel):
     path: str
     # Unreadable or invalid `memory.json`: why the brick is unavailable, until a reset.
     error_text: str | None = None
-    # The limits the drawer and the forced write apply (AD-19: from the session).
+    # The limits the drawer applies (AD-19: from the session).
     max_entries: int
     max_chars: int
 
@@ -2351,8 +2290,6 @@ PAYLOAD_MODELS: dict[str, type[BaseModel]] = {
     "effect_applied": EffectAppliedPayload,
     "approval_requested": ApprovalRequestedPayload,
     "approval_resolved": ApprovalResolvedPayload,
-    "armed_actions_changed": ArmedActionsChangedPayload,
-    "action_dropped": ActionDroppedPayload,
     "scenario_changed": ScenarioChangedPayload,
     "harness_reset": HarnessResetPayload,
     "language_changed": LanguageChangedPayload,

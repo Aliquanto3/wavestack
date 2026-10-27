@@ -319,7 +319,7 @@ session:
   availability:
     unknown_brick: "The “{brick}” brick does not exist in this version."
     requires: "Requires the “{brick}” brick: enable it first."
-    cloud_no_tools: "The cloud model “{model}” does not declare tool calling (tools): no tool action, not even a forced one. Declare tools = true if the model supports it, or choose another model."
+    cloud_no_tools: "The cloud model “{model}” does not declare tool calling (tools): no tool action. Declare tools = true if the model supports it, or choose another model."
     lacks: "The loaded model does not offer {needs}: choose another model."
     no_model: "Unavailable: no model loaded."
     cloud_no_reasoning: "Unavailable: the active model cannot reason. The cloud model “{model}” does not declare reasoning (reasoning): declare it if the model supports it, or choose another model."
@@ -343,22 +343,6 @@ session:
     completed: "Prefill finished: {evaluated} tokens evaluated in {seconds} s. The first message will only make it read what follows them."
     abandoned: "Prefill abandoned after {evaluated} tokens out of {tokens} (a turn, a load, a workshop, a setting or another scenario came first): the part evaluated stays reusable."
     error: "Prefill interrupted by an error after {evaluated} tokens out of {tokens}: {cause}. The first turn will read the context as usual."
-  # Story 9 (AD-3): an action armed for the next turn, or why it is not.
-  arm:
-    unknown_tool: "Unknown tool: “{target}” is neither a tool of the Tools brick nor the tool of an MCP server. Nothing is armed."
-    nothing_armed: "{why} Nothing is armed."
-    unknown_skill: "Unknown skill: “{target}”. Nothing is armed."
-    unknown_mcp_tool: "Unknown MCP tool: “{target}” is not the tool of any connected server. Nothing is armed."
-    doc_label: "Documentation of {target}"
-    unknown_memory_action: "Unknown memory action: “{target}”. Nothing is armed."
-    memory_label: "Write to memory ({text})"
-    not_delegation: "Unknown action: “{target}” is not the delegation to the sub-agent. Nothing is armed."
-    delegation_argument: "Unknown argument for the delegation: {args}. Only the task (“task”) is expected. Nothing is armed."
-    task_not_text: "The sub-agent's task must be a text. Nothing is armed."
-    task_empty: "The sub-agent's task is empty. Nothing is armed."
-    delegation_label: "Delegation: “{task}”"
-    unknown_action: "Unknown action: “{kind}”. Nothing is armed."
-    not_armed: "No armed action “{armed_id}”: it has already been consumed or disarmed."
   subagent:
     unknown_tools: "[subagent] tools names unknown tools: {tools}."
     known_tools: "Tools of the Tools brick: {tools}."
@@ -456,23 +440,6 @@ session:
     end_hooks:
       message: The end-of-turn hooks were interrupted.
       effect: The turn ends without them.
-  # Story 9 (AD-3): why a forced action is dropped from the turn.
-  forced:
-    undeclared: "the tool “{name}” is no longer declared"
-    dropped: "Forced action “{label}” dropped: {reason}. The turn goes on without it."
-    inactive:
-      mcp: the “MCP” brick is not active in this turn
-      tools: the “Tools” brick is not active in this turn
-      skills: the “Skills” brick is not active in this turn
-      global_memory: the “Global memory” brick is not active in this turn
-      subagent: the “Sub-agent” brick is not active in this turn
-    server_off: "the server of the tool “{target}” is not connected or is disabled"
-    tool_unchecked: "the tool “{tool}” is unticked"
-    skill_loaded: "the skill “{skill}” is already loaded"
-    skill_unchecked: "the skill “{skill}” is unticked"
-    no_parser: "the active model cannot call tools, and the forced write goes through the remember tool"
-    doc_in_context: "the “MCP” brick is in full documentation: the documentation of “{target}” is already in the context"
-    doc_loaded: "the documentation of “{target}” is already loaded"
   hooks:
     failed:
       message: "The hook “{label}” failed."

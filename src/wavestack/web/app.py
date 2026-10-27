@@ -54,7 +54,6 @@ from wavestack.rag import sheets as rag_sheets
 from wavestack.rag.lab import QUESTION_MAX, Pipeline
 from wavestack.session.app_session import (
     AppSession,
-    ArmRefused,
     DistributionMissing,
     SendRefused,
 )
@@ -187,25 +186,11 @@ class ApprovalIntention(BaseModel):
     disable_hook: bool = False  # « Autoriser et ne plus demander »: only with `approved`
 
 
-class ArmIntention(BaseModel):
-    """Story 9: a native tool call with its arguments, a skill, or an MCP documentation;
-    story 14: a memory write (`target = remember`, `args = {text}`); story 19: the
-    delegation to the sub-agent (`target = delegate`, `args = {task}`)."""
-
-    kind: Literal["tool", "skill", "tool_doc", "memory", "delegate"]
-    target: str
-    args: dict[str, Any] = {}
-
-
 class DownloadModelIntention(BaseModel):
     """Stories 15 and 16: the model to download, `rag_embedding` or `rag_reranker`; lot 5c-4:
     a RAG workshop's own model, `rag_lab_embedding:<id>` or `rag_lab_reranker:<id>`."""
 
     target: str
-
-
-class DisarmIntention(BaseModel):
-    armed_id: str
 
 
 class MemoryIntention(BaseModel):
@@ -1126,7 +1111,6 @@ def create_app(
         asked = _latest(events, "approval_requested")
         resolved = _latest(events, "approval_resolved")
         pending = asked.payload if asked and (not resolved or resolved.seq < asked.seq) else None
-        armed = _latest(events, "armed_actions_changed")  # story 9: the chips after a reload
         scenario = _latest(events, "scenario_changed")  # story 10: programme and active one
         memory = _latest(events, "memory_changed")  # story 14: the drawer and the card
         window = _latest(events, "context_window_state")  # story 26: the window panel
@@ -1143,7 +1127,6 @@ def create_app(
                 "context_reconciled": reconciled.model_dump(mode="json") if reconciled else None,
                 "bricks_changed": bricks.payload if bricks else None,
                 "pending_approval": pending,
-                "armed_actions_changed": armed.payload if armed else None,
                 "scenario_changed": scenario.payload if scenario else None,
                 "memory_changed": memory.payload if memory else None,
                 "context_window_state": window.payload if window else None,
@@ -1621,29 +1604,6 @@ def create_app(
             app_session.set_hook(intention.hook, intention.enabled)
         except KeyError:
             raise HTTPException(status_code=404, detail=t("web.unknown.hook")) from None
-        return {"accepted": True}
-
-    @app.post("/api/intentions/arm")
-    def arm(intention: ArmIntention) -> dict[str, str]:
-        """Class (a): arms an action for the next turn (AD-3); unknown target: 404."""
-        try:
-            armed_id = app_session.arm(intention.kind, intention.target, intention.args)
-        except ArmRefused as refused:
-            status = 404 if refused.not_found else 422
-            raise HTTPException(
-                status_code=status, detail=render(refused.reason_text, app_session.language)
-            ) from None
-        return {"armed_id": armed_id}
-
-    @app.post("/api/intentions/disarm")
-    def disarm(intention: DisarmIntention) -> dict[str, bool]:
-        """Class (a): removes an armed action; one no longer armed: 404."""
-        try:
-            app_session.disarm(intention.armed_id)
-        except ArmRefused as refused:
-            raise HTTPException(
-                status_code=404, detail=render(refused.reason_text, app_session.language)
-            ) from None
         return {"accepted": True}
 
     @app.get("/api/audit")

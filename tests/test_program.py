@@ -228,8 +228,7 @@ def test_business_scenarios_fix_their_bricks_and_hooks():
     assert "Début de la fenêtre de maintenance" in alerts and "Fin de la fenêtre" in alerts
     assert "confidentiel/comptes_privilegies.txt" in read_file(".")
     assert "confidentiel/" not in soc.prompts[1] and "fichiers disponibles" in soc.prompts[1]
-    assert "Alertes SIEM (SOC)" in soc.description_text
-    assert "Comptes à privilèges (SOC, confidentiel)" in soc.description_text
+    assert "« Rejouer le dernier prompt »" in soc.description_text  # CAP-5: no preset any more
 
 
 def test_data_flows_is_active_at_launch():
@@ -246,11 +245,25 @@ def test_data_flows_is_active_at_launch():
     )
 
 
+# CAP-5: the scenarios whose instructions give the replay to a small model that misses its call.
+FALLBACK_SCENARIOS = (
+    "global_memory",
+    "mcp_full",
+    "mcp_lazy",
+    "skills",
+    "hooks",
+    "subagent",
+    "compression",
+    "soc",
+    "iam",
+    "sovereignty",
+)
+
+
 def test_small_model_prompts_name_the_tool_or_skill_and_the_fallback():
-    """Story 27: for a small model, the prompts name the tool or skill expected, and the
-    instructions give the forced action to fall back on, with its exact labels."""
+    """Story 27: for a small model, the prompts name the tool or skill expected; CAP-5: the
+    instructions give the replay to fall back on, never a forced action."""
     from wavestack.skills import load_skills_content
-    from wavestack.tools.registry import load_tools_content
 
     content = _content()
     scenario = content.scenarios
@@ -259,7 +272,6 @@ def test_small_model_prompts_name_the_tool_or_skill_and_the_fallback():
     assert first == scenario["mcp_lazy"].prompts[0] and len(first) < 120
     assert "veut dire MCP" in first and "local__define_term" in first
     assert "data.gouv.fr" in scenario["mcp_lazy"].prompts[1]
-    assert "Charger la documentation" in scenario["mcp_lazy"].description_text
     # IAM and sovereignty: the prompts name tools the public servers really have.
     snapshots = {s: {t["name"] for t in _public_tools(s)[0]} for s in ("datagouv", "mslearn")}
     for scenario_id in ("iam", "sovereignty"):
@@ -284,7 +296,7 @@ def test_small_model_prompts_name_the_tool_or_skill_and_the_fallback():
     assert "5 lignes au plus" in first_sovereignty
     assert "trois jeux au plus" in first_sovereignty
     assert "chacun avec son lien data.gouv.fr en premier" in first_sovereignty
-    # Skills: the skill and the meta-tool named, « Déclencher le skill » on its label.
+    # Skills: the skill and the meta-tool named.
     skills = scenario["skills"]
     label = load_skills_content(["meeting_minutes"]).skills["meeting_minutes"].label_text
     assert "meeting_minutes" in skills.prompts[0] and "load_skill" in skills.prompts[0]
@@ -295,18 +307,16 @@ def test_small_model_prompts_name_the_tool_or_skill_and_the_fallback():
     assert "notes_reunion.txt" not in skill.description  # the catalog invites no reading
     assert "Seulement si le message ne donne aucune note" in skill.body
     assert "sans lire de fichier" in skill.body
-    assert (
-        "Déclencher le skill" in skills.description_text
-        and f"« {label} »" in skills.description_text
-    )
-    # Compression: read_file named, and the preset to force it with.
+    # CAP-5 (2026-10-27): no forced action any more; a small model's fallback is the replay.
+    replay = "« Rejouer le dernier prompt »"
+    for scenario_id in FALLBACK_SCENARIOS:
+        assert replay in scenario[scenario_id].description_text, scenario_id
+    for s in scenario.values():
+        assert not re.search(r"(?i)forc[eé]|arme[rz]", s.description_text), s.title_text
+    assert f"« {label} »" not in skills.description_text
+    # Compression: read_file named; the prose read by the model shows Headroom's limit.
     compression = scenario["compression"]
-    presets = {p.label_text: p.args for p in load_tools_content().tools["read_file"].presets}
-    assert presets["Journal de sauvegarde (compression)"] == {"path": "journal_serveur.log"}
-    assert presets["Guide du harnais (prose, compression)"] == {"path": "guide_harnais.md"}
-    for label in ("Journal de sauvegarde (compression)", "Guide du harnais (prose, compression)"):
-        assert f"« {label} »" in compression.description_text, label
-    assert "« Forcer l'appel » sur « Lecture de fichier »" in compression.description_text
+    assert "guide_harnais.md" in compression.description_text
     assert "read_file" in compression.prompts[0] and "journal_serveur.log" in compression.prompts[0]
     assert "extraits RAG" not in compression.description_text
     # SOC: the exact file name, then the refusal not to get round (D6).
@@ -320,44 +330,12 @@ def test_small_model_prompts_name_the_tool_or_skill_and_the_fallback():
     assert (
         "analyste habilité" in soc.description_text and "concluez vous-même" in soc.description_text
     )
-    assert "« Forcer l'appel » sur « Lecture de fichier »" in soc.description_text
     assert "en 8 lignes au plus" in soc.prompts[0]  # lot K: within the output reserve
-    # Lot K (decision of 2026-09-29): the MCP tool's call forced, with its preset, then the
-    # replay (the button's text: « Forcer l'appel · <tool> »).
-    from wavestack.mcp.servers import load_mcp_content
-
-    presets = {
-        tool: {p.label_text: p.args for p in listed}
-        for tool, listed in load_mcp_content().call_presets.items()
-    }
-    assert presets["local__define_term"] == {"MCP": {"term": "MCP"}}
-    assert presets["datagouv__search_datasets"] == {"cybersécurité": {"query": "cybersécurité"}}
-    for scenario_id, tool, preset in (
-        ("mcp_full", "local__define_term", "MCP"),
-        ("mcp_lazy", "local__define_term", "MCP"),
-        ("iam", "mslearn__microsoft_docs_search", "MFA des administrateurs (IAM)"),
-        ("iam", "mslearn__microsoft_docs_search", "PIM juste-à-temps (IAM)"),
-        ("sovereignty", "datagouv__search_datasets", "cybersécurité"),
-        (
-            "sovereignty",
-            "mslearn__microsoft_docs_search",
-            "Journalisation des connexions admin (Souveraineté)",
-        ),
-    ):
-        text = scenario[scenario_id].description_text
-        assert f"« Forcer l'appel · {tool} »" in text, (scenario_id, tool)
-        assert f"préréglage « {preset} »" in text and preset in presets[tool], (scenario_id, preset)
-        assert "« Rejouer le dernier prompt »" in text, scenario_id
     # Sovereignty: the first prompt's fallback, then the clearing, then the second's.
     text = scenario["sovereignty"].description_text
-    assert (
-        text.index("« Forcer l'appel · datagouv__search_datasets »")
-        < text.index("« Vider la conversation »")
-        < text.index("« Forcer l'appel · mslearn__microsoft_docs_search »")
-    )
-    assert all("ne se force pas" not in s.description_text for s in scenario.values())
-    # Lot K, suite (K3, decision of 2026-09-29): with the 2B, the fallback is the lesson. Both
-    # instructions tell what one sees, why, and « Forcer l'appel » as the harness's proof.
+    assert text.index(replay) < text.index("« Vider la conversation »")
+    # Lot K, suite (K3): with the 2B, the fallback is the lesson. Both instructions tell what
+    # one sees, why, and the replay.
     for scenario_id in ("mcp_lazy", "sovereignty"):
         text = scenario[scenario_id].description_text
         seen = ("Ce qu'on observe", "load_tool_doc", "répond de tête", "« j'ai cherché »")
@@ -367,13 +345,11 @@ def test_small_model_prompts_name_the_tool_or_skill_and_the_fallback():
             "Pourquoi : un petit modèle enchaîne mal deux appels et prend la documentation pour "
             "la réponse" in text
         ), scenario_id
-        assert "C'est la démonstration" in text, scenario_id
-        assert "le harnais garantit l'appel que le modèle ne fait pas" in text, scenario_id
         assert (
             text.index("Ce qu'on observe")
             < text.index("Pourquoi")
-            < text.index("C'est la démonstration")
-            < text.index("« Forcer l'appel · ")
+            < text.index("C'est la limite d'un petit modèle")
+            < text.index(replay)
         ), scenario_id
     # The local glossary runs on the loopback, never traced as an outbound request (AD-15):
     # « requête sortante » for the public servers of Souveraineté only.
@@ -397,16 +373,12 @@ SUMMARY_BOUND = {
 def test_subagent_summary_is_bounded_in_every_language(lang):
     """Finition V1 (#23, #29): the five-point summary overflowed the 512-token output reserve,
     the 2B's final answer (recette of 2026-10-02, R12) and Sonnet 5's sub-agent (S6 of
-    2026-10-03). Prompt 1 and the « Résumer le guide du harnais » preset both bound it."""
-    from wavestack.subagent import load_subagent_content
-
+    2026-10-03). Prompt 1 bounds it."""
     french = _content()
     fields = ("bricks", "tools", "mcp_servers", "skills", "hooks")
     known = {f: {i for s in french.scenarios.values() for i in getattr(s, f) or []} for f in fields}
     prompt = scenarios.load_scenarios(known, lang).scenarios["subagent"].prompts[0]
-    preset = load_subagent_content(lang).presets[0].args["task"]
-    for text in (prompt, preset):
-        assert all(bound in text for bound in SUMMARY_BOUND[lang]), text
+    assert all(bound in prompt for bound in SUMMARY_BOUND[lang]), prompt
 
 
 def test_call_presets_name_real_tools_and_their_arguments(loop):  # noqa: F811
@@ -452,16 +424,6 @@ def test_meta_tools_say_which_is_which():
     assert "pas un outil MCP" in skills.load_skill.description
     assert skills.catalog_intro.startswith("Skills disponibles.")
     assert "appelle l'outil load_skill" in skills.catalog_intro
-
-
-def test_soc_presets_force_the_two_files():
-    from wavestack.tools.registry import load_tools_content
-
-    presets = {p.label_text: p.args for p in load_tools_content().tools["read_file"].presets}
-    assert presets["Alertes SIEM (SOC)"] == {"path": "alertes_siem.log"}
-    assert presets["Comptes à privilèges (SOC, confidentiel)"] == {
-        "path": "confidentiel/comptes_privilegies.txt"
-    }
 
 
 def test_soc_scenario_logs_the_reads_and_blocks_the_privileged_accounts():

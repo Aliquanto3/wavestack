@@ -227,19 +227,6 @@ def test_history_keeps_the_compressed_text_and_never_compresses_it_again():
     assert "compressed_from" not in json.dumps(ctx) and "uncompressed_used" not in ctx
 
 
-def test_forced_action_is_compressed_before_the_first_call():
-    session, _, _ = session_with(["Le disque est plein."])
-    session.arm("tool", "read_file", {"path": "journal_serveur.log"})
-
-    events = _run(session, "Que dit ce journal ?")
-
-    [ctx] = events["context_rendered"]
-    [result] = _kind(ctx, "tool_result")
-    assert _text_before(events, result["compressed_from"]) == ORIGINAL
-    assert ERROR_LINE in result["text"]
-    assert events["compression_ended"][0]["items"][0]["source_text"].endswith("« read_file »")
-
-
 def rag_compression_session(tmp_path, compressors: Compressors, outputs=None):  # noqa: ANN001
     index = tmp_path / "rag_index.sqlite"
     build(index)

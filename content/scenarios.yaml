@@ -21,13 +21,8 @@
 # Les scénarios suivants d'un module, les transverses et les scénarios métier fixent
 # librement leur configuration, au plus près de la brique qu'ils montrent.
 # Pour un petit modèle local, les prompts nomment l'outil ou le skill attendu (un modèle plus
-# gros fait seul le lien entre la demande et l'outil). Quand une action forcée existe (skill,
-# lecture de fichier, appel d'un outil MCP ou chargement de sa documentation en lazy
-# loading), la consigne la donne en secours, avec les libellés exacts de ses boutons et
-# préréglages. Lot K (2026-09-29) : l'appel d'un outil MCP se force (« Forcer l'appel » sur
-# l'outil, dans la carte MCP, dans les deux modes de documentation) ; c'est le secours de
-# `mcp_full`, `mcp_lazy`, `iam` et `sovereignty` (en lazy loading, le petit modèle tient le
-# chargement de la documentation pour l'étape faite).
+# gros fait seul le lien entre la demande et l'outil). Sinon, la consigne
+# donne en secours « Rejouer le dernier prompt » (CAP-5, 2026-10-27 : plus d'action forcée).
 # Deux résultats de recherche d'un serveur public (1 200 tokens chacun au plus) ne tiennent
 # pas ensemble dans la fenêtre de 4 096 : la consigne d'un scénario qui en enchaîne deux fait
 # « Vider la conversation » entre ses prompts (`iam`, `sovereignty`).
@@ -131,9 +126,7 @@ scenarios:
       ajoute : lancer ce scénario restaure la mémoire de démonstration, dont les trois
       informations sont déjà dans le message système. Envoyez le premier prompt : le modèle
       appelle remember, un outil propre au harnais (le cycle d'un appel d'outil est détaillé
-      au module 2), et le harnais écrit le fichier memory.json. S'il ne le fait pas, forcez
-      « Écrire en mémoire » depuis la carte de la brique (après « Afficher les actions
-      forcées ») et renvoyez le prompt. Videz ensuite la conversation, puis envoyez le second
+      au module 2), et le harnais écrit le fichier memory.json. S'il ne le fait pas, cliquez « Rejouer le dernier prompt ». Videz ensuite la conversation, puis envoyez le second
       prompt : la préférence revient par le message système, pas par l'historique. Ouvrez
       enfin « Modifier la mémoire » (ou cliquez le fichier dans le schéma) pour consulter,
       modifier ou effacer les entrées. La mémoire globale reste active dans les modules
@@ -234,10 +227,7 @@ scenarios:
       dure environ deux minutes, parce que le modèle lit d'abord tout ce long contexte,
       documentation complète comprise ; c'est le prix que le lazy loading évite. Le prompt
       nomme l'outil du glossaire, local__define_term : un petit modèle local ne fait pas
-      toujours le lien entre la question et l'outil, un modèle plus gros (cloud) si. Si le modèle répond de tête, cliquez « Forcer l'appel · local__define_term »
-      sous « Glossaire WaveStack » dans la carte MCP (après « Afficher les actions
-      forcées »), choisissez le préréglage « MCP », « Armer », puis « Rejouer le dernier
-      prompt » : l'appel part d'office et le modèle répond avec la définition.
+      toujours le lien entre la question et l'outil, un modèle plus gros (cloud) si. Si le modèle répond de tête, cliquez « Rejouer le dernier prompt ».
       Passez ensuite au scénario « Lazy loading » pour voir le même besoin tenir dans un
       contexte bien plus léger. Sans réseau, data.gouv.fr reste dessiné comme
       indisponible : poursuivez avec le serveur local.
@@ -259,14 +249,7 @@ scenarios:
       de local__define_term. Ce qu'on observe avec un petit modèle : il s'arrête après
       load_tool_doc et répond de tête, parfois en écrivant « j'ai cherché » alors
       qu'Orchestration ne montre aucun appel de local__define_term. Pourquoi : un petit
-      modèle enchaîne mal deux appels et prend la documentation pour la réponse. C'est la
-      démonstration : cliquez « Forcer l'appel · local__define_term » sous « Glossaire
-      WaveStack » dans la carte MCP (après « Afficher les actions forcées »), choisissez le
-      préréglage « MCP », « Armer », puis « Rejouer le dernier prompt » : le rejeu repart
-      d'avant le tour, l'appel part d'office, sa définition rejoint les outils du modèle et
-      le modèle répond avec le résultat ; le harnais garantit l'appel que le modèle ne fait
-      pas. « Charger la documentation » (même carte) ne charge que la documentation, sans
-      appeler l'outil. Le second prompt interroge
+      modèle enchaîne mal deux appels et prend la documentation pour la réponse. C'est la limite d'un petit modèle : cliquez « Rejouer le dernier prompt », ou essayez avec un modèle plus gros (cloud), qui enchaîne les deux appels. Le second prompt interroge
       data.gouv.fr. Sans réseau, data.gouv.fr reste dessiné comme indisponible : poursuivez
       avec le serveur local.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp]
@@ -288,9 +271,7 @@ scenarios:
       prompt nomme le skill et l'outil, parce qu'un petit modèle local ne fait pas toujours
       le lien entre la demande et le skill ; un modèle plus gros le charge sur la seule
       demande (essayez avec un modèle cloud) : nommer le skill est un échafaudage pour le
-      petit modèle. Si le modèle ne charge pas le skill, armez
-      « Déclencher le skill » sur « Compte rendu de réunion » dans la carte Skills (après
-      « Afficher les actions forcées »), puis rejouez le prompt.
+      petit modèle. Si le modèle ne charge pas le skill, cliquez « Rejouer le dernier prompt ».
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills]
     mcp_lazy: true
     restore_memory: true
@@ -304,20 +285,19 @@ scenarios:
   caveman:
     title_text: Caveman
     description_text: >-
-      Envoyez le prompt, puis armez « Déclencher le skill » sur Caveman dans la carte
-      Skills (après « Afficher les actions forcées »), rejouez le dernier prompt et
-      ouvrez « Comparer » : même question, bien moins de tokens en sortie.
+      Envoyez le premier prompt, puis le second, qui fait charger le skill Caveman par le modèle, et ouvrez « Comparer » : même question, bien moins de tokens en sortie.
     bricks: [short_memory, system_prompt, skills]
     prompts:
       - Explique en quelques phrases ce qu'est un harnais d'agent.
+      - >-
+        Charge d'abord le skill caveman avec l'outil load_skill, puis explique en quelques
+        phrases ce qu'est un harnais d'agent.
 
   hooks:
     title_text: Hooks
     description_text: >-
       Envoyez le prompt, puis regardez la bande « Points d'accroche » du schéma : le
-      garde-fou H1 bloque la lecture, c'est du code et non le modèle qui décide. Si le
-      modèle n'appelle pas l'outil, forcez l'appel de read_file avec le préréglage
-      « Fichier sensible » (après « Afficher les actions forcées ») et rejouez. Même logique
+      garde-fou H1 bloque la lecture, c'est du code et non le modèle qui décide. Si le modèle n'appelle pas l'outil, cliquez « Rejouer le dernier prompt ». Même logique
       pour un skill ou un plugin tiers : un paquet à vérifier avant installation (source,
       scripts, droits demandés), car un hook le contrôle à l'exécution mais ne remplace pas
       cette vérification.
@@ -339,9 +319,7 @@ scenarios:
       le sous-agent face au résumé réinjecté, c'est l'économie. Basculez Contexte LLM entre
       le contexte principal (le résumé seul, en « Résultat du sous-agent ») et celui du
       sous-agent (le guide entier). Si le modèle lit le fichier lui-même, le guide entre
-      dans le contexte principal : comparez la jauge, puis armez « Déléguer au sous-agent »
-      sur la carte (après « Afficher les actions forcées ») avec le préréglage « Résumer le
-      guide du harnais » et rejouez. Les trois questions suivantes testent le résumé : ce
+      dans le contexte principal : comparez la jauge, puis cliquez « Rejouer le dernier prompt ». Les trois questions suivantes testent le résumé : ce
       qu'il a laissé de côté est perdu pour l'agent principal, qui doit redéléguer ou
       avouer qu'il ne sait pas.
     bricks: [short_memory, system_prompt, global_memory, tools, mcp, skills, hooks, subagent]
@@ -365,17 +343,13 @@ scenarios:
       brique Compression s'y ajoute : Headroom raccourcit les
       gros résultats d'outils avant l'appel au modèle. Éteignez d'abord la compression et
       envoyez le premier prompt : le modèle appelle read_file et le journal de sauvegarde
-      entre en entier dans le contexte. S'il ne lit pas le journal, cliquez « Forcer
-      l'appel » sur « Lecture de fichier » dans la carte Outils (après « Afficher les
-      actions forcées »), choisissez le préréglage « Journal de sauvegarde (compression) »,
-      « Armer », puis « Rejouer le dernier prompt », compression toujours éteinte. Rallumez-la, rejouez le
+      entre en entier dans le contexte. S'il ne lit pas le journal, cliquez « Rejouer le dernier prompt », compression toujours éteinte. Rallumez-la, rejouez le
       prompt et ouvrez « Comparer ». Dépliez l'étape « Compression (Headroom) » dans
       Orchestration : tokens avant et après, texte d'origine et version courte, où l'erreur
       est restée. Dans Contexte LLM, le résultat d'outil est marqué « compressé » et
       l'en-tête donne le total sans compression. Headroom ne réduit que la redondance : un
       texte sans redondance, comme de la prose, passe tel quel, c'est la limite de l'outil.
-      Pour le montrer, forcez de la même façon le préréglage « Guide du harnais (prose,
-      compression) », rejouez, et dépliez l'étape : le guide passe inchangé.
+      Pour le montrer, demandez au modèle de lire guide_harnais.md et dépliez l'étape : le guide passe inchangé.
       Posez enfin le second prompt : ce que Headroom a coupé est perdu pour le modèle. La
       compression réduit ce qui entre, Caveman ce qui sort. Si la carte indique que
       Headroom n'est pas installé, lancez `uv sync --extra compression` puis relancez
@@ -705,19 +679,14 @@ scenarios:
       quatre alertes du compte adm.leroy, survenues pendant une fenêtre de maintenance où des
       alertes étaient en sourdine ; H2 consigne chaque appel, horodaté. Le prompt donne le
       nom exact du fichier : si le modèle l'écrit mal, le harnais refuse la lecture et liste
-      les fichiers disponibles, et le modèle peut se corriger ; sinon, forcez la lecture
-      avec le préréglage « Alertes SIEM (SOC) » (voir plus bas). Envoyez le second : le modèle
+      les fichiers disponibles, et le modèle peut se corriger ; sinon, voir plus bas. Envoyez le second : le modèle
       cherche lui-même dans les fichiers, trouve l'inventaire des comptes à privilèges dans
       le dossier confidentiel, et H1 bloque sa lecture. L'agent n'a pas ce privilège : c'est
       le harnais qui en décide, pas le modèle, et l'agent doit escalader vers un analyste
       habilité, comme le prompt le lui demande. Si le modèle continue de chercher ou conclut
       sans escalader (fréquent avec un petit modèle), concluez vous-même : l'agent n'a pas
       ce privilège, la décision revient à un analyste habilité. Cliquez enfin « Journal
-      d'audit » dans le schéma : les lectures permises et la lecture bloquée y sont. Si le
-      modèle n'appelle pas l'outil, cliquez « Forcer l'appel » sur « Lecture de fichier »
-      dans la carte Outils (après « Afficher les actions forcées »), choisissez le
-      préréglage « Alertes SIEM (SOC) » au premier prompt, « Comptes à privilèges (SOC,
-      confidentiel) » au second, « Armer », puis « Rejouer le dernier prompt ». À retenir : le journal du
+      d'audit » dans le schéma : les lectures permises et la lecture bloquée y sont. Si le modèle n'appelle pas l'outil, cliquez « Rejouer le dernier prompt ». À retenir : le journal du
       harnais trace chaque action de l'agent, la traçabilité qu'attendent NIS2 et DORA d'un
       outil qui agit sur le système d'information ; le garde-fou applique le moindre
       privilège, et la décision sensible reste à un humain.
@@ -750,12 +719,7 @@ scenarios:
       Les résultats de recherche sont volumineux (jusqu'à 1 200 tokens gardés) : deux ne
       tiennent pas ensemble dans la fenêtre, cliquez donc « Vider la conversation » (volet
       Vue humain) avant d'envoyer le second prompt ; si la jauge annonce un dépassement,
-      c'est le coût réel d'un MCP public. Si le modèle répond sans chercher, cliquez
-      « Forcer l'appel · mslearn__microsoft_docs_search » sous « Microsoft Learn » dans la
-      carte MCP (après « Afficher les actions forcées »), choisissez le préréglage « MFA des
-      administrateurs (IAM) » au premier prompt, le préréglage « PIM juste-à-temps (IAM) » au
-      second,
-      « Armer », puis « Rejouer le dernier prompt ». Sans réseau (ou
+      c'est le coût réel d'un MCP public. Si le modèle répond sans chercher, cliquez « Rejouer le dernier prompt ». Sans réseau (ou
       derrière un proxy qui bloque learn.microsoft.com), Microsoft Learn est dessiné
       indisponible avec sa raison : décochez puis recochez le serveur dans la carte MCP
       pour réessayer. À retenir : une réponse sourcée, avec les liens de Microsoft Learn,
@@ -789,17 +753,10 @@ scenarios:
       que le harnais refuse) et répond de tête, parfois en écrivant « j'ai cherché » avec
       des jeux de données inventés, alors qu'Orchestration ne montre ni appel de l'outil ni
       requête sortante. Pourquoi : un petit modèle enchaîne mal deux appels et prend la
-      documentation pour la réponse. C'est la démonstration : au premier prompt, cliquez
-      « Forcer l'appel · datagouv__search_datasets » sous « data.gouv.fr » dans la carte MCP
-      (après « Afficher les actions forcées »), choisissez le préréglage « cybersécurité »,
-      « Armer », puis « Rejouer le dernier prompt » : le rejeu repart d'avant le tour, la
-      recherche part d'office et le modèle répond avec son résultat ; le harnais garantit
-      l'appel que le modèle ne fait pas. Ouvrez les données
+      documentation pour la réponse. C'est la limite d'un petit modèle : cliquez « Rejouer le dernier prompt ». Ouvrez les données
       sortantes de ce premier appel. Deux résultats de recherche ne tiennent pas ensemble
       dans la fenêtre : cliquez « Vider la conversation » (volet Vue humain) avant d'envoyer
-      le second prompt. Son secours : « Forcer l'appel · mslearn__microsoft_docs_search »
-      sous « Microsoft Learn », préréglage « Journalisation des connexions admin
-      (Souveraineté) », « Armer », puis « Rejouer le dernier prompt ». Le schéma ne montre que ce qui quitte le poste :
+      le second prompt. Même secours au second prompt. Le schéma ne montre que ce qui quitte le poste :
       où tourne chaque serveur MCP, chez quel hébergeur, avec quelle qualification
       (SecNumCloud par exemple), reste à vérifier flux par flux, et un service public n'est
       pas souverain par nature. Le modèle, lui, reste sur le poste ; avec un modèle cloud,

@@ -161,26 +161,6 @@ def test_the_model_writes_then_the_next_conversation_reads_it():
     session.close()
 
 
-def test_forced_write_runs_before_the_first_call_by_the_user():
-    engine, session = memory_session(["Noté."])
-    session.arm("memory", "remember", {"text": f"  {PREFERENCE}  "})
-    assert last("armed_actions_changed")["actions"][0]["label_text"].startswith(
-        "Écrire en mémoire ("
-    )
-
-    events = run(session, "Bonjour")
-
-    (started,) = of(events, "tool_started")
-    assert started.trigger == "user" and started.brick == "global_memory"
-    assert started.seq < of(events, "model_call_started")[0].seq
-    assert len(engine.calls) == 1
-    (applied,) = of(events, "effect_applied")
-    assert applied.trigger == "user" and applied.payload["text"] == PREFERENCE
-    assert saved()[-1]["source"] == "user"
-    assert last("armed_actions_changed")["actions"] == []
-    session.close()
-
-
 @pytest.mark.parametrize(
     ("text", "error"),
     [("   ", "vide"), ("x" * 301, "301 caractères"), ("pleine", "pleine (20 entrées)")],
@@ -212,31 +192,14 @@ def test_duplicate_adds_nothing():
     session.close()
 
 
-def test_forced_write_is_dropped_when_the_brick_is_off():
-    _, session = memory_session(["Bonjour."])
-    session.arm("memory", "remember", {"text": PREFERENCE})
-    session.set_brick("global_memory", False)
-
-    events = run(session, "Bonjour")
-
-    (dropped,) = of(events, "action_dropped")
-    assert "« Mémoire globale » n'est pas active" in dropped.payload["reason_text"]
-    assert of(events, "tool_started") == [] and not config.memory_path().exists()
-    assert memory_texts(of(events, "context_rendered")[0].payload) == []
-    session.close()
-
-
-def test_without_parser_injection_and_drawer_stay_forced_write_is_dropped():
+def test_without_parser_injection_and_drawer_stay():
     engine, session = memory_session(["Bonjour."], qwen=False, skills=False)
     mark = get_journal().last_seq()
 
     assert card()["available"] and "ne sait pas appeler d'outil" in card()["note_text"]
     assert "remember" not in session.build_turn_state().tools
-    session.arm("memory", "remember", {"text": PREFERENCE})
     events = run(session, "Bonjour")
 
-    (dropped,) = of(events, "action_dropped")
-    assert "remember" in dropped.payload["reason_text"]
     assert of(events, "tool_started") == []
     ctx = of(events, "context_rendered")[0].payload
     assert memory_texts(ctx)[1:] == [f"- {text}" for text in DEMO]
@@ -445,25 +408,6 @@ def test_chat_mode_puts_the_memory_in_the_system_message():
     session.close()
 
 
-def test_arming_a_memory_write_checks_its_text():
-    _, session = memory_session()
-    client = _client(session)
-
-    empty = client.post(
-        "/api/intentions/arm",
-        json={"kind": "memory", "target": "remember", "args": {"text": " "}},
-        headers=HEADERS,
-    )
-    other = client.post(
-        "/api/intentions/arm",
-        json={"kind": "memory", "target": "forget", "args": {"text": "x"}},
-        headers=HEADERS,
-    )
-    assert (empty.status_code, other.status_code) == (422, 404)
-    assert session._armed == []
-    session.close()
-
-
 def test_memory_scenario_closes_module_1():
     """Story 21: last scenario of module 1 (FR-38); the modules after it keep the brick."""
     session = booted_session(FakeEngine())
@@ -615,14 +559,8 @@ def test_drawer_replace_refuses_a_duplicate_and_ignores_no_change():
     session.close()
 
 
-def test_texts_are_one_line_and_arming_refuses_a_non_text():
+def test_texts_are_one_line():
     _, session = memory_session([remember("Préfère\n\nle   café."), "Noté."])
-    arm = _client(session).post(
-        "/api/intentions/arm",
-        json={"kind": "memory", "target": "remember", "args": {"text": 42}},
-        headers=HEADERS,
-    )
-    assert arm.status_code == 422
 
     run(session, "Retiens ceci.")
 
@@ -661,13 +599,13 @@ def test_no_drawer_write_during_a_turn(monkeypatch):
     session.close()
 
 
-def test_the_card_says_what_the_drawer_and_the_force_need():
+def test_the_card_says_what_the_drawer_needs():
     _, session = memory_session()
-    assert card()["empty_text"].startswith("Aucune information en mémoire globale. Le modèle peut")
-    assert f"{memory_file.MAX_CHARS} caractères au plus" in card()["text_help_text"]
+    empty = "Aucune information en mémoire globale. Le modèle peut en écrire."
+    assert card()["empty_text"] == empty and "text_help_text" not in card()
     changed = last("memory_changed")
     assert (changed["max_entries"], changed["max_chars"]) == (20, memory_file.MAX_CHARS)
     session.close()
     _, session = memory_session(qwen=False, skills=False)
-    assert "même par une écriture forcée" in card()["empty_text"]
+    assert card()["empty_text"].endswith("il ne peut pas en écrire.")
     session.close()

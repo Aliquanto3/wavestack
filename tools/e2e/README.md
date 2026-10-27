@@ -92,7 +92,7 @@ vrais services.
   (`wavestack-fake`), `fake_b` (`faux-modele-b`, pour le changement de modèle de la
   story 17), `fake_r` (`faux-modele-raisonne`, `reasoning: {format: "field", always: true}`,
   pour la carte Raisonnement verrouillée de la story 33) et `fake_g` (`gemini-e2e-flash-lite`,
-  « Faux Gemini (e2e) », avec le `reasoning` et le `tool_call_extra` du préréglage `gemini` lus
+  « Faux Gemini (e2e) », avec le `reasoning` du préréglage `gemini` lu
   dans `wavestack.toml`) et, depuis la story 6 des restes différés, `fake_m`
   (`faux-modele-tarife`, « Faux fournisseur M (e2e) », prix du préréglage `mistral`,
   `stream_usage = false` : coûts estimés, « ≈ ») et `fake_a` (`faux-claude`, au format
@@ -188,12 +188,11 @@ le raisonnement ni le RAG, consigne qui le dit) et « MCP en documentation compl
 Story 27 : les prompts des scénarios `mcp_full`, `mcp_lazy`, `skills`, `subagent` (suivi de
 « [lent] »), `compression`, `soc`, `iam` et `sovereignty` sont lus dans `content/scenarios.yaml` (`_prompts`), pas recopiés ; ils
 nomment l'outil ou le skill attendu. Le RAG n'est voulu dans aucun module après le 3 :
-`mcp_lazy` (consigne « le RAG, laissé éteint »), `skills` (consigne qui cite « Déclencher le
-skill » sur « Compte rendu de réunion »), `subagent` (« sans le raisonnement ni le RAG ») et
-`compression` (préréglage « Journal de sauvegarde (compression) » cité, `read_file` sur
-`journal_serveur.log` au premier tour, aucun extrait RAG dans le corps envoyé ni parmi les
-candidats de la compression ; à la fin, le préréglage « Guide du harnais (prose,
-compression) » forcé puis rejoué : la prose passe inchangée, la limite de Headroom).
+`mcp_lazy` (consigne « le RAG, laissé éteint »), `skills` (consigne qui cite « Rejouer le
+dernier prompt »), `subagent` (« sans le raisonnement ni le RAG ») et `compression`
+(`read_file` sur `journal_serveur.log` au premier tour, aucun extrait RAG dans le corps
+envoyé ni parmi les candidats de la compression ; à la fin, `guide_harnais.md` lu par le
+modèle : la prose passe inchangée, la limite de Headroom).
 `data_flows` est actif au lancement, sans geste : brique MCP voulue, serveurs `datagouv` et
 `local` en lazy loading, échec expliqué de data.gouv.fr attendu après le lancement, flux qui
 franchit la frontière, serveur local sur le poste, puis les vérifications de la story 23 ; enfin
@@ -390,7 +389,6 @@ Vérifications ajoutées aux scénarios existants :
   `38-bilan-des-sorties.jpg`, `39-mode-projection.jpg`.
 - `local_server` : après le tour avec le faux llama-server, le bilan dit « aucune donnée n'a
   quitté le poste ».
-- `forced_native` : l'étape de la calculatrice forcée porte la pastille « U ».
 - Les captures (`Run.shot`, `Run.shot_element`) écartent d'abord le pointeur de tout élément
   liable (`Run.rest_pointer`), pour qu'un clic précédent n'estompe pas la page ; la capture 35
   garde le survol. Les étapes d'outil se repèrent par `.turn-step-title` (le verbe, puis le
@@ -620,15 +618,11 @@ deux états difficiles à atteindre, réécrivent une réponse par `page.route`.
   `state: turn` : trois boutons inactifs ; validation répondue par l'API puis par la page : 409
   affiché sous le champ (un `MutationObserver` garde chaque texte de `#composer-reason`) ;
   « Vider la conversation » : aucune carte, étape ni appel, nœud « Jours fériés » sans « Au tour ».
-- `forced_native` (E035) : « Afficher les actions forcées » gardé après rechargement ; action
-  armée puis outil décoché : « Action forcée abandonnée · Heure et date ».
 - `reload_and_reset` (E043, E047) : serveur MCP local connecté avant les tours, gardé dans la
   préparation du harnais après « Réinitialiser » ; liste d'options ouverte refermée.
 - `bare_llm` (E053) : « Afficher le raisonnement » décoché (Vue humain sans bloc, Contexte LLM
   avec la réflexion), gardé au rechargement, puis recoché.
-- `Run.open_options` vérifie que la liste est ouverte et reclique sinon : depuis D3,
-  « Afficher les actions forcées » la déplie au rendu suivant, et un clic juste après la
-  repliait (`mcp_full`, « Forcer l'appel · local__define_term » absent).
+- `Run.open_options` vérifie que la liste est ouverte et reclique sinon.
 
 Sous Windows, une sortie redirigée vers un fichier demande `PYTHONIOENCODING=utf-8` (sinon
 `UnicodeEncodeError` sur « ℹ »).
@@ -733,8 +727,6 @@ haut) :
   « Modèles », lien `#models-link` vers `/models`.
 - `themes`, `mcp_lab`, `rag_lab`, `llm_screen` : la barre commune à cinq onglets
   (`Harnais · LLM · RAG · MCP · 🛠️ Modèles`), titres et `h1` complets des ateliers.
-- `forced_native` : le « ? » d'« Actions forcées » ouvre son aide, ancrée sous le bouton, encore
-  ouverte après un nouveau rendu du panneau.
 - `gemini_shape`, `local_server`, `priced_estimate` : la dépense sur trois lignes (« Dépense
   estimée », « 💰 … », « 🍃 … »), deux sans appel payant, l'empreinte visible à 1600, 1440 et
   1280 px, en mode normal et projection.

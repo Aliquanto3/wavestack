@@ -29,7 +29,7 @@ _BASE62 = string.digits + string.ascii_uppercase + string.ascii_lowercase
 
 def tool_call_id(step_id: str, index: int) -> str:
     """AD-4: 9 base-62 characters of the hash of `"{step_id}#{index}"`, attributed by the
-    session to every call it creates (model output, forced action)."""
+    session to every call it creates (model output)."""
     n = int.from_bytes(hashlib.sha256(f"{step_id}#{index}".encode()).digest(), "big")
     digits = []
     for _ in range(9):

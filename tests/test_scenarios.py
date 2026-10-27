@@ -118,13 +118,11 @@ def test_scenario_after_manual_settings_applies_its_configuration_only():
     session.set_brick("system_prompt", True)
     session.save_system_prompt("Réponds comme un pirate.")
     session.set_tool("public_holidays", True)
-    session.arm("skill", "caveman")
     mark = get_journal().last_seq()
 
     session.launch_scenario("system_prompt")
     session.join()
 
-    assert _latest("armed_actions_changed", mark)["actions"] == []
     prompt = _latest("bricks_changed", mark)["system_prompt"]
     assert prompt["is_default"]
     assert "public_holidays" not in session._tools_enabled
@@ -152,7 +150,7 @@ def test_reset_goes_back_to_the_launch_state():
     assert kinds.count("bricks_changed") == 1 and kinds.count("architecture_changed") == 1
     assert closed == ["datagouv", "local"]
     assert session._wanted == set() and not session._mcp_lazy
-    assert session._custom_prompt is None and session._armed == []
+    assert session._custom_prompt is None
     assert session._history == [] and session._last is None
     assert session._hooks_enabled == {"h1", "h2", "h3"}
     with pytest.raises(SendRefused):

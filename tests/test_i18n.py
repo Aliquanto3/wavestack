@@ -209,7 +209,6 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         assert tr.tools.keys() == fr.tools.keys()
         for name, text in fr.tools.items():
             assert tr.tools[name].parameters.keys() == text.parameters.keys()
-            assert [p.args for p in tr.tools[name].presets] == [p.args for p in text.presets]
             assert (tr.tools[name].sends_text is None) == (text.sends_text is None)
     elif rel == "hooks.yaml":
         fr, tr = load_hooks_content(HOOKS, "fr"), load_hooks_content(HOOKS, lang)
@@ -233,7 +232,7 @@ def test_translated_file_mirrors_the_french_one(lang, rel):
         ]
     elif rel == "subagent.yaml":
         fr, tr = load_subagent_content("fr"), load_subagent_content(lang)
-        assert [p.args.keys() for p in tr.presets] == [p.args.keys() for p in fr.presets]
+        assert tr.delegate.task != fr.delegate.task
     elif rel == "mcp.yaml":
         fr, tr = load_mcp_content("fr"), load_mcp_content(lang)
         assert tr.servers.keys() == fr.servers.keys()
@@ -873,7 +872,7 @@ def test_back_to_french_gives_the_same_context_byte_for_byte():
     session.close()
 
 
-def test_a_forced_tool_call_is_described_in_the_new_language():
+def test_a_harness_tool_call_is_described_in_the_new_language():
     """The harness tools (`load_skill`, `remember`, `delegate`) are described again."""
     engine = FakeEngine(outputs=[call("load_skill", skill="pirate"), "Ahoy!"])
     engine.template, engine.architecture = QWEN.decode("utf-8"), "qwen35"

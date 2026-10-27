@@ -11,7 +11,7 @@ explanation_text:
     messages) at the start of each conversation.
   - >-
     The model remembers nothing: it writes to memory by calling a harness tool, remember,
-    and it is the harness that writes the file. You can also force a write, or view, edit
+    and it is the harness that writes the file. You can also view, edit
     and erase the entries from “Edit the memory”.
   - - "Gain: the model “remembers” from one conversation to the next, even after a restart."
     - >-
@@ -21,7 +21,7 @@ explanation_text:
       Data: with a cloud model, every entry goes to the provider at every call, in the
       system message. Never put a secret in it.
   - >-
-    A written entry (by the model, by a forced write or in “Edit the memory”) is in the
+    A written entry (by the model or in “Edit the memory”) is in the
     file at once, but only enters the system message at the next conversation: after
     “Clear the conversation” or a change of scenario. A deletion or an edit, on the other
     hand, applies at once. The system message thus stays identical from one turn to the

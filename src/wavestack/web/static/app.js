@@ -107,7 +107,7 @@ const store = {
   ragNotice: null,
   rerankNotice: null, // story 16: the same, for the reranker's download or load
   openExplanations: new Set(), // `options:{brick.id}` keys whose option list is unfolded (UI state only)
-  openBrickHelp: new Set(), // brick ids (and "force-section") whose help popover is open (UI state only)
+  openBrickHelp: new Set(), // brick ids whose explanation is unfolded (UI state only)
   closedPayloads: new Set(), // seq of outbound payloads folded by the user (open by default)
   openApprovalPayloads: new Set(), // approval ids whose payload is unfolded in the Vue humain card
   // Story 19, UI state only: the context Contexte LLM shows, `null` for the main one, else
@@ -125,16 +125,6 @@ const store = {
   openSeen: new Set(),
   jsonToggled: new Set(),
   openExact: new Set(),
-  // Story 9: the armed actions as the session last sent them (AD-3), and every label seen, so
-  // an `action_dropped` still names its action once the list moved on.
-  armed: [],
-  armedLabels: new Map(),
-  // UI state only: « Afficher les actions forcées » (remembered by the browser), the forced
-  // call form open under one option, and the last refusal of an arming.
-  showForced: false,
-  forceForm: null, // { brick, id, preset, values, error }
-  forceFocus: null, // the focus key to restore once a form closes
-  armError: null,
   // Harness steps outside any turn (MCP discovery), each placed after the turns seen so far.
   offTurn: [],
   // Orchestration, UI state only (story 8d): the rail follows the live turn until a click
@@ -369,15 +359,6 @@ function applyEnvelope(envelope) {
       store.memory = p;
       renderMemoryDrawer();
       break;
-    case "armed_actions_changed":
-      // Every label seen stays known, so that a replayed `action_dropped` still names it.
-      for (const action of p.actions) store.armedLabels.set(action.armed_id, action.label_text);
-      // AD-1: the chips are this list, never a local computation.
-      if (isLive(envelope)) store.armed = p.actions;
-      break;
-    case "action_dropped":
-      if (turn) turn.steps.push({ type: envelope.kind, payload: p, label: store.armedLabels.get(p.armed_id) });
-      break;
     case "conversation_cleared":
       // Past turns leave the Vue humain, Contexte LLM and Orchestration; the event list keeps them.
       if (isLive(envelope) && store.language) store.language.language_locked = false;
@@ -552,7 +533,7 @@ function applyEnvelope(envelope) {
           started: p,
           brick: envelope.brick,
           component: envelope.component, // the schema node in action
-          trigger: envelope.trigger, // AD-2: `model`, or `user` for a forced action
+          trigger: envelope.trigger, // AD-2: `model` when the model decided the call
           startedAt: Date.parse(envelope.ts),
           ended: null,
         });
@@ -659,7 +640,7 @@ function applyEnvelope(envelope) {
         break;
       }
       if (p.effect === "memory_write") {
-        // Story 14: the entry `remember` wrote, shown in its own step (model's or forced).
+        // Story 14: the entry `remember` wrote, shown in its own step.
         const step = turn?.steps.filter((s) => s.type === "tool" && s.started.tool === "remember").at(-1);
         if (step) (step.memoryWrites ||= []).push(p);
         break;
@@ -1196,27 +1177,13 @@ const cleared = () => store.clearedSeq !== null && store.clearedSeq > (store.res
 // ---------- bricks panel: cards, toggles, system prompt drawer ----------
 
 let renderedBricks = null;
-let renderedArmed = null;
-let renderedForceUi = null;
 let renderedMemory = null;
 let renderedSessionKey = null; // story 15: the download's state and progress, on the RAG card
 
-// Story 9: the forced actions' UI changed (toggle, form): the panel is rebuilt at next render.
-// Story 22: a sentinel no `store.forceForm` can equal; `null` let a closed form (back to
-// `null`) pass the guard of `renderBricks`, so « Annuler » left the form open.
-const STALE = Symbol("stale");
-function forceUiChanged() {
-  renderedForceUi = STALE;
-  scheduleRender();
-}
-
 function renderBricks() {
-  // Rebuilt only when the session sends new cards or armed actions, or the forced actions' UI
-  // changes, so an unfolded explanation stays open.
+  // Rebuilt only when the session sends new cards, so an unfolded explanation stays open.
   if (
     renderedBricks === store.bricks &&
-    renderedArmed === store.armed &&
-    renderedForceUi === store.forceForm &&
     renderedMemory === store.memory &&
     renderedSessionKey === sessionKey()
   ) {
@@ -1225,22 +1192,10 @@ function renderBricks() {
   renderedSessionKey = sessionKey();
   renderedBricks = store.bricks;
   document.getElementById("harness-map-open").disabled = !store.bricks;
-  renderedArmed = store.armed;
-  renderedForceUi = store.forceForm;
   renderedMemory = store.memory;
   const pane = document.getElementById("bricks");
-  // The rebuild would drop keyboard focus: note it, restore it on the new element. A closed
-  // forced-call form gives it back to its Forcer button.
-  let focusKey = pane.contains(document.activeElement) ? document.activeElement.dataset.focusKey : null;
-  // A card chip disarmed leaves: the focus goes to the next chip of that card, else its toggle.
-  const nextChipKey = focusKey?.startsWith("card:")
-    ? document.activeElement.nextElementSibling?.dataset.focusKey ?? null
-    : null;
-  if (store.forceFocus) {
-    const lost = !document.activeElement || document.activeElement === document.body;
-    if (focusKey?.startsWith("forceform:") || lost) focusKey = store.forceFocus;
-    store.forceFocus = null;
-  }
+  // The rebuild would drop keyboard focus: note it, restore it on the new element.
+  const focusKey = pane.contains(document.activeElement) ? document.activeElement.dataset.focusKey : null;
   pane.innerHTML = "";
   if (!store.bricks) {
     pane.appendChild(emptyNote(t("main.bricks.waiting_harness")));
@@ -1252,13 +1207,6 @@ function renderBricks() {
   );
   // Story 34: how to read the panes together.
   pane.appendChild(el("p", "brick-link-hint", t("main.bricks.link_hint")));
-  const reopenPopovers = []; // help popovers that were open before this rebuild
-  pane.appendChild(forcedToggle(reopenPopovers));
-  if (store.armError) {
-    const error = el("p", "force-error", store.armError);
-    error.setAttribute("role", "alert");
-    pane.appendChild(error);
-  }
   let group = null;
   for (const brick of store.bricks.bricks) {
     // Story 33: the group comes with the card (AD-1); the list's order is the display order.
@@ -1359,14 +1307,9 @@ function renderBricks() {
       card.appendChild(workshop);
     }
     if (brick.pending) card.appendChild(el("p", "brick-pending", t("main.bricks.pending")));
-    // Story 9: its armed actions, always visible (the Forcer buttons may be hidden).
-    const armed = store.armed.filter((a) => a.brick === brick.id);
-    if (armed.length) card.appendChild(armedChips(armed, `card:${brick.id}`));
 
     if (brick.options?.length) card.appendChild(brickOptions(brick, offReason));
     if (brick.limits_text) card.appendChild(el("p", "brick-limits", brick.limits_text));
-    // Story 19: a brick without sub-option forces its action from the card itself.
-    if (brick.force && store.showForced) card.append(...cardForce(brick));
 
     if (brick.explanation_text?.length) {
       // CAP-4 (2026-10-27): a <details> replaces the « ? » popover, folded by default; its
@@ -1404,21 +1347,12 @@ function renderBricks() {
     }
     pane.appendChild(card);
   }
-  for (const popover of reopenPopovers) popover.showPopover();
-  if (focusKey) {
-    const find = (key) => (key ? pane.querySelector(`[data-focus-key="${cssEscape(key)}"]`) : null);
-    let target = find(focusKey);
-    if (!target && focusKey.startsWith("card:")) {
-      const brickId = focusKey.split(":")[1];
-      target = find(nextChipKey) || find(`toggle:${brickId}`);
-    }
-    quietFocus(target);
-  }
+  if (focusKey) quietFocus(pane.querySelector(`[data-focus-key="${cssEscape(focusKey)}"]`));
 }
 
 const BRICK_GROUPS = section("main.bricks.groups");
 // What a click on a card leaves to its controls (switch and its label, options, forms, help).
-const BRICK_CONTROLS = "input, button, a, select, textarea, label, summary, details, [popover], .force-form";
+const BRICK_CONTROLS = "input, button, a, select, textarea, label, summary, details, [popover]";
 
 // Story 34: a card's link keys: its id and the ids of its nodes (`{id}.*`) in the schema.
 function brickLinkKeys(brick) {
@@ -1759,18 +1693,6 @@ function brickOptions(brick, offReason = null) {
     );
     const li = el("li", "brick-option-item");
     li.appendChild(row);
-    const force = store.showForced ? forceButton(brick, option) : null;
-    if (force) {
-      li.appendChild(force);
-      const open = store.forceForm?.brick === brick.id && store.forceForm?.id === option.id;
-      if (open) li.appendChild(forceForm(brick, option));
-    }
-    // Lot K: « Forcer l'appel » of each tool of a connected MCP server, both modes.
-    for (const call of store.showForced && brick.id === "mcp" ? option.calls || [] : []) {
-      const callOption = mcpCallOption(call);
-      li.appendChild(forceButton(brick, callOption));
-      if (isFormOpen(brick.id, callOption.id)) li.appendChild(forceForm(brick, callOption));
-    }
     list.appendChild(li);
   }
   details.appendChild(list);
@@ -1790,384 +1712,13 @@ function brickOptions(brick, offReason = null) {
   return details;
 }
 
-// ---------- forced actions (story 9, FR-42): toggle, Forcer, form with presets, chips ----------
-
-const FORCED_STORAGE_KEY = "wavestack.forcedActions";
-// EXPERIENCE: force-button labels, by brick; a native tool has none there: « Forcer l'appel ».
-const FORCE_LABELS = section("main.force.labels");
-// Story 14: the memory write is forced from the card itself, a form with one field whose
-// help comes with the card (AD-19).
-function memoryForceOption(brick) {
-  return {
-    id: "remember",
-    label_text: t("main.memory.title"),
-    parameters: { text: brick.text_help_text || "" },
-    fieldLabels: { text: t("main.force.text_field") },
-    presets: [],
-  };
-}
-
-// Hidden by default: the SLMs are meant to act on their own. Remembered like the panes'
-// layout; unreadable storage leaves the default, silently.
-function loadShowForced() {
-  try {
-    store.showForced = localStorage.getItem(FORCED_STORAGE_KEY) === "1";
-  } catch {
-    store.showForced = false;
-  }
-}
-
-function saveShowForced() {
-  try {
-    localStorage.setItem(FORCED_STORAGE_KEY, store.showForced ? "1" : "0");
-  } catch {
-    // No storage: the choice lasts until the page is reloaded.
-  }
-}
-
-// D3 of 2026-10-01: a titled section with the ✋, told apart from the bricks' switches. Lot 1 of
-// 2026-10-04: a « ? » by its title, the bricks' help (`.brick-help` and its popover, anchored
-// to the button), open again after a rebuild (`reopen`, the pane's list).
-const FORCE_HELP = "force-section"; // its key in `store.openBrickHelp` (no brick has this id)
-function forcedToggle(reopen) {
-  const box = el("section", "force-section");
-  // Its own class: the E2E reads the two groups' titles by `.brick-group-title`.
-  const title = el("h3", "force-section-title", t("main.force.section_title"));
-  title.id = "force-section-title";
-  box.setAttribute("aria-labelledby", title.id);
-  const head = el("div", "force-section-head");
-  const help = el("button", "brick-help brick-help-inline", "?");
-  help.type = "button";
-  help.id = "force-help";
-  help.dataset.focusKey = "force-help";
-  help.setAttribute("popovertarget", "explain-force-section");
-  help.setAttribute("aria-label", t("main.force.help_label"));
-  help.style.setProperty("anchor-name", "--force-help-anchor");
-  const popover = el("div", "brick-explanation force-explanation");
-  popover.id = "explain-force-section";
-  popover.setAttribute("popover", "");
-  popover.style.setProperty("position-anchor", "--force-help-anchor");
-  popover.appendChild(el("p", "", t("main.force.help_text")));
-  popover.addEventListener("toggle", (event) => {
-    if (event.newState === "open") store.openBrickHelp.add(FORCE_HELP);
-    else store.openBrickHelp.delete(FORCE_HELP);
-  });
-  if (store.openBrickHelp.has(FORCE_HELP)) reopen.push(popover);
-  head.append(title, help, popover);
-  const row = el("label", "force-toggle");
-  const toggle = el("input", "brick-toggle");
-  toggle.type = "checkbox";
-  toggle.setAttribute("role", "switch");
-  toggle.checked = store.showForced;
-  toggle.dataset.focusKey = "force-toggle";
-  toggle.addEventListener("change", () => {
-    store.showForced = toggle.checked;
-    if (store.showForced) {
-      // The Forcer buttons are in the bricks' folded option lists: unfold those lists.
-      for (const brick of store.bricks?.bricks || []) {
-        if (hasOptionForce(brick)) store.openExplanations.add(`options:${brick.id}`);
-      }
-    } else {
-      store.forceForm = null;
-      store.armError = null;
-    }
-    saveShowForced();
-    renderedBricks = null; // the Forcer buttons appear or leave
-    scheduleRender();
-  });
-  const hand = el("span", "force-toggle-icon", "✋");
-  hand.setAttribute("aria-hidden", "true"); // the label alone is read aloud
-  row.append(toggle, hand, el("span", "", t("main.force.show")));
-  box.append(head, row);
-  return box;
-}
-
-// D3: whether the brick's option list holds a Forcer button (`forceButton`'s rule, an MCP
-// tool's forced call included).
-function hasOptionForce(brick) {
-  return (brick.options || []).some(
-    (option) => optionForceLabel(brick, option) !== null || (brick.id === "mcp" && (option.calls || []).length > 0)
-  );
-}
-
-function handIcon() {
-  const icon = el("span", "", "👆 ");
-  icon.setAttribute("aria-hidden", "true"); // the label alone is read aloud
-  return icon;
-}
-
-function isFormOpen(brickId, optionId) {
-  return store.forceForm?.brick === brickId && store.forceForm?.id === optionId;
-}
-
-// Lot K: the forced call of one MCP tool, as an option of its server's row (`call`: from
-// `bricks_changed`, its parameters described by the server and its presets).
-function mcpCallOption(call) {
-  return {
-    id: `call:${call.tool}`,
-    label_text: call.tool,
-    target: call.tool,
-    call: true,
-    parameters: call.parameters,
-    presets: call.presets,
-  };
-}
-
-// The label of the option's Forcer button, `null` when it has none. Tools, skills, and in lazy
-// loading only, the documentation of an MCP server's tool; lot K: the call of an MCP tool
-// (`option.call`), in both modes.
-function optionForceLabel(brick, option) {
-  const label = option.call ? FORCE_LABELS.tools : FORCE_LABELS[brick.id];
-  if (!label) return null;
-  if (brick.id === "mcp" && !option.call && (brick.mode !== "lazy" || !option.tools?.length)) return null;
-  return label;
-}
-
-function forceButton(brick, option) {
-  const label = optionForceLabel(brick, option);
-  if (!label) return null;
-  const button = el("button", "force-button");
-  button.type = "button";
-  button.append(handIcon(), option.call ? `${label} · ${option.label_text}` : label);
-  button.setAttribute("aria-label", labelValue(label, option.label_text));
-  button.dataset.focusKey = `force:${brick.id}:${option.id}`;
-  // A tool without parameter and a skill are armed at once; the others open their form.
-  const hasParameters = Object.keys(option.parameters || {}).length > 0;
-  const needsForm =
-    (brick.id === "mcp" && (!option.call || hasParameters)) ||
-    brick.id === "global_memory" ||
-    (brick.id === "tools" && hasParameters);
-  if (needsForm) button.setAttribute("aria-expanded", String(isFormOpen(brick.id, option.id)));
-  button.addEventListener("click", () => {
-    if (!needsForm) {
-      armAction(brick.id === "skills" ? "skill" : "tool", option.target ?? option.id, {});
-      return;
-    }
-    store.forceForm = isFormOpen(brick.id, option.id) ? null : newForceForm(brick, option);
-    button.setAttribute("aria-expanded", String(Boolean(store.forceForm))); // lot K (A8)
-    forceUiChanged();
-  });
-  return button;
-}
-
-// Story 19: the card's Forcer button and, once open, its form; `brick.force` gives the
-// action's target, its parameters and presets (AD-1: from `bricks_changed`).
-function cardForce(brick) {
-  const force = brick.force;
-  const option = { id: force.target, label_text: brick.label_text, parameters: force.parameters, presets: force.presets };
-  const label = FORCE_LABELS[brick.id] || force.label_text;
-  const button = el("button", "force-button force-button-card");
-  button.type = "button";
-  button.append(handIcon(), label);
-  button.dataset.focusKey = `force:${brick.id}:${option.id}`;
-  const open = isFormOpen(brick.id, option.id);
-  button.setAttribute("aria-expanded", String(open));
-  button.addEventListener("click", () => {
-    store.forceForm = isFormOpen(brick.id, option.id) ? null : newForceForm(brick, option);
-    // Lot K (A8): the button says the form's state at once, the rebuild keeps it.
-    button.setAttribute("aria-expanded", String(Boolean(store.forceForm)));
-    forceUiChanged();
-  });
-  return open ? [button, forceForm(brick, option)] : [button];
-}
-
-function presetValues(option, index) {
-  // The form's fields are text; the session converts them per the tool's schema.
-  const args = option.presets?.[index]?.args || {};
-  return Object.fromEntries(
-    Object.keys(option.parameters || {}).map((name) => {
-      const value = args[name];
-      return [name, value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value)];
-    })
-  );
-}
-
-function newForceForm(brick, option) {
-  if (brick.id === "mcp" && !option.call) {
-    return { brick: brick.id, id: option.id, values: { tool: option.tools[0] }, error: null };
-  }
-  const preset = option.presets?.length ? 0 : -1; // prefilled by the first preset
-  return { brick: brick.id, id: option.id, preset, values: presetValues(option, preset), error: null };
-}
-
-function forceField(name, control, help = null) {
-  const field = el("label", "force-field");
-  field.append(el("span", "force-field-name", name), control);
-  if (help) field.appendChild(help);
-  return field;
-}
-
-function forceForm(brick, option) {
-  // One field per parameter, its description as help, prefilled by a chosen preset.
-  const form = store.forceForm;
-  const base = `forceform:${brick.id}:${option.id}`;
-  const box = el("div", "force-form");
-  box.setAttribute("role", "group");
-  const arm = () =>
-    option.call
-      ? armAction("tool", option.target, { ...form.values }, form)
-      : brick.id === "mcp"
-      ? armAction("tool_doc", form.values.tool, {}, form)
-      : brick.id === "global_memory"
-        ? armAction("memory", option.id, { text: form.values.text ?? "" }, form)
-      : brick.force
-        ? armAction(brick.force.kind, brick.force.target, { ...form.values }, form)
-        : armAction("tool", option.id, { ...form.values }, form);
-  if (brick.id === "mcp" && !option.call) {
-    box.setAttribute("aria-label", t("main.force.doc_form_label", { server: option.label_text }));
-    const select = el("select");
-    select.dataset.focusKey = `${base}:tool`;
-    for (const name of option.tools) {
-      const choice = el("option", "", name);
-      choice.value = name;
-      select.appendChild(choice);
-    }
-    select.value = form.values.tool;
-    select.addEventListener("change", () => {
-      form.values.tool = select.value;
-    });
-    box.appendChild(forceField(t("main.force.tool_field"), select));
-  } else {
-    box.setAttribute(
-      "aria-label",
-      brick.force ? t("main.force.task_form_label", { action: brick.force.label_text }) : t("main.force.args_form_label", { option: option.label_text })
-    );
-    if (option.presets?.length) {
-      const select = el("select");
-      select.dataset.focusKey = `${base}:preset`;
-      option.presets.forEach((preset, i) => {
-        const choice = el("option", "", preset.label_text);
-        choice.value = String(i);
-        select.appendChild(choice);
-      });
-      const free = el("option", "", t("main.force.free_input"));
-      free.value = "-1";
-      select.appendChild(free);
-      select.value = String(form.preset);
-      select.addEventListener("change", () => {
-        const preset = Number(select.value);
-        const values = preset >= 0 ? presetValues(option, preset) : form.values;
-        store.forceForm = { ...form, preset, values, error: null };
-        forceUiChanged();
-      });
-      box.appendChild(forceField(t("main.force.preset_field"), select));
-    }
-    for (const [name, description] of Object.entries(option.parameters)) {
-      const input = el("input");
-      input.type = "text";
-      input.value = form.values[name] ?? "";
-      if (brick.id === "global_memory" && store.memory?.max_chars) input.maxLength = store.memory.max_chars;
-      input.dataset.focusKey = `${base}:arg:${name}`;
-      const help = el("span", "force-help", description);
-      help.id = `force-help-${brick.id}-${option.id}-${name}`;
-      input.setAttribute("aria-describedby", help.id);
-      input.addEventListener("input", () => {
-        form.values[name] = input.value; // kept in place: typing never rebuilds the panel
-      });
-      input.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          arm();
-        }
-      });
-      box.appendChild(forceField(option.fieldLabels?.[name] ?? name, input, help));
-    }
-  }
-  if (form.error) {
-    const error = el("p", "force-error", form.error);
-    error.setAttribute("role", "alert");
-    box.appendChild(error);
-  }
-  const actions = el("div", "force-actions");
-  const armButton = el("button", "force-arm", t("main.force.arm"));
-  armButton.type = "button";
-  armButton.dataset.focusKey = `${base}:arm`;
-  armButton.addEventListener("click", arm);
-  const cancel = el("button", "force-cancel", t("common.cancel"));
-  cancel.type = "button";
-  cancel.dataset.focusKey = `${base}:cancel`;
-  cancel.addEventListener("click", () => {
-    store.forceForm = null;
-    store.forceFocus = `force:${brick.id}:${option.id}`;
-    forceUiChanged();
-  });
-  actions.append(armButton, cancel);
-  box.appendChild(actions);
-  return box;
-}
-
-// Arm requests in flight, by form or button: a double click or a repeated Enter arms once.
-const armsPending = new Set();
-
-async function armAction(kind, target, args, form = null) {
-  // Class (a): accepted at any time; the chip comes from `armed_actions_changed` (AD-1).
-  const pendingKey = form ? `form:${form.brick}:${form.id}` : `${kind}:${target}`;
-  if (armsPending.has(pendingKey)) return;
-  armsPending.add(pendingKey);
-  let error = null;
-  try {
-    const response = await postIntention("/api/intentions/arm", { kind, target, args });
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      error = typeof body.detail === "string" ? body.detail : t("main.force.arm_refused");
-    }
-  } catch {
-    error = t("main.force.arm_no_answer");
-  } finally {
-    armsPending.delete(pendingKey);
-  }
-  if (!error && store.armError) {
-    store.armError = null; // any successful arming clears the panel's last refusal
-    renderedBricks = null;
-  }
-  if (form) {
-    if (store.forceForm !== form) return; // closed or replaced meanwhile
-    if (error) {
-      store.forceForm = { ...form, error };
-    } else {
-      store.forceForm = null;
-      store.forceFocus = `force:${form.brick}:${form.id}`;
-    }
-  } else {
-    store.armError = error;
-    renderedBricks = null;
-  }
-  forceUiChanged();
-}
-
-async function disarmAction(armedId) {
-  try {
-    await postIntention("/api/intentions/disarm", { armed_id: armedId });
-  } catch {
-    // The chip stays until the session says otherwise.
-  }
-}
-
-function armedChips(actions, keyPrefix) {
-  // EXPERIENCE: « Armé : … », a click disarms; named « Désarmer … » for screen readers.
-  const row = el("div", "armed-chips");
-  for (const action of actions) {
-    const chip = el("button", "armed-chip");
-    chip.type = "button";
-    const close = el("span", "armed-chip-close", "✕");
-    close.setAttribute("aria-hidden", "true");
-    chip.append(handIcon(), t("main.force.armed_chip", { action: action.label_text }), close);
-    chip.setAttribute("aria-label", t("main.force.disarm", { action: action.label_text }));
-    chip.dataset.focusKey = `${keyPrefix}:${action.armed_id}`;
-    chip.addEventListener("click", () => disarmAction(action.armed_id));
-    row.appendChild(chip);
-  }
-  return row;
-}
-
 function triggerBadge(trigger) {
-  // DESIGN.md trigger-badge-*: who caused the action, told by the icon and the label.
-  if (trigger !== "user" && trigger !== "model") return null;
-  const user = trigger === "user";
-  const badge = el("span", user ? "trigger-badge-user" : "trigger-badge-model");
-  const icon = el("span", "", user ? "👆 " : "🤖 ");
+  // DESIGN.md trigger-badge-model: the model caused the action, told by the icon and the label.
+  if (trigger !== "model") return null;
+  const badge = el("span", "trigger-badge-model");
+  const icon = el("span", "", "🤖 ");
   icon.setAttribute("aria-hidden", "true");
-  badge.append(icon, user ? t("main.trigger.user") : t("main.trigger.model"));
+  badge.append(icon, t("main.trigger.model"));
   return badge;
 }
 
@@ -2296,24 +1847,12 @@ const MEMORY_SOURCES = section("main.memory.sources");
 const memoryDrawer = () => document.getElementById("memory-drawer");
 
 function memoryCardParts(brick) {
-  // The count the last `memory_changed` gives, the forced write, then the drawer's button.
+  // The count the last `memory_changed` gives, then the drawer's button.
   const parts = [];
   const memory = store.memory;
   if (memory && !memory.error_text) {
     const n = memory.entries.length;
     parts.push(el("p", "brick-limits", n ? t("main.memory.card_count", { entries: t("common.count.entry", { count: n }) }) : t("main.memory.card_empty")));
-  }
-  if (store.showForced) {
-    const option = memoryForceOption(brick);
-    const force = forceButton(brick, option);
-    if (brick.note_text) {
-      // H4: no tool parser, the forced write would be dropped: said on the button itself.
-      force.disabled = true;
-      force.title = brick.note_text;
-      force.setAttribute("aria-description", brick.note_text);
-    }
-    parts.push(force);
-    if (!brick.note_text && isFormOpen(brick.id, option.id)) parts.push(forceForm(brick, option));
   }
   const edit = el("button", "brick-edit", t("main.memory.edit"));
   edit.type = "button";
@@ -3585,8 +3124,6 @@ function patchChildren(parent, nodes) {
   });
 }
 
-let renderedComposerArmed = null;
-
 function renderComposer() {
   const state = store.sessionState;
   const ready = state?.state === "idle" && !state.reason_text;
@@ -3619,21 +3156,6 @@ function renderComposer() {
   reason.hidden = !text;
   reason.textContent = text || "";
   renderScenarioControls(state);
-  // Story 9: the armed actions above the composer, rebuilt only when the list changes.
-  if (renderedComposerArmed !== store.armed) {
-    renderedComposerArmed = store.armed;
-    const row = document.getElementById("armed-chips");
-    const focusKey = row.contains(document.activeElement) ? document.activeElement.dataset.focusKey : null;
-    row.replaceChildren(...(store.armed.length ? [armedChips(store.armed, "composer")] : []));
-    row.hidden = !store.armed.length;
-    if (focusKey) {
-      // A disarmed chip leaves: the focus goes to the next one, else to the message field
-      // when enabled (the states above are current), else to « Arrêter ».
-      const target = row.querySelector(`[data-focus-key="${cssEscape(focusKey)}"]`) || row.querySelector("button");
-      const input = document.getElementById("composer-input");
-      (target || (input.disabled ? document.getElementById("composer-stop") : input)).focus();
-    }
-  }
 }
 
 // ---------- scenarios and reset (story 10, FR-38, FR-39) ----------
@@ -3843,7 +3365,6 @@ function launchScenario(event) {
 function resetHarness() {
   store.openExplanations.clear();
   store.openBrickHelp.clear();
-  for (const popover of document.querySelectorAll(".brick-explanation:popover-open")) popover.hidePopover();
   scenarioIntention("/api/intentions/reset", {}, t("main.top_bar.reset_no_answer"));
 }
 
@@ -5522,7 +5043,7 @@ function hookCard(step) {
     el("p", "", t("main.orch.hook.point", { point: p.point_text, hook: p.hook_text })),
     el("p", "", t("main.orch.hook.decision", { decision: HOOK_DECISIONS[p.decision], detail: p.detail_text })),
   ];
-  const badge = triggerBadge(hookTrigger(step)); // on a tool call: forced or the model's
+  const badge = triggerBadge(hookTrigger(step)); // on a tool call the model decided
   if (badge) lines.unshift(badge);
   if (block) {
     const effect =
@@ -5613,7 +5134,7 @@ const ACTOR_STYLES = { model: ["is-model", "🤖"], harness: ["is-harness", "⚙
 const ACTOR_NAMES = section("main.orch.actors");
 const actorOf = (id) => [ACTOR_STYLES[id][0], `${ACTOR_STYLES[id][1]} ${ACTOR_NAMES[id]}`];
 // The trigger badge of a line (story 9): class, icon, label (`main.trigger`).
-const TRIGGER_STYLES = { user: ["trigger-badge-user", "👆 "], model: ["trigger-badge-model", "🤖 "] };
+const TRIGGER_STYLES = { model: ["trigger-badge-model", "🤖 "] };
 const TRIGGER_NAMES = section("main.trigger");
 const triggerOf = (id) => (TRIGGER_STYLES[id] ? [...TRIGGER_STYLES[id], TRIGGER_NAMES[id]] : null);
 const HOOK_ICONS = { h1: "🛡", h2: "📝", h3: "💉", h5: "✋" };
@@ -5798,7 +5319,6 @@ function stepRows(turn, step, i, calls, rows) {
         const outcome = ended.status === "ok" ? (ended.truncated ? `OK · ${t("main.orch.rows.truncated")}` : "OK") : t("main.orch.error");
         figure = `${outcome} · ${seconds(ended.duration_ms)}`;
       }
-      const forced = step.trigger === "user";
       const net = step.outbound?.length ? hostOf(step.outbound[0].url) : null;
       rows.push({
         key,
@@ -5806,7 +5326,7 @@ function stepRows(turn, step, i, calls, rows) {
         // Story 34: a verb; the tool's label follows, as a note.
         title: harness ? step.started.phase_label : net ? t("main.orch.rows.runs_tool_out") : t("main.orch.rows.runs_tool"),
         note: harness ? "" : toolLabel(step.started.tool),
-        actor: forced ? "user" : harness ? "model" : "harness",
+        actor: harness ? "model" : "harness",
         trigger: step.trigger,
         figure,
         net,
@@ -5909,25 +5429,6 @@ function stepRows(turn, step, i, calls, rows) {
         sig: [Boolean(ended), ended?.status],
         body: () => compressionBody(step),
       });
-    } else if (step.type === "action_dropped") {
-      const label = step.label || t("main.orch.rows.forced_action");
-      rows.push({
-        key,
-        icon: "⊘",
-        title: `${t("main.orch.rows.dropped_title")} · ${label}`,
-        actor: "harness",
-        trigger: "user",
-        figure: t("main.orch.rows.dropped"),
-        tone: "unavailable",
-        sig: 1,
-        body: () => [
-          harnessEvent(t("main.orch.rows.dropped_title"), "info", [
-            triggerBadge("user"),
-            el("p", "", step.payload.reason_text),
-            el("p", "label", t("main.orch.rows.dropped_decision")),
-          ]),
-        ],
-      });
     } else if (step.type === "tool_call_malformed") {
       rows.push({
         key,
@@ -6025,7 +5526,7 @@ function delegateRow(turn, step, key) {
     key,
     icon: "👥",
     title: t("main.orch.sub.title"),
-    actor: step.trigger === "user" ? "user" : "model",
+    actor: "model",
     trigger: step.trigger,
     figure,
     tone: failed ? "error" : null,
@@ -6824,10 +6325,6 @@ function eventSummary(group) {
       return `${p.tool} → ${p.destination}`;
     case "approval_resolved":
       return approvalDecision(p);
-    case "armed_actions_changed":
-      return p.actions.length ? p.actions.map((a) => a.label_text).join(" · ") : t("main.log.no_armed");
-    case "action_dropped":
-      return p.reason_text;
     case "subagent_started":
       return p.task;
     case "subagent_ended":
@@ -7781,7 +7278,6 @@ async function boot() {
     onChange: () => schemaWires.schedule(),
   });
   bindLinkedView();
-  loadShowForced();
   loadShowReasoning();
   loadCtxMode(); // story 32: Contexte LLM's view, remembered by the browser
   document.getElementById("show-reasoning").addEventListener("change", toggleShowReasoning);
@@ -7909,7 +7405,6 @@ async function boot() {
     store.activeModel = body.active_model ?? null;
     store.architecture = body.architecture_changed || { nodes: [], edges: [] };
     store.bricks = body.bricks_changed;
-    store.armed = body.armed_actions_changed?.actions ?? [];
     store.scenarios = body.scenario_changed;
     store.memory = body.memory_changed ?? null;
     handleWindowState(body.context_window_state);

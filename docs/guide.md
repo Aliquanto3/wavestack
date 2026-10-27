@@ -52,8 +52,7 @@ Le menu **Affichage ▾**, à droite, règle le thème, la [langue](#langue) et 
   MCP, skills, hooks, garde-fous, sous-agent, compression) s'allume par son interrupteur, avec sa catégorie
   (prompt, contexte ou harnais : le raisonnement et les garde-fous relèvent du harnais),
   son hébergement (local ou réseau) et son explication, repliée sous un aperçu de deux lignes qui se déplie au clic. Le document `guide_harnais.md` (section 10)
-  explique l'emboîtement prompt ⊂ contexte ⊂ harnais, les guides et les capteurs. « Afficher les actions forcées » révèle les boutons de secours qui déclenchent un outil
-  ou un skill quand un petit modèle ne le fait pas seul.
+  explique l'emboîtement prompt ⊂ contexte ⊂ harnais, les guides et les capteurs.
 - **① Vue humain** : la conversation, telle que la voit l'utilisateur, avec les prompts
   suggérés du scénario et « Rejouer le dernier prompt ».
 - **② Contexte LLM** : ce que le modèle lit vraiment, dans l'ordre, segment par segment
@@ -102,12 +101,8 @@ pour les montrer.
 Pour un petit modèle local, les prompts suggérés nomment l'outil ou le skill attendu (par
 exemple `load_skill` et `meeting_minutes`, ou `mslearn__microsoft_docs_search`) : un modèle
 plus gros fait seul le lien entre la demande et l'outil, ce qui se montre avec un modèle cloud.
-Quand une action forcée existe, la consigne la donne en secours : « Déclencher le skill »
-(Skills), « Forcer l'appel » sur « Lecture de fichier » avec un préréglage (Compression, SOC),
-« Charger la documentation » en lazy loading (Lazy loading, Souveraineté), puis « Rejouer le
-dernier prompt ». Un appel d'outil MCP ne se force pas : dans « MCP en documentation
-complète », IAM, et pour la recherche elle-même en lazy loading, l'appel reste au modèle, et
-la consigne dit quoi montrer s'il ne vient pas.
+Si le modèle ne fait pas l'appel attendu, la consigne donne en secours « Rejouer le dernier
+prompt », et dit quoi montrer s'il ne vient toujours pas : l'appel reste toujours au modèle.
 
 Le groupe « Transverses et métier » suit les modules : « Où vont mes données ? » (outils locaux,
 serveur MCP local et data.gouv.fr actifs dès le lancement, en lazy loading ; décochez puis
@@ -658,10 +653,10 @@ La langue change :
   méta-outils `load_skill`, `load_tool_doc`, `remember`, `delegate`), skills, texte et date
   ajoutés par H3, introduction et entrées de la mémoire globale de démonstration, glossaire du
   serveur MCP local, introduction et format des extraits du RAG ;
-- **les libellés tirés de ces mêmes fichiers** : noms et préréglages des outils (carte
-  « Outils », schéma, actions forcées), noms et descriptions des hooks et points du tour
-  (Orchestration), noms des skills, libellés des serveurs MCP et de leurs préréglages, bouton,
-  phase et préréglages du sous-agent, textes du tiroir de la mémoire, boutons et phases de la
+- **les libellés tirés de ces mêmes fichiers** : noms des outils (carte « Outils »,
+  schéma), noms et descriptions des hooks et points du tour
+  (Orchestration), noms des skills, libellés des serveurs MCP et de leurs préréglages, phase
+  du sous-agent, textes du tiroir de la mémoire, boutons et phases de la
   carte RAG ;
 - **l'écran principal** : boutons, volets, menus, infobulles, jauge, Orchestration, schéma et
   messages de l'interface elle-même, avec les nombres, montants et heures au format de la

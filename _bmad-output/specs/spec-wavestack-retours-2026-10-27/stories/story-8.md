@@ -73,3 +73,17 @@ Correction de brownfield.md : le champ `force` des briques n'est ni dans `bricks
 ## Décisions d'Anaël (2026-10-27)
 
 Q1 à Q4 : recommandations retenues telles quelles.
+
+## Réalisation (dev, 2026-10-27)
+
+- Séance, routes, catalogue, modèles de contenu : `ArmedAction`, `ArmRefused`, `arm`/`disarm`, `_consume_armed`, `ArmConsumed`, les routes `/api/intentions/arm` et `/disarm`, les kinds `armed_actions_changed` et `action_dropped`, `BrickForce`, `ToolPresetState`, `McpCallOption`, les champs `parameters`, `presets`, `tools`, `calls` des options, `force` et `text_help_text` des cartes, `ToolPreset` et `presets` (tools.yaml, subagent.yaml), `force_label_text` et `task_label_text` retirés. `tools` des options MCP n'avait pas d'autre lecteur que le forçage.
+- Interface : bascule, boutons, formulaires, puces, badge « Forcé par l'utilisateur », ligne « Action forcée abandonnée » et leur CSS retirés, ainsi que `.brick-help` et `.brick-explanation`, qui ne servaient plus qu'au popover des actions forcées depuis 16.5. `.force-error` gardé.
+- Q1 : chaque secours cite « Rejouer le dernier prompt » (fr, en, de). Caveman, dont la démonstration reposait sur l'armement du skill, reçoit un second prompt qui fait charger le skill par le modèle, puis « Comparer » ; le faux fournisseur des E2E le suit (`skill caveman`).
+- Q3 : `tool_call_extra` reste dans `CloudModel`, ignoré ; retiré du `wavestack.toml` livré et de l'entrée Gemini des E2E. La référence octet par octet de `test_cloud_api` garde la signature de Gemini en dur (celle que Gemini renvoie), pour une empreinte inchangée.
+- Tests supprimés car sans objet : `test_forced.py`, les tests d'armement (cloud, compression, mémoire, rejeu, sous-agent, borne des résultats) et `test_before_model_call_hooks_apply_inside_the_sub_agent`, qui n'atteignait le sous-agent que par une délégation forcée. `test_the_sub_agent_context_is_never_reranked` passe par une délégation du modèle.
+- E2E : `forced_native` supprimé ; son contrôle D5 (outils consultés) passe dans `native_tools`. `mcp_full`, `mcp_lazy`, `hooks`, `subagent` perdent leur partie forcée ; `global_memory` écrit sa cinquième entrée par le modèle ; `compression` fait lire `guide_harnais.md` au modèle ; `content_language` lit les fichiers par le modèle.
+
+### Reports
+
+- `test-durations-*.json` gardent les entrées des tests supprimés : la CI les régénère.
+- `docs/recette/runs/*.html` (comptes rendus de recettes passées) citent encore l'action forcée : historiques, non modifiés.

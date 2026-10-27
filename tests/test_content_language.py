@@ -479,7 +479,7 @@ def _catalogue_values(lang: str) -> list[str]:
 
 def _is_label(quote: str, values: list[str]) -> bool:
     """A label of the catalogues: a value, a value's text before its variable, or the start of
-    one at a word boundary; « <Forcer l'appel> · <tool> » is the button of a forced call."""
+    one at a word boundary; « <label> · <detail> » cites the label."""
     base = quote.split(" · ")[0]
     for value in values:
         head = _HEAD.split(value)[0].rstrip(" ,:(≈")
@@ -534,60 +534,25 @@ def test_every_label_an_instruction_cites_is_one_of_its_language(lang):
 
 @pytest.mark.parametrize("lang", TRANSLATED)
 def test_the_fallbacks_cite_the_labels_of_their_language(lang):
-    """`test_program`'s checks of the forced actions (story 27, lot K), in `en` and `de`:
-    each instruction cites the button, the preset and the replay of its language."""
-    from wavestack.mcp.servers import load_mcp_content
-    from wavestack.skills import load_skills_content
-    from wavestack.tools.registry import load_tools_content
+    """`test_program`'s checks of the fallbacks (CAP-5), in `en` and `de`: each instruction
+    cites the replay of its language, never a forced action."""
+    from test_program import FALLBACK_SCENARIOS
+
     from wavestack.ui_texts import load_ui_texts
 
     ui = load_ui_texts(lang)["main"]
-    force, replay, clear = ui["force"]["labels"], ui["chat"]["replay_last"], ui["chat"]["clear"]
+    replay, clear = ui["chat"]["replay_last"], ui["chat"]["clear"]
+    assert "force" not in ui
     scenario = load_scenarios(_known(), lang).scenarios
-    mcp, french_mcp = load_mcp_content(lang).call_presets, load_mcp_content("fr").call_presets
-    tools = load_tools_content(lang).tools["read_file"]
-    french_tools = load_tools_content("fr").tools["read_file"]
-
-    def preset(french_label: str) -> str:
-        index = [p.label_text for p in french_tools.presets].index(french_label)
-        return tools.presets[index].label_text
-
-    for scenario_id, tool, index in (
-        ("mcp_full", "local__define_term", 0),
-        ("mcp_lazy", "local__define_term", 0),
-        ("iam", "mslearn__microsoft_docs_search", 0),
-        ("iam", "mslearn__microsoft_docs_search", 1),
-        ("sovereignty", "datagouv__search_datasets", 0),
-        ("sovereignty", "mslearn__microsoft_docs_search", 2),
-    ):
-        text = scenario[scenario_id].description_text
-        assert mcp[tool][index].args.keys() == french_mcp[tool][index].args.keys()
-        assert _q(f"{force['tools']} · {tool}", lang) in text, (scenario_id, tool)
-        assert _q(mcp[tool][index].label_text, lang) in text, (scenario_id, index)
-        assert _q(replay, lang) in text, scenario_id
+    for scenario_id in FALLBACK_SCENARIOS:
+        assert _q(replay, lang) in scenario[scenario_id].description_text, scenario_id
+    forced = {"en": r"(?i)\bforc|\barm\b|“Arm”", "de": r"(?i)erzwing|scharf"}[lang]
+    for scenario_id, s in scenario.items():
+        assert not re.search(forced, s.description_text), scenario_id
     text = scenario["sovereignty"].description_text
-    assert (
-        text.index(_q(f"{force['tools']} · datagouv__search_datasets", lang))
-        < text.index(_q(clear, lang))
-        < text.index(_q(f"{force['tools']} · mslearn__microsoft_docs_search", lang))
-    )
-    assert _q(force["mcp"], lang) in scenario["mcp_lazy"].description_text
+    assert text.index(_q(replay, lang)) < text.index(_q(clear, lang))
     skills = scenario["skills"]
-    label = load_skills_content(["meeting_minutes"], lang).skills["meeting_minutes"].label_text
-    assert _q(force["skills"], lang) in skills.description_text
-    assert _q(label, lang) in skills.description_text
     assert "meeting_minutes" in skills.prompts[0] and "load_skill" in skills.prompts[0]
-    for scenario_id, presets in (
-        (
-            "compression",
-            ("Journal de sauvegarde (compression)", "Guide du harnais (prose, compression)"),
-        ),
-        ("soc", ("Alertes SIEM (SOC)", "Comptes à privilèges (SOC, confidentiel)")),
-    ):
-        text = scenario[scenario_id].description_text
-        assert _q(force["tools"], lang) in text and _q(tools.label_text, lang) in text
-        for french_label in presets:  # test_program's :216, in the language
-            assert _q(preset(french_label), lang) in text, (scenario_id, french_label)
     assert "confidentiel" not in scenario["soc"].prompts[1]
     assert "alertes_siem.log" in scenario["soc"].prompts[0]
 

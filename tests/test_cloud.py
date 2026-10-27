@@ -733,20 +733,6 @@ def test_chat_overflow_is_decided_by_the_raw_estimate_only():
     assert _of(blocked, "turn_ended")[0].payload["status"] == "overflow"
 
 
-def test_forced_action_ids_and_json_arguments_in_the_chat_body():
-    provider = Provider(GROQ_TEXT)
-    session = _cloud_session("groq", provider, bricks=("tools",))
-    session.arm("tool", "get_datetime", {})
-
-    _turn(session, "Quelle heure est-il ?")
-
-    messages = json.loads(provider.requests[0].content)["messages"]
-    at = next(i for i, m in enumerate(messages) if m.get("tool_calls"))
-    call, reply = messages[at]["tool_calls"][0], messages[at + 1]
-    assert reply["role"] == "tool" and reply["tool_call_id"] == call["id"]
-    assert len(call["id"]) == 9 and call["function"]["arguments"] == "{}"
-
-
 def test_cli_relaunch_prepares_the_saved_cloud_model_without_request(monkeypatch):
     from wavestack import cli
 
@@ -1290,14 +1276,13 @@ def test_gemini_replays_the_thought_signature_with_reasoning_off(caplog):
 
 
 def test_the_gemma_entry_is_the_free_open_model_on_the_gemini_host():
-    """Lot 1 of 2026-09-30: Gemma 4 shares Gemini's host, key and signature workaround; free
+    """Lot 1 of 2026-09-30: Gemma 4 shares Gemini's host and key; free
     tier only (trial, no price); `training = "no"` by the EEA clause (terms of 2026-09-30)."""
     cfg = config.load_config()
     gemma, gemini = cfg.cloud_model("gemma"), cfg.cloud_model("gemini")
 
     assert gemma.model == "gemma-4-26b-a4b-it" and gemma.host == gemini.host
     assert gemma.key_env == gemini.key_env == "GEMINI_API_KEY"
-    assert gemma.tool_call_extra == gemini.tool_call_extra
     assert gemma.trial and gemma.training == "no" and gemma.pricing is None
     assert gemma.impacts is not None and gemma.impacts.model == "gemma-4-26b-a4b-it"
     assert gemma.context == 262144 and gemma.tools and gemma.stream_usage
@@ -1455,26 +1440,6 @@ def test_the_signature_never_reaches_another_provider():
     sent = provider.requests[-1]
     assert sent.url.host == "api.groq.com" and b'"tool_calls"' in sent.content
     assert b"extra_content" not in sent.content and b"thought_signature" not in sent.content
-
-
-def test_a_forced_action_on_gemini_carries_tool_call_extra_and_no_other_entry_does():
-    for model_id, expected in (
-        ("gemini", {"google": {"thought_signature": "skip_thought_signature_validator"}}),
-        ("groq", None),
-        ("mistral", None),
-    ):
-        provider = GeminiProvider(GEMINI_TEXT) if model_id == "gemini" else Provider(GROQ_TEXT)
-        session = _cloud_session(model_id, provider, bricks=("tools",))
-        session.arm("tool", "get_datetime", {})
-
-        events = _turn(session, "Quelle heure est-il ?")
-
-        assert _of(events, "turn_ended")[0].payload["status"] == "completed", model_id
-        messages = json.loads(provider.requests[0].content)["messages"]
-        call = next(m for m in messages if m.get("tool_calls"))["tool_calls"][0]
-        assert call.get("extra_content") == expected, model_id
-        extra = {"extra_content"} if expected else set()
-        assert set(call) == {"id", "type", "function"} | extra, model_id
 
 
 def test_gemini_test_replays_the_signature_of_the_first_call(monkeypatch, caplog):

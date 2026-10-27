@@ -259,9 +259,8 @@ class CloudModel(_Strict):
     # Story 29: the sampling settings the « LLM nu » screen may send; none by default (the
     # provider's own). Top-k and min-p are never sent to a provider.
     sampling: list[Literal["temperature", "top_p"]] = []
-    # What a call the harness makes itself (a forced action) carries besides `id`, `type` and
-    # `function`, in chat mode: Gemini 3.x refuses a replayed call without its thought
-    # signature, and a made-up call has none. Empty by default: nothing added.
+    # Ignored: it served the forced actions, removed (story 16.8); kept so that an existing
+    # `wavestack.toml` that still sets it loads (`extra="forbid"`).
     tool_call_extra: dict[str, Any] = {}
     # FinOps: the declared prices; without them, no cost is computed nor shown for this model.
     pricing: CloudPricing | None = None
