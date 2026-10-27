@@ -2744,9 +2744,12 @@ def s_disciplines(r: Run) -> None:
         "barre de l'atelier : texte en --color-on-ink (story 2 du 2026-09-30 : sans titre)",
     )
     legend = page.inner_text("#gauge-legend")
+    legend_items = {
+        i.strip() for i in page.locator("#gauge-legend li > span:last-child").all_inner_texts()
+    }
     r.check(
-        all(name in legend for name in _DISCIPLINE_NAMES),
-        "#gauge-legend : prompt, context et harness engineering",
+        set(_DISCIPLINE_NAMES) <= legend_items,
+        "#gauge-legend : Prompt, Contexte et Harnais (libellés exacts)",
         legend.replace("\n", " · "),
     )
     segs = page.eval_on_selector_all(
@@ -2830,8 +2833,11 @@ def s_disciplines(r: Run) -> None:
     # The bricks panel: legend, two groups, cards tinted by discipline.
     bricks = page.locator("#bricks")
     panel_legend = bricks.locator(".brick-legend").inner_text()
+    panel_items = [
+        i.strip() for i in bricks.locator(".brick-legend li > span:last-child").all_inner_texts()
+    ]
     r.check(
-        all(n in panel_legend for n in [*_DISCIPLINE_NAMES, "Sort du poste de travail"]),
+        panel_items == [*_DISCIPLINE_NAMES, "Sort du poste de travail"],
         "panneau des briques : légende des quatre disciplines",
         panel_legend.replace("\n", " · "),
     )
@@ -2916,6 +2922,32 @@ def s_disciplines(r: Run) -> None:
         "carte Outils : puce « 🌐 RÉSEAU »",
     )
     r.shot_element("29-disciplines-briques", '.pane[data-pane="bricks"]')
+
+    # CAP-4: on load, no explanation is unfolded; each one unfolds from its summary by the
+    # mouse and by the keyboard (Enter unfolds, Space folds back).
+    r.reload_app()
+    r.check(
+        page.locator("details.brick-explain").count() >= 5
+        and page.locator("details.brick-explain[open]").count() == 0,
+        "au chargement, aucune explication de brique n'est dépliée",
+    )
+    for brick_id in ("tools", "mcp", "subagent", "guardrails", "compression"):
+        details = page.locator(f"#explain-{brick_id}")
+        summary = details.locator("summary")
+        summary.click()
+        by_mouse = details.evaluate("e => e.open")
+        summary.click()
+        folded = not details.evaluate("e => e.open")
+        summary.focus()
+        page.keyboard.press("Enter")
+        by_enter = details.evaluate("e => e.open")
+        page.keyboard.press("Space")
+        by_space = not details.evaluate("e => e.open")
+        r.check(
+            by_mouse and folded and by_enter and by_space,
+            f"explication {brick_id} : dépliée et repliée à la souris et au clavier",
+            f"souris {by_mouse}/{folded} · Entrée {by_enter} · Espace {by_space}",
+        )
 
     # Prompt système off (by the API): the explanation (a <details>) stays open, and CAP-4
     # drops the status line entirely instead of saying « Éteinte ».
@@ -17924,6 +17956,25 @@ def s_harness_map(r: Run) -> None:
         page.evaluate("document.activeElement && document.activeElement.id") == "harness-map-open",
         "« Fermer » : le focus revient au bouton du panneau des briques",
     )
+    # CAP-3: the legend's three terms are glossary citations; one opens the glossary on its
+    # term, the map closed first (a modal dialog would keep the panel inert behind it).
+    page.locator("#harness-map-open").click()
+    expect(dialog).to_be_visible(timeout=5000)
+    cites = dialog.locator(".glossary-cite")
+    expect(cites).to_have_count(3, timeout=5000)
+    r.check(
+        sorted(cites.evaluate_all("cs => cs.map(c => c.dataset.term)"))
+        == ["guide", "sensor_computed", "sensor_inferred"],
+        "carte : guide, capteur calculé et capteur déduit cités du glossaire",
+    )
+    dialog.locator('.glossary-cite[data-term="sensor_inferred"]').click()
+    expect(dialog).to_be_hidden(timeout=5000)
+    expect(page.locator("#glossary-panel")).to_be_visible(timeout=5000)
+    r.check(
+        page.locator("#glossary-term-sensor_inferred.glossary-current").count() == 1,
+        "carte : un terme de la légende ouvre le glossaire sur sa définition",
+    )
+    page.locator("#glossary-close").click()
 
 
 def s_rag_agentic(r: Run) -> None:

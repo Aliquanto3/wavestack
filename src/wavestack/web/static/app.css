@@ -2210,10 +2210,6 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   margin-top: var(--spacing-2);
 }
 
-.brick-explanation-list {
-  padding-left: var(--spacing-3);
-}
-
 /* CAP-4 (2026-10-27): the per-brick explanation, inline and folded by default (replaces the
    « ? » popover above). The summary clamps to two lines until opened. */
 .brick-explain {
@@ -2667,10 +2663,6 @@ body.focus-mode .pane.is-focused .pane-body-orch {
 
 .armed-chips-row[hidden] {
   display: none;
-}
-
-.brick-explanation summary {
-  cursor: pointer;
 }
 
 .brick-explanation p {

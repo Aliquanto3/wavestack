@@ -68,3 +68,21 @@ context:
 - `uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py --channel msedge --only harness_map disciplines content_language`
 
 </frozen-after-approval>
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu 3a7f879e)
+
+Rebasée sur origin/main (16.2 fusionnée, sans conflit). E2E non lancés (règle du run) : `uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py --channel msedge --only harness_map disciplines content_language`.
+
+- **Important**, medium, reviewer : les termes `[[g:…]]` de la légende s'affichent bien en `.glossary-cite`, mais le panneau du glossaire s'ouvrait sous la carte, dialog modal (inerte, sous le fond) : le clic ne montrait rien. Corrigé : un clic sur un terme ferme la carte avant que glossary.js ouvre le panneau (`setupHarnessMap`) ; E2E `harness_map` étendu (trois citations, clic, panneau ouvert sur le terme).
+- **Important**, medium, second avis 1 : le critère CAP-4 (aucune explication dépliée au chargement, Outils, MCP, Sous-agent, Garde-fous, Compression dépliables à la souris et au clavier) n'était pas couvert. Corrigé : `s_disciplines` recharge la page, vérifie qu'aucun `details.brick-explain` n'est ouvert, puis pour les cinq briques clic, Entrée, Espace.
+- **Nit**, medium, second avis 2 : URL martinfowler.com revérifiée par curl (titre « Harness engineering for coding agent users », texte « guides and sensors ») ; arXiv aussi. Rejeté : aucun défaut.
+- **Nit**, low, second avis 3 : `off_badge` « éteinte » de la carte. Rejeté : texte `sr-only`, seule façon de dire à un lecteur d'écran qu'une brique grisée est éteinte ; CAP-4 vise le panneau des briques.
+- **Nit**, low, second avis 4 : « places de marché » dans `content/demo_files/guide_harnais.md`. Corrigé (« marketplaces ») ; en dit déjà « marketplaces », de garde « Marktplätze » comme l'interface allemande (CAP-3 ne vise que le français).
+- **Nit**, low, second avis 5 : documentation désalignée. Corrigé dans `docs/guide.md` (disciplines, explication repliée) et `tools/e2e/README.md` (`disciplines`) ; `docs/guide.md:300` (« ? » de l'atelier LLM) écarté, hors story.
+- **Nit**, low, second avis 6 : CSS mort. Corrigé en partie : `.brick-explanation-list` et `.brick-explanation summary` retirés ; `.brick-help`, `.brick-explanation` (popover) gardés, car `#explain-force-section` les utilise jusqu'à la story 16.8.
+- **Nit**, low, second avis 7 : `_DISCIPLINE_NAMES` en sous-chaîne. Corrigé : comparaison exacte des libellés des `li` des deux légendes.
+- **Nit**, low, reviewer : le séparateur « ; » des sources est en dur, à la française, aussi en anglais et en allemand. Reporté (texte mineur, une clé i18n à ajouter).
+- **Important**, high, reviewer : `tests/test_harness_map.py::test_every_subsystem_and_role_has_a_label_in_each_language` (fr, en, de) cassé par la scission de `sources` (KeyError). Corrigé : il lit `source_arxiv` et `source_fowler`.
+- Complexité : 0 constat (aucune structure qui grossit touchée).

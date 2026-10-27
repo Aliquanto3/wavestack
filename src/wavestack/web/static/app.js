@@ -7941,8 +7941,10 @@ function setupHarnessMap() {
   open.addEventListener("click", () => openHarnessMap(open));
   document.getElementById("harness-map-close").addEventListener("click", () => dialog.close());
   // Escape (native), « Fermer » or a click on the backdrop: the focus goes back to the opener.
+  // A legend term (`[[g:…]]`, CAP-3) opens the glossary panel, which the modal map would keep
+  // inert under its backdrop: close the map first (runs before glossary.js's document handler).
   dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog.close();
+    if (event.target === dialog || event.target.closest?.(".glossary-cite")) dialog.close();
   });
   dialog.addEventListener("close", () => {
     harnessMapOrigin?.focus();

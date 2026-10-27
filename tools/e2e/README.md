@@ -245,14 +245,16 @@ Vérifications ajoutées aux scénarios existants :
 ## Code couleur par discipline (story 33)
 
 - `disciplines`, joué après `network_tools` : scénario « Outils réseau » et un tour « Résume
-  l'article Wikipédia… ». Barre haute sur `--color-ink`, légende `#gauge-legend` (prompt,
-  context et harness engineering), chaque `.gauge-seg` avec sa discipline et le fond de son
+  l'article Wikipédia… ». Barre haute sur `--color-ink`, légende `#gauge-legend` (Prompt,
+  Contexte et Harnais, libellés exacts), chaque `.gauge-seg` avec sa discipline et le fond de son
   jeton, total en tokens et en pourcentage, légende et chiffres entiers à 1600 × 1000. Panneau
   des briques : légende des quatre disciplines, « Ce que le modèle lit » puis « Ce que le
   harnais fait », premier groupe Raisonnement, Prompt système, Mémoire courte, Mémoire globale,
   RAG ; trait de la carte Prompt système et fond de la carte RAG éteinte ; lignes d'état
   (« n tokens dans le contexte », « n entrées · n tokens », « n déclarés · c contacté(s) », avec
-  la puce « RÉSEAU ») ; Prompt système éteint par l'API, « Éteinte », explication toujours
+  la puce « RÉSEAU ») ; après rechargement, aucune explication dépliée, puis celles d'Outils, MCP,
+  Sous-agent, Garde-fous et Compression dépliées et repliées à la souris, à Entrée et à Espace ;
+  Prompt système éteint par l'API, plus de ligne d'état, explication (`<details>`) toujours
   ouverte. Bulle de l'utilisateur sur l'encre, en-têtes des cinq volets sur `--color-surface`,
   sections de Contexte LLM (filet du prompt système, pastille de son type), tuiles
   d'Orchestration (appel au modèle sur l'encre, `wikipedia_summary` en réseau, « Description
