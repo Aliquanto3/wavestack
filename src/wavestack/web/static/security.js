@@ -44,6 +44,13 @@ function ruleChip(rule) {
   return chip(ruleText(rule), ruleLevel(rule));
 }
 
+// Story 17.5: a filter that keeps nothing says so. The live region stays in the page and only
+// its text changes: a region shown from `hidden` is not reliably announced.
+function setFilterEmpty(id, key, show) {
+  const el = $(id);
+  if (el) el.textContent = show ? t(key) : "";
+}
+
 // Story 16.7 (CAP-10): a single affordance for everything clickable (cursor, hover and
 // focus by `pages.css`'s rules on `.sec-question-card`, `.call-step`, `.filter-chip` and
 // `.mx-toggle`); the focus follows a card's or a step's scroll, never only the scroll.
@@ -192,9 +199,7 @@ function setMatrixFilter(value) {
     const open = row.querySelector(".mx-toggle").getAttribute("aria-expanded") === "true";
     row.nextElementSibling.hidden = row.hidden || !open;
   });
-  // Story 17.5: a filter that keeps nothing leaves no blank area.
-  const empty = $("sec-matrix-filter-empty");
-  if (empty) empty.hidden = rows.length === 0 || Array.from(rows).some((row) => !row.hidden);
+  setFilterEmpty("sec-matrix-filter-empty", "security.matrix.filter_empty", rows.length > 0 && Array.from(rows).every((row) => row.hidden));
 }
 
 function matrixRow(row) {
@@ -471,6 +476,7 @@ const LEVEL_OF = {
 // (`security_log._DENIED`), so the chip's own count never drifts from the badge's.
 const REFUSED = new Set(["deny", "blocked"]);
 let journalFilter = "all";
+let journalShown = 0; // rows the filter keeps, so a live event updates the empty message in O(1)
 
 function journalMatches(decision, filter) {
   if (filter === "all") return true;
@@ -481,15 +487,21 @@ function setJournalFilter(value) {
   journalFilter = value;
   const filters = $("sec-journal-filters");
   if (filters) filters.querySelectorAll("[data-f]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === value)));
-  const rows = $("sec-journal")?.querySelectorAll("li[data-decision]") ?? [];
-  rows.forEach((li) => {
-    li.hidden = !journalMatches(li.dataset.decision, value);
-  });
-  // Story 17.5: a filter that keeps nothing leaves no blank area (the journal's own
-  // « Aucun événement » li, shown by `renderJournal` when there is no entry at all, is
-  // a different case and has no `data-decision`, so `rows` stays empty for it).
-  const empty = $("sec-journal-filter-empty");
-  if (empty) empty.hidden = rows.length === 0 || Array.from(rows).some((li) => !li.hidden);
+  journalShown = 0;
+  $("sec-journal")
+    ?.querySelectorAll("li[data-decision]")
+    .forEach((li) => {
+      li.hidden = !journalMatches(li.dataset.decision, value);
+      if (!li.hidden) journalShown += 1;
+    });
+  showJournalEmpty();
+}
+
+// Story 17.5: the journal with no entry at all keeps its own « Aucun événement » li (no
+// `data-decision`), a different case from a filter that keeps nothing.
+function showJournalEmpty() {
+  const any = $("sec-journal")?.querySelector("li[data-decision]");
+  setFilterEmpty("sec-journal-filter-empty", "security.journal.filter_empty", Boolean(any) && journalShown === 0);
 }
 
 function renderJournalFilters(counts) {
@@ -536,9 +548,14 @@ function prependJournalRow(entry) {
   const list = $("sec-journal");
   if (!list) return;
   if (list.firstElementChild?.classList.contains("sec-empty")) list.replaceChildren();
-  list.prepend(journalRow(entry));
-  if (list.children.length > KEPT) list.lastElementChild.remove();
-  setJournalFilter(journalFilter);
+  const li = journalRow(entry);
+  list.prepend(li);
+  if (!li.hidden) journalShown += 1;
+  if (list.children.length > KEPT) {
+    if (!list.lastElementChild.hidden) journalShown -= 1;
+    list.lastElementChild.remove();
+  }
+  showJournalEmpty();
 }
 
 // ---------- the limits ----------

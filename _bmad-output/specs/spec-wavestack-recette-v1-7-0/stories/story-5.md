@@ -82,4 +82,17 @@ aucune entrée laisse une zone vide sans message, non accessible.
 
 ## Revue
 
-_À faire par l'orchestrateur (second avis puis reviewer)._
+### Passe 1 (2026-10-27, SHA revu 0cfddc94)
+
+Rebasée sur origin/main (17.1, 17.2) sans conflit. Second avis (Haiku) repris point par point.
+
+- Pre-existing · medium · second avis 1 · reporté : la vue carte sous 560 px (`ux-securite.md:23`) n'existe pas depuis 16.7 (ni media query, ni `data-label`). Demande des libellés de colonne traduits par cellule et une vérification visuelle à 360-560 px : story à part, à vérifier par capture E2E à 375 px.
+- Nit · low · second avis 2 · rejeté : la pastille dans les dépliés est voulue (demande explicite d'Anaël, critère (a) « lignes et dépliés »).
+- Important · low · second avis 3 · corrigé : `prependJournalRow` rejouait `setJournalFilter` sur les 500 lignes à chaque `security_event`, contre l'invariant O(1) du fichier. Compteur `journalShown` tenu à l'ajout et à l'éviction ; le parcours complet ne reste que sur action utilisateur (filtre) et au rendu initial. Complexité : 1 constat.
+- Nit · low · second avis 4 · rejeté : le survol colore les cellules de la ligne (affordance de la ligne, 16.7) ; la pastille garde son propre fond, sans curseur ni contour : aucun signe propre à la pastille.
+- Important · low · second avis 5 · corrigé : `role="status"` créé `hidden` puis démasqué n'est pas annoncé de façon fiable. La région reste dans la page, vide, et seul son texte change (`setFilterEmpty`) ; un événement live ne peut que vider le message (non annoncé), sauf éviction de la seule ligne visible.
+- Nit · low · second avis 6 · corrigé : l'E2E vérifie aussi le niveau (classe connue) des pastilles du dépli.
+- Nit · low · second avis 7 · corrigé : l'E2E teste le message vide de la matrice (lignes marquées sans écriture puis filtre « écriture », la vraie matrice ayant toujours un outil qui écrit) et sa disparition.
+- Nit · low · second avis 8 · confirmé : `SECURITY_FAKE_JOURNAL` (`tools/e2e/run_e2e.py`) n'a que `allow` et `deny` ; le scénario ne déclenche aucun appel d'outil, donc aucun `allow_once` live.
+
+E2E non lancé (poste partagé) : `uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py --channel msedge --only security_page`

@@ -17712,22 +17712,25 @@ def s_security_page(r: Run) -> None:
             .nth(3)
             .locator(".status-chip")
         )
+        rule_levels = {
+            "status-chip",
+            "status-chip status-chip-mid",
+            "status-chip status-chip-high",
+            "status-chip status-chip-off",
+        }
         rule_class = rule_chip.get_attribute("class")
         r.check(
-            rule_chip.count() == 1
-            and rule_class
-            in {
-                "status-chip",
-                "status-chip status-chip-mid",
-                "status-chip status-chip-high",
-                "status-chip status-chip-off",
-            },
+            rule_chip.count() == 1 and rule_class in rule_levels,
             "Sécurité : la cellule Règle de la matrice est une pastille de niveau connu",
             rule_class,
         )
+        detail_classes = details.first.locator("dd .status-chip").evaluate_all(
+            "els => els.map(e => e.className)"
+        )
         r.check(
-            details.first.locator(".status-chip").count() > 0,
-            "Sécurité : la règle du dépli de la matrice est aussi une pastille",
+            len(detail_classes) > 0 and all(c in rule_levels for c in detail_classes),
+            "Sécurité : la règle du dépli de la matrice est aussi une pastille de niveau connu",
+            str(detail_classes),
         )
         # The « écriture » card filters the matrix and gives the focus to its title.
         cards = page.locator("#sec-questions .sec-question-card")
@@ -17767,6 +17770,26 @@ def s_security_page(r: Run) -> None:
         r.check(
             page.locator("#sec-matrix-body tr.mx-row").first.is_visible(),
             "Sécurité : le filtre « Tous les outils » rend toute la matrice",
+        )
+        # Story 17.5: a policy with no writing tool leaves the « écriture » filter empty (the
+        # real matrix always has one, so its rows are marked so here), and it says so.
+        matrix_empty = page.locator("#sec-matrix-filter-empty")
+        r.check(
+            not matrix_empty.is_visible(), "Sécurité : pas de message vide sur la matrice entière"
+        )
+        page.evaluate(
+            "document.querySelectorAll('#sec-matrix-body tr.mx-row')"
+            ".forEach(tr => { tr.dataset.write = 'false'; })"
+        )
+        page.locator('#sec-matrix-filters [data-mx="write"]').click()
+        r.check(
+            matrix_empty.is_visible() and matrix_empty.get_attribute("role") == "status",
+            "Sécurité : le filtre matrice sans résultat affiche un message d'état vide",
+        )
+        page.locator('#sec-matrix-filters [data-mx="all"]').click()
+        r.check(
+            not matrix_empty.is_visible(),
+            "Sécurité : le message vide de la matrice disparaît avec « Tous les outils »",
         )
         # Every kind of clickable: the hand cursor, and a style of its own on hover.
         for selector in (
