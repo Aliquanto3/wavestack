@@ -16,6 +16,20 @@ LOCAL = "local"
 # `{name}`: a variable the local server's prompt fills (`str.format`), lot 4 of 2026-10-04.
 _VARIABLE = re.compile(r"\{([a-z_]+)\}")
 
+# CAP-8: every server id, in display order; the single source for `mcp_servers()` below and
+# for `mcp.lab.BEFORE` (the "Avant MCP" schema's rows). A server added later (story 16.6) only
+# needs an entry here (plus its `url_of` below and a content line): the schema, the picker and
+# the logo all pick it up, with a neutral fallback logo and shape if its own files are missing.
+ALL_IDS = (LOCAL, "datagouv", "mslearn", "github")
+# CAP-8: each server's logo, a file of `web/static/logos/mcp/` (SVG, offline); unlisted or
+# missing id: the neutral `_default.svg` (see `docs/logos-atelier-mcp.md`).
+_LOGOS = {
+    LOCAL: "local.svg",
+    "datagouv": "datagouv.svg",
+    "mslearn": "mslearn.svg",
+    "github": "github.svg",
+}
+
 
 @dataclass(frozen=True)
 class McpServer:
@@ -40,19 +54,25 @@ class McpServer:
     def component(self) -> str:
         return f"mcp.{self.id}"
 
+    @property
+    def logo(self) -> str:
+        """CAP-8: its logo's path under `/static/logos/` (never loaded from the network)."""
+        return f"mcp/{_LOGOS.get(self.id, '_default.svg')}"
+
 
 def mcp_servers(cfg: config.Config) -> dict[str, McpServer]:
-    """In the brick's display order: the local server, then the public ones."""
+    """In the brick's display order (`ALL_IDS`): the local server, then the public ones."""
     urls = cfg.mcp_urls
-    return {
-        LOCAL: McpServer(LOCAL, None),
-        "datagouv": McpServer("datagouv", urls["datagouv"]),
-        "mslearn": McpServer("mslearn", urls["mslearn"]),
-        # Story 3 (CAP-4): the Atelier MCP's 4th server, never a Harnais brick sub-option
-        # (`AppSession._mcp_options` excludes it on purpose; its own OAuth block lives on
-        # the MCP page). `headers` stays `None` here: no token until `GithubAuth` gives one.
-        "github": McpServer("github", github_auth.MCP_URL),
+    # Story 3 (CAP-4): the Atelier MCP's 4th server (github), never a Harnais brick sub-option
+    # (`AppSession._mcp_options` excludes it on purpose; its own OAuth block lives on the MCP
+    # page). `headers` stays `None` here: no token until `GithubAuth` gives one.
+    url_of = {
+        LOCAL: None,
+        "datagouv": urls["datagouv"],
+        "mslearn": urls["mslearn"],
+        "github": github_auth.MCP_URL,
     }
+    return {server_id: McpServer(server_id, url_of[server_id]) for server_id in ALL_IDS}
 
 
 class ServerText(BaseModel):

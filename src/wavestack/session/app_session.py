@@ -13735,6 +13735,7 @@ class AppSession:
                     "url": server.url,
                     "command": mcp_lab.launch_command(server, self._language),
                     "network": server.network,
+                    "logo": server.logo,
                     "sends_text": text.sends_text if text else None,
                     "source_label_text": source.source_label_text if source else None,
                     "source_action_text": source.source_action_text if source else None,

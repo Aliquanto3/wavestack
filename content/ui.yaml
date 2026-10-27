@@ -1607,6 +1607,7 @@ mcp:
     unavailable: "« Par le modèle » indisponible : {reason}"
     local_line: "{model} · Local"
     cloud_line: "{model} · 🌐 RÉSEAU · {provider}"
+    answer: "Réponse du modèle : {text}"
   read:
     legend: "Ressource"
     run: "Lire"
@@ -1762,6 +1763,7 @@ mcp:
     headers: "En-têtes"
     body: "Corps de la requête sortante"
     model_call: "Lu par le modèle : {prompt} · produit : {output} · {time}"
+    reply: "Réponse complète : {text}"
   seq:
     new_messages:
       one: "↓ {n} nouveau message"

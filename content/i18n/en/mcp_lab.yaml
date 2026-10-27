@@ -189,6 +189,7 @@ before:
     local: "Code to read glossary.yaml"
     datagouv: "Code for the data.gouv.fr API (its own format)"
     mslearn: "Code for the Microsoft API (another format, another authentication)"
+    github: "Code for the GitHub API"
   captions:
     - "One integration (the code that links the application to an API, a service's interface for programs) to write and maintain per tool."
     - "An API that changes breaks its integration, until the code catches up."

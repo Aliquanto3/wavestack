@@ -361,6 +361,31 @@ def test_the_content_needs_every_method_and_the_resource_template():
         raise AssertionError("a resource template without the question")
 
 
+def test_before_covers_every_server_including_github():
+    """CAP-8: `BEFORE` (the "Avant MCP" schema's rows) is `servers.ALL_IDS`, github included;
+    `content/mcp_lab.yaml`'s `before.integrations` validates against it (real file, real load)."""
+    from wavestack.mcp.servers import ALL_IDS
+
+    assert mcp_lab.BEFORE == ALL_IDS
+    assert "github" in mcp_lab.BEFORE
+    content = mcp_lab.load_lab_content("fr")
+    assert set(content.before.integrations) == set(ALL_IDS)
+    assert content.before.integrations["github"] == "Code pour l'API GitHub"
+
+
+def test_before_integrations_missing_a_server_fails_validation():
+    from pydantic import ValidationError
+
+    data = mcp_lab.load_lab_content("fr").model_dump()
+    del data["before"]["integrations"]["github"]
+    try:
+        mcp_lab.McpLabContent.model_validate(data)
+    except ValidationError as exc:
+        assert "before.integrations" in str(exc)
+    else:
+        raise AssertionError("a before.integrations missing a server")
+
+
 # ---------- the local server: a real child process ----------
 
 
@@ -446,6 +471,13 @@ def test_local_handshake_lists_the_three_primitives_and_leaves_the_brick(loop):
         "glossary.yaml",
         "lit glossary.yaml",
     )
+    # CAP-8: every server, including github (never a Harnais brick sub-option), has its logo.
+    assert {s["id"]: s["logo"] for s in state["servers"]} == {
+        "local": "mcp/local.svg",
+        "datagouv": "mcp/datagouv.svg",
+        "mslearn": "mcp/mslearn.svg",
+        "github": "mcp/github.svg",
+    }
     assert state["ask"]["model_ready"] is True and state["ask"]["tools"] is True
     assert local_servers()
 

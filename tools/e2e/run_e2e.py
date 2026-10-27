@@ -7291,6 +7291,15 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
         "/mcp : les quatre serveurs (GitHub, story 3 de la V1.1 vague 2)",
         str(servers),
     )
+    # CAP-8: a logo per server, a local SVG (no network request), loaded.
+    logos = page.locator("#mcp-servers .mcp-server-logo").evaluate_all(
+        "items => items.map(i => [i.getAttribute('src'), i.naturalWidth > 0])"
+    )
+    r.check(
+        len(logos) == 4 and all(src.startswith("/static/logos/mcp/") and ok for src, ok in logos),
+        "/mcp : un logo par serveur, en SVG local, chargé (CAP-8)",
+        str(logos),
+    )
     r.check(
         page.locator("#mcp-seq-empty").is_visible()
         and not _mcp_revealed_heads(r)
@@ -7475,6 +7484,19 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
         "le modèle ne parle qu'à l'hôte : aucune flèche entre le modèle et le client ou le serveur",
         str([(row["from"], row["to"]) for row in model_rows]),
     )
+    # CAP-8: the final answer, dépliable en entier dans Séquence, lisible sous « Envoyer au
+    # modèle » (never clipped to 60 characters there).
+    reply_row = page.locator('.mcp-row[data-kind="user"]').last
+    reply_row.locator(".mcp-arrow").click()
+    reply_detail = reply_row.locator(".mcp-detail-text").last.inner_text()
+    answer_line = page.locator("#mcp-ask-answer").inner_text()
+    reply_text = reply_detail.split("«", 1)[-1].rsplit("»", 1)[0].strip()
+    r.check(
+        len(reply_text) > 60 and len(answer_line) > 60 and reply_text in answer_line,
+        "Séquence : la réponse finale se déplie en entier, lisible aussi sous « Envoyer au "
+        "modèle » (CAP-8)",
+        f"{len(reply_detail)} car. · {len(answer_line)} car.",
+    )
     r.check(
         gauge_after == gauge_before,
         "la jauge de l'atelier principal ne bouge pas (contexte mcp_lab écarté)",
@@ -7522,8 +7544,23 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
     before_view = (
         page.locator("#mcp-arch-before").is_visible() and page.locator("#mcp-arch").is_hidden()
     )
+    # CAP-8: github's own row, its own shape (square, never the default circle) and its own
+    # line ("Code pour l'API GitHub"); no server's line hidden or dotted (`.is-hidden-side`).
+    github_row = page.locator('[data-before="github"]')
+    github_shape = page.locator('[data-before-source="github"]').get_attribute("data-shape")
+    before_ok = (
+        github_row.count() == 1
+        and "Code pour l'API GitHub" in github_row.inner_text()
+        and github_shape == "square"
+        and page.locator(".mcp-before-node.is-hidden-side, .mcp-node.is-hidden-side").count() == 0
+    )
     page.locator('#mcp-arch-switch [data-view="after"]').click()
-    r.check(before_view, "Architecture : la vue « Avant MCP », puis « Avec MCP »")
+    r.check(
+        before_view and before_ok,
+        "Architecture : la vue « Avant MCP », puis « Avec MCP » (github : forme, ligne, "
+        "jamais en pointillés, CAP-8)",
+        f"{github_shape} · {github_row.inner_text() if github_row.count() else '—'}",
+    )
     r.check(not errors, "/mcp : aucune erreur JavaScript", str(errors)[:300])
 
     # (10) The brick, untouched by the workshop.
