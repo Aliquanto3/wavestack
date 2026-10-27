@@ -565,6 +565,13 @@ def test_cloud_screen_generation_carries_its_cost_next_to_the_debit():
     assert ended["cost_in_usd"] == call["cost_in_usd"] > 0
     assert ended["cost_out_usd"] == call["cost_out_usd"] > 0
     assert ended["cost_source"] == call["cost_source"]
+    # GreenOps (EcoLogits for a cloud call): the footprint and its method copied as is too.
+    assert call["impact_method"] and call["impact_note_text"] and call["energy_wh_min"] > 0
+    for key in (
+        "energy_wh_min", "energy_wh_max", "gco2e_min", "gco2e_max", "impact_method",
+        "impact_note_text",
+    ):  # fmt: skip
+        assert ended[key] == call[key], key
 
 
 def test_local_screen_generation_has_no_cost(monkeypatch):

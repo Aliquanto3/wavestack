@@ -18,7 +18,7 @@ terms:
     definition: "The unit of text the model reads and writes: a word, a piece of a word or a symbol. Cost, speed and the size of the context window are counted in tokens."
   fragment:
     term: "Fragment"
-    definition: "The piece of text a cloud provider sends in one `delta` of its streamed answer: it does not necessarily match a single token of the model, since WaveStack only sees what the API lets through, never the provider's exact cut."
+    definition: "The piece of text a cloud provider sends in one 'delta' of its streamed answer: it does not necessarily match a single token of the model, since WaveStack only sees what the API lets through, never the provider's exact cut."
   context_window:
     term: "Context window"
     definition: "The maximum number of tokens the model can read in one call: system prompt, history, tool results and question. Beyond it, something must be removed or summarised."

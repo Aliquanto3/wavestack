@@ -443,7 +443,7 @@ generation:
     événements.
   more_text: "… et {reste} de plus, non affichés (512 puces au plus)."
   legend_text: >-
-    Les couleurs (vert, violet) alternent d'une puce à l'autre sans rien signifier : elles
+    Les couleurs (violet, vert) alternent d'une puce à l'autre sans rien signifier : elles
     séparent seulement un token de son voisin.
   sent_summary_text: "Voir le prompt envoyé au modèle"
   status:

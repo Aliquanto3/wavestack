@@ -427,7 +427,7 @@ generation:
     Ereignisprotokoll.
   more_text: "… und {reste} weitere, nicht angezeigt (höchstens 512 Chips)."
   legend_text: >-
-    Die Farben (Grün, Violett) wechseln von Chip zu Chip ohne Bedeutung: Sie trennen nur ein
+    Die Farben (Violett, Grün) wechseln von Chip zu Chip ohne Bedeutung: Sie trennen nur ein
     Token von seinem Nachbarn.
   sent_summary_text: "Den an das Modell gesendeten Prompt ansehen"
   status:

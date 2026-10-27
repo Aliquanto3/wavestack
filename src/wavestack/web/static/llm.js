@@ -2025,8 +2025,8 @@ function renderGenerationEnded(p) {
 
 // Story 16.2 (retours du 27/10, CAP-6): next to the debit, a cloud call's cost and footprint
 // (GreenOps/FinOps, already computed by `model_call_ended`, carried as is on this event); a
-// local call's energy only (CodeCarbon), never its g CO₂e (a world average, less meaningful
-// for a single machine). Nothing shown without a footprint nor a cost.
+// local call's energy and g CO₂e (CodeCarbon, Anaël's decision of 27/10). Nothing shown
+// without a footprint nor a cost.
 function renderImpact(p) {
   const node = $("generation-impact");
   const parts = [];
@@ -2042,11 +2042,8 @@ function renderImpact(p) {
   }
   if (p.energy_wh_min != null) {
     const energy = rangeText(p.energy_wh_min, p.energy_wh_max, "Wh");
-    parts.push(
-      store.gen.cloud && p.gco2e_min != null
-        ? `${t("main.footprint.call_label")}${energy} · ${rangeText(p.gco2e_min, p.gco2e_max, "g CO₂e")}`
-        : `${t("main.footprint.call_label")}${energy}`
-    );
+    const gco2e = p.gco2e_min != null ? ` · ${rangeText(p.gco2e_min, p.gco2e_max, "g CO₂e")}` : "";
+    parts.push(`${t("main.footprint.call_label")}${energy}${gco2e}`);
   }
   node.hidden = !parts.length;
   node.textContent = parts.join(" · ");

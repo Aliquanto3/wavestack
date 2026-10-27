@@ -78,3 +78,16 @@ Douleur à corriger : en préparant ses formations sur la v1.6.2, Anaël bute su
 - Le retour sur la carte du harnais s'arrête sur « Peut-être » : qu'ajouter ?
 - CAP-9 : la recherche web du 27/10 n'a trouvé aucun serveur public qui expose réellement une ressource et un prompt. DeepWiki et Context7 annoncent les deux mais renvoient des listes vides ; Hugging Face et modelcontextprotocol.io n'ont que des ressources. Deux choix : un serveur public à ressources seulement, ou un petit serveur maison en Streamable HTTP lancé en local. À trancher à la relecture de la spec de la story 6.
 - CAP-8 : les logos sont des marques soumises à conditions (GitHub, Microsoft, Marianne réservée à l'État) et le dépôt est public. Vérifier ces conditions et préférer le logo propre du service à la Marianne.
+
+## Revue
+
+### Story 16.2 — Passe 1 (2026-10-27, SHA revu add5893c)
+
+- Important · medium · second avis 1 · corrigé : critère « (E2E) » de CAP-6 non couvert ; `_generation_extras` vérifie prompt envoyé, légende, coût et empreinte (cloud A et llama-server de `llm_screen`), et le lien glossaire « fragment » ; 13 captures modifiées sans scénario restaurées depuis main.
+- Nit · low · second avis 2 · corrigé : test cloud étendu à la copie énergie, g CO₂e, méthode et note.
+- Nit · low · second avis 3 · corrigé : backticks de `delta` remplacés par des guillemets (le glossaire rend en `textContent`).
+- Important · low · second avis 4 · corrigé : légende « violet, vert » dans l'ordre des carrés (`--color-primary-soft` violet, puis `--color-accent-soft` vert), fr, en, de.
+- Nit · low · second avis 5 · reporté à 16.5 : plafond du glossaire (59/60).
+- Second avis 6 · rejeté : étape 1, non reproduit, voulu par la spec.
+- Décision d'Anaël · corrigé : modèle local, g CO₂e affichés à côté de l'énergie (`renderImpact`).
+- Complexité : 0 constat. E2E `llm_screen` à lancer par l'orchestrateur.
