@@ -7211,6 +7211,16 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
     light = _contrast_sweep(r, ["main", "nav.site-nav"])
     _pick_theme(page, "dark")
     dark = _contrast_sweep(r, ["main", "nav.site-nav"])
+    # Story 17.3: in the dark theme every server shows its white file (neutral pictograms too).
+    shown = page.locator("#mcp-servers .mcp-server-logo").evaluate_all(
+        "items => items.filter(i => getComputedStyle(i).display !== 'none')"
+        ".map(i => [i.getAttribute('src'), i.naturalWidth > 0])"
+    )
+    r.check(
+        len(shown) == 4 and all(src.endswith("-white.svg") and ok for src, ok in shown),
+        "/mcp sombre : un logo blanc par serveur, pictogrammes neutres compris (17.3)",
+        str(shown),
+    )
     _pick_theme(page, "system")
     r.check(not light and not dark, "/mcp : contrastes AA en clair et en sombre", str(light + dark))
     r.shot("63-atelier-mcp-par-le-modele")

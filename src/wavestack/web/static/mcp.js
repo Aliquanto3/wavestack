@@ -458,6 +458,7 @@ function primitivesText(end) {
 let stepper = null;
 let panes = null;
 let layer = null; // the architecture's wires
+let archModel = null; // the model the Architecture and « Avant MCP » were built for (story 17.3)
 const rows = new Map(); // arrow key -> {li, sig}
 const phaseNodes = new Map(); // phase key -> {section, list, toggle, meta, why, whyBox}
 let current = null; // the arrow shown by the stepper
@@ -475,8 +476,14 @@ function columnName(i) {
   return text(`columns.${id}.name_text`) || id;
 }
 
+// The series' model once it called one (the Séquence and the Architecture replay that series),
+// the active model before (story 17.3: never the hosting of a model that is not shown).
 function modelInfo() {
   return store.model?.model || store.ask?.model || null;
+}
+
+function modelKey(model) {
+  return model ? `${model.hosting}|${model.label}` : "";
 }
 
 function renderHeads() {
@@ -1239,6 +1246,7 @@ function buildArch() {
   const arch = $("mcp-arch");
   arch.replaceChildren();
   const model = modelInfo();
+  archModel = modelKey(model);
   const cloud = model?.hosting === "network";
   const local = el("div", "mcp-zone is-local");
   local.setAttribute("role", "group");
@@ -1412,12 +1420,14 @@ function buildBefore() {
   const lanes = el("div", "mcp-lanes-before");
   lanes.append(el("span", "mcp-zone-label", t("mcp.arch.local_label")));
   lanes.append(el("div", "mcp-before-node is-user", t("mcp.arch.user")));
-  lanes.append(el("div", "mcp-before-node is-model", columnName(MODEL)));
+  const netLanes = el("div", "mcp-lanes-before-network");
+  // Story 17.3: a cloud model sits beyond the boundary, as in the Architecture.
+  const cloud = modelInfo()?.hosting === "network";
+  (cloud ? netLanes : lanes).append(el("div", "mcp-before-node is-model", columnName(MODEL)));
   const host = el("div", "mcp-before-host");
   host.append(el("span", "mcp-before-host-label", t("mcp.arch.host")));
   const network = el("div", "mcp-zone is-network");
   network.append(el("span", "mcp-zone-label", t("mcp.arch.network_label")));
-  const netLanes = el("div", "mcp-lanes-before-network");
   const sr = el("ul", "mcp-sr-only");
   // CAP-8: as many rows as servers (`servers.ALL_IDS`), never the 3 of the first 3 servers: a
   // server added later grows the schema instead of overlapping its last row.
@@ -1485,6 +1495,15 @@ function drawBefore({ box }) {
     parts.push(connectorEnd(to.dataset.shape, end, b.cy));
   }
   return parts;
+}
+
+// Story 17.3: both schemas drawn again for the model shown (`modelInfo()`), the blocks the
+// stepper had revealed revealed again, the wires re-laid.
+function rebuildSchemas() {
+  buildArch();
+  buildBefore();
+  setArchView(store.archView, false);
+  renderArchReveal(revealedAt(shownIndex));
 }
 
 function setArchView(view, save = true) {
@@ -2242,6 +2261,8 @@ function redraw({ restoring = false } = {}) {
     if (envelope.kind === "mcp_lab_closed") store.openServer = null;
   }
   renderHeads();
+  // Story 17.3: a series run with another model moves and renames the robot (both schemas).
+  if (modelKey(modelInfo()) !== archModel) rebuildSchemas();
   renderSequence(model, { restoring });
   renderModelPane(model);
   const stepArrows = model.arrows.filter((a) => a.step);
@@ -2383,7 +2404,7 @@ async function refreshAsk() {
     const body = await fetchState();
     store.ask = body.ask;
     store.session = body.session_state;
-    buildArch();
+    rebuildSchemas();
   } catch {
     // the next event tries again
   }

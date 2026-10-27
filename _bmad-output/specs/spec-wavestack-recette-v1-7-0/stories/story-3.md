@@ -77,3 +77,19 @@ case : aucune règle de repli (retour à la ligne, ellipse) sur `.mcp-robot smal
   vérifie le libellé et l'explication de la colonne Modèle dans les trois schémas).
 - Nouveau scénario recommandé : `mcp_dark_theme_logos_visible` (capture ou contraste des
   pictogrammes neutres en thème sombre).
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu 79f0408e)
+
+Rebasée sur origin/main (1b3e0c66) avant la revue.
+
+- **Important** · high · reviewer · corrigé : le filtre CSS `invert(1)` des pictogrammes neutres viole la règle des jetons (`tests/test_web_tokens.py::test_static_files_write_no_color_outside_the_tokens`, rouge, non lancé par l'implémenteur). Remplacé par le mécanisme maison : copies blanches `local-white.svg`, `datagouv-white.svg`, `mslearn-white.svg` dans `_LOGOS_DARK` (`servers.py`), comme le `github-white.svg` ; `tests/test_mcp.py` et `docs/logos-atelier-mcp.md` réalignés. Couvre aussi le point 4 du second avis (teinte jaune-vert de l'inversion).
+- **Important** · medium · second avis 3 · corrigé : le schéma « Avant MCP » n'était construit qu'au chargement, et l'Architecture seulement au chargement et après `model_load_ended`, mais jamais quand une série appelle un autre modèle. Nouveau `rebuildSchemas()` (Architecture, « Avant MCP », vue, blocs révélés) appelé par `refreshAsk` et par `redraw` quand le modèle montré change (`modelKey`).
+- **Important** · medium · second avis 2 · corrigé : dans « Avant MCP », un modèle cloud restait sous « Poste de travail ». Il passe dans la zone Réseau (première colonne libre de `.mcp-lanes-before-network`, bord tireté comme le robot cloud de l'Architecture).
+- **Nit** · medium · second avis 1 · rejeté : `modelInfo()` lit le modèle de la série avant le modèle actif, à dessein (comportement antérieur à la story) : la Séquence et l'Architecture rejouent la série affichée, donc son modèle ; sans appel au modèle, c'est le modèle actif. Tranché et commenté au-dessus de `modelInfo()`. Le correctif précédent garantit que l'Architecture et « Avant MCP » suivent ce même modèle.
+- **Nit** · low · second avis 5 · corrigé : `overflow-wrap: anywhere` étendu à `.mcp-robot-name`.
+- **Nit** · low · second avis 6 · corrigé en partie : `_mcp_lab` (E2E) vérifie qu'en thème sombre les quatre logos visibles sont les fichiers `-white.svg`, chargés. Le cas du modèle cloud est reporté, car le scénario n'a pas de modèle cloud actif. À vérifier en recette : choisir un modèle cloud (`fake_openai`), puis contrôler « LLM cloud » dans le robot et dans « Avant MCP » (zone Réseau), et l'explication cloud dans l'en-tête de Séquence.
+- **Nit** · low · reviewer · noté : pour un modèle cloud, le robot de l'Architecture affiche maintenant « LLM cloud » au lieu de « Modèle · 🌐 RÉSEAU · {provider} » : le fournisseur n'est plus nommé dans le robot. Il reste nommé dans l'en-tête de Séquence (`mcp.columns.cloud`), et le nom complet du modèle reste sous le robot.
+
+Tests : `tests/test_mcp_lab.py`, `test_i18n.py`, `test_ui_texts.py`, `test_web_tokens.py`, `test_rag_mcp.py`, `test_mcp.py` verts ; contrôle rapide vert. E2E non lancés (RAM) : `uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py --channel msedge --only mcp_lab,mcp_lab_page`.

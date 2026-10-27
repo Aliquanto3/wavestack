@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Microsoft Learn (documentation)</title>
+  <rect x="8" y="10" width="16" height="16" rx="2" fill="none" stroke="white" stroke-width="2"/>
+  <path d="M11 15h10M11 19h10M11 23h6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <path d="M16 4 26 8l-10 4-10-4Z" fill="white"/>
+</svg>

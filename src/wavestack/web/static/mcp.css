@@ -498,20 +498,6 @@ body.mcp-page {
   }
 }
 
-/* Story 17.3: WaveStack's own neutral pictograms (data.gouv.fr, Microsoft Learn, the local
-   glossary and the fallback), unlike a brand logo, can be recoloured for the dark theme. Their
-   dark navy ink (#33257A) is near-invisible on a dark background; inverted it becomes light. A
-   server with its own dark variant (`has-dark`/`is-dark`, GitHub) is excluded. */
-:root[data-theme="dark"] .mcp-server-logo:not(.has-dark):not(.is-dark) {
-  filter: invert(1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .mcp-server-logo:not(.has-dark):not(.is-dark) {
-    filter: invert(1);
-  }
-}
-
 .mcp-server-name {
   font: var(--typography-label-font-weight) var(--typography-label-font-size) /
     var(--typography-label-line-height) var(--typography-label-font-family);
@@ -1525,6 +1511,7 @@ button.mcp-arrow:hover {
   border: var(--spacing-stroke-min) dashed var(--color-hosting-boundary);
 }
 
+.mcp-robot-name,
 .mcp-robot small {
   min-width: 0;
   max-width: 100%;
@@ -1683,6 +1670,12 @@ button.mcp-arrow:hover {
   grid-row: 2 / -1; /* CAP-8: down to the last row, whatever the server count */
   background: var(--color-ink-fill);
   color: var(--color-on-ink);
+}
+
+/* Story 17.3: a cloud model, beyond the boundary, in the network lanes' free first column. */
+.mcp-lanes-before-network .mcp-before-node.is-model {
+  grid-row: 1 / -1;
+  border: var(--spacing-stroke-min) dashed var(--color-hosting-boundary);
 }
 
 .mcp-before-node.is-source {

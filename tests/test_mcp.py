@@ -692,18 +692,22 @@ def test_mcp_server_logo_is_its_own_svg_file_offline(server):
     assert path.read_text(encoding="utf-8").startswith("<svg")
 
 
-def test_only_github_has_a_dark_theme_logo_its_white_invertocat():
-    """CAP-8: GitHub's own white file for the dark theme (never a CSS recolouring)."""
+def test_every_server_has_a_white_dark_theme_logo():
+    """CAP-8: GitHub's own white file for the dark theme (never a CSS recolouring); story 17.3:
+    the navy neutral pictograms get a white copy too (unreadable on the dark background)."""
     from wavestack.web.app import STATIC_DIR
 
     darks = {s.id: s.logo_dark for s in mcp_servers(config.Config()).values()}
     assert darks == {
-        "local": None,
-        "datagouv": None,
-        "mslearn": None,
+        "local": "mcp/local-white.svg",
+        "datagouv": "mcp/datagouv-white.svg",
+        "mslearn": "mcp/mslearn-white.svg",
         "github": "mcp/github-white.svg",
     }
     assert 'fill="white"' in (STATIC_DIR / "logos" / darks["github"]).read_text(encoding="utf-8")
+    for server in ("local", "datagouv", "mslearn"):
+        svg = (STATIC_DIR / "logos" / darks[server]).read_text(encoding="utf-8")
+        assert "#33257A" not in svg and 'stroke="white"' in svg, server
 
 
 def test_mcp_server_logo_falls_back_to_the_neutral_default_for_an_unknown_id():
