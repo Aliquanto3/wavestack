@@ -211,7 +211,7 @@ class McpLabContent(_Strict):
             or not (model_col.explain_cloud_text or "").strip()
         ):
             raise ValueError(
-                "columns.model : il faut name_cloud_text et explain_cloud_text (modèle cloud)"
+                "columns.model : il faut name_cloud_text et explain_cloud_text"
             )
         return self
 
