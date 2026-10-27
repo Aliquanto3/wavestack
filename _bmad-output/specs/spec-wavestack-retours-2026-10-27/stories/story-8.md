@@ -87,3 +87,16 @@ Q1 à Q4 : recommandations retenues telles quelles.
 
 - `test-durations-*.json` gardent les entrées des tests supprimés : la CI les régénère.
 - `docs/recette/runs/*.html` (comptes rendus de recettes passées) citent encore l'action forcée : historiques, non modifiés.
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu fad387cc)
+
+- Important · medium · second avis · corrigé : `test_before_model_call_hooks_apply_inside_the_sub_agent` supprimé, plus aucun test du hook `before_model_call` dans le sous-agent. Réécrit avec une délégation du modèle et un hook qui ne bloque que hors de `main`.
+- Important · medium · reviewer · corrigé : E2E `compression` vérifiait encore « « Journal de sauvegarde (compression) » » (préréglage retiré) dans la consigne, échec certain. Vérifie désormais « Rejouer le dernier prompt ».
+- Nit · low · second avis · corrigé : coupe d'un résultat réseau sans test hors sous-agent ; `test_a_network_result_called_by_the_model_is_cut` (fetch_page appelé par le modèle, mode natif).
+- Nit · low · second avis · rejeté : `s_skills` vérifie le texte de la consigne ; c'est un contrôle d'affichage de la consigne, le comportement (load_skill) est vérifié plus loin dans le même scénario.
+- Nit · low · reviewer · corrigé : `.claude/skills/demo-recette-chrome/SKILL.md` citait encore « Afficher les actions forcées ».
+- Nit · low · reviewer · signalé : Caveman passe par un second prompt (choix à valider par Anaël) ; techniquement sain (le faux fournisseur suit `skill caveman` en fr/en, la sortie du second tour reste plus courte).
+- Complexité : 0 constat (code retiré, aucune structure nouvelle).
+- E2E non lancés ici (règle du run) : `compression` (nouveau troisième tour, environ 5 k tokens sur une fenêtre de 32 k, pas de débordement attendu), `caveman`, `global_memory`, `content_language`, `native_tools` à surveiller dans les tranches de l'orchestrateur.

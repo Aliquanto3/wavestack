@@ -15,7 +15,7 @@ from test_cloud import SENTINEL, Provider, _cloud_session, _journal_text, _no_se
 from test_tools import QWEN, _segments, call, web  # noqa: F401 - fixture
 
 from wavestack import config
-from wavestack.hooks import DEMO_HOOKS
+from wavestack.hooks import DEMO_HOOKS, Hook, HookResult
 from wavestack.session.app_session import AppSession
 from wavestack.trace.journal import get_journal
 
@@ -288,6 +288,31 @@ def test_h5_asks_inside_the_sub_agent_and_its_refusal_goes_back_to_it(web):  # n
     refusal = [s for s in second["segments"] if s["brick"] == "hooks"]
     assert refusal and "Refusé par l'utilisateur" in refusal[0]["text"]
     assert of(events, "subagent_ended")[0].payload["result"] == "Refusé, désolé."
+    assert status(events) == "completed"
+    session.close()
+
+
+def test_before_model_call_hooks_apply_inside_the_sub_agent():
+    # The hook blocks only in the sub-agent: the model's delegation reaches it, then fails.
+    block = HookResult("block", "Hook de test.")
+    fake = Hook(
+        "h1",
+        frozenset({"before_model_call"}),
+        lambda ctx: block if ctx.context_id != "main" else None,
+    )
+    hooks = tuple(fake if h.id == "h1" else h for h in DEMO_HOOKS)
+    engine, session = sub_session(
+        [delegation(), "Voilà."], bricks=("tools", "subagent", "hooks"), hooks=hooks
+    )
+
+    events = run(session, "Quelles décisions ont été prises ?")
+
+    blocked = [e for e in of(events, "hook_decided") if e.payload["decision"] == "block"]
+    assert [e.context_id for e in blocked] == ["sub1"]
+    assert blocked[0].step_id.startswith("t1.sub1.h")
+    (ended,) = of(events, "tool_ended", "main")
+    assert ended.payload["status"] == "error" and "a bloqué" in ended.payload["error_text"]
+    assert len(engine.calls) == 2  # two main calls, none in the sub-agent
     assert status(events) == "completed"
     session.close()
 

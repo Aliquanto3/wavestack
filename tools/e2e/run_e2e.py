@@ -7946,9 +7946,9 @@ def s_compression(r: Run) -> None:
     r.launch("compression")
     r.check(
         not r.bricks()["rag"]["wanted"]
-        and "« Journal de sauvegarde (compression) »"
+        and "« Rejouer le dernier prompt »"
         in r.page.locator("#scenario-info-popover").text_content(),
-        "compression : RAG non voulu, la consigne donne le préréglage de secours (story 27)",
+        "compression : RAG non voulu, la consigne donne le rejeu en secours (CAP-5)",
     )
     brick = r.bricks()["compression"]
     reason = brick.get("reason_text") or ""

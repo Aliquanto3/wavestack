@@ -89,7 +89,7 @@ Pour chaque cas, dans l'ordre CT-01 à CT-06 :
 - **CT-03** : valeur `native_tools`, même prompt, puis relever l'heure du poste avec
   `date "+%H:%M:%S"` dès la réponse affichée. Zoomer sur ③ Orchestration pour montrer
   « Demande un outil get_datetime » et « Déclenché par le modèle ». Si le modèle n'appelle
-  pas l'outil, activer « Afficher les actions forcées » et le dire : c'est prévu.
+  pas l'outil, cliquer « Rejouer le dernier prompt » et le dire : c'est prévu.
 - **CT-04** : lire la zone RÉSEAU du schéma, puis `read_network_requests` (tous les hôtes
   doivent être 127.0.0.1:8420 ou `data:`). Recouper côté serveur :
   `Get-NetTCPConnection -OwningProcess (Get-NetTCPConnection -LocalPort 8420 -State Listen).OwningProcess`
