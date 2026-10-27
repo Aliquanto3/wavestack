@@ -69,3 +69,7 @@ Correction de brownfield.md : le champ `force` des briques n'est ni dans `bricks
 2. **Badge « Forcé par l'utilisateur »** (`trigger = user`) : plus aucun appel ne le produit. Retirer le badge, la clé `main.trigger.user` et la valeur `user` de `Trigger` ? Recommandation : oui pour le badge et la clé, garder la valeur `user` du `Literal` (sans risque, utile aux approbations).
 3. **`tool_call_extra`** (extra Gemini des appels fabriqués) devient inutile. Recommandation : retirer son usage et le champ du `wavestack.toml` livré, mais garder le champ dans `CloudModel`, marqué « ignoré, gardé pour les configurations existantes ».
 4. **Formulaire d'appel d'outil** : les préréglages de `content/tools.yaml` et les descriptions de paramètres ne servent qu'au forçage. Recommandation : les retirer ; garder `call_presets` de mcp.yaml, utilisé par l'Atelier MCP.
+
+## Décisions d'Anaël (2026-10-27)
+
+Q1 à Q4 : recommandations retenues telles quelles.

@@ -95,3 +95,7 @@ La story 3 (en cours) dérive `BEFORE` (`mcp/lab.py:85`, aujourd'hui `("local", 
 **Commands:**
 - `uv run pytest -q --tb=short tests/test_mcp_lab.py` (+ le nouveau fichier de test du serveur)
 - `uv run python .claude/cost-kit/controle_rapide.py`
+
+## Décision d'Anaël (2026-10-27)
+
+Pas de second serveur maison : l'application en a déjà un qui expose des prompts et des ressources. La story est **annulée**, faute de serveur public en ligne qui expose réellement une ressource et un prompt (vérifié le 27/10 : DeepWiki et Context7 renvoient des listes vides ; Hugging Face et modelcontextprotocol.io n'ont que des ressources). À rouvrir si un tel serveur apparaît.

@@ -56,3 +56,8 @@ La raison existe déjà : `cag_local_only` (`messages.yaml:621`, posée en `app_
 2. **Balisage du panneau** : le construire en JS dans le module (une seule source) ou le garder en HTML dans index.html et le copier dans rag.html ? Recommandation : JS dans le module ; la copie HTML contredit « sans dupliquer ».
 3. **Cache de prompt de Claude** dans le panneau côté RAG : le montrer aussi ? Recommandation : oui, c'est le même composant, et il ne s'affiche déjà que pour Claude.
 4. **Fenêtre pour un modèle de génération cloud choisi dans le RAG** : la disponibilité de Contexte long suit la fenêtre de la séance, pas celle du modèle choisi. Recommandation : garder cette règle et la dire dans la note de l'étape ; l'ajuster au modèle choisi passe en report.
+
+## Décisions d'Anaël (2026-10-27)
+
+- Q1 : le sélecteur propose aussi les autres modèles locaux, comme le sélecteur de la séance. Choisir un modèle local change le modèle chargé en RAM pour toute l'application (même effet et même chemin que le changement de modèle de séance) ; choisir un modèle cloud ne change pas le modèle de la séance. Cela amende le non-goal de SPEC.md « Changer le modèle de la séance depuis l'onglet RAG » pour les seuls modèles locaux. Réutiliser le chemin existant du changement de modèle, sans le dupliquer, et le dire dans l'interface (« change le modèle de toute l'application »).
+- Q2 à Q4 : recommandations retenues.

@@ -81,3 +81,10 @@ context:
 **Commands:**
 - `uv run pytest -q --tb=short tests/test_bar.py` (ou le module de test existant de la barre, à vérifier par `git grep -l "bar-log\|bar-spend" tests`)
 - `uv run python .claude/cost-kit/controle_rapide.py`
+
+## Décisions d'Anaël (2026-10-27)
+
+- Q1 : dérivation côté client (`bar.js`), sans changer le format des enveloppes.
+- Q2 : 5 lignes visibles dans la popup, plus un historique dépliable pour voir les entrées plus anciennes (dans la limite des 500 gardées en mémoire).
+- Q3 : « Conversation », ou le libellé réel de l'onglet dans la navigation.
+- Q4 : l'empreinte d'un appel local est estimée par CodeCarbon (`impact_method: "codecarbon"`, LocalMeter) et doit s'afficher quand elle existe ; « — » seulement quand aucune mesure n'a été faite.

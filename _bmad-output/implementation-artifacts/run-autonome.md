@@ -18,7 +18,7 @@ Au plus 3 stories en développement à la fois (la maquette 16.4 et les phases d
 | Vague | Stories en parallèle | Après |
 |---|---|---|
 | V0 | 16.1 ★ · 16.2 · 16.3 · 16.4 (humaine) | 16.1 : spec relue par Anaël avant le code ; 16.4 : maquette avec bmad-ux, validée par Anaël |
-| V1 | 16.5 · 16.6 · 16.7 | 16.6 ← 16.3 ; 16.7 ← 16.1 ; 16.7 ← 16.4 ; 16.6 : spec relue par Anaël |
+| V1 | 16.5 · 16.7 | 16.7 ← 16.1 ; 16.6 annulée par Anaël le 27/10 |
 | V2 | 16.8 · 16.9 | 16.8 ← 16.5 ; 16.8 et 16.9 : specs relues par Anaël, Opus, rebaser (app.js) |
 | Fin | version 1.7.0 | ← toutes ; tag annoté et release GitHub |
 
@@ -54,3 +54,6 @@ Au plus 3 stories en développement à la fois (la maquette 16.4 et les phases d
 - 2026-10-27 07:03 · 16.4 · dev · fini, maquette-securite.html + ux-securite.md, validation d'Anaël attendue · —
 - 2026-10-27 07:03 · 16.8, 16.9 · dev · specs écrites (story-8.md, story-9.md), relecture d'Anaël attendue · —
 - 2026-10-27 07:05 · 16.1, 16.6 · dev · specs écrites (story-1.md, story-6.md), relecture d'Anaël attendue · —
+- 2026-10-27 07:12 · 16.4 · décision · maquette Sécurité validée par Anaël · —
+- 2026-10-27 07:25 · 16.1, 16.8, 16.9 · décision · specs relues par Anaël, réponses consignées dans chaque story-N.md (16.9 : un modèle local choisi dans le RAG change le modèle de l'application) · —
+- 2026-10-27 07:25 · 16.6 · report · annulée par Anaël : pas de serveur public avec ressource et prompt, pas de second serveur maison · —
