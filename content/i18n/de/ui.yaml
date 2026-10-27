@@ -115,7 +115,7 @@ common:
       summary_kv: "Lokal hat der Modell-Cache {seconds} s Rechenzeit gespart."
       summary_none: "Noch keine Einsparung gemessen."
       summary_overcost: "Der Prompt-Cache hat {amount} mehr gekostet als er eingespart hat: seine Schreibvorgänge kosten mehr, als seine Lesevorgänge eingebracht haben."
-      free_tier: "Kostenloses Angebot: kein angegebener Preis für dieses Modell."
+      free_tier: "Kostenloses Angebot"
       cache:
         conversation: "Diese Unterhaltung"
         launch: "Seit dem Start"
@@ -1005,12 +1005,12 @@ main:
     paid_calls:
       one: "{count} kostenpflichtiger Aufruf"
       other: "{count} kostenpflichtige Aufrufe"
-    spend_sentence: "Geschätzte API-Kosten der Sitzung: Eingabe {input}, Ausgabe {output}, also {total} zum Kurs von {rate} € für 1 $ ({calls}, Schätzung anhand der angegebenen Preise)."
+    spend_sentence: "Geschätzte API-Kosten der Sitzung: Eingabe {input}, Ausgabe {output}, also {total} ({calls}, Schätzung anhand der angegebenen Preise)."
     footprint_sentence: "Geschätzter Fußabdruck der Sitzung: {energy} · {grams} ({calls}). Zwei Bilanzgrenzen addieren sich darin: in der Cloud der Lebenszyklus nach EcoLogits (Strom der Server und Anteil ihrer Herstellung); lokal nur der verbrauchte Strom (CodeCarbon, kWh × Intensität), ohne die Herstellung des Arbeitsplatzes."
     reset_total: "Nur ein Neustart von WaveStack setzt diese Summe auf null zurück."
     reset_totals: "Nur ein Neustart von WaveStack setzt diese Summen auf null zurück."
     cap_sentence: "Ausgabenobergrenze der Sitzung: {total} von {cap}; sobald sie erreicht ist, wird kein kostenpflichtiger Aufruf gesendet."
-    free_sentence: "API-Ausgaben der Sitzung: 0 €, kostenloses Angebot ({calls}, kein angegebener Preis)."
+    free_sentence: "API-Ausgaben der Sitzung: 0 $, kostenloses Angebot ({calls}, kein angegebener Preis)."
   log:
     kinds:
       diagnostic_check: "Diagnoseprüfung"

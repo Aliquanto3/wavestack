@@ -206,7 +206,6 @@ const shortUsd = (n) =>
     ? t("common.format.usd_below", { amount: numberFormat({ maximumFractionDigits: 4 }).format(0.0001) })
     : t("common.format.usd", { amount: numberFormat({ maximumFractionDigits: 4 }).format(n) });
 const usd = (n) => t("common.format.usd", { amount: numberFormat({ maximumSignificantDigits: 4 }).format(n) });
-const eur = (n) => t("common.format.eur", { amount: numberFormat({ maximumSignificantDigits: 4 }).format(n) });
 // AD-4: « ≈ » on every amount of a session whose spend is (partly) estimated.
 const guess = () => (consumption?.approx ? "≈ " : "");
 const money = (n) => `${guess()}${shortUsd(n)}`;
@@ -255,8 +254,9 @@ function renderSpend() {
   renderSpendPanel();
 }
 
-// The former gauge's sentence: the spend in dollars and euros, the cap, the footprint, and
-// what resets them.
+// The former gauge's sentence: the spend in dollars, the cap, the footprint, and what resets
+// them. Story 1 (CAP-3): dollars only, like the button's own amount (`usd`); no currency
+// conversion.
 function detailSentence(c) {
   const paid = c.calls > 0;
   const green = (c.impact_calls ?? 0) > 0;
@@ -266,8 +266,7 @@ function detailSentence(c) {
       t("main.consumption.spend_sentence", {
         input: `${guess()}${usd(c.total_in_usd)}`,
         output: `${guess()}${usd(c.total_out_usd)}`,
-        total: `${guess()}${eur(c.total_eur)}`,
-        rate: numberFormat({ maximumSignificantDigits: 4 }).format(c.eur_per_usd),
+        total: `${guess()}${usd(c.total_usd)}`,
         calls: t("main.consumption.paid_calls", { count: c.calls }),
       }),
     );
