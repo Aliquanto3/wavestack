@@ -12243,15 +12243,19 @@ def _generation_extras(r: Run, payload: dict[str, Any], sent: str, label: str) -
     impact = page.locator("#generation-impact")
     text = impact.inner_text() if impact.is_visible() else ""
     priced = payload.get("cost_in_usd") is not None
+    # Story 17.2: a cloud entry with no `pricing` (the fake cloud A, Gemma) says « 0 $, offre
+    # gratuite » instead of nothing.
+    free = bool(payload.get("unpriced"))
     energy = payload.get("energy_wh_min") is not None
     carbon = payload.get("gco2e_min") is not None
     r.check(
-        impact.is_visible() == (priced or energy)
-        and ("Coût" in text) == priced
+        impact.is_visible() == (priced or free or energy)
+        and ("Coût" in text) == (priced or free)
+        and ("offre gratuite" in text) == free
         and ("Wh" in text) == energy
         and ("g CO₂e" in text) == carbon,
         f"{label} : coût et empreinte à côté du débit, tels que l'événement les porte",
-        f"{text!r} · coût {priced} · énergie {energy} · CO₂e {carbon}",
+        f"{text!r} · coût {priced} · gratuit {free} · énergie {energy} · CO₂e {carbon}",
     )
 
 

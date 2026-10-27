@@ -494,6 +494,10 @@ class ModelCallEndedPayload(BaseModel):
     cost_in_usd: float | None = None
     cost_out_usd: float | None = None
     cost_source: Literal["api", "estimate"] | None = None
+    # Story 17.2 (recette v1.7.0): a counted cloud call whose entry declares no `pricing`
+    # (Gemma's free offer), the bar's own classification (`_add_cells`'s `unpriced_calls`)
+    # carried per call, so the Atelier LLM can show « 0 $, offre gratuite » instead of nothing.
+    unpriced: bool = False
     # CAP-7: the cloud cache's own line, absent when this call read or wrote no cache.
     # `cache_full_usd`: the input at the plain price, with no cache at all. `cache_write_usd`:
     # this call's write, a distinct line, never a saving. `cache_saved_usd`: the signed net
@@ -1410,6 +1414,9 @@ class LlmGenerationEndedPayload(BaseModel):
     cost_in_usd: float | None = None
     cost_out_usd: float | None = None
     cost_source: str | None = None
+    # Story 17.2 (recette v1.7.0): read back from `model_call_ended` as is, like the cost
+    # above; a cloud call with no declared price (Gemma), never for a local one.
+    unpriced: bool = False
     energy_wh_min: float | None = None
     energy_wh_max: float | None = None
     gco2e_min: float | None = None

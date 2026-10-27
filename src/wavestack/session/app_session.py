@@ -10494,6 +10494,8 @@ class AppSession:
                     ):  # fmt: skip
                         if call.get(key) is not None:
                             ended[key] = call[key]
+                    if call.get("unpriced"):
+                        ended["unpriced"] = True
             except Exception as exc:  # noqa: BLE001 - AD-16: the screen's call never breaks
                 ended["status"] = "error"
                 ended["message_text"] = (

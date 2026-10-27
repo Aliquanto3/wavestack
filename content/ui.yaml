@@ -1008,6 +1008,7 @@ main:
     call_label: "Coût estimé : "
     text: "{label}entrée {input} · sortie {output}"
     turn_label: "coût estimé "
+    free_text: "Coût estimé : 0 $, offre gratuite (aucun prix déclaré)."
   footprint:
     call_label: "Empreinte estimée : "
     unavailable: "Empreinte estimée : indisponible"
