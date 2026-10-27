@@ -108,3 +108,7 @@ Rebasée sur origin/main (16.2) avant la revue, puis sur 16.3 avant le push.
 - Nit, low, revue : reporté. La spec dit « 0 € », la barre affiche « 0 $ » (devise de la barre depuis la story 9) : à confirmer par Anaël.
 - Nit, low, revue : reporté. Un appel du diagnostic (« Modèles ») n'a pas de libellé de modèle (« — ») : il teste chaque entrée cloud, pas le modèle de la séance, et l'enveloppe ne le nomme pas.
 - Complexité : 1 constat (second avis 4), corrigé ; tri et filtre en O(500) seulement à l'ouverture du panneau ou au chargement.
+
+### Passe 2 (2026-10-27, SHA revu c8ac88e1)
+
+- Important, medium, E2E `bar_journal` (orchestrateur) : corrigé. Vrai débordement à 360 px, pas un faux positif : `.bar-flyout` est dans `.site-nav`, qui pose `white-space: nowrap` ; les notes du Bilan et les lignes du Journal ne passaient pas à la ligne (contenu jusqu'à 562 px pour un panneau de 326 px). `.bar-flyout { white-space: normal }`, mesuré avant et après par une sonde statique de `index.html` à 360 px (contenu 562 puis 326 px pour 326 px de panneau). Contrôle E2E inchangé. `bar_journal` : 21 vérifications, 0 échec.

@@ -266,6 +266,7 @@
   display: grid;
   gap: var(--spacing-3);
   width: min(460px, calc(100vw - 2 * var(--spacing-4)));
+  white-space: normal; /* story 1 (CAP-1): `.site-nav` keeps its links on one line, not this text */
   padding: var(--spacing-3);
   background: var(--color-surface-raised);
   color: var(--color-ink);
