@@ -22,6 +22,7 @@ from test_rag_rerank import Rerankers, place_reranker, rerank_config, session_fo
 
 from wavestack import config
 from wavestack.greenops import Impact
+from wavestack.models.engine import CancelToken
 from wavestack.rag import lab as rag_lab
 from wavestack.rag.corpus import load_rag_content
 from wavestack.session.app_session import AppSession
@@ -512,6 +513,12 @@ def test_a_chosen_cloud_model_answers_without_changing_the_sessions_model(index)
     (request,) = provider.requests
     assert f'"model":"{groq.model}"' in request.content.decode("utf-8").replace(" ", "")
     assert QUESTION in request.content.decode("utf-8")
+    # The chosen model's call is traced, priced and its footprint estimated (Journal, GreenOps).
+    (call,) = [e.payload for e in model_calls(events) if e.kind == "model_call_ended"]
+    assert "Groq" in model_calls(events)[0].payload["phase_label"]
+    assert call["cost_source"] == "api" and call["cost_in_usd"] > 0
+    assert call["impact_method"] == "ecologits" and "Groq" in call["impact_note_text"]
+    assert session.consumption()["calls"] == 1 and session.consumption()["impact_calls"] == 1
     # The session's model and engine are untouched: no local call, the same model shown.
     assert session.active_model() == before and session._cloud is None
     assert len(session._engine.calls) == local_calls
@@ -542,4 +549,23 @@ def test_the_cag_with_a_cloud_generation_is_refused_with_its_reason(index):
     )
     assert stage_id == stage(chain, "generation").id
     assert session.validate_rag_lab(chain)["valid"] is False
+    session.close()
+
+
+def test_a_key_removed_since_the_catalog_skips_with_the_model_bars_reason(index, monkeypatch):
+    provider = Provider(GROQ_TEXT)
+    session = local_with_clouds(index, provider)
+    monkeypatch.setattr(config, "cloud_key", lambda entry: None)  # the key store, emptied
+    ask = rag_lab.GenerationAsk(
+        context_text="",
+        question=QUESTION,
+        step_id=GENERATION,
+        progress=lambda *_: None,
+        cancelled=lambda: False,
+        model="model:groq",
+    )
+    with pytest.raises(rag_lab.StageSkipped) as skipped:
+        session._rag_lab_generate(ask, CancelToken())
+    assert skipped.value.render("fr") == "Désactivé : saisissez d'abord la clé API de Groq."
+    assert not provider.requests
     session.close()

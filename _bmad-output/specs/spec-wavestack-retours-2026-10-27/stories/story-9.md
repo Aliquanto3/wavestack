@@ -69,3 +69,20 @@ La raison existe déjà : `cag_local_only` (`messages.yaml:621`, posée en `app_
 - **Modèles locaux (Q1)** : ajoutés côté page dans la liste de l'étape Génération, d'après les groupes de `/api/diagnostic` (ceux du sélecteur de séance, sans le modèle chargé). Les choisir appelle `POST /api/intentions/select_model`, le chemin de la barre ; l'étape revient à « Modèle actif ». Une note visible sous l'étape le dit (`rag.generation_models_note`), et chaque libellé local porte « (change le modèle de toute l'application) ».
 - **Fenêtre** : `window-picker.js` (bloc extrait d'`app.js`, panneau construit en JS) monté dans `index.html` et dans la barre « Lancer la chaîne » de `rag.html` ; règles `.window-*` déplacées dans `pages.css` en un bloc (la media query de la barre du poste reste dans `app.css`), réglages propres à l'atelier dans `rag.css` (`.rag-window-picker`).
 - **Reports** : la liste des modèles locaux ne lit que `models.groups` (pas l'ancien repli par `candidates`) ; le test « Contexte long disponible après 16 384 » existe déjà dans `tests/test_rag_lab_no_index.py` (`test_a_small_window_greys_both_and_the_api_refuses_them`), non dupliqué dans `test_rag_lab_context.py` ; l'E2E est étendu dans `s_rag_lab_no_index` (fenêtre réglée depuis l'onglet RAG, génération par le cloud A, raisons visibles) plutôt que `s_rag_lab_context`.
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu aef84aab)
+
+Rebasée sur origin/main (16.2 et 16.3), sans conflit.
+
+- Nit, low, second avis 1 : rejeté. `.window-toggle-long` masqué sous 1400 px et en projection sert à faire de la place dans la barre du poste ; sur rag.html le bouton est dans la barre « Lancer la chaîne », où le libellé complet reste lisible, et le mode projection n'existe que sur l'écran principal.
+- Nit, medium, second avis 2 : rejeté, couvert. `set_context_window(16384)` puis `full_corpus` disponible est testé dans `tests/test_rag_lab_no_index.py` (`test_a_small_window_greys_both_and_the_api_refuses_them`) ; l'E2E demandé (cloud choisi, modèle de la barre inchangé, 16 384 depuis l'onglet RAG, raison du CAG visible) est dans `s_rag_lab_no_index`, pas dans `s_rag_lab_context`.
+- Nit, medium, second avis 3 : rejeté. Une exception de `_cloud_factory` remonte à `LabRun`, qui met l'étape en erreur (`stage.failed`) et arrête la chaîne ; l'adaptateur est fermé par le `finally` dès qu'il est construit.
+- Important, medium, second avis 4 : corrigé. Le test du cloud choisi vérifie maintenant `model_call_ended` (coût `api`, empreinte EcoLogits au nom de Groq), la phase « Envoi du prompt à Groq » et la consommation de séance (1 appel, 1 empreinte).
+- Important, low, second avis 5 : corrigé. Clé retirée depuis le catalogue : l'étape est sautée avec la raison de la barre des modèles (« Désactivé : saisissez d'abord la clé API de Groq. ») ; modèle retiré de la configuration : `rag_lab.generation.no_model`. Test ajouté.
+- Nit, low, second avis 6 : rejeté. La page RAG lit le flux depuis le début, dans l'ordre des `seq` : le dernier `context_window_state` rejoué est l'état courant ; pas de `liveFrom` sur cette page.
+- Nit, low, second avis 7 : rejeté. La spec demande le refus à la validation de chaîne ; `changed()` revalide à chaque choix, la raison s'affiche aussitôt.
+- Nit, low, second avis 8 : rejeté, déjà fait. `subtitle()` (rag.js) affiche le `label_text` de l'option choisie, qui nomme le fournisseur et le modèle.
+- Nit, low, second avis 9 : rejeté. Aucune règle d'app.css de même spécificité ne vise les classes `.window-*` ou les éléments du panneau (`.top-bar > :not(.gauge)` est de spécificité 0,2,0 et ne touche pas `position`).
+- Complexité : 0 constat (aucune structure qui grossit parcourue à chaque événement).

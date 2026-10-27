@@ -12603,8 +12603,11 @@ class AppSession:
         chosen = next((e for e in self.cfg.cloud_models[0] if f"model:{e.id}" == ask.model), None)
         key = config.cloud_key(chosen) if chosen is not None else None
         if ask.model is not None:
-            if chosen is None or key is None:  # gone or its key removed since the catalog
-                raise rag_lab.StageSkipped(Message("session.load.no_key"))
+            if chosen is None:  # no longer declared since the catalog
+                raise rag_lab.StageSkipped(Message("rag_lab.generation.no_model"))
+            if key is None:  # its key removed since the catalog: the model bar's reason
+                content = self._cloud_content or self._localized(load_cloud_content)
+                raise rag_lab.StageSkipped(fill(content.no_key_text, chosen, content))
             cloud = chosen
             reasons = "reasoning" in state.effective or cloud_capabilities(chosen).reasoning_always
             reserve = output_reserve(reasons)
