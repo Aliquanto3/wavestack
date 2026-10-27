@@ -2238,8 +2238,8 @@ security:
       other: "{count} blockierte Nachrichten"
     nothing_blocked: "Bisher keine Ablehnung und keine Blockierung."
     not_covered:
-      one: "{count} bekannte Grenze, weiter unten auf der Seite"
-      other: "{count} bekannte Grenzen, weiter unten auf der Seite"
+      one: "{count} bekannte Grenze, dem Kunden zu sagen"
+      other: "{count} bekannte Grenzen, dem Kunden zu sagen"
   limits:
     guardrails_wrong:
       statement: "Die Garde-fous irren sich manchmal."

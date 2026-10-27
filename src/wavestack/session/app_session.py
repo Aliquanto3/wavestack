@@ -13517,6 +13517,15 @@ class AppSession:
                 "risk": row["risk"],
                 "rule": row["rule"],
                 "write": row["write"],
+                # Story 16.7 (CAP-10): the depliable row's own tools, each with its rule.
+                "tools": [
+                    {
+                        "id": tool,
+                        "label_text": self._security_label_text("tool", tool),
+                        "rule": rule,
+                    }
+                    for tool, rule in row["rules"].items()
+                ],
             }
             for row in rows
         ]

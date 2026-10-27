@@ -32,10 +32,21 @@ function ruleText(rule) {
   return rule === "mixed" ? t("security.matrix.rule_mixed") : t(`mcp.policy.rule.${rule}`);
 }
 
-// ---------- the 4 question cards ----------
+// Story 16.7 (CAP-10): a single affordance for everything clickable (cursor, hover and
+// focus by `pages.css`'s rules on `.sec-question-card`, `.call-step`, `.filter-chip` and
+// `.mx-toggle`); the focus follows a card's or a step's scroll, never only the scroll.
+function goTo(sectionId) {
+  const target = $(sectionId);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  target.focus({ preventScroll: true });
+}
 
-function questionCard(ask, count, detailText, alert) {
-  const el = document.createElement("div");
+// ---------- the 4 question cards (now buttons, each leading to its answer) ----------
+
+function questionCard(ask, count, detailText, alert, goText, onClick) {
+  const el = document.createElement("button");
+  el.type = "button";
   el.className = "sec-question-card";
   const askEl = document.createElement("span");
   askEl.className = "sec-question-ask";
@@ -46,7 +57,11 @@ function questionCard(ask, count, detailText, alert) {
   const detail = document.createElement("span");
   detail.className = "sec-question-detail";
   detail.textContent = detailText;
-  el.append(askEl, figure, detail);
+  const go = document.createElement("span");
+  go.className = "sec-question-go";
+  go.textContent = goText;
+  el.append(askEl, figure, detail, go);
+  el.addEventListener("click", onClick);
   return el;
 }
 
@@ -54,10 +69,19 @@ function renderQuestions(q) {
   const box = $("sec-questions");
   if (!box) return;
   box.replaceChildren(
-    questionCard(t("security.questions.can_write"), q.can_write.count, q.can_write.detail_text, false),
-    questionCard(t("security.questions.authorized_by_you"), q.authorized_by_you.count, q.authorized_by_you.detail_text, false),
-    questionCard(t("security.questions.blocked"), q.blocked.count, q.blocked.detail_text, q.blocked.count > 0),
-    questionCard(t("security.questions.not_covered"), q.not_covered.count, q.not_covered.detail_text, false),
+    questionCard(t("security.questions.can_write"), q.can_write.count, q.can_write.detail_text, false, t("security.questions.go_matrix"), () => {
+      setMatrixFilter("write");
+      goTo("h-sec-matrix");
+    }),
+    questionCard(t("security.questions.authorized_by_you"), q.authorized_by_you.count, q.authorized_by_you.detail_text, false, t("security.questions.go_journal"), () => {
+      setJournalFilter("allow_once");
+      goTo("h-sec-journal");
+    }),
+    questionCard(t("security.questions.blocked"), q.blocked.count, q.blocked.detail_text, q.blocked.count > 0, t("security.questions.go_journal"), () => {
+      setJournalFilter("refused");
+      goTo("h-sec-journal");
+    }),
+    questionCard(t("security.questions.not_covered"), q.not_covered.count, q.not_covered.detail_text, false, t("security.questions.go_limits"), () => goTo("h-sec-limits")),
   );
 }
 
@@ -67,36 +91,175 @@ function renderMovableQuestions(q) {
   const box = $("sec-questions");
   if (!box || box.children.length < 4) return;
   box.children[1].replaceWith(
-    questionCard(t("security.questions.authorized_by_you"), q.authorized_by_you.count, q.authorized_by_you.detail_text, false),
+    questionCard(t("security.questions.authorized_by_you"), q.authorized_by_you.count, q.authorized_by_you.detail_text, false, t("security.questions.go_journal"), () => {
+      setJournalFilter("allow_once");
+      goTo("h-sec-journal");
+    }),
   );
-  box.children[2].replaceWith(questionCard(t("security.questions.blocked"), q.blocked.count, q.blocked.detail_text, q.blocked.count > 0));
-}
-
-// ---------- the risk matrix ----------
-
-function renderMatrix(rows) {
-  const body = $("sec-matrix-body");
-  if (!body) return;
-  body.replaceChildren(
-    ...rows.map((row) => {
-      const tr = document.createElement("tr");
-      const tool = document.createElement("td");
-      tool.textContent = row.label_text;
-      const nature = document.createElement("td");
-      nature.textContent = row.nature_text;
-      const risk = document.createElement("td");
-      risk.append(chip(t(`mcp.policy.risk.${row.risk}`), row.risk));
-      const rule = document.createElement("td");
-      rule.textContent = ruleText(row.rule);
-      tr.append(tool, nature, risk, rule);
-      return tr;
+  box.children[2].replaceWith(
+    questionCard(t("security.questions.blocked"), q.blocked.count, q.blocked.detail_text, q.blocked.count > 0, t("security.questions.go_journal"), () => {
+      setJournalFilter("refused");
+      goTo("h-sec-journal");
     }),
   );
 }
 
+// ---------- the path of a message (call-path, 5 steps; 2 static, 3 lead to their section) ----------
+
+function callStep(title, text, state, goText, onClick) {
+  const el = document.createElement(onClick ? "button" : "div");
+  el.type = onClick ? "button" : undefined;
+  el.className = `call-step${onClick ? "" : " is-static"}`;
+  if (!onClick) el.tabIndex = -1;
+  const titleEl = document.createElement("span");
+  titleEl.className = "call-step-title";
+  titleEl.textContent = title;
+  const textEl = document.createElement("span");
+  textEl.className = "call-step-text";
+  textEl.textContent = text;
+  el.append(titleEl, textEl);
+  if (state) {
+    const stateEl = document.createElement("span");
+    stateEl.className = "call-step-state";
+    stateEl.append(...state);
+    el.append(stateEl);
+  }
+  if (goText) {
+    const go = document.createElement("span");
+    go.className = "call-step-go";
+    go.textContent = goText;
+    el.append(go);
+  }
+  if (onClick) el.addEventListener("click", onClick);
+  const li = document.createElement("li");
+  li.append(el);
+  return li;
+}
+
+function ruleCountsText(tr) {
+  return [
+    tr.allow_count ? t("security.controls.allow_count", { count: tr.allow_count }) : null,
+    tr.ask_count ? t("security.controls.ask_count", { count: tr.ask_count }) : null,
+    tr.deny_count ? t("security.controls.deny_count", { count: tr.deny_count }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function renderPath(controls, counts) {
+  const list = $("sec-path");
+  if (!list) return;
+  const guardrailChips = controls.guardrails.map((g) => {
+    const level = g.status === "active" ? (g.mode === "block" ? "high" : "mid") : "off";
+    const text = (g.modes ?? []).find((m) => m.id === g.mode)?.label_text ?? t(`main.bricks.status.${g.status}`);
+    return chip(text, level);
+  });
+  list.replaceChildren(
+    callStep(t("security.path.message.title"), t("security.path.message.text")),
+    callStep(t("security.path.guardrails.title"), t("security.path.guardrails.text"), guardrailChips, t("security.path.guardrails.go"), () => goTo("h-sec-controls")),
+    callStep(t("security.path.model.title"), t("security.path.model.text")),
+    callStep(t("security.path.rule.title"), t("security.path.rule.text"), [sub(ruleCountsText(controls.tool_rules))], t("security.path.rule.go"), () => goTo("h-sec-matrix")),
+    callStep(t("security.path.journal.title"), t("security.path.journal.text"), [sub(t("security.path.events", { count: counts.total }))], t("security.path.journal.go"), () => goTo("h-sec-journal")),
+  );
+}
+
+// ---------- the risk matrix (each row dépliable: its own tools, and why the risk) ----------
+
+let matrixFilter = "all";
+
+function setMatrixFilter(value) {
+  matrixFilter = value;
+  const filters = $("sec-matrix-filters");
+  if (filters) {
+    filters.querySelectorAll("[data-mx]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mx === value)));
+  }
+  $("sec-matrix-body")
+    ?.querySelectorAll("tr")
+    .forEach((row) => {
+      row.hidden = value === "write" && row.dataset.write !== "true";
+    });
+}
+
+function matrixRow(row) {
+  const id = `sec-mx-${row.id}`;
+  const tr = document.createElement("tr");
+  tr.dataset.write = String(row.write);
+  const tool = document.createElement("td");
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "mx-toggle";
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.setAttribute("aria-controls", id);
+  const chevron = document.createElement("span");
+  chevron.className = "disclosure-row-chevron";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "▸";
+  toggle.append(chevron, row.label_text);
+  tool.append(toggle);
+  if (row.write) {
+    const write = document.createElement("span");
+    write.className = "mx-write";
+    write.setAttribute("aria-hidden", "true"); // decorative: `nature_text` already says « écriture »
+    write.textContent = "✎";
+    tool.append(write);
+  }
+  const nature = document.createElement("td");
+  nature.textContent = row.nature_text;
+  const risk = document.createElement("td");
+  risk.append(chip(t(`mcp.policy.risk.${row.risk}`), row.risk));
+  const rule = document.createElement("td");
+  rule.textContent = ruleText(row.rule);
+  tr.append(tool, nature, risk, rule);
+
+  const detailTr = document.createElement("tr");
+  detailTr.className = "mx-detail";
+  detailTr.hidden = true;
+  const detailTd = document.createElement("td");
+  detailTd.colSpan = 4;
+  const body = document.createElement("div");
+  body.className = "mx-detail-body";
+  body.id = id;
+  const why = document.createElement("p");
+  const strong = document.createElement("strong");
+  strong.textContent = t("security.matrix.why_label");
+  why.append(strong, ` ${t(`security.matrix.${row.id}.why`)}`);
+  body.append(why);
+  if (row.tools.length) body.append(...kv(row.tools.map((tool2) => [tool2.label_text, ruleText(tool2.rule)])));
+  detailTd.append(body);
+  detailTr.append(detailTd);
+
+  toggle.addEventListener("click", () => {
+    detailTr.hidden = !detailTr.hidden;
+    toggle.setAttribute("aria-expanded", String(!detailTr.hidden));
+    chevron.classList.toggle("is-open", !detailTr.hidden);
+  });
+  return [tr, detailTr];
+}
+
+function renderMatrix(rows) {
+  const body = $("sec-matrix-body");
+  if (!body) return;
+  body.replaceChildren(...rows.flatMap(matrixRow));
+  setMatrixFilter(matrixFilter);
+  const legend = $("sec-matrix-legend");
+  if (legend) {
+    legend.replaceChildren(
+      legendEntry(chip(t("mcp.policy.rule.allow"), "low"), t("security.matrix.legend_allow")),
+      legendEntry(chip(t("mcp.policy.rule.ask"), "mid"), t("security.matrix.legend_ask")),
+      legendEntry(chip(t("mcp.policy.rule.deny"), "high"), t("security.matrix.legend_deny")),
+    );
+  }
+}
+
+function legendEntry(chipEl, text) {
+  const span = document.createElement("span");
+  span.append(chipEl, ` ${text}`);
+  return span;
+}
+
 // ---------- disclosure rows (the single pattern for technical detail, DESIGN.md) ----------
 
-function discRow(label, badge, bodyNodes) {
+function discRow(label, badge, bodyNodes, whatText) {
   const li = document.createElement("li");
   li.className = "sec-row disclosure-row";
   const button = document.createElement("button");
@@ -109,6 +272,11 @@ function discRow(label, badge, bodyNodes) {
   const name = document.createElement("span");
   name.className = "disclosure-row-label";
   name.textContent = label;
+  if (whatText) {
+    const small = document.createElement("small");
+    small.textContent = whatText;
+    name.append(small);
+  }
   button.append(chevron, name);
   if (badge) button.append(badge);
   const body = document.createElement("div");
@@ -164,6 +332,11 @@ function groupHeading(text) {
 
 // ---------- the active controls ----------
 
+function whatText(id) {
+  const key = `security.controls.what.${id}`;
+  return has(key) ? t(key) : undefined;
+}
+
 function renderControls(controls) {
   const list = $("sec-controls");
   if (!list) return;
@@ -192,6 +365,7 @@ function renderControls(controls) {
         ...kv([[t("security.controls.github_write_other"), ruleText("deny")]]),
         link(t("security.matrix.settle_link"), "/mcp"),
       ],
+      whatText("tool_rules"),
     ),
   );
 
@@ -204,7 +378,7 @@ function renderControls(controls) {
     const body = g.install_text
       ? kv([[t("security.limits.reason_label"), g.install_text]])
       : kv([[t("security.controls.guardrail_mode_label"), text]]);
-    rows.push(discRow(g.label_text, chip(text, level), [...body, link(t("security.controls.change_in_bricks"), "/")]));
+    rows.push(discRow(g.label_text, chip(text, level), [...body, link(t("security.controls.change_in_bricks"), "/")], whatText(g.id)));
   }
 
   const enabledHooks = controls.hooks.filter((h) => h.enabled);
@@ -216,7 +390,7 @@ function renderControls(controls) {
         ]),
       )
     : kv([[t("security.controls.hooks"), t("security.controls.hooks_empty")]]);
-  rows.push(discRow(t("security.controls.hooks"), sub(String(enabledHooks.length)), hooksBody));
+  rows.push(discRow(t("security.controls.hooks"), sub(String(enabledHooks.length)), hooksBody, whatText("hooks")));
 
   const whitelistBody = controls.network_whitelist.length
     ? kv([[t("security.controls.network_whitelist"), controls.network_whitelist.join(" · ")]])
@@ -226,6 +400,7 @@ function renderControls(controls) {
       t("security.controls.network_whitelist"),
       sub(t("security.controls.domain_count", { count: controls.network_whitelist.length })),
       whitelistBody,
+      whatText("network_whitelist"),
     ),
   );
 
@@ -236,7 +411,9 @@ function renderControls(controls) {
     const hours = Math.floor(gh.expires_in_s / 3600);
     ghDetail.unshift([t("security.controls.github"), t("security.controls.github_expires", { time: `${hours} h` })]);
   }
-  rows.push(discRow(t("security.controls.github"), chip(t(`security.controls.github_states.${gh.status}`), ghLevel), kv(ghDetail)));
+  rows.push(
+    discRow(t("security.controls.github"), chip(t(`security.controls.github_states.${gh.status}`), ghLevel), kv(ghDetail), whatText("github")),
+  );
 
   list.replaceChildren(...rows);
 }
@@ -258,6 +435,36 @@ const LEVEL_OF = {
   error: "mid",
 };
 
+// Story 16.7 (CAP-10): the journal's own filters (« Tout », « Refusés et bloqués », «
+// Autorisés par vous »), the same decisions the barre's red count already uses
+// (`security_log._DENIED`), so the chip's own count never drifts from the badge's.
+const REFUSED = new Set(["deny", "blocked"]);
+let journalFilter = "all";
+
+function journalMatches(decision, filter) {
+  if (filter === "all") return true;
+  return filter === "refused" ? REFUSED.has(decision) : decision === filter;
+}
+
+function setJournalFilter(value) {
+  journalFilter = value;
+  const filters = $("sec-journal-filters");
+  if (filters) filters.querySelectorAll("[data-f]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === value)));
+  $("sec-journal")
+    ?.querySelectorAll("li[data-decision]")
+    .forEach((li) => {
+      li.hidden = !journalMatches(li.dataset.decision, value);
+    });
+}
+
+function renderJournalFilters(counts) {
+  const filters = $("sec-journal-filters");
+  if (!filters) return;
+  filters.querySelector('[data-f="all"]').textContent = t("security.journal.filters.all", { count: counts.total });
+  filters.querySelector('[data-f="refused"]').textContent = t("security.journal.filters.refused", { count: counts.denied_count });
+  filters.querySelector('[data-f="allow_once"]').textContent = t("security.journal.filters.allow_once", { count: counts.allow_once_count });
+}
+
 function journalRow(entry) {
   let when = entry.ts;
   try {
@@ -269,7 +476,10 @@ function journalRow(entry) {
   const badge = chip(has(key) ? t(key) : entry.decision, LEVEL_OF[entry.decision] ?? "mid");
   const p = document.createElement("p");
   p.textContent = entry.reason_text;
-  return discRow(`${when} — ${entry.label_text}`, badge, [p]);
+  const li = discRow(`${when} — ${entry.label_text}`, badge, [p]);
+  li.dataset.decision = entry.decision;
+  li.hidden = !journalMatches(entry.decision, journalFilter);
+  return li;
 }
 
 function renderJournal(entries) {
@@ -308,6 +518,32 @@ function renderLimits(limits) {
   );
 }
 
+// ---------- the affordance legend (repliée par défaut) ----------
+
+function renderLegend() {
+  const list = $("sec-legend");
+  if (!list) return;
+  const ul = document.createElement("ul");
+  ul.className = "legend-list";
+  for (const key of ["disclosure", "card", "filter", "action", "static"]) {
+    const li = document.createElement("li");
+    li.textContent = t(`security.legend.${key}`);
+    ul.append(li);
+  }
+  list.replaceChildren(discRow(t("security.legend.label"), null, [ul], t("security.legend.sub")));
+}
+
+// ---------- filter chips (matrice et journal), wired once, both widgets static in the HTML ----------
+
+function setupFilters() {
+  $("sec-matrix-filters")
+    ?.querySelectorAll("[data-mx]")
+    .forEach((b) => b.addEventListener("click", () => setMatrixFilter(b.dataset.mx)));
+  $("sec-journal-filters")
+    ?.querySelectorAll("[data-f]")
+    .forEach((b) => b.addEventListener("click", () => setJournalFilter(b.dataset.f)));
+}
+
 // ---------- load, then live ----------
 
 async function load() {
@@ -316,8 +552,10 @@ async function load() {
     fetch("/api/security_journal").then((r) => r.json()),
   ]);
   renderQuestions(security.questions);
+  renderPath(security.controls, security.counts);
   renderMatrix(security.risk_matrix);
   renderControls(security.controls);
+  renderJournalFilters(security.counts);
   renderLimits(security.limits);
   renderJournal(journal.entries.slice().reverse()); // newest first
   // The session's own counters (past the journal's 500-entry window), never a recount.
@@ -341,12 +579,15 @@ function openStream() {
     if (entry.total > cardsTotal) {
       cardsTotal = entry.total;
       renderMovableQuestions(entry.questions);
+      renderJournalFilters(entry);
     }
   });
 }
 
 async function main() {
   await ready; // the page's texts and formats in the session's language (languages 4/5)
+  setupFilters();
+  renderLegend();
   await load();
   openStream();
 }

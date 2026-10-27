@@ -2273,8 +2273,8 @@ security:
       other: "{count} messages bloqués"
     nothing_blocked: "Aucun refus ni blocage pour l'instant."
     not_covered:
-      one: "{count} limite connue, en bas de page"
-      other: "{count} limites connues, en bas de page"
+      one: "{count} limite connue, à dire au client"
+      other: "{count} limites connues, à dire au client"
   # Les 12 lignes de « Ce que le harnais ne protège pas » (limites-harnais.md), à dire au
   # client ; chaque id dans l'ordre de `AppSession._LIMIT_IDS`.
   limits:

@@ -14,31 +14,69 @@
   <link rel="stylesheet" href="/static/tokens.css" />
   <link rel="stylesheet" href="/static/pages.css" />
   <style>
-    /* Story 10 (CAP-3, CAP-8, CAP-9): the page Sécurité, by the tokens of tokens.css and the
-       DESIGN.md components already in pages.css (disclosure-row, status-chip) only. */
+    /* Story 10 (CAP-3, CAP-8, CAP-9), story 16.7 (CAP-10): the page Sécurité, by the tokens of
+       tokens.css and the DESIGN.md components already in pages.css (disclosure-row,
+       status-chip, button-primary/secondary) only; the hover/focus states of disclosure-row,
+       filter-chip and the cards live in pages.css (shared with the barre's own Journal). */
     .sec-subtitle { margin: 0 0 var(--spacing-4); color: var(--color-ink-soft); }
     .sec-sub { margin: 0 0 var(--spacing-2); color: var(--color-ink-soft); }
     .sec-section { margin-top: var(--spacing-5); }
     .sec-section-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-3); }
     .sec-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: var(--spacing-5); align-items: start; }
-    /* security-question-card (DESIGN.md): question en petit, chiffre en grand, une ligne d'explication. */
+    /* « Pourquoi c'est là » (ux-securite.md : sec-why), un filet gauche primary. */
+    .sec-why { margin: var(--spacing-2) 0 var(--spacing-3); padding: var(--spacing-2) var(--spacing-3); border-left: var(--spacing-stroke-min) solid var(--color-primary); background: var(--color-surface); border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0; font-size: var(--typography-body-sm-font-size); }
+    /* security-question-card, devenue un bouton cliquable (question-card-button). */
     .sec-questions { display: grid; gap: var(--spacing-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
-    .sec-question-card { padding: var(--spacing-3); background: var(--color-surface-raised); border-radius: var(--rounded-md); display: grid; gap: var(--spacing-1); }
+    .sec-question-card { cursor: pointer; width: 100%; text-align: left; font: inherit; padding: var(--spacing-3); background: var(--color-surface); color: var(--color-ink); border: 1px solid var(--color-line); border-radius: var(--rounded-md); display: grid; gap: var(--spacing-1); box-shadow: 0 var(--spacing-1) 0 var(--color-relief); }
+    .sec-question-card:hover { border-color: var(--color-primary); background: var(--color-surface-raised); }
+    .sec-question-card:focus-visible { outline: var(--spacing-stroke-min) solid var(--color-primary); outline-offset: 2px; }
     .sec-question-ask { color: var(--color-ink-soft); font: var(--typography-label-font-weight) var(--typography-label-font-size) / var(--typography-label-line-height) var(--typography-label-font-family); }
     .sec-question-figure { font: var(--typography-number-font-weight) var(--typography-number-font-size) / var(--typography-number-line-height) var(--typography-number-font-family); }
     .sec-question-figure.alert { color: var(--color-danger); }
     .sec-question-detail { color: var(--color-ink-soft); font-size: var(--typography-body-sm-font-size); }
+    .sec-question-go { justify-self: end; color: var(--color-primary); font: var(--typography-label-font-weight) var(--typography-label-font-size) / var(--typography-label-line-height) var(--typography-label-font-family); }
+    .sec-question-go::after { content: " →"; }
+    /* Le chemin d'un message (call-path, call-step) : 5 étapes, 2 statiques, 3 cliquables. */
+    .call-path { display: grid; gap: var(--spacing-2); grid-template-columns: 1fr; counter-reset: step; list-style: none; margin: 0; padding: 0; }
+    @media (width >= 900px) { .call-path { grid-template-columns: repeat(5, 1fr); } }
+    .call-step { display: grid; gap: var(--spacing-1); width: 100%; height: 100%; text-align: left; font: inherit; color: var(--color-ink); padding: var(--spacing-2) var(--spacing-3); background: var(--color-surface-raised); border: 1px solid var(--color-line); border-radius: var(--rounded-sm); }
+    .call-step.is-static { cursor: default; }
+    .call-step:not(.is-static) { cursor: pointer; }
+    .call-step:not(.is-static):hover { border-color: var(--color-primary); background: var(--color-primary-soft); }
+    .call-step:not(.is-static):focus-visible { outline: var(--spacing-stroke-min) solid var(--color-primary); outline-offset: 2px; }
+    .call-step-title { font: var(--typography-label-font-weight) var(--typography-body-font-size) / var(--typography-label-line-height) var(--typography-label-font-family); display: flex; gap: var(--spacing-2); align-items: baseline; }
+    .call-step-title::before { counter-increment: step; content: counter(step); display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: var(--rounded-full); background: var(--color-primary); color: var(--color-on-primary); font-size: var(--typography-body-sm-font-size); }
+    .call-step-text { font-size: var(--typography-body-sm-font-size); color: var(--color-ink-soft); }
+    .call-step-state { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
+    .call-step-go { color: var(--color-primary); font: var(--typography-label-font-weight) var(--typography-label-font-size) / var(--typography-label-line-height) var(--typography-label-font-family); }
+    .call-step-go::after { content: " →"; }
+    /* Filtres en pastille (filter-chip), matrice et journal. */
+    .sec-filters { display: flex; flex-wrap: wrap; gap: var(--spacing-2); margin-bottom: var(--spacing-3); }
+    .filter-chip { min-height: var(--spacing-hit-target-min); padding: 0 var(--spacing-3); border-radius: var(--rounded-full); border: 1px solid var(--color-line); background: var(--color-surface-raised); color: var(--color-ink); font: var(--typography-label-font-weight) var(--typography-label-font-size) / var(--typography-label-line-height) var(--typography-label-font-family); cursor: pointer; }
+    .filter-chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .filter-chip:focus-visible { outline: var(--spacing-stroke-min) solid var(--color-primary); outline-offset: 2px; }
+    .filter-chip[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary); }
+    .filter-chip[aria-pressed="true"]::before { content: "✓ "; }
     .sec-table-wrap { overflow-x: auto; }
     .sec-matrix { width: 100%; border-collapse: collapse; font-size: var(--typography-body-sm-font-size); }
     .sec-matrix th { text-align: left; padding: var(--spacing-1) var(--spacing-2); color: var(--color-ink-soft); border-bottom: 1px solid var(--color-line); }
     .sec-matrix td { padding: var(--spacing-2); border-bottom: 1px solid var(--color-line); vertical-align: middle; }
     .sec-matrix tr:last-child td { border-bottom: 0; }
+    .sec-matrix tr[hidden] { display: none; }
+    .mx-toggle { display: flex; align-items: center; gap: var(--spacing-1); padding: 0; background: none; border: 0; color: var(--color-ink); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+    .mx-toggle:focus-visible { outline: var(--spacing-stroke-min) solid var(--color-primary); outline-offset: 2px; border-radius: 4px; }
+    .mx-write { font: var(--typography-label-font-weight) var(--typography-label-font-size) / var(--typography-label-line-height) var(--typography-label-font-family); color: var(--color-ink-soft); }
+    .mx-detail td { background: var(--color-surface); padding: 0; }
+    .mx-detail-body { margin: 0 var(--spacing-2) var(--spacing-2) calc(26px + var(--spacing-2)); padding: var(--spacing-2) var(--spacing-3); background: var(--color-surface-raised); border-left: var(--spacing-stroke-min) solid var(--color-primary); font-size: var(--typography-body-sm-font-size); }
+    .rules-legend { display: flex; flex-wrap: wrap; gap: var(--spacing-2) var(--spacing-4); margin-top: var(--spacing-3); font-size: var(--typography-body-sm-font-size); color: var(--color-ink-soft); }
+    .rules-legend .status-chip { margin-right: var(--spacing-1); }
     .sec-rows { display: grid; gap: var(--spacing-2); margin: 0; padding: 0; list-style: none; }
     /* disclosure-row (DESIGN.md), the same pattern and classes as bar.js's journal preview. */
     .sec-row { background: var(--color-surface); border-radius: var(--rounded-sm); }
     .sec-row-head { display: flex; align-items: center; gap: var(--spacing-2); width: 100%; padding: var(--spacing-2); background: transparent; color: var(--color-ink); border: 0; text-align: left; cursor: pointer; }
     .sec-row-sub { color: var(--color-ink-soft); font-size: var(--typography-body-sm-font-size); }
     .sec-empty { margin: 0; color: var(--color-ink-soft); }
+    .legend-list { display: grid; gap: var(--spacing-1); margin: 0; padding: 0; }
   </style>
 </head>
 <body class="annex-page">
@@ -128,14 +166,26 @@
       <div class="sec-questions" id="sec-questions"><p class="sec-empty">…</p></div>
     </section>
 
+    <!-- Story 16.7 (CAP-10) : le chemin d'un message, 5 étapes (ux-securite.md > call-path). -->
+    <section class="sec-section">
+      <h2 data-i18n="security.path.title">Le chemin d'un message</h2>
+      <p class="sec-sub" data-i18n="security.path.subtitle">Les contrôles s'appliquent dans cet ordre. Cliquez une étape pour voir son réglage.</p>
+      <ol class="call-path" id="sec-path"></ol>
+    </section>
+
     <div class="sec-grid2">
       <section class="sec-section">
         <div class="sec-section-head">
           <div>
-            <h2 data-i18n="security.matrix.title">Matrice des risques</h2>
+            <h2 id="h-sec-matrix" tabindex="-1" data-i18n="security.matrix.title">Matrice des risques</h2>
             <p class="sec-sub" data-i18n="security.matrix.subtitle">Règle appliquée à chaque appel d'outil.</p>
           </div>
           <a class="button-secondary" href="/mcp" data-i18n="security.matrix.settle_link">Régler dans MCP</a>
+        </div>
+        <p class="sec-why" data-i18n="security.matrix.why">Un outil agit hors de la conversation : il lit vos fichiers, écrit sur le disque, touche GitHub. Plus l'action est grave, plus la règle est stricte.</p>
+        <div class="sec-filters" id="sec-matrix-filters" role="group" aria-label="Filtrer la matrice">
+          <button type="button" class="filter-chip" data-mx="all" aria-pressed="true" data-i18n="security.matrix.filter_all">Tous les outils</button>
+          <button type="button" class="filter-chip" data-mx="write" aria-pressed="false" data-i18n="security.matrix.filter_write">Seulement ceux qui écrivent</button>
         </div>
         <div class="sec-table-wrap">
           <table class="sec-matrix">
@@ -150,11 +200,13 @@
             <tbody id="sec-matrix-body"></tbody>
           </table>
         </div>
+        <div class="rules-legend" id="sec-matrix-legend"></div>
       </section>
 
       <section class="sec-section">
-        <h2 data-i18n="security.controls.title">Contrôles actifs</h2>
+        <h2 id="h-sec-controls" tabindex="-1" data-i18n="security.controls.title">Contrôles actifs</h2>
         <p class="sec-sub" data-i18n="security.controls.subtitle">Dépliez pour voir le réglage exact.</p>
+        <p class="sec-why" data-i18n="security.controls.why">Chaque contrôle couvre un risque différent. Aucun ne suffit seul.</p>
         <ul class="sec-rows" id="sec-controls"><li class="sec-empty">…</li></ul>
       </section>
     </div>
@@ -162,18 +214,29 @@
     <section class="sec-section">
       <div class="sec-section-head">
         <div>
-          <h2 data-i18n="security.journal.title">Journal de sécurité</h2>
+          <h2 id="h-sec-journal" tabindex="-1" data-i18n="security.journal.title">Journal de sécurité</h2>
           <p class="sec-sub" data-i18n="security.journal.subtitle">Tous les événements de la séance, le plus récent en haut. Aucun secret n'y figure.</p>
         </div>
         <a class="button-primary" href="/api/security_journal.csv" data-i18n="security.journal.download">Télécharger (CSV)</a>
+      </div>
+      <p class="sec-why" data-i18n="security.journal.why">Une décision qu'on ne peut pas relire ne se contrôle pas. Le journal montre qui a décidé quoi, et pourquoi.</p>
+      <div class="sec-filters" id="sec-journal-filters" role="group" aria-label="Filtrer le journal">
+        <button type="button" class="filter-chip" data-f="all" aria-pressed="true"></button>
+        <button type="button" class="filter-chip" data-f="refused" aria-pressed="false"></button>
+        <button type="button" class="filter-chip" data-f="allow_once" aria-pressed="false"></button>
       </div>
       <ul class="sec-rows" id="sec-journal"><li class="sec-empty" data-i18n="security.journal.empty">Aucun événement pour l'instant.</li></ul>
     </section>
 
     <section class="sec-section">
-      <h2 data-i18n="security.limits.title">Ce que le harnais ne protège pas</h2>
+      <h2 id="h-sec-limits" tabindex="-1" data-i18n="security.limits.title">Ce que le harnais ne protège pas</h2>
       <p class="sec-sub" data-i18n="security.limits.subtitle">À dire au client. Dépliez pour la raison et ce qu'il faudrait en production.</p>
       <ul class="sec-rows" id="sec-limits"></ul>
+    </section>
+
+    <!-- Légende « Ce qui se clique », repliée par défaut (ux-securite.md > affordance-legend). -->
+    <section class="sec-section">
+      <ul class="sec-rows" id="sec-legend"></ul>
     </section>
   </main>
 
