@@ -158,6 +158,10 @@ servers:
     source_label_text: "Microsoft-Dokumentation"
     source_action_text: "liest die Microsoft-Dokumentation"
     source_explain_text: "Die Dokumentation von Microsoft Learn, vom Server gelesen, außer Sicht des Arbeitsplatzes."
+  github:
+    source_label_text: "GitHub-API"
+    source_action_text: "ruft die GitHub-API auf"
+    source_explain_text: "Die GitHub-API (Repositorys, Issues, Code), vom Server mit dem Token des angemeldeten Kontos aufgerufen. Dieser Austausch geschieht beim Server: Der Arbeitsplatz sieht ihn nicht."
 
 restaurant:
   host:

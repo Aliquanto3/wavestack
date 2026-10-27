@@ -478,6 +478,26 @@ body.mcp-page {
   flex-shrink: 0;
 }
 
+/* CAP-8: a brand's own dark-theme logo (GitHub's white Invertocat), never a CSS recolouring. */
+.mcp-server-logo.is-dark,
+:root[data-theme="dark"] .mcp-server-logo.has-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .mcp-server-logo.is-dark {
+  display: inline;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .mcp-server-logo.has-dark {
+    display: none;
+  }
+
+  :root:not([data-theme]) .mcp-server-logo.is-dark {
+    display: inline;
+  }
+}
+
 .mcp-server-name {
   font: var(--typography-label-font-weight) var(--typography-label-font-size) /
     var(--typography-label-line-height) var(--typography-label-font-family);

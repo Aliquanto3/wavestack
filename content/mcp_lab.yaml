@@ -161,6 +161,10 @@ servers:
     source_label_text: "Docs Microsoft"
     source_action_text: "lit la documentation Microsoft"
     source_explain_text: "La documentation Microsoft Learn, lue par le serveur, hors de vue du poste."
+  github:
+    source_label_text: "API GitHub"
+    source_action_text: "appelle l'API GitHub"
+    source_explain_text: "L'API de GitHub (dépôts, tickets, code), appelée par le serveur avec le jeton du compte connecté. Cet échange se passe chez le serveur : le poste ne le voit pas."
 
 restaurant:
   host:

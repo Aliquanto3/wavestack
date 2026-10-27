@@ -68,7 +68,6 @@ METHODS = (
     "prompts/get",
 )
 TRANSPORTS = ("stdio", "streamable_http")
-SERVER_IDS = ("local", "datagouv", "mslearn")
 COLUMNS = ("user", "model", "host", "client", "server", "source")
 EXCHANGES = ("connect", "call", "read", "prompt", "ask")
 PIECES = (
@@ -82,8 +81,8 @@ PIECES = (
     "resource",
     "prompt",
 )
-# CAP-8: every server of `servers.ALL_IDS`, so a server added there (story 16.6) only needs a
-# new `before.integrations` line to appear in the "Avant MCP" schema, no further Python change.
+# CAP-8: every server of `servers.ALL_IDS`, so a server added there only needs its
+# `before.integrations` and `servers` lines to appear in full, no further Python change.
 BEFORE = ALL_IDS
 
 
@@ -191,7 +190,7 @@ class McpLabContent(_Strict):
             ("columns", COLUMNS),
             ("phases", EXCHANGES),
             ("primitives", ("tools", "resources", "prompts")),
-            ("servers", SERVER_IDS),
+            ("servers", ALL_IDS),
             ("restaurant", PIECES),
         ):
             if set(getattr(self, name)) != set(keys):

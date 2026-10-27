@@ -7291,12 +7291,16 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
         "/mcp : les quatre serveurs (GitHub, story 3 de la V1.1 vague 2)",
         str(servers),
     )
-    # CAP-8: a logo per server, a local SVG (no network request), loaded.
+    # CAP-8: a logo per server, a local SVG (no network request), loaded; GitHub's white
+    # Invertocat too, its dark-theme variant (hidden in the light theme).
     logos = page.locator("#mcp-servers .mcp-server-logo").evaluate_all(
-        "items => items.map(i => [i.getAttribute('src'), i.naturalWidth > 0])"
+        "items => items.map(i => [i.getAttribute('src'), i.naturalWidth > 0,"
+        " getComputedStyle(i).display !== 'none'])"
     )
     r.check(
-        len(logos) == 4 and all(src.startswith("/static/logos/mcp/") and ok for src, ok in logos),
+        sum(shown for _, _, shown in logos) == 4
+        and "/static/logos/mcp/github-white.svg" in [src for src, _, _ in logos]
+        and all(src.startswith("/static/logos/mcp/") and ok for src, ok, _ in logos),
         "/mcp : un logo par serveur, en SVG local, chargé (CAP-8)",
         str(logos),
     )
@@ -7545,21 +7549,27 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
         page.locator("#mcp-arch-before").is_visible() and page.locator("#mcp-arch").is_hidden()
     )
     # CAP-8: github's own row, its own shape (square, never the default circle) and its own
-    # line ("Code pour l'API GitHub"); no server's line hidden or dotted (`.is-hidden-side`).
+    # line ("Code pour l'API GitHub") and its source ("API GitHub"); no source dotted (computed).
     github_row = page.locator('[data-before="github"]')
-    github_shape = page.locator('[data-before-source="github"]').get_attribute("data-shape")
+    github_source = page.locator('[data-before-source="github"]')
+    github_shape = github_source.get_attribute("data-shape")
+    dotted = page.locator(".mcp-before-node.is-source").evaluate_all(
+        "items => items.filter(i => getComputedStyle(i).borderTopStyle === 'dotted').length"
+    )
     before_ok = (
         github_row.count() == 1
         and "Code pour l'API GitHub" in github_row.inner_text()
+        and github_source.inner_text().strip() == "API GitHub"
         and github_shape == "square"
-        and page.locator(".mcp-before-node.is-hidden-side, .mcp-node.is-hidden-side").count() == 0
+        and dotted == 0
     )
     page.locator('#mcp-arch-switch [data-view="after"]').click()
     r.check(
         before_view and before_ok,
         "Architecture : la vue « Avant MCP », puis « Avec MCP » (github : forme, ligne, "
         "jamais en pointillés, CAP-8)",
-        f"{github_shape} · {github_row.inner_text() if github_row.count() else '—'}",
+        f"{github_shape} · {github_row.inner_text() if github_row.count() else '—'} · "
+        f"pointillés : {dotted}",
     )
     r.check(not errors, "/mcp : aucune erreur JavaScript", str(errors)[:300])
 

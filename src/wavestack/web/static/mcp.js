@@ -1382,7 +1382,7 @@ function renderArchReveal(seen) {
 // by hand per source, each wired straight to its source by a connector of its own shape
 // (● circle, ◆ diamond, ▲ triangle). The schema is drawn for the eyes (`aria-hidden`); its text
 // equivalent, the integrations and the captions, is a list read by assistive technologies.
-// CAP-8: github's own shape (square), a 4th server; a server added later (story 16.6) without
+// CAP-8: github's own shape (square), a 4th server; a server added later without
 // a shape of its own falls back to the circle (its own line still shown, never hidden).
 const BEFORE_SHAPES = { local: "circle", datagouv: "diamond", mslearn: "triangle", github: "square" };
 const BEFORE_MARKS = { circle: "●", diamond: "◆", triangle: "▲", square: "■" };
@@ -1405,7 +1405,7 @@ function buildBefore() {
   const netLanes = el("div", "mcp-lanes-before-network");
   const sr = el("ul", "mcp-sr-only");
   // CAP-8: as many rows as servers (`servers.ALL_IDS`), never the 3 of the first 3 servers: a
-  // server added later (story 16.6) grows the schema instead of overlapping its last row.
+  // server added later grows the schema instead of overlapping its last row.
   const rows = store.servers.length;
   lanes.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
   netLanes.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
@@ -1555,10 +1555,18 @@ function renderServers() {
         renderGithub();
       });
       // CAP-8: each server's logo, a local SVG (offline), never loaded from the network.
-      const logo = el("img", "mcp-server-logo");
-      logo.src = `/static/logos/${server.logo}`;
-      logo.alt = "";
-      logo.setAttribute("aria-hidden", "true");
+      // A brand's dark-theme variant (GitHub's white Invertocat) is its own file, never recoloured.
+      const logos = [[server.logo, server.logo_dark ? "has-dark" : ""], [server.logo_dark, "is-dark"]]
+        .filter(([src]) => src)
+        .map(([src, variant]) => {
+          const img = el("img", `mcp-server-logo ${variant}`.trim());
+          img.src = `/static/logos/${src}`;
+          img.alt = "";
+          img.setAttribute("aria-hidden", "true");
+          // A missing file: the neutral pictogram, never a broken image (only once, no loop).
+          img.addEventListener("error", () => { img.src = "/static/logos/mcp/_default.svg"; }, { once: true });
+          return img;
+        });
       const name = el("span", "mcp-server-name", server.label_text);
       const hosting = el("span", `mcp-hosting ${server.network ? "is-network" : "is-local"}`);
       if (server.network) {
@@ -1568,7 +1576,7 @@ function renderServers() {
       } else {
         hosting.textContent = t("mcp.servers.local");
       }
-      label.append(radio, logo, name, hosting, el("span", "mcp-server-transport", text(`transports.${server.transport}.label_text`)));
+      label.append(radio, ...logos, name, hosting, el("span", "mcp-server-transport", text(`transports.${server.transport}.label_text`)));
       const info = el("button", "mcp-info", "ⓘ");
       info.type = "button";
       info.setAttribute("aria-label", t("mcp.servers.details", { server: server.label_text }));

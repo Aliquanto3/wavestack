@@ -373,6 +373,16 @@ def test_before_covers_every_server_including_github():
     assert content.before.integrations["github"] == "Code pour l'API GitHub"
 
 
+@pytest.mark.parametrize("lang", ["fr", "en", "de"])
+def test_every_server_has_its_source_texts_github_included(lang):
+    """CAP-8: github's source line ("Avant", "Avec", Séquence) is never empty."""
+    from wavestack.mcp.servers import ALL_IDS
+
+    servers = mcp_lab.load_lab_content(lang).servers
+    assert set(servers) == set(ALL_IDS)
+    assert "GitHub" in servers["github"].source_label_text
+
+
 def test_before_integrations_missing_a_server_fails_validation():
     from pydantic import ValidationError
 

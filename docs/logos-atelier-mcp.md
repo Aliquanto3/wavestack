@@ -1,44 +1,42 @@
-# Logos des serveurs de l'Atelier MCP (story 16.3, CAP-8)
+# Logos des serveurs de l'Atelier MCP (CAP-8)
 
 [← Retour au README](../README.md)
 
-`src/wavestack/web/static/logos/mcp/{local,datagouv,mslearn,github,_default}.svg` : un
-pictogramme par serveur de l'Atelier MCP (`wavestack.mcp.servers.McpServer.logo`), chargé en
-local, jamais depuis le réseau (contrainte de la spec du 27/10).
+`src/wavestack/web/static/logos/mcp/` : un logo par serveur de l'Atelier MCP
+(`wavestack.mcp.servers.McpServer.logo`), servi en local, jamais chargé depuis le réseau.
+Un fichier absent ou un serveur sans logo dédié reçoit le pictogramme neutre `_default.svg`.
 
-## Décision : des pictogrammes neutres, pas les marques des éditeurs
+## GitHub
 
-Trois des quatre serveurs touchent à une marque déposée (GitHub, Microsoft Learn) ou à une
-identité réservée (la Marianne, propre à l'État français, pour data.gouv.fr). Cette story n'a
-pas eu d'accès réseau pour vérifier en direct les conditions d'usage actuelles de ces marques
-(brand guidelines GitHub et Microsoft, charte graphique data.gouv.fr) : par précaution, les
-quatre logos sont des pictogrammes dessinés pour l'occasion, qui ne reproduisent aucune marque
-déposée ni la Marianne :
+Le logo GitHub (Invertocat noir ou blanc, non modifié) provient de l'archive officielle
+brand.github.com/GitHub_Logos.zip. Il est affiché pour signaler l'intégration avec le serveur
+MCP GitHub, comme le permettent les règles de marque de GitHub
+(https://brand.github.com/foundations/logo). GitHub est une marque de GitHub, Inc. et
+n'approuve pas WaveStack.
 
-- `local.svg` : un livre ouvert (le glossaire local).
-- `datagouv.svg` : un cylindre de données (jamais la Marianne, réservée à l'État).
-- `mslearn.svg` : un chapeau de diplômé sur un document (la documentation), jamais le logo
-  Microsoft (quatre carrés) ni le nom stylisé.
-- `github.svg` : des chevrons de code `</>`, jamais l'Octocat ni le wordmark GitHub.
-- `_default.svg` : repli neutre pour un serveur sans pictogramme dédié (story 16.6).
+Fichiers : `github.svg` (`GitHub_Invertocat_Black.svg`, thème clair) et `github-white.svg`
+(`GitHub_Invertocat_White.svg`, thème sombre), copiés tels quels de l'archive, jamais
+recolorés en CSS.
 
-Un repère existe déjà dans ce dépôt pour l'usage nominatif de marques d'éditeurs de modèles
-(`src/wavestack/web/static/logos/SOURCES.md`, « marque déposée - usage éditorial nominatif »),
-mais il s'appuie sur une banque de visuels validée en amont pour ces éditeurs précis ; il ne
-couvre pas GitHub, Microsoft Learn ni data.gouv.fr. **À vérifier avant toute diffusion externe
-ou tout remplacement par le logo réel d'un éditeur** : les conditions d'usage à jour de chaque
-marque, auprès d'Anaël ou d'un juriste.
+## Microsoft Learn
 
-## Contrat pour un nouveau serveur (story 16.6)
+Les logos Microsoft exigent une licence
+(https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks). L'Atelier affiche donc
+un pictogramme neutre et le nom "Microsoft Learn" en texte seulement. Microsoft Learn est une
+marque de Microsoft Corporation.
 
-Ajouter un serveur à `wavestack.mcp.servers.ALL_IDS` suffit à le faire apparaître dans le
-sélecteur de l'Atelier MCP et dans le schéma « Avant MCP » (qui grandit seul). Pour son logo :
+## data.gouv.fr
 
-- rien à faire : il reçoit `_default.svg` ;
-- ou déposer un fichier `logos/mcp/<id>.svg` (même précaution ci-dessus si la marque du
-  nouveau serveur est déposée) et l'ajouter à `_LOGOS` dans `servers.py`.
+Le logo data.gouv.fr relève de la Marque d'État et aucune règle publique ne l'ouvre aux tiers
+(https://www.data.gouv.fr/pages/legal/charter). L'Atelier affiche un pictogramme neutre et le
+nom en texte jusqu'à une autorisation écrite d'Etalab ou de la DINUM.
 
-Pour sa forme dans le schéma « Avant MCP », ajouter son id à `BEFORE_SHAPES` dans `mcp.js`
-(sinon il reçoit la forme ronde par défaut, qui peut doubler celle d'un autre serveur) et sa
-ligne à `before.integrations` dans `content/mcp_lab.yaml` (et ses traductions) : sans cette
-ligne, le serveur casse la validation du contenu au démarrage (erreur explicite).
+## Ajouter un serveur
+
+Ajouter son id à `wavestack.mcp.servers.ALL_IDS` (et son URL dans `mcp_servers()`) le fait
+apparaître dans le sélecteur et dans le schéma « Avant MCP », qui grandit seul. Il faut aussi
+ses lignes `before.integrations` et `servers` dans `content/mcp_lab.yaml` et ses traductions :
+sans elles, la validation du contenu échoue au démarrage (erreur explicite). Sa forme dans le
+schéma vient de `BEFORE_SHAPES` dans `mcp.js` (rond par défaut). Pour son logo, déposer
+`logos/mcp/<id>.svg` et l'ajouter à `_LOGOS` dans `servers.py`, après vérification des règles
+de la marque.

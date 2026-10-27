@@ -153,6 +153,10 @@ servers:
     source_label_text: "Microsoft docs"
     source_action_text: "reads the Microsoft documentation"
     source_explain_text: "The Microsoft Learn documentation, read by the server, out of the workstation's sight."
+  github:
+    source_label_text: "GitHub API"
+    source_action_text: "calls the GitHub API"
+    source_explain_text: "The GitHub API (repositories, issues, code), called by the server with the signed-in account's token. This exchange happens at the server's: the workstation does not see it."
 
 restaurant:
   host:
