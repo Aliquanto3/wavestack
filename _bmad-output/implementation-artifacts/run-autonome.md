@@ -36,8 +36,35 @@ Au plus 3 stories en développement à la fois (3,6 Go de RAM libre au départ ;
 ## Reprise après /clear
 
 - Lire ce fichier, puis `sprint-status.yaml` ; l'état réel prime : `gh pr list --state open`, `git -C ../wavestack-r171-s<N> log -3 --oneline`.
+- En pause depuis le 2026-10-27 (démo d’Anaël). Reste : 17.4 (worktree `../wavestack-r171-s4`, commit befab6d7) → `reviewer` (Opus) avec la liste du second avis du journal, rebasé sur `origin/main`, puis E2E `rag rag_rerank rag_lab_no_index`, PR, CI, fusion ; puis version 1.7.1. Reprendre seulement sur demande d’Anaël.
 - Fin de run : rapport `rapport-run-recette-v1-7-0.md`, version 1.7.1, mémoire du projet, suppression des worktrees.
 
 ## Journal
 
 - 2026-10-27 15:27 · run · décision · ancien run archivé, epic 17 créé, constats CT-01 à CT-05 précisés par Anaël · —
+- 2026-10-27 15:31 · run · décision · PR #158 (état du run) en fusion automatique après CI · —
+- 2026-10-27 15:31 · 17.1, 17.2, 17.3 · dev · lancé (Sonnet) · —
+- 2026-10-27 16:17 · 17.1 · dev · fini · 9e0128d3
+- 2026-10-27 16:17 · 17.1 · second-avis · 3 medium, 3 low · 9e0128d3
+- 2026-10-27 16:17 · 17.1 · review · 6 constats corrigés (360 px réel : panneau hors fenêtre, nav en nowrap) ; E2E bar_journal bar_panels 35 OK · 068de1e3
+- 2026-10-27 16:17 · 17.1 · fusion · PR #159 MERGED, CI 8/8 · ef733ee0
+- 2026-10-27 16:17 · 17.1 · report · à 360 px la page Harnais fait 646 px de large (contenu de la page, hors barre) · —
+- 2026-10-27 16:17 · 17.2 · décision · à revoir : le coût d'un modèle gratuit disparaissait (empreinte seule) ; ajout « 0 $, offre gratuite » · 046dddae
+- 2026-10-27 16:17 · 17.2 · report · l'Atelier RAG n'indique pas l'offre gratuite (règle propre, rag/lab.py) · —
+- 2026-10-27 16:17 · 17.5 · dev · lancé (Sonnet) · —
+- 2026-10-27 16:29 · 17.4 · dev · lancé (Sonnet) · —
+- 2026-10-27 16:29 · 17.2 · review · E2E llm_screen réaligné (faux modèle cloud sans prix) ; texte anglais $0 ; E2E 66 OK · 5bfbdc66
+- 2026-10-27 16:29 · 17.2 · fusion · PR #160 MERGED, CI 8/8 · dbef8d41
+- 2026-10-27 16:29 · 17.3 · second-avis · 3 medium, 3 low · d7440e2a
+- 2026-10-27 16:29 · 17.3 · review · filtre invert interdit par test_web_tokens → logos -white.svg ; « Avant MCP » suit le modèle (zone Réseau) ; schémas reconstruits au changement de modèle · 1e2e929c
+- 2026-10-27 16:29 · 17.3 · décision · à revoir : libellé cloud « LLM cloud » ; robot sans nom du fournisseur en cloud · 1e2e929c
+- 2026-10-27 16:29 · 17.5 · dev · fini · e59702d5
+- 2026-10-27 17:02 · 17.3 · CI · rouge deux fois (littéral français dans mcp/lab.py, puis ruff format), corrigé · —
+- 2026-10-27 17:02 · 17.3 · fusion · PR #161 MERGED, CI 8/8, E2E mcp_lab mcp_lab_page 55 OK · 9d3fb982
+- 2026-10-27 17:02 · 17.5 · second-avis · 1 medium (vue carte 560 px, pré-existant), 7 low · e59702d5
+- 2026-10-27 17:02 · 17.5 · review · compteur O(1), role=status fiable, E2E renforcé ; E2E security_page 43 OK · ad56a32a
+- 2026-10-27 17:02 · 17.5 · fusion · PR #162 MERGED, CI 8/8 · 6b0bd7df
+- 2026-10-27 17:02 · 17.5 · report · vue en cartes sous 560 px de la maquette absente depuis 16.7 · —
+- 2026-10-27 17:02 · 17.4 · dev · fini · befab6d7
+- 2026-10-27 17:02 · 17.4 · second-avis · 1 medium (course amorçage /api/state vs /api/rag_lab), 4 low (libellé « onglet Atelier RAG » absent de la page, pas de test de (a)) · befab6d7
+- 2026-10-27 17:02 · run · décision · pause demandée par Anaël (démo) : fusion de ce qui était prêt, 17.4 en attente de revue · —
