@@ -2011,6 +2011,7 @@ security:
     why_label: "Why this risk."
     filter_all: "All the tools"
     filter_write: "Only the ones that write"
+    filter_empty: "No tool for this filter."
     legend_allow: "the call goes alone."
     legend_ask: "you decide on each call."
     legend_deny: "the call never happens."
@@ -2081,6 +2082,7 @@ security:
     download: "Download (CSV)"
     empty: "No event yet."
     why: "A decision you cannot read back is not under control. The journal shows who decided what, and why."
+    filter_empty: "No event for this filter."
     filters:
       all: "All ({count})"
       refused: "Refused and blocked ({count})"

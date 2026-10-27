@@ -32,6 +32,18 @@ function ruleText(rule) {
   return rule === "mixed" ? t("security.matrix.rule_mixed") : t(`mcp.policy.rule.${rule}`);
 }
 
+// Story 17.5: the matrix's own Règle column, a status-chip (maquette-securite.html,
+// ux-securite.md) rather than plain text, with the same levels as the legend below it.
+const RULE_LEVEL = { allow: "low", ask: "mid", deny: "high" };
+
+function ruleLevel(rule) {
+  return RULE_LEVEL[rule] ?? "off"; // "mixed"
+}
+
+function ruleChip(rule) {
+  return chip(ruleText(rule), ruleLevel(rule));
+}
+
 // Story 16.7 (CAP-10): a single affordance for everything clickable (cursor, hover and
 // focus by `pages.css`'s rules on `.sec-question-card`, `.call-step`, `.filter-chip` and
 // `.mx-toggle`); the focus follows a card's or a step's scroll, never only the scroll.
@@ -173,14 +185,16 @@ function setMatrixFilter(value) {
   if (filters) {
     filters.querySelectorAll("[data-mx]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mx === value)));
   }
-  $("sec-matrix-body")
-    ?.querySelectorAll("tr.mx-row")
-    .forEach((row) => {
-      row.hidden = value === "write" && row.dataset.write !== "true";
-      // Its detail row stays shut unless the row is both shown and unfolded.
-      const open = row.querySelector(".mx-toggle").getAttribute("aria-expanded") === "true";
-      row.nextElementSibling.hidden = row.hidden || !open;
-    });
+  const rows = $("sec-matrix-body")?.querySelectorAll("tr.mx-row") ?? [];
+  rows.forEach((row) => {
+    row.hidden = value === "write" && row.dataset.write !== "true";
+    // Its detail row stays shut unless the row is both shown and unfolded.
+    const open = row.querySelector(".mx-toggle").getAttribute("aria-expanded") === "true";
+    row.nextElementSibling.hidden = row.hidden || !open;
+  });
+  // Story 17.5: a filter that keeps nothing leaves no blank area.
+  const empty = $("sec-matrix-filter-empty");
+  if (empty) empty.hidden = rows.length === 0 || Array.from(rows).some((row) => !row.hidden);
 }
 
 function matrixRow(row) {
@@ -212,7 +226,7 @@ function matrixRow(row) {
   const risk = document.createElement("td");
   risk.append(chip(t(`mcp.policy.risk.${row.risk}`), row.risk));
   const rule = document.createElement("td");
-  rule.textContent = ruleText(row.rule);
+  rule.append(ruleChip(row.rule));
   tr.append(tool, nature, risk, rule);
 
   const detailTr = document.createElement("tr");
@@ -228,7 +242,7 @@ function matrixRow(row) {
   strong.textContent = t("security.matrix.why_label");
   why.append(strong, ` ${t(`security.matrix.${row.id}.why`)}`);
   body.append(why);
-  if (row.tools.length) body.append(...kv(row.tools.map((tool2) => [tool2.label_text, ruleText(tool2.rule)])));
+  if (row.tools.length) body.append(...ruleKv(row.tools.map((tool2) => [tool2.label_text, tool2.rule])));
   detailTd.append(body);
   detailTr.append(detailTd);
 
@@ -306,6 +320,19 @@ function kv(pairs) {
     dt.textContent = key;
     const dd = document.createElement("dd");
     dd.textContent = value;
+    dl.append(dt, dd);
+  }
+  return [dl];
+}
+
+// Story 17.5: same shape as `kv`, but the matrix's own dépliés want the rule's chip, not plain text.
+function ruleKv(pairs) {
+  const dl = document.createElement("dl");
+  for (const [key, rule] of pairs) {
+    const dt = document.createElement("dt");
+    dt.textContent = key;
+    const dd = document.createElement("dd");
+    dd.append(ruleChip(rule));
     dl.append(dt, dd);
   }
   return [dl];
@@ -454,11 +481,15 @@ function setJournalFilter(value) {
   journalFilter = value;
   const filters = $("sec-journal-filters");
   if (filters) filters.querySelectorAll("[data-f]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === value)));
-  $("sec-journal")
-    ?.querySelectorAll("li[data-decision]")
-    .forEach((li) => {
-      li.hidden = !journalMatches(li.dataset.decision, value);
-    });
+  const rows = $("sec-journal")?.querySelectorAll("li[data-decision]") ?? [];
+  rows.forEach((li) => {
+    li.hidden = !journalMatches(li.dataset.decision, value);
+  });
+  // Story 17.5: a filter that keeps nothing leaves no blank area (the journal's own
+  // « Aucun événement » li, shown by `renderJournal` when there is no entry at all, is
+  // a different case and has no `data-decision`, so `rows` stays empty for it).
+  const empty = $("sec-journal-filter-empty");
+  if (empty) empty.hidden = rows.length === 0 || Array.from(rows).some((li) => !li.hidden);
 }
 
 function renderJournalFilters(counts) {
@@ -494,9 +525,11 @@ function renderJournal(entries) {
     empty.className = "sec-empty";
     empty.textContent = t("security.journal.empty");
     list.replaceChildren(empty);
+    setJournalFilter(journalFilter);
     return;
   }
   list.replaceChildren(...entries.map(journalRow));
+  setJournalFilter(journalFilter);
 }
 
 function prependJournalRow(entry) {
@@ -505,6 +538,7 @@ function prependJournalRow(entry) {
   if (list.firstElementChild?.classList.contains("sec-empty")) list.replaceChildren();
   list.prepend(journalRow(entry));
   if (list.children.length > KEPT) list.lastElementChild.remove();
+  setJournalFilter(journalFilter);
 }
 
 // ---------- the limits ----------

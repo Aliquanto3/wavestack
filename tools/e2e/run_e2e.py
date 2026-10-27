@@ -17704,6 +17704,31 @@ def s_security_page(r: Run) -> None:
             toggle.get_attribute("aria-expanded") == "true" and details.first.is_visible(),
             "Sécurité : une ligne de la matrice se déplie au clavier",
         )
+        # Story 17.5: the matrix's own Règle column (and its dépliés) is a status-chip,
+        # not plain text (maquette-securite.html, ux-securite.md).
+        rule_chip = (
+            page.locator("#sec-matrix-body tr.mx-row")
+            .first.locator("td")
+            .nth(3)
+            .locator(".status-chip")
+        )
+        rule_class = rule_chip.get_attribute("class")
+        r.check(
+            rule_chip.count() == 1
+            and rule_class
+            in {
+                "status-chip",
+                "status-chip status-chip-mid",
+                "status-chip status-chip-high",
+                "status-chip status-chip-off",
+            },
+            "Sécurité : la cellule Règle de la matrice est une pastille de niveau connu",
+            rule_class,
+        )
+        r.check(
+            details.first.locator(".status-chip").count() > 0,
+            "Sécurité : la règle du dépli de la matrice est aussi une pastille",
+        )
         # The « écriture » card filters the matrix and gives the focus to its title.
         cards = page.locator("#sec-questions .sec-question-card")
         cards.first.click()
@@ -17724,6 +17749,19 @@ def s_security_page(r: Run) -> None:
         )
         page.locator('#sec-journal-filters [data-f="all"]').click()
         r.check(allowed.is_visible(), "Sécurité : le filtre « Tout » rend tout le journal")
+        # Story 17.5: a filter that keeps nothing shows a message, not a blank area
+        # (the fake journal has only « allow » et « deny », jamais « allow_once »).
+        page.locator('#sec-journal-filters [data-f="allow_once"]').click()
+        empty_msg = page.locator("#sec-journal-filter-empty")
+        r.check(
+            empty_msg.is_visible() and empty_msg.get_attribute("role") == "status",
+            "Sécurité : le filtre journal sans résultat affiche un message d'état vide",
+        )
+        page.locator('#sec-journal-filters [data-f="all"]').click()
+        r.check(
+            not empty_msg.is_visible(),
+            "Sécurité : le message d'état vide disparaît quand le filtre redonne des résultats",
+        )
         # The « écriture » card left the matrix filtered: back to every tool.
         page.locator('#sec-matrix-filters [data-mx="all"]').click()
         r.check(

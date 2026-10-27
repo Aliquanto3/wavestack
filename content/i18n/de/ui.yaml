@@ -2011,6 +2011,7 @@ security:
     why_label: "Warum dieses Risiko."
     filter_all: "Alle Werkzeuge"
     filter_write: "Nur die schreibenden"
+    filter_empty: "Kein Werkzeug für diesen Filter."
     legend_allow: "der Aufruf erfolgt allein."
     legend_ask: "Sie entscheiden bei jedem Aufruf."
     legend_deny: "der Aufruf findet nie statt."
@@ -2081,6 +2082,7 @@ security:
     download: "Herunterladen (CSV)"
     empty: "Noch kein Ereignis."
     why: "Eine Entscheidung, die man nicht nachlesen kann, lässt sich nicht kontrollieren. Das Protokoll zeigt, wer was entschieden hat, und warum."
+    filter_empty: "Kein Ereignis für diesen Filter."
     filters:
       all: "Alle ({count})"
       refused: "Abgelehnt und blockiert ({count})"
