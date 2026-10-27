@@ -671,6 +671,50 @@ def test_public_servers_say_what_they_receive_and_local_ones_do_not(server):
         assert text.sends_text is None
 
 
+# ---------- story 3 of the 27/10 retours (CAP-8): a logo per server ----------
+
+
+def test_mcp_servers_has_the_four_expected_ids_in_order():
+    from wavestack.mcp.servers import ALL_IDS
+
+    assert ALL_IDS == ("local", "datagouv", "mslearn", "github")
+    assert list(mcp_servers(config.Config())) == list(ALL_IDS)
+
+
+@pytest.mark.parametrize("server", list(mcp_servers(config.Config()).values()), ids=lambda s: s.id)
+def test_mcp_server_logo_is_its_own_svg_file_offline(server):
+    """CAP-8: every known server has a logo of its own, a local SVG (never the network)."""
+    from wavestack.web.app import STATIC_DIR
+
+    assert server.logo == f"mcp/{server.id}.svg"
+    path = STATIC_DIR / "logos" / server.logo
+    assert path.is_file()
+    assert path.read_text(encoding="utf-8").startswith("<svg")
+
+
+def test_only_github_has_a_dark_theme_logo_its_white_invertocat():
+    """CAP-8: GitHub's own white file for the dark theme (never a CSS recolouring)."""
+    from wavestack.web.app import STATIC_DIR
+
+    darks = {s.id: s.logo_dark for s in mcp_servers(config.Config()).values()}
+    assert darks == {
+        "local": None,
+        "datagouv": None,
+        "mslearn": None,
+        "github": "mcp/github-white.svg",
+    }
+    assert 'fill="white"' in (STATIC_DIR / "logos" / darks["github"]).read_text(encoding="utf-8")
+
+
+def test_mcp_server_logo_falls_back_to_the_neutral_default_for_an_unknown_id():
+    from wavestack.mcp.servers import McpServer
+    from wavestack.web.app import STATIC_DIR
+
+    unknown = McpServer("future_server", "https://example.invalid")
+    assert unknown.logo == "mcp/_default.svg"
+    assert (STATIC_DIR / "logos" / unknown.logo).is_file()
+
+
 # ---------- #5 of the V1 finishing (2026-10-04): a turn sent while a server connects ----------
 
 

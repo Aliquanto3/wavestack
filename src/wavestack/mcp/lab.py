@@ -51,7 +51,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from wavestack import config
 from wavestack.mcp import connection as _connection
 from wavestack.mcp.connection import McpConnection, _leaf, describe_error
-from wavestack.mcp.servers import McpServer
+from wavestack.mcp.servers import ALL_IDS, McpServer
 from wavestack.messages import msg, number
 from wavestack.net.guard import find_blocked
 from wavestack.trace.scope import TraceScope
@@ -68,7 +68,6 @@ METHODS = (
     "prompts/get",
 )
 TRANSPORTS = ("stdio", "streamable_http")
-SERVER_IDS = ("local", "datagouv", "mslearn")
 COLUMNS = ("user", "model", "host", "client", "server", "source")
 EXCHANGES = ("connect", "call", "read", "prompt", "ask")
 PIECES = (
@@ -82,7 +81,9 @@ PIECES = (
     "resource",
     "prompt",
 )
-BEFORE = ("local", "datagouv", "mslearn")
+# CAP-8: every server of `servers.ALL_IDS`, so a server added there only needs its
+# `before.integrations` and `servers` lines to appear in full, no further Python change.
+BEFORE = ALL_IDS
 
 
 # ---------- the page's texts (content/mcp_lab.yaml, AD-19) ----------
@@ -189,7 +190,7 @@ class McpLabContent(_Strict):
             ("columns", COLUMNS),
             ("phases", EXCHANGES),
             ("primitives", ("tools", "resources", "prompts")),
-            ("servers", SERVER_IDS),
+            ("servers", ALL_IDS),
             ("restaurant", PIECES),
         ):
             if set(getattr(self, name)) != set(keys):

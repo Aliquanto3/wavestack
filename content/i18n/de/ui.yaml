@@ -1589,6 +1589,7 @@ mcp:
     unavailable: "„Durch das Modell“ nicht verfügbar: {reason}"
     local_line: "{model} · Lokal"
     cloud_line: "{model} · 🌐 NETZWERK · {provider}"
+    answer: "Antwort des Modells: {text}"
   read:
     legend: "Ressource"
     run: "Lesen"
@@ -1742,6 +1743,7 @@ mcp:
     headers: "Header"
     body: "Body der ausgehenden Anfrage"
     model_call: "Vom Modell gelesen: {prompt} · erzeugt: {output} · {time}"
+    reply: "Vollständige Antwort: {text}"
   seq:
     new_messages:
       one: "↓ {n} neue Nachricht"

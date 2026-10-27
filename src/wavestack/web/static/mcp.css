@@ -472,6 +472,32 @@ body.mcp-page {
   margin: 0;
 }
 
+.mcp-server-logo {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* CAP-8: a brand's own dark-theme logo (GitHub's white Invertocat), never a CSS recolouring. */
+.mcp-server-logo.is-dark,
+:root[data-theme="dark"] .mcp-server-logo.has-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .mcp-server-logo.is-dark {
+  display: inline;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .mcp-server-logo.has-dark {
+    display: none;
+  }
+
+  :root:not([data-theme]) .mcp-server-logo.is-dark {
+    display: inline;
+  }
+}
+
 .mcp-server-name {
   font: var(--typography-label-font-weight) var(--typography-label-font-size) /
     var(--typography-label-line-height) var(--typography-label-font-family);
@@ -1402,11 +1428,6 @@ button.mcp-arrow:hover {
   background: var(--color-surface);
 }
 
-.mcp-node.is-source.is-hidden-side {
-  border-style: dotted;
-  color: var(--color-ink-soft);
-}
-
 .mcp-node.is-server.is-net {
   background: var(--color-discipline-network-soft);
   border: var(--spacing-stroke-min) dashed var(--color-hosting-boundary);
@@ -1582,7 +1603,7 @@ button.mcp-arrow:hover {
 .mcp-lanes-before > .mcp-zone-label {
   position: static;
   grid-column: 3;
-  grid-row: 3;
+  grid-row: -1; /* CAP-8: last row, whatever the server count (JS sets its track count) */
   align-self: end;
   justify-self: end;
   white-space: nowrap;
@@ -1603,6 +1624,8 @@ button.mcp-arrow:hover {
 .mcp-lanes-before,
 .mcp-lanes-before-network {
   display: grid;
+  /* CAP-8: a fallback for 3 servers; `buildBefore()` sets the real row count inline, for any
+     server count (`servers.ALL_IDS`). */
   grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 2px var(--spacing-4);
   height: 100%;
@@ -1639,7 +1662,7 @@ button.mcp-arrow:hover {
 
 .mcp-before-node.is-model {
   grid-column: 1;
-  grid-row: 2 / 4;
+  grid-row: 2 / -1; /* CAP-8: down to the last row, whatever the server count */
   background: var(--color-ink-fill);
   color: var(--color-on-ink);
 }
@@ -1657,17 +1680,14 @@ button.mcp-arrow:hover {
   grid-column: 2;
 }
 
-.mcp-before-node.is-source.is-hidden-side {
-  border-style: dotted;
-  color: var(--color-ink-soft);
-}
-
 .mcp-before-host {
   grid-column: 2;
-  grid-row: 1 / 4;
+  grid-row: 1 / -1; /* CAP-8: down to the last row, whatever the server count */
   position: relative;
   display: grid;
-  grid-template-rows: repeat(3, auto); /* each integration its own height: one or two lines */
+  /* each integration its own height (one or two lines); CAP-8: a fallback for 3 servers,
+     `buildBefore()` sets the real row count inline. */
+  grid-template-rows: repeat(3, auto);
   align-content: space-evenly;
   gap: 2px;
   margin: -6px 0 -2px;

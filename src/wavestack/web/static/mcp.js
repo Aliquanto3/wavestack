@@ -182,6 +182,7 @@ export function frames(envelopes) {
   let connect = null; // the series' `mcp_lab_connect_ended`
   let generating = null; // a call to the model started, not ended: its step
   let closed = null;
+  let lastAnswer = null; // CAP-8: the series' last final answer, in full (never clipped)
 
   const add = (arrow) => {
     arrow.revealAt = arrow.step ? steps++ : Math.max(steps - 1, 0);
@@ -412,8 +413,12 @@ export function frames(envelopes) {
           json: p.tool_call ? p.tool_call.arguments_text : null, mv: p.outcome === "refused" ? `${step}:refused` : null });
         if (p.outcome === "refused") blocks.push({ kind: "refused", key: `${step}:refused`, arrow: answer.key, payload: p });
         if (p.final && p.outcome === "answer") {
+          const full = p.answer_text || "";
+          // CAP-8: the row keeps the 60-char preview, its detail (click to expand, already
+          // wired by `renderDetail`) shows the reply in full.
           add({ key: `${step}:reply`, phase: base, kind: "user", from: HOST, to: USER, step: true,
-            text: quote(clip(p.answer_text || "")) });
+            text: quote(clip(full)), full: quote(full) });
+          lastAnswer = full;
           if (p.direct) note(base, `${step}:direct`, t("mcp.notes.direct"));
         }
         break;
@@ -436,7 +441,7 @@ export function frames(envelopes) {
         break;
     }
   }
-  return { phases, arrows, blocks, connect, model, generating, closed, steps };
+  return { phases, arrows, blocks, connect, model, generating, closed, steps, lastAnswer };
 }
 
 function primitivesText(end) {
@@ -665,6 +670,8 @@ function renderDetail(arrow) {
     el("span", "mcp-tag", originTag(arrow))
   );
   box.append(head, el("p", "mcp-detail-caption", arrowLabel(arrow)));
+  // CAP-8: the reply's full text (never clipped), under its 60-char preview.
+  if (arrow.full) box.append(el("p", "mcp-detail-text", t("mcp.detail.reply", { text: arrow.full })));
   const why = arrow.kind === "rpc" ? text(`methods.${arrow.method}`) : arrow.explain;
   if (why) box.append(el("p", "mcp-detail-text", why));
   if (arrow.error) box.append(el("p", "mcp-detail-error", t("mcp.a11y.error", { reason: arrow.error })));
@@ -1253,7 +1260,8 @@ function buildArch() {
     node.append(el("span", "mcp-node-name", server.label_text), el("span", "mcp-prims"));
     node.append(srOnly(""));
     explain(node, columnExplain("server", server));
-    const source = archBlock(`mcp-node is-source ${server.network ? "is-hidden-side" : ""}`, `source-${server.id}`, server.source_label_text ?? "");
+    // CAP-8: every source line in full, never dotted or hidden (`.is-hidden-side`, removed).
+    const source = archBlock("mcp-node is-source", `source-${server.id}`, server.source_label_text ?? "");
     explain(source, columnExplain("source", server));
     node.style.gridRow = String(i + 1);
     source.style.gridRow = String(i + 1);
@@ -1374,8 +1382,10 @@ function renderArchReveal(seen) {
 // by hand per source, each wired straight to its source by a connector of its own shape
 // (● circle, ◆ diamond, ▲ triangle). The schema is drawn for the eyes (`aria-hidden`); its text
 // equivalent, the integrations and the captions, is a list read by assistive technologies.
-const BEFORE_SHAPES = { local: "circle", datagouv: "diamond", mslearn: "triangle" };
-const BEFORE_MARKS = { circle: "●", diamond: "◆", triangle: "▲" };
+// CAP-8: github's own shape (square), a 4th server; a server added later without
+// a shape of its own falls back to the circle (its own line still shown, never hidden).
+const BEFORE_SHAPES = { local: "circle", datagouv: "diamond", mslearn: "triangle", github: "square" };
+const BEFORE_MARKS = { circle: "●", diamond: "◆", triangle: "▲", square: "■" };
 let beforeLayer = null;
 
 function buildBefore() {
@@ -1394,13 +1404,20 @@ function buildBefore() {
   network.append(el("span", "mcp-zone-label", t("mcp.arch.network_label")));
   const netLanes = el("div", "mcp-lanes-before-network");
   const sr = el("ul", "mcp-sr-only");
+  // CAP-8: as many rows as servers (`servers.ALL_IDS`), never the 3 of the first 3 servers: a
+  // server added later grows the schema instead of overlapping its last row.
+  const rows = store.servers.length;
+  lanes.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+  netLanes.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+  host.style.gridTemplateRows = `repeat(${rows}, auto)`;
   store.servers.forEach((server, i) => {
     const shape = BEFORE_SHAPES[server.id] ?? "circle";
     const integration = el("div", "mcp-before-node is-integration", `${BEFORE_MARKS[shape]} ${text(`before.integrations.${server.id}`)}`);
     integration.dataset.before = server.id;
     integration.style.gridRow = String(i + 1);
     host.append(integration);
-    const source = el("div", `mcp-before-node is-source ${server.network ? "is-hidden-side" : ""}`, server.source_label_text ?? "");
+    // CAP-8: every source line in full, never dotted or hidden (`.is-hidden-side`, removed).
+    const source = el("div", "mcp-before-node is-source", server.source_label_text ?? "");
     source.dataset.beforeSource = server.id;
     source.dataset.shape = shape;
     source.style.gridRow = String(i + 1);
@@ -1429,6 +1446,9 @@ function buildBefore() {
 function connectorEnd(shape, x, y) {
   const size = 6;
   if (shape === "circle") return svgEl("circle", { cx: x, cy: y, r: size, class: "mcp-connector-end" });
+  if (shape === "square") {
+    return svgEl("rect", { x: x - size, y: y - size, width: size * 2, height: size * 2, class: "mcp-connector-end" });
+  }
   const points = shape === "diamond"
     ? [[x, y - size], [x + size, y], [x, y + size], [x - size, y]]
     : [[x - size, y + size], [x, y - size], [x + size, y + size]];
@@ -1534,6 +1554,19 @@ function renderServers() {
         renderHeads();
         renderGithub();
       });
+      // CAP-8: each server's logo, a local SVG (offline), never loaded from the network.
+      // A brand's dark-theme variant (GitHub's white Invertocat) is its own file, never recoloured.
+      const logos = [[server.logo, server.logo_dark ? "has-dark" : ""], [server.logo_dark, "is-dark"]]
+        .filter(([src]) => src)
+        .map(([src, variant]) => {
+          const img = el("img", `mcp-server-logo ${variant}`.trim());
+          img.src = `/static/logos/${src}`;
+          img.alt = "";
+          img.setAttribute("aria-hidden", "true");
+          // A missing file: the neutral pictogram, never a broken image (only once, no loop).
+          img.addEventListener("error", () => { img.src = "/static/logos/mcp/_default.svg"; }, { once: true });
+          return img;
+        });
       const name = el("span", "mcp-server-name", server.label_text);
       const hosting = el("span", `mcp-hosting ${server.network ? "is-network" : "is-local"}`);
       if (server.network) {
@@ -1543,7 +1576,7 @@ function renderServers() {
       } else {
         hosting.textContent = t("mcp.servers.local");
       }
-      label.append(radio, name, hosting, el("span", "mcp-server-transport", text(`transports.${server.transport}.label_text`)));
+      label.append(radio, ...logos, name, hosting, el("span", "mcp-server-transport", text(`transports.${server.transport}.label_text`)));
       const info = el("button", "mcp-info", "ⓘ");
       info.type = "button";
       info.setAttribute("aria-label", t("mcp.servers.details", { server: server.label_text }));
@@ -1781,7 +1814,11 @@ function buildCommands(box, end) {
     send.id = "mcp-ask-send";
     const modelLine = sentence("mcp-note mcp-model-line", "");
     modelLine.id = "mcp-ask-model";
-    byModel.append(sentence("mcp-note", text("by_model_text")), field(t("mcp.ask.question"), question), send, modelLine);
+    // CAP-8: the model's final answer, in full, readable right under « Envoyer au modèle ».
+    const answerLine = sentence("mcp-note mcp-ask-answer", "");
+    answerLine.id = "mcp-ask-answer";
+    answerLine.hidden = true;
+    byModel.append(sentence("mcp-note", text("by_model_text")), field(t("mcp.ask.question"), question), send, modelLine, answerLine);
     panel.append(mode, reason, hand, byModel);
     $("mcp-call-tool")?.addEventListener("change", () => renderCallFields(connect));
     $("mcp-call-preset")?.addEventListener("change", () => applyPreset(connect));
@@ -1954,6 +1991,13 @@ function updateCommands() {
   for (const id of ["mcp-ask-model", "mcp-read-model", "mcp-prompt-model"]) {
     const line = $(id);
     if (line) line.textContent = modelLine();
+  }
+  // CAP-8: the last final answer, in full, under « Envoyer au modèle ».
+  const answerLine = $("mcp-ask-answer");
+  if (answerLine) {
+    const full = store.model?.lastAnswer;
+    answerLine.hidden = !full;
+    answerLine.textContent = full ? t("mcp.ask.answer", { text: quote(full) }) : "";
   }
 }
 
