@@ -10,7 +10,6 @@ common:
   format:
     usd: "${amount}"
     usd_below: "< ${amount}"
-    eur: "€{amount}"
     quote: "“{text}”"
     label_value: "{label}: {value}"
   unavailable_outside_turn: "Available when no turn is running."
@@ -115,7 +114,7 @@ common:
       summary_kv: "Locally, the model's cache saved {seconds} s of computing."
       summary_none: "No savings measured yet."
       summary_overcost: "The prompt cache cost {amount} more than it saved: its writes cost more than its reads brought back."
-      free_tier: "Free offer: no declared price for this model."
+      free_tier: "Free offer"
       cache:
         conversation: "This conversation"
         launch: "Since launch"
@@ -1005,12 +1004,12 @@ main:
     paid_calls:
       one: "{count} paid call"
       other: "{count} paid calls"
-    spend_sentence: "Estimated API spend for the session: input {input}, output {output}, i.e. {total} at the rate of {rate} € for $1 ({calls}, estimated from the declared prices)."
+    spend_sentence: "Estimated API spend for the session: input {input}, output {output}, i.e. {total} ({calls}, estimated from the declared prices)."
     footprint_sentence: "Estimated footprint of the session: {energy} · {grams} ({calls}). Two scopes add up here: in the cloud, EcoLogits' life cycle (the servers' electricity and a share of their manufacturing); locally, only the electricity consumed (CodeCarbon, kWh × intensity), without the workstation's manufacturing."
     reset_total: "Only restarting WaveStack resets this total to zero."
     reset_totals: "Only restarting WaveStack resets these totals to zero."
     cap_sentence: "Session spending cap: {total} of {cap}; once the cap is reached, no paid call is sent."
-    free_sentence: "Session API spend: 0 €, free offer ({calls}, no declared price)."
+    free_sentence: "Session API spend: $0, free offer ({calls}, no declared price)."
   log:
     kinds:
       diagnostic_check: "Diagnostics check"

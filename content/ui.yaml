@@ -19,7 +19,6 @@ common:
   format:
     usd: "{amount} $"
     usd_below: "< {amount} $"
-    eur: "{amount} €"
     quote: "« {text} »"
     label_value: "{label} : {value}"
   unavailable_outside_turn: "Disponible hors d'un tour."
@@ -126,7 +125,7 @@ common:
       summary_kv: "En local, le cache du modèle a évité {seconds} s de calcul."
       summary_none: "Aucune économie mesurée pour l'instant."
       summary_overcost: "Le cache de prompt a coûté {amount} de plus qu'il n'a fait économiser : ses écritures coûtent plus cher que ses relectures n'ont rapporté."
-      free_tier: "Offre gratuite : pas de prix déclaré pour ce modèle."
+      free_tier: "Offre gratuite"
       cache:
         conversation: "Cette conversation"
         launch: "Depuis le lancement"
@@ -1017,12 +1016,12 @@ main:
     paid_calls:
       one: "{count} appel payant"
       other: "{count} appels payants"
-    spend_sentence: "Dépense API estimée de la séance : entrée {input}, sortie {output}, soit {total} au taux de {rate} € pour 1 $ ({calls}, estimation à partir des prix déclarés)."
+    spend_sentence: "Dépense API estimée de la séance : entrée {input}, sortie {output}, soit {total} ({calls}, estimation à partir des prix déclarés)."
     footprint_sentence: "Empreinte estimée de la séance : {energy} · {grams} ({calls}). Deux périmètres s'y additionnent : en cloud, le cycle de vie d'EcoLogits (électricité des serveurs et part de leur fabrication) ; en local, l'électricité consommée seulement (CodeCarbon, kWh × intensité), sans la fabrication du poste."
     reset_total: "Seul un relancement de WaveStack remet ce total à zéro."
     reset_totals: "Seul un relancement de WaveStack remet ces totaux à zéro."
     cap_sentence: "Plafond de dépense de la séance : {total} sur {cap} ; une fois le plafond atteint, aucun appel payant ne part."
-    free_sentence: "Dépense API de la séance : 0 €, offre gratuite ({calls}, aucun prix déclaré)."
+    free_sentence: "Dépense API de la séance : 0 $, offre gratuite ({calls}, aucun prix déclaré)."
   log:
     kinds:
       diagnostic_check: "Vérification du diagnostic"
