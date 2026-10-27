@@ -198,9 +198,9 @@ main:
     orch: "Orchestration"
     schema: "Schéma d'architecture"
   disciplines:
-    prompt: "Prompt engineering"
-    context: "Context engineering"
-    harness: "Harness engineering"
+    prompt: "Prompt"
+    context: "Contexte"
+    harness: "Harnais"
     neutral: "Hors brique"
     network: "Sort du poste de travail"
   hosting:
@@ -224,7 +224,6 @@ main:
     locked_by_model: "Verrouillé : imposé par ce modèle"
     pending: "Prend effet au prochain tour"
     mcp_workshop: "Voir le protocole dans l'atelier MCP →"
-    help_label: "Ce que la brique {brick} ajoute"
     edit_prompt: "Modifier le prompt"
     # Story 13, `guardrails` brick only: the extra's and Prompt Guard's « Installer ».
     guardrails_install: Installer
@@ -240,7 +239,6 @@ main:
       not_installed: "Non installé"
       loading: "Chargement…"
       error: "Erreur de chargement"
-      switched_off: "Éteinte"
       waiting_model: "En attente du modèle"
       reserve: "Réserve de sortie : {tokens}"
       declared:
@@ -1224,11 +1222,13 @@ main:
     open: "Carte du harnais"
     title: "Carte du harnais"
     intro: "Les briques de WaveStack dans les 7 sous-systèmes d'un harnais."
-    legend_roles: "Légende : ◆ guide   ◉ capteur calculé   ◎ capteur déduit   · capacité"
+    legend_roles: "Légende : ◆ [[g:guide]]   ◉ [[g:sensor_computed]]   ◎ [[g:sensor_inferred]]   · capacité"
     legend_discipline: "Couleur de la pastille = discipline (prompt ⊂ contexte ⊂ harnais)"
     off_note: "Briques éteintes : grisées, toujours placées."
-    not_shown: "Non montré ici : plateformes (ACP, places de marché), bacs à sable du système d'exploitation, modes de permission."
-    sources: "Sources : Barbaste et al., Harness Engineering, arXiv 2609.00006 (sous-systèmes) ; Böckeler, martinfowler.com (guides et capteurs)."
+    not_shown: "Non montré ici : plateformes (ACP, marketplaces), bacs à sable du système d'exploitation, modes de permission."
+    sources_label: "Sources :"
+    source_arxiv: "Barbaste et al., Harness Engineering, arXiv 2609.00006 (sous-systèmes)"
+    source_fowler: "Böckeler, martinfowler.com (guides et capteurs)"
     core_label: "Cœur du harnais"
     off_badge: "éteinte"
     subsystems:

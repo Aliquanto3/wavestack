@@ -184,3 +184,12 @@ terms:
   llm_judge:
     term: "Juge LLM"
     definition: "Un second modèle chargé de noter la réponse d'un premier. Pratique, mais lui aussi se trompe et varie d'un essai à l'autre ; WaveStack s'en passe et vérifie des faits du journal."
+  guide:
+    term: "guide"
+    definition: "Un élément du harnais qui oriente le modèle avant qu'il agisse : une règle, une instruction ou un exemple placé dans le contexte (prompt système, mémoire, description d'un outil). Il cadre par avance, sans rien contrôler après coup."
+  sensor_computed:
+    term: "capteur calculé"
+    definition: "Un élément du harnais qui contrôle après coup ce que fait l'agent, par un calcul déterministe (règle, expression, test) : un garde-fou qui bloque un outil interdit est un capteur calculé."
+  sensor_inferred:
+    term: "capteur déduit"
+    definition: "Un élément du harnais qui contrôle après coup ce que fait l'agent en le faisant juger par un modèle plutôt que par un calcul fixe. Moins prévisible qu'un capteur calculé, mais capable de repérer ce qu'une règle fixe ne couvre pas."

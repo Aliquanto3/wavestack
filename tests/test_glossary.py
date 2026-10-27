@@ -33,9 +33,10 @@ def _raw(lang: str) -> dict:
     return yaml.safe_load(config.content_file("glossary.yaml", lang).read_text(encoding="utf-8"))
 
 
-def test_the_french_glossary_has_40_to_60_valid_terms():
+def test_the_french_glossary_has_40_to_70_valid_terms():
+    # Ceiling raised 60 -> 70 (story 16.5, CAP-3): guide/capteur calculé/capteur déduit added.
     terms = glossary.load_terms("fr")
-    assert 40 <= len(terms) <= 60
+    assert 40 <= len(terms) <= 70
     for key, entry in terms.items():
         assert glossary.KEY.fullmatch(key)
         assert entry["term"].strip() and entry["definition"].strip()

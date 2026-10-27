@@ -187,9 +187,9 @@ main:
     orch: "Orchestration"
     schema: "Architecture diagram"
   disciplines:
-    prompt: "Prompt engineering"
-    context: "Context engineering"
-    harness: "Harness engineering"
+    prompt: "Prompt"
+    context: "Context"
+    harness: "Harness"
     neutral: "Outside any brick"
     network: "Leaves the workstation"
   hosting:
@@ -213,7 +213,6 @@ main:
     locked_by_model: "Locked: imposed by this model"
     pending: "Takes effect on the next turn"
     mcp_workshop: "See the protocol in the MCP workshop →"
-    help_label: "What the {brick} brick adds"
     edit_prompt: "Edit the prompt"
     guardrails_install: Install
     guardrails_token_placeholder: "Paste your Hugging Face token…"
@@ -228,7 +227,6 @@ main:
       not_installed: "Not installed"
       loading: "Loading…"
       error: "Load error"
-      switched_off: "Off"
       waiting_model: "Waiting for the model"
       reserve: "Output reserve: {tokens}"
       declared:
@@ -1212,11 +1210,13 @@ main:
     open: "Harness map"
     title: "Harness map"
     intro: "WaveStack's bricks in the 7 subsystems of a harness."
-    legend_roles: "Legend: ◆ guide   ◉ computed sensor   ◎ inferred sensor   · capability"
+    legend_roles: "Legend: ◆ [[g:guide]]   ◉ [[g:sensor_computed]]   ◎ [[g:sensor_inferred]]   · capability"
     legend_discipline: "Badge colour = discipline (prompt ⊂ context ⊂ harness)"
     off_note: "Switched-off bricks: greyed out, always placed."
     not_shown: "Not shown here: platforms (ACP, marketplaces), operating-system sandboxes, permission modes."
-    sources: "Sources: Barbaste et al., Harness Engineering, arXiv 2609.00006 (subsystems); Böckeler, martinfowler.com (guides and sensors)."
+    sources_label: "Sources:"
+    source_arxiv: "Barbaste et al., Harness Engineering, arXiv 2609.00006 (subsystems)"
+    source_fowler: "Böckeler, martinfowler.com (guides and sensors)"
     core_label: "Harness core"
     off_badge: "off"
     subsystems:

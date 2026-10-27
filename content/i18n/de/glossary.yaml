@@ -178,3 +178,12 @@ terms:
   llm_judge:
     term: "LLM-Richter"
     definition: "Ein zweites Modell, das die Antwort eines ersten bewerten soll. Praktisch, aber auch es irrt und schwankt von Versuch zu Versuch; WaveStack verzichtet darauf und prüft Fakten des Journals."
+  guide:
+    term: "Guide"
+    definition: "Ein Element des Harness, das das Modell lenkt, bevor es handelt: eine Regel, eine Anweisung oder ein Beispiel im Kontext (Systemprompt, Gedächtnis, Beschreibung eines Werkzeugs). Es rahmt im Voraus, es prüft nichts im Nachhinein."
+  sensor_computed:
+    term: "berechneter Sensor"
+    definition: "Ein Element des Harness, das im Nachhinein prüft, was der Agent getan hat, durch eine deterministische Berechnung (Regel, Ausdruck, Test): ein Guardrail, der ein verbotenes Werkzeug blockiert, ist ein berechneter Sensor."
+  sensor_inferred:
+    term: "abgeleiteter Sensor"
+    definition: "Ein Element des Harness, das im Nachhinein prüft, was der Agent getan hat, indem es ein Modell urteilen lässt statt einer festen Berechnung. Weniger vorhersagbar als ein berechneter Sensor, aber fähig, zu erkennen, was eine feste Regel übersieht."

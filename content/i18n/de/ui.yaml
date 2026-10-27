@@ -187,9 +187,9 @@ main:
     orch: "Orchestrierung"
     schema: "Architekturschema"
   disciplines:
-    prompt: "Prompt Engineering"
-    context: "Context Engineering"
-    harness: "Harness Engineering"
+    prompt: "Prompt"
+    context: "Kontext"
+    harness: "Harness"
     neutral: "Kein Baustein"
     network: "Verlässt den Arbeitsplatz"
   hosting:
@@ -213,7 +213,6 @@ main:
     locked_by_model: "Gesperrt: von diesem Modell vorgegeben"
     pending: "Wirkt ab der nächsten Runde"
     mcp_workshop: "Das Protokoll in der MCP-Werkstatt ansehen →"
-    help_label: "Was der Baustein {brick} hinzufügt"
     edit_prompt: "Prompt bearbeiten"
     guardrails_install: Installieren
     guardrails_token_placeholder: "Fügen Sie Ihr Hugging-Face-Token ein…"
@@ -228,7 +227,6 @@ main:
       not_installed: "Nicht installiert"
       loading: "Wird geladen…"
       error: "Ladefehler"
-      switched_off: "Ausgeschaltet"
       waiting_model: "Warten auf das Modell"
       reserve: "Ausgabereserve: {tokens}"
       declared:
@@ -1212,11 +1210,13 @@ main:
     open: "Harness-Karte"
     title: "Harness-Karte"
     intro: "Die Bausteine von WaveStack in den 7 Subsystemen eines Harness."
-    legend_roles: "Legende: ◆ Guide   ◉ berechneter Sensor   ◎ abgeleiteter Sensor   · Fähigkeit"
+    legend_roles: "Legende: ◆ [[g:guide]]   ◉ [[g:sensor_computed]]   ◎ [[g:sensor_inferred]]   · Fähigkeit"
     legend_discipline: "Farbe der Markierung = Disziplin (Prompt ⊂ Kontext ⊂ Harness)"
     off_note: "Ausgeschaltete Bausteine: ausgegraut, trotzdem eingeordnet."
     not_shown: "Hier nicht gezeigt: Plattformen (ACP, Marktplätze), Sandboxes des Betriebssystems, Berechtigungsmodi."
-    sources: "Quellen: Barbaste et al., Harness Engineering, arXiv 2609.00006 (Subsysteme); Böckeler, martinfowler.com (Guides und Sensoren)."
+    sources_label: "Quellen:"
+    source_arxiv: "Barbaste et al., Harness Engineering, arXiv 2609.00006 (Subsysteme)"
+    source_fowler: "Böckeler, martinfowler.com (Guides und Sensoren)"
     core_label: "Kern des Harness"
     off_badge: "aus"
     subsystems:
