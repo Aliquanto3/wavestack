@@ -311,8 +311,7 @@ function applyEnvelope(envelope) {
   store.journal.push(envelope);
   // FinOps: every paid call counts, the « LLM nu » screen's and the diagnostic's included.
   // Story 9 (CAP-3, CAP-7, CAP-9): the bar's « Dépense » and « Journal », live, in O(1).
-  // Story 1 (CAP-2): this page's own tab and active model, for a `model_call_ended` entry.
-  feedBar(envelope, t("common.bar.log.tab_conversation"), () => store.activeModel);
+  feedBar(envelope);
   // Story 29: the « LLM nu » screen's events (context `llm`, no turn) go to the event log
   // only; no pane of the workshop shows them. Story 6 (2026-09-30): so do the MCP
   // workshop's (context `mcp_lab`), its outbound requests included: never the brick's.

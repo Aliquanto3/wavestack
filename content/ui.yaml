@@ -165,6 +165,7 @@ common:
       tab_llm: "Atelier LLM"
       tab_rag: "Atelier RAG"
       tab_mcp: "Atelier MCP"
+      tab_models: "Modèles"
       count:
         one: "{count} refus"
         other: "{count} refus"

@@ -72,9 +72,6 @@ const store = {
   restoring: false,
   announced: new Set(), // the phases and failures already said (status, alert)
   github: { status: "disconnected" }, // CAP-4: `GET /api/mcp_lab`'s `github`
-  // Story 1 (CAP-2): AD-12's active model, for the barre's Journal (`model_call_ended`
-  // entries) — distinct from `model`, the diagram's own `frames(envelopes)` projection.
-  activeModel: null,
 };
 
 // ---------- small helpers ----------
@@ -2258,11 +2255,9 @@ function newSeries(first) {
 
 function applyEnvelope(envelope) {
   // Story 9 (CAP-3, CAP-7, CAP-9): the bar's « Dépense » and « Journal », live, in O(1).
-  // Story 1 (CAP-2): this page's own tab and active model, for a `model_call_ended` entry.
-  feedBar(envelope, t("common.bar.log.tab_mcp"), () => store.activeModel);
+  feedBar(envelope);
   if (envelope.kind === "session_state") {
     store.session = envelope.payload;
-    if (envelope.payload.active_model !== undefined) store.activeModel = envelope.payload.active_model;
     return "controls";
   }
   if (envelope.kind === "model_load_ended") return "state";
@@ -2401,7 +2396,6 @@ async function refresh() {
   store.presets = body.call_presets || {};
   store.openServer = body.open_server;
   store.session = body.session_state;
-  store.activeModel = body.active_model ?? null;
   store.ask = body.ask;
   store.toolRules = body.tool_rules || {};
   store.github = body.github || { status: "disconnected" };

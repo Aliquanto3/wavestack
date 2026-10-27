@@ -441,6 +441,7 @@
   background: var(--color-surface-raised);
   border-left: 2px solid var(--color-primary);
   font-size: var(--typography-body-sm-font-size);
+  overflow-wrap: anywhere; /* story 1 (CAP-1): a long model label or figure at 360 px */
 }
 
 .disclosure-row-body[hidden] {

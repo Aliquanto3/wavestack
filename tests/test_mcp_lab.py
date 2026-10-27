@@ -502,18 +502,6 @@ def test_local_handshake_lists_the_three_primitives_and_leaves_the_brick(loop):
     assert no_local_server_left()
 
 
-def test_state_carries_active_model_for_the_bars_journal(loop):
-    """Story 1 (CAP-2): `mcp_lab_state()["active_model"]` (AD-12) lets the page label a
-    `model_call_ended` entry with the model that generated it, without a new enveloppe."""
-    session = mcp_session(loop)
-
-    state = session.mcp_lab_state()
-
-    assert state["active_model"] is not None
-    assert state["active_model"]["label"]
-    assert state["active_model"]["hosting"] in ("local", "network")
-
-
 def test_valid_call_and_is_error_are_results(loop):
     session = mcp_session(loop)
     connect(session)

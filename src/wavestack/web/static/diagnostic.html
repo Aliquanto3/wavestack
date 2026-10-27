@@ -282,7 +282,7 @@
     // (`candidates[]`) or cloud row (`cloud.models[]`) by kind and ref, filters, sorts and lays
     // them out; it never groups nor computes a capability.
     import { locale, numberFormat, ready, section, t } from "/static/i18n.js";
-    import { feedBar } from "/static/bar.js";
+    import { BAR_MODEL_KINDS, feedBar } from "/static/bar.js";
 
     const $ = (id) => document.getElementById(id);
     const quote = (value) => t("common.format.quote", { text: value });
@@ -1376,6 +1376,8 @@
         onEnvelope(event, onSpend);
       });
       source.addEventListener("security_event", (event) => feedBar(JSON.parse(event.data)));
+      // Story 1 (CAP-2): the Journal's model calls, and the model each one ran on.
+      for (const kind of BAR_MODEL_KINDS) source.addEventListener(kind, (event) => feedBar(JSON.parse(event.data)));
     }
 
     // Finition V1 (#27): the spend so far, live (turns run in the workshop's tab meanwhile).

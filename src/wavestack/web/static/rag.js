@@ -58,9 +58,6 @@ const store = {
   tab: "build", // V1.2 story 4: the view tab shown
   questions: [], // V1.2 story 4: the prepared questions (CAP-2), from `GET /api/rag_lab`
   mounted: false, // V1.2 story 4: the page is ready, the tabs' `mount` hooks ran
-  // Story 1 (CAP-2): AD-12's active model, for the barre's Journal (`model_call_ended`
-  // entries); the RAG workshop has no model picker of its own yet (CAP-7, a later story).
-  activeModel: null,
 };
 
 // ---------- small helpers ----------
@@ -1390,8 +1387,7 @@ function partOf(envelope) {
 function applyEnvelope(envelope) {
   store.lastSeq = Math.max(store.lastSeq, envelope.seq);
   // Story 9 (CAP-3, CAP-7, CAP-9): the bar's « Dépense » and « Journal », live, in O(1).
-  // Story 1 (CAP-2): this page's own tab and active model, for a `model_call_ended` entry.
-  feedBar(envelope, t("common.bar.log.tab_rag"), () => store.activeModel);
+  feedBar(envelope);
   const p = envelope.payload;
   if (isUpdateEvent(envelope)) {
     applyUpdateEnvelope(envelope);
@@ -1405,7 +1401,6 @@ function applyEnvelope(envelope) {
     case "session_state": {
       const was = store.session.state;
       store.session = { state: p.state, reason_text: p.reason_text };
-      if (p.active_model !== undefined) store.activeModel = p.active_model;
       if (p.state === "idle" && closeStaleRun()) renderRun();
       renderBusy();
       // Lot 5c-4: a download ended (this page's or another's): the catalog read again.
@@ -2296,7 +2291,6 @@ async function refresh() {
   store.defaultPipeline = body.default_pipeline;
   store.unavailable = body.unavailable_text;
   store.session = body.session_state;
-  store.activeModel = body.active_model ?? null;
   store.questions = body.questions ?? [];
   const alert = $("rag-content-error");
   alert.hidden = !body.content_error_text;

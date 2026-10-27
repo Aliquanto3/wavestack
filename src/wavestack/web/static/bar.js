@@ -14,11 +14,12 @@
 //   during a session). `seq` orders the sources: a snapshot older than the last event fed is
 //   ignored.
 // - Story 1 (CAP-2, 2026-10-27): the Journal also lists every model call, of every onglet
-//   (contrat figé, `story-1.md`): `feedBar(envelope, onglet, getModel)`, `onglet` the calling
-//   page's own label and `getModel` a thunk giving its current `ActiveModel` (the page knows
-//   both already, AD-12); `bar.js` never parses `component` off the enveloppe. These entries
-//   never carry a prompt nor an answer. Bounded in memory to 500, like `SecurityJournal`; a
-//   filter keeps only the security decisions.
+//   (contrat figé, `story-1.md`), derived client-side from the envelopes as they are
+//   (Décision Q1): the onglet from `context_id`, the model from the last `active_model` the
+//   stream gave (`session_state`, `turn_started`), so a replay labels each call as it was.
+//   These entries never carry a prompt nor an answer. Bounded in memory to 500, like
+//   `SecurityJournal`, kept in the tab's `sessionStorage` across its pages; a filter keeps
+//   only the security decisions.
 // - It replaces the main screen's former « Dépense estimée » gauge (ux/EXPERIENCE.md): the
 //   panel carries what the gauge said (the euros, the cap, the footprint, the reset).
 
@@ -33,23 +34,48 @@ let securityOnly = false; // the « Sécurité seulement » filter
 let logExpanded = false; // the dépliable history, past the 5-line preview
 let maxSessionUsd = null; // finition V1 (#27): `[finops] max_session_usd`, from `/api/state`
 let seq = 0; // the newest journal `seq` the figures above reflect
+// Story 1 (CAP-2): the model calls have their own mark, never the snapshot's `seq` (an
+// `/api/state` tip would drop a call emitted but not yet streamed: the server keeps no copy).
+let modelSeq = 0; // the newest `model_call_ended` fed
+let model = null; // `{label, hosting}` the stream last named, in `seq` order
+let modelAt = 0; // the `seq` of the envelope that named it (0: none yet)
+let saved = null; // the previous page's calls, merged once `/api/state` confirms its process
+let instanceId = null; // the journal's process, `/api/state`'s
 
 const LOG_KEPT = 500; // the same order of magnitude as `SecurityJournal` (`_KEPT`)
 const LOG_PREVIEW = 5;
-const FED_KINDS = new Set(["consumption_updated", "security_event", "model_call_ended"]);
+const STORAGE_KEY = "wavestack.bar.log"; // this browser tab only, across its page loads
+// The onglet, from the envelope's own `context_id`: `main`, a sub-agent's or none is the
+// conversation.
+const TAB_OF = { llm: "tab_llm", rag_lab: "tab_rag", mcp_lab: "tab_mcp", diag: "tab_models" };
+// What a page that listens by name (EventSource) adds for the Journal's model calls.
+export const BAR_MODEL_KINDS = ["model_call_ended", "session_state", "turn_started"];
 
-export function feedBar(envelope, onglet, getModel) {
+const modelOf = (active) => (active ? { label: active.label, hosting: active.hosting } : null);
+
+export function feedBar(envelope) {
   const kind = envelope.kind;
-  if (!FED_KINDS.has(kind) || envelope.seq <= seq) return;
-  seq = envelope.seq;
   const payload = envelope.payload;
-  if (kind === "consumption_updated") {
-    consumption = payload;
-    renderSpend();
+  if (kind === "session_state" || kind === "turn_started") {
+    // AD-12: the model of the calls that follow, as the stream said it then.
+    if (payload.active_model !== undefined && envelope.seq > modelAt) {
+      model = modelOf(payload.active_model);
+      modelAt = envelope.seq;
+    }
     return;
   }
   if (kind === "model_call_ended") {
-    pushLogEntry(modelCallEntry(envelope, payload, onglet, getModel ? getModel() : null));
+    if (envelope.seq <= modelSeq) return;
+    modelSeq = envelope.seq;
+    // The diagnostic tests each cloud entry, not the session's model: no label to give.
+    pushLogEntry(modelCallEntry(envelope, payload, envelope.context_id === "diag" ? null : model));
+    return;
+  }
+  if ((kind !== "consumption_updated" && kind !== "security_event") || envelope.seq <= seq) return;
+  seq = envelope.seq;
+  if (kind === "consumption_updated") {
+    consumption = payload;
+    renderSpend();
     return;
   }
   deniedCount = payload.denied_count;
@@ -65,12 +91,14 @@ export function feedBar(envelope, onglet, getModel) {
 }
 
 // Contrat figé (story 1, `story-1.md`) : jamais `text`, `raw_output`, `reasoning` ni
-// `tool_calls` — aucune entrée ne porte le prompt ni la réponse.
-function modelCallEntry(envelope, payload, onglet, modele) {
+// `tool_calls` — aucune entrée ne porte le prompt ni la réponse. `seq` : interne, pour ne
+// pas doubler les appels qu'une page rejoue et que la page précédente avait gardés.
+function modelCallEntry(envelope, payload, modele) {
   return {
     kind: "model_call",
+    seq: envelope.seq,
     ts: envelope.ts,
-    onglet: onglet ?? "",
+    onglet: t(`common.bar.log.${TAB_OF[envelope.context_id] ?? "tab_conversation"}`),
     modele,
     tokens_in: payload.prompt_tokens,
     tokens_out: payload.output_tokens,
@@ -89,15 +117,65 @@ function modelCallEntry(envelope, payload, onglet, modele) {
   };
 }
 
+// The badge, and one row prepended when the panel is open (its other rows, one unfolded or
+// focused, stay as they are); a closed panel is drawn when it opens. Never the whole list.
 function pushLogEntry(entry) {
-  logEntries = [entry, ...logEntries].slice(0, LOG_KEPT);
-  renderLog();
+  logEntries.unshift(entry);
+  if (logEntries.length > LOG_KEPT) logEntries.pop();
+  renderLogBadge();
+  const list = $("bar-log-list");
+  if (!list || $("bar-log-panel")?.hidden !== false) return;
+  if (securityOnly && entry.kind !== "security") return;
+  if (list.querySelector(".bar-flyout-empty")) return renderLogPanel();
+  list.prepend(logRow(entry));
+  while (list.children.length > (logExpanded ? LOG_KEPT : LOG_PREVIEW)) list.lastElementChild.remove();
+  renderLogMore(filteredLog().length);
+}
+
+// The server keeps no Journal of the model calls (Décision Q1): this tab's `sessionStorage`
+// carries them from one page to the next, gone with the tab.
+// shortcut: a call ended while no page of the tab streams (between two loads) is missed;
+// a server-side Journal would close that gap.
+function restoreModelCalls() {
+  try {
+    saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "null");
+  } catch {
+    saved = null; // a storage refused or unreadable: the Journal starts with this page
+  }
+}
+
+function saveModelCalls() {
+  try {
+    const entries = logEntries.filter((e) => e.kind === "model_call");
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ instanceId, modelSeq, model, modelAt, entries }));
+  } catch {
+    // Same: nothing more to keep.
+  }
+}
+
+// Once `/api/state` names the process: the previous page's calls join this page's (a replay
+// from 0 may have fed some of them again: `seq` dedups), another process's are dropped.
+function mergeSaved() {
+  const from = saved;
+  saved = null;
+  if (!from || from.instanceId !== instanceId || !Array.isArray(from.entries)) return;
+  const fed = new Set(logEntries.map((e) => e.seq));
+  logEntries.push(...from.entries.filter((e) => !fed.has(e.seq)));
+  // Once per page: a replay may have fed newer calls than some kept ones, or older.
+  logEntries.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  logEntries.length = Math.min(logEntries.length, LOG_KEPT);
+  modelSeq = Math.max(modelSeq, from.modelSeq ?? 0);
+  if ((from.modelAt ?? 0) > modelAt) ({ model, modelAt } = from);
 }
 
 async function refresh() {
   try {
     const body = await (await fetch("/api/state")).json();
     maxSessionUsd = body.max_session_usd ?? null;
+    instanceId = body.instance_id ?? instanceId;
+    mergeSaved();
+    // A page streaming from the tip has no `session_state` yet: the current model meanwhile.
+    if (modelAt === 0) model = modelOf(body.active_model);
     // An answer older than an event already fed would put stale figures back.
     if ((body.seq ?? 0) >= seq) {
       seq = body.seq ?? 0;
@@ -114,7 +192,7 @@ async function refresh() {
 }
 
 // The server only knows the security entries (bounded to the journal's own 500); the model
-// calls accumulated live, client-side (Décision Q1), are kept as they are.
+// calls, client-side (Décision Q1), are kept as they are. Sorted on open only, never per event.
 function mergeSecurityEntries(entries) {
   const modelCalls = logEntries.filter((e) => e.kind === "model_call");
   const security = entries.map((e) => ({ kind: "security", ...e }));
@@ -478,6 +556,11 @@ function renderCacheBilan(c) {
 // ---------- « Journal » ----------
 
 function renderLog() {
+  renderLogBadge();
+  renderLogPanel();
+}
+
+function renderLogBadge() {
   const toggle = $("bar-log-toggle");
   if (!toggle) return;
   const count = $("bar-log-count");
@@ -488,7 +571,6 @@ function renderLog() {
     "aria-label",
     n === 0 ? t("common.bar.log.aria_label_zero") : t("common.bar.log.aria_label", { count: n }),
   );
-  renderLogPanel();
 }
 
 // Story 1 (CAP-2): « Sécurité seulement » ne garde que les décisions de sécurité.
@@ -510,10 +592,14 @@ function renderLogPanel() {
     const shown = filtered.slice(0, logExpanded ? LOG_KEPT : LOG_PREVIEW);
     for (const entry of shown) list.append(logRow(entry));
   }
-  // Décision Q2 : 5 lignes visibles, un historique dépliable pour les plus anciennes.
+  renderLogMore(filtered.length);
+}
+
+// Décision Q2 : 5 lignes visibles, un historique dépliable pour les plus anciennes.
+function renderLogMore(total) {
   const more = $("bar-log-more");
   if (!more) return;
-  more.hidden = filtered.length <= LOG_PREVIEW;
+  more.hidden = total <= LOG_PREVIEW;
   more.textContent = logExpanded ? t("common.bar.log.less") : t("common.bar.log.more");
   more.setAttribute("aria-expanded", String(logExpanded));
 }
@@ -533,7 +619,10 @@ const LEVEL_OF = {
 };
 
 function logRow(entry) {
-  return entry.kind === "model_call" ? modelCallRow(entry) : securityRow(entry);
+  const row = entry.kind === "model_call" ? modelCallRow(entry) : securityRow(entry);
+  row.dataset.kind = entry.kind; // the E2E's handle on the filter and on duplicates
+  if (entry.seq) row.dataset.seq = entry.seq;
+  return row;
 }
 
 const DASH = () => t("common.bar.spend.cache.none"); // "—", already a glyph the app uses
@@ -547,8 +636,10 @@ function footprintText(empreinte) {
   return `${rangeText(empreinte.energy_wh_min, empreinte.energy_wh_max, "Wh")} · ${rangeText(empreinte.gco2e_min, empreinte.gco2e_max, "g CO₂e")}`;
 }
 
-function costText(coutUsd) {
-  return coutUsd != null ? eur(coutUsd) : `${eur(0)} (${t("common.bar.log.free_tier")})`;
+// A local model costs nothing: « local », the free tier being an API's with no price.
+function costText(coutUsd, modele) {
+  if (coutUsd != null) return usd(coutUsd); // dollars, like the bar's amount (never a USD figure with a € sign)
+  return `${shortUsd(0)} (${modele?.hosting === "local" ? t("main.hosting.local") : t("common.bar.log.free_tier")})`;
 }
 
 function modelCallRow(entry) {
@@ -572,7 +663,7 @@ function modelCallRow(entry) {
   p.textContent = t("common.bar.log.model_call_detail", {
     tokens_in: numberFormat({}).format(entry.tokens_in),
     tokens_out: numberFormat({}).format(entry.tokens_out),
-    cost: costText(entry.cout_usd),
+    cost: costText(entry.cout_usd, entry.modele),
     footprint: footprintText(entry.empreinte),
     duration: numberFormat({ maximumFractionDigits: 1 }).format(entry.duree_ms / 1000),
   });
@@ -695,6 +786,8 @@ function bind() {
     event.preventDefault();
     closeAll($(open.toggle));
   });
+  restoreModelCalls();
+  addEventListener("pagehide", saveModelCalls); // once per page, never per event
   ready.then(refresh);
 }
 

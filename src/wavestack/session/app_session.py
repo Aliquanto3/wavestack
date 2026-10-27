@@ -11238,9 +11238,6 @@ class AppSession:
             "questions": self._rag_lab_questions(),
             "otel": self.rag_lab_otel(),  # V1.2 story 16 (CAP-12)
             "session_state": {"state": state, "reason_text": reason_text},
-            # Story 1 (CAP-2): the bar's Journal, for a generation's entry (AD-12, the same
-            # model as the main indicator's: the RAG workshop has no model picker yet).
-            "active_model": self.active_model(),
             "seq": tip,
         }
 
@@ -13997,8 +13994,6 @@ class AppSession:
             "open_server": open_server,
             "last_session": mcp_lab.last_session(events, first),
             "session_state": {"state": state, "reason_text": reason_text},
-            # Story 1 (CAP-2): the bar's Journal, for a call's entry (AD-12).
-            "active_model": self.active_model(),
             "ask": self._mcp_lab_ask_info(),
             "tool_rules": self._mcp_policy.rules(),  # CAP-2: changed since the connection
             "github": self._github_state(),  # CAP-4

@@ -154,6 +154,7 @@ common:
       tab_llm: "LLM workshop"
       tab_rag: "RAG workshop"
       tab_mcp: "MCP workshop"
+      tab_models: "Models"
       count:
         one: "{count} refusal"
         other: "{count} refusals"

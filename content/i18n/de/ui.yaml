@@ -154,6 +154,7 @@ common:
       tab_llm: "LLM-Werkstatt"
       tab_rag: "RAG-Werkstatt"
       tab_mcp: "MCP-Werkstatt"
+      tab_models: "Modelle"
       count:
         one: "{count} Ablehnung"
         other: "{count} Ablehnungen"
