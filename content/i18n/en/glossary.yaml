@@ -178,3 +178,12 @@ terms:
   llm_judge:
     term: "LLM judge"
     definition: "A second model asked to grade a first one's answer. Convenient, but it also errs and varies from one attempt to the next; WaveStack does without it and checks facts of the journal."
+  guide:
+    term: "guide"
+    definition: "A harness element that steers the model before it acts: a rule, instruction or example placed in the context (system prompt, memory, a tool's description). It frames ahead of time, it checks nothing afterwards."
+  sensor_computed:
+    term: "computed sensor"
+    definition: "A harness element that checks what the agent did afterwards, by a deterministic computation (a rule, an expression, a test): a guardrail that blocks a forbidden tool is a computed sensor."
+  sensor_inferred:
+    term: "inferred sensor"
+    definition: "A harness element that checks what the agent did afterwards by having a model judge it rather than a fixed computation. Less predictable than a computed sensor, but able to catch what a fixed rule misses."

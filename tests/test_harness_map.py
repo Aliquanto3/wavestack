@@ -62,7 +62,7 @@ def test_every_subsystem_and_role_has_a_label_in_each_language(lang):
         assert texts["roles"][role].strip(), (lang, role)
     for subsystem in ("loop", "llm", "orchestration"):  # filled by the harness core
         assert texts["core"][subsystem].strip(), (lang, subsystem)
-    assert "2609.00006" in texts["sources"]
+    assert "2609.00006" in texts["source_arxiv"] and "Böckeler" in texts["source_fowler"]
 
 
 def test_the_paper_labels_are_the_translations_of_the_subsystems():

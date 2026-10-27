@@ -1323,9 +1323,14 @@ function renderBricks() {
       tags.appendChild(el("span", "hosting-tag-network brick-network", t("main.hosting.network")));
     }
     // Story 33: what the brick weighs or does now, refreshed in place (`updateBrickStatuses`).
-    const status = el("p", "brick-status", brickStatus(brick));
-    status.dataset.brick = brick.id;
-    card.append(head, tags, status);
+    // CAP-4: off and available says nothing (the switch already shows it); no status text.
+    card.append(head, tags);
+    const statusText = brickStatus(brick);
+    if (statusText) {
+      const status = el("p", "brick-status", statusText);
+      status.dataset.brick = brick.id;
+      card.append(status);
+    }
 
     if (!brick.available && brick.reason_text) card.appendChild(el("p", "brick-reason", brick.reason_text));
     if (brick.id === "rag") card.append(...downloadParts(brick), ...rerankParts(brick, offReason));
@@ -1366,33 +1371,28 @@ function renderBricks() {
     if (brick.force && store.showForced) card.append(...cardForce(brick));
 
     if (brick.explanation_text?.length) {
-      // ponytail: CSS anchor positioning (Chromium) has no fallback for other engines;
-      // acceptable here since the demo targets a Chromium-based browser on the PC.
-      const anchorName = `--brick-anchor-${brick.id}`;
-      card.style.setProperty("anchor-name", anchorName);
-      const help = el("button", "brick-help", "?");
-      help.type = "button";
-      help.setAttribute("popovertarget", `explain-${brick.id}`);
-      help.setAttribute("aria-label", t("main.bricks.help_label", { brick: brick.label_text }));
-      const popover = el("div", "brick-explanation");
-      popover.id = `explain-${brick.id}`;
-      popover.setAttribute("popover", "");
-      popover.style.setProperty("position-anchor", anchorName);
-      popover.addEventListener("toggle", (event) => {
-        if (event.newState === "open") store.openBrickHelp.add(brick.id);
+      // CAP-4 (2026-10-27): a <details> replaces the « ? » popover, folded by default; its
+      // summary shows the first block, clamped to two lines by CSS until it is opened.
+      const [first, ...rest] = brick.explanation_text;
+      const details = el("details", "brick-explain");
+      details.id = `explain-${brick.id}`;
+      details.open = store.openBrickHelp.has(brick.id);
+      details.addEventListener("toggle", () => {
+        if (details.open) store.openBrickHelp.add(brick.id);
         else store.openBrickHelp.delete(brick.id);
       });
-      for (const block of brick.explanation_text) {
+      const summary = el("summary", "brick-explain-summary", Array.isArray(first) ? first.join(" · ") : first);
+      details.appendChild(summary);
+      for (const block of rest) {
         if (Array.isArray(block)) {
-          const list = el("ul", "brick-explanation-list");
+          const list = el("ul", "brick-explain-list");
           for (const item of block) list.appendChild(el("li", "", item));
-          popover.appendChild(list);
+          details.appendChild(list);
         } else {
-          popover.appendChild(el("p", "", block));
+          details.appendChild(el("p", "", block));
         }
       }
-      card.append(help, popover);
-      if (store.openBrickHelp.has(brick.id)) reopenPopovers.push(popover);
+      card.appendChild(details);
     }
     if (brick.id === "global_memory") card.append(...memoryCardParts(brick));
     if (brick.id === "system_prompt") {
@@ -1443,7 +1443,7 @@ function brickStatus(brick) {
   const always = Boolean(brick.always_text);
   if (always) return t("main.bricks.status.imposed");
   if (!brick.available) return t("main.bricks.status.unavailable"); // wanted or not: it cannot be switched on
-  if (!brick.wanted) return t("main.bricks.status.switched_off");
+  if (!brick.wanted) return ""; // CAP-4: the switch already says it is off, no "Éteinte" label
   const p = store.gauge?.payload;
   if (!p) return t("main.bricks.status.waiting_model");
   if (brick.id === "reasoning") return t("main.bricks.status.reserve", { tokens: t("common.count.token", { count: p.reserve }) });
@@ -7902,8 +7902,25 @@ function drawHarnessMap() {
     grid,
     el("p", "drawer-help", t("main.harness_map.off_note")),
     el("p", "drawer-help", t("main.harness_map.not_shown")),
-    el("p", "drawer-help harness-map-sources", t("main.harness_map.sources"))
+    harnessMapSources()
   );
+}
+
+// CAP-3 (2026-10-27): the two sources as links opened in a new tab (URLs checked by hand,
+// not translated: `[[g:…]]` citations are for terms, not for raw links).
+function harnessMapSources() {
+  const p = el("p", "drawer-help harness-map-sources");
+  p.append(`${t("main.harness_map.sources_label")} `);
+  const arxiv = el("a", "", t("main.harness_map.source_arxiv"));
+  arxiv.href = "https://arxiv.org/abs/2609.00006";
+  arxiv.target = "_blank";
+  arxiv.rel = "noopener";
+  const fowler = el("a", "", t("main.harness_map.source_fowler"));
+  fowler.href = "https://martinfowler.com/articles/harness-engineering.html";
+  fowler.target = "_blank";
+  fowler.rel = "noopener";
+  p.append(arxiv, " ; ", fowler, ".");
+  return p;
 }
 
 function openHarnessMap(origin) {
@@ -7924,8 +7941,10 @@ function setupHarnessMap() {
   open.addEventListener("click", () => openHarnessMap(open));
   document.getElementById("harness-map-close").addEventListener("click", () => dialog.close());
   // Escape (native), « Fermer » or a click on the backdrop: the focus goes back to the opener.
+  // A legend term (`[[g:…]]`, CAP-3) opens the glossary panel, which the modal map would keep
+  // inert under its backdrop: close the map first (runs before glossary.js's document handler).
   dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog.close();
+    if (event.target === dialog || event.target.closest?.(".glossary-cite")) dialog.close();
   });
   dialog.addEventListener("close", () => {
     harnessMapOrigin?.focus();

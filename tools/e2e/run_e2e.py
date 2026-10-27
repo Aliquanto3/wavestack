@@ -2689,7 +2689,7 @@ def _reveal_from_schema(r: Run) -> None:
 
 # ---------- story 33: contrasts and one colour per discipline ----------
 
-_DISCIPLINE_NAMES = ["Prompt engineering", "Context engineering", "Harness engineering"]
+_DISCIPLINE_NAMES = ["Prompt", "Contexte", "Harnais"]  # CAP-4 (2026-10-27): dropped "engineering"
 _FIGURES = re.compile(r"\d[\d\s\u202f]* / \d[\d\s\u202f]* tokens · [\d,]+ %")
 
 
@@ -2744,9 +2744,12 @@ def s_disciplines(r: Run) -> None:
         "barre de l'atelier : texte en --color-on-ink (story 2 du 2026-09-30 : sans titre)",
     )
     legend = page.inner_text("#gauge-legend")
+    legend_items = {
+        i.strip() for i in page.locator("#gauge-legend li > span:last-child").all_inner_texts()
+    }
     r.check(
-        all(name in legend for name in _DISCIPLINE_NAMES),
-        "#gauge-legend : prompt, context et harness engineering",
+        set(_DISCIPLINE_NAMES) <= legend_items,
+        "#gauge-legend : Prompt, Contexte et Harnais (libellés exacts)",
         legend.replace("\n", " · "),
     )
     segs = page.eval_on_selector_all(
@@ -2830,8 +2833,11 @@ def s_disciplines(r: Run) -> None:
     # The bricks panel: legend, two groups, cards tinted by discipline.
     bricks = page.locator("#bricks")
     panel_legend = bricks.locator(".brick-legend").inner_text()
+    panel_items = [
+        i.strip() for i in bricks.locator(".brick-legend li > span:last-child").all_inner_texts()
+    ]
     r.check(
-        all(n in panel_legend for n in [*_DISCIPLINE_NAMES, "Sort du poste de travail"]),
+        panel_items == [*_DISCIPLINE_NAMES, "Sort du poste de travail"],
         "panneau des briques : légende des quatre disciplines",
         panel_legend.replace("\n", " · "),
     )
@@ -2917,24 +2923,49 @@ def s_disciplines(r: Run) -> None:
     )
     r.shot_element("29-disciplines-briques", '.pane[data-pane="bricks"]')
 
-    # Prompt système off (by the API, so the click does not light-dismiss the explanation):
-    # « Éteinte », the open explanation kept.
-    help_button = r.card("Prompt système").locator(".brick-help")
-    help_button.click()
-    expect(page.locator("#explain-system_prompt")).to_be_visible(timeout=5000)
+    # CAP-4: on load, no explanation is unfolded; each one unfolds from its summary by the
+    # mouse and by the keyboard (Enter unfolds, Space folds back).
+    r.reload_app()
+    r.check(
+        page.locator("details.brick-explain").count() >= 5
+        and page.locator("details.brick-explain[open]").count() == 0,
+        "au chargement, aucune explication de brique n'est dépliée",
+    )
+    for brick_id in ("tools", "mcp", "subagent", "guardrails", "compression"):
+        details = page.locator(f"#explain-{brick_id}")
+        summary = details.locator("summary")
+        summary.click()
+        by_mouse = details.evaluate("e => e.open")
+        summary.click()
+        folded = not details.evaluate("e => e.open")
+        summary.focus()
+        page.keyboard.press("Enter")
+        by_enter = details.evaluate("e => e.open")
+        page.keyboard.press("Space")
+        by_space = not details.evaluate("e => e.open")
+        r.check(
+            by_mouse and folded and by_enter and by_space,
+            f"explication {brick_id} : dépliée et repliée à la souris et au clavier",
+            f"souris {by_mouse}/{folded} · Entrée {by_enter} · Espace {by_space}",
+        )
+
+    # Prompt système off (by the API): the explanation (a <details>) stays open, and CAP-4
+    # drops the status line entirely instead of saying « Éteinte ».
+    explain = r.card("Prompt système").locator("#explain-system_prompt")
+    explain.locator("summary").click()
+    r.check(explain.evaluate("e => e.open"), "le clic sur le résumé déplie l'explication")
     seq = r.ev.mark()
     r.api("POST", "/api/intentions/brick", {"brick": "system_prompt", "wanted": False})
     r.ev.wait("bricks_changed", seq, timeout=10)
     time.sleep(0.5)
     r.check(
-        r.card("Prompt système").locator("p.brick-status").inner_text() == "Éteinte",
-        "Prompt système éteint : sa ligne d'état dit « Éteinte »",
+        r.card("Prompt système").locator("p.brick-status").count() == 0,
+        "Prompt système éteint : plus de ligne d'état (CAP-4 : pas de « Éteinte »)",
     )
     r.check(
-        page.locator("#explain-system_prompt").evaluate("e => e.matches(':popover-open')"),
+        page.locator("#explain-system_prompt").evaluate("e => e.open"),
         "l'explication ouverte reste ouverte",
     )
-    page.keyboard.press("Escape")
     r.set_brick("Prompt système", True)
 
     # Vue humain: the user's bubble on ink; every pane's band on surface.
@@ -9239,10 +9270,9 @@ def _content_language(r: Run, lang: str) -> None:
         f"« {title} » · « {guide[:80]} » · {prompts}",
     )
 
-    # The Tools brick's explanation, opened from its « ? ».
-    r.card(brick["label_text"]).locator(".brick-help").click()
+    # The Tools brick's explanation, a <details> unfolded from its summary.
     explain = page.locator("#explain-tools")
-    expect(explain).to_be_visible(timeout=5000)
+    explain.locator("summary").click()
     shown = _flat(explain.inner_text())
     missing = [p[:60] for p in _paragraphs(brick) if p not in shown]
     r.check(
@@ -9254,18 +9284,16 @@ def _content_language(r: Run, lang: str) -> None:
         for width, height in ((1280, 720), (1600, 1000)):
             page.set_viewport_size({"width": width, "height": height})
             for projection in (False, True):
+                # The rebuild on projection restores the <details> open state by itself
+                # (`store.openBrickHelp`): no click needed here, unlike the old popover.
                 if projection:
                     _toggle_projection(page)
-                    r.card(brick["label_text"]).locator(".brick-help").click()
-                    expect(explain).to_be_visible(timeout=5000)
                 time.sleep(0.4)
                 mode = "projection" if projection else "normal"
                 r.shot(f"content-language-de-{width}-{mode}")
                 if projection:
-                    page.keyboard.press("Escape")
                     _toggle_projection(page)
         page.set_viewport_size({"width": 1600, "height": 1000})
-    page.keyboard.press("Escape")
 
     # No French value of the scope that differs from its translation.
     body = _flat(page.locator("body").inner_text())
@@ -17884,6 +17912,18 @@ def s_harness_map(r: Run) -> None:
         "2609.00006" in text and "Böckeler" in text,
         "carte : les sources sont citées",
     )
+    # CAP-3: the two sources are links opened in a new tab.
+    arxiv_link = dialog.locator('a[href="https://arxiv.org/abs/2609.00006"]')
+    fowler_link = dialog.locator(
+        'a[href="https://martinfowler.com/articles/harness-engineering.html"]'
+    )
+    r.check(
+        arxiv_link.count() == 1
+        and arxiv_link.get_attribute("target") == "_blank"
+        and fowler_link.count() == 1
+        and fowler_link.get_attribute("target") == "_blank",
+        "carte : les deux sources ouvrent leur URL dans un nouvel onglet",
+    )
     r.check(
         "Outils et actions" in text and "Sécurité et permissions" in text,
         "carte : libellés du papier (Tools & actions, Safety & permissions)",
@@ -17895,6 +17935,15 @@ def s_harness_map(r: Run) -> None:
         "Échap : le focus revient au bouton « i » de la consigne",
     )
     # From the bricks panel: the foot button, then « Fermer ».
+    # CAP-3: both buttons use the app's shared button style (index.html: an undefined class
+    # and a « primary » outside .drawer-actions, before this story).
+    r.check(
+        r.css(page.locator("#harness-map-open"), "background-color")
+        == r.token_color("--color-surface-raised")
+        and r.css(page.locator("#harness-map-close"), "background-color")
+        == r.token_color("--color-primary"),
+        "carte : les deux boutons ont le style commun de l'application",
+    )
     page.locator("#harness-map-open").click()
     expect(dialog).to_be_visible(timeout=5000)
     r.check(
@@ -17907,6 +17956,25 @@ def s_harness_map(r: Run) -> None:
         page.evaluate("document.activeElement && document.activeElement.id") == "harness-map-open",
         "« Fermer » : le focus revient au bouton du panneau des briques",
     )
+    # CAP-3: the legend's three terms are glossary citations; one opens the glossary on its
+    # term, the map closed first (a modal dialog would keep the panel inert behind it).
+    page.locator("#harness-map-open").click()
+    expect(dialog).to_be_visible(timeout=5000)
+    cites = dialog.locator(".glossary-cite")
+    expect(cites).to_have_count(3, timeout=5000)
+    r.check(
+        sorted(cites.evaluate_all("cs => cs.map(c => c.dataset.term)"))
+        == ["guide", "sensor_computed", "sensor_inferred"],
+        "carte : guide, capteur calculé et capteur déduit cités du glossaire",
+    )
+    dialog.locator('.glossary-cite[data-term="sensor_inferred"]').click()
+    expect(dialog).to_be_hidden(timeout=5000)
+    expect(page.locator("#glossary-panel")).to_be_visible(timeout=5000)
+    r.check(
+        page.locator("#glossary-term-sensor_inferred.glossary-current").count() == 1,
+        "carte : un terme de la légende ouvre le glossaire sur sa définition",
+    )
+    page.locator("#glossary-close").click()
 
 
 def s_rag_agentic(r: Run) -> None:
