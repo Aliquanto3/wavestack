@@ -44,3 +44,13 @@ Au plus 3 stories en développement à la fois (la maquette 16.4 et les phases d
 ## Journal
 
 - 2026-10-27 06:10 · run · décision · ancien run archivé, epic 16 créé · —
+- 2026-10-27 06:13 · 16.2 · dev · lancé (Sonnet) · —
+- 2026-10-27 06:13 · 16.3 · dev · lancé (Sonnet) · —
+- 2026-10-27 06:13 · 16.1, 16.6 · dev · spec lancée (Sonnet) · —
+- 2026-10-27 06:13 · 16.8, 16.9 · dev · spec lancée (Opus) · —
+- 2026-10-27 06:13 · 16.4 · dev · maquette lancée (Opus, bmad-ux) · —
+- 2026-10-27 06:13 · run · blocked · fusion de la PR #148 (spec) refusée par le classifieur, accord d'Anaël attendu · —
+- 2026-10-27 07:01 · 16.1, 16.3, 16.4, 16.6, 16.8, 16.9 · blocked · quatre agents arrêtés par le watchdog vers 06:18 (flux coupé), relancés là où ils en étaient · —
+- 2026-10-27 07:03 · 16.4 · dev · fini, maquette-securite.html + ux-securite.md, validation d'Anaël attendue · —
+- 2026-10-27 07:03 · 16.8, 16.9 · dev · specs écrites (story-8.md, story-9.md), relecture d'Anaël attendue · —
+- 2026-10-27 07:05 · 16.1, 16.6 · dev · specs écrites (story-1.md, story-6.md), relecture d'Anaël attendue · —
