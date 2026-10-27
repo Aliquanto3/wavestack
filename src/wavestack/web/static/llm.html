@@ -57,7 +57,12 @@
           <h2 data-i18n="common.bar.log.panel_title">Derniers événements</h2>
           <button type="button" class="bar-flyout-link" data-href="/security" data-i18n="common.bar.log.all_link">Tout le journal</button>
         </div>
+        <label class="bar-log-filter">
+          <input type="checkbox" id="bar-log-filter-security">
+          <span data-i18n="common.bar.log.filter_security">Sécurité seulement</span>
+        </label>
         <ul class="bar-log-list" id="bar-log-list"></ul>
+        <button type="button" class="bar-flyout-link" id="bar-log-more" hidden data-i18n="common.bar.log.more">Voir plus</button>
       </div>
     </div>
     <button type="button" id="glossary-toggle" class="bar-button glossary-toggle" aria-haspopup="dialog" aria-expanded="false" aria-label="Glossaire" data-i18n-aria-label="common.glossary.button" title="Glossaire du harnais" data-i18n-title="common.glossary.title"><span class="glossary-icon" aria-hidden="true">?</span><span class="glossary-word" data-i18n="common.glossary.button">Glossaire</span></button>

@@ -2282,7 +2282,8 @@ function hideCandidates() {
 function applyEnvelope(envelope) {
   store.lastSeq = envelope.seq;
   // Story 9 (CAP-3, CAP-7, CAP-9): the bar's « Dépense » and « Journal », live, in O(1).
-  feedBar(envelope);
+  // Story 1 (CAP-2): this page's own tab and active model, for a `model_call_ended` entry.
+  feedBar(envelope, t("common.bar.log.tab_llm"), () => store.activeModel);
   const p = envelope.payload;
   if (envelope.kind === "session_state") {
     store.session = { state: p.state, reason_text: p.reason_text };

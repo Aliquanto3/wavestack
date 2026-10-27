@@ -274,6 +274,12 @@
   box-shadow: 0 var(--spacing-relief-offset-overlay) 0 var(--color-relief);
 }
 
+/* Story 1 (CAP-1): a grid item's intrinsic min-width (its longest word) would otherwise
+   overflow the popup at 360px. */
+.bar-flyout > * {
+  min-width: 0;
+}
+
 /* `display` above would otherwise beat the `hidden` attribute (« Dépense » before any spend). */
 .bar-flyout[hidden],
 .bar-button[hidden],
@@ -310,6 +316,7 @@
   margin: 0;
   font-size: var(--typography-body-sm-font-size);
   color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
 }
 
 .bar-flyout-empty {
@@ -374,6 +381,15 @@
 
 .bar-savings-legend span:last-child::before {
   background: var(--color-primary-deep);
+}
+
+/* Story 1 (CAP-2): « Sécurité seulement » and the dépliable history's « Voir plus ». */
+.bar-log-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--typography-body-sm-font-size);
+  color: var(--color-ink-soft);
 }
 
 .bar-log-list {

@@ -126,6 +126,7 @@ common:
       summary_kv: "En local, le cache du modèle a évité {seconds} s de calcul."
       summary_none: "Aucune économie mesurée pour l'instant."
       summary_overcost: "Le cache de prompt a coûté {amount} de plus qu'il n'a fait économiser : ses écritures coûtent plus cher que ses relectures n'ont rapporté."
+      free_tier: "Offre gratuite : pas de prix déclaré pour ce modèle."
       cache:
         conversation: "Cette conversation"
         launch: "Depuis le lancement"
@@ -155,6 +156,15 @@ common:
       panel_title: "Derniers événements"
       all_link: "Tout le journal"
       empty: "Aucun événement pour l'instant."
+      filter_security: "Sécurité seulement"
+      more: "Voir plus"
+      less: "Voir moins"
+      free_tier: "offre gratuite"
+      model_call_detail: "{tokens_in} → {tokens_out} tokens · {cost} · {footprint} · {duration} s"
+      tab_conversation: "Conversation"
+      tab_llm: "Atelier LLM"
+      tab_rag: "Atelier RAG"
+      tab_mcp: "Atelier MCP"
       count:
         one: "{count} refus"
         other: "{count} refus"
@@ -1040,6 +1050,7 @@ main:
     reset_total: "Seul un relancement de WaveStack remet ce total à zéro."
     reset_totals: "Seul un relancement de WaveStack remet ces totaux à zéro."
     cap_sentence: "Plafond de dépense de la séance : {total} sur {cap} ; une fois le plafond atteint, aucun appel payant ne part."
+    free_sentence: "Dépense API de la séance : 0 €, offre gratuite ({calls}, aucun prix déclaré)."
   log:
     kinds:
       diagnostic_check: "Vérification du diagnostic"

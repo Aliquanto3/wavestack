@@ -949,6 +949,16 @@ def test_a_nan_score_counts_as_zero_and_counts_agree():
 # ---------- state, content, sandbox ----------
 
 
+def test_state_carries_active_model_for_the_bars_journal(index):
+    """Story 1 (CAP-2): `rag_lab_state()["active_model"]` (AD-12) lets the page label a
+    `model_call_ended` entry with the model that generated it, without a new enveloppe."""
+    session, _ = ready(index)
+    state = session.rag_lab_state()
+    assert state["active_model"] is not None
+    assert state["active_model"]["label"]
+    assert state["active_model"]["hosting"] in ("local", "network")
+
+
 def test_state_catalog_default_chain_and_last_run(index):
     session, _ = ready(index)
     state = session.rag_lab_state()

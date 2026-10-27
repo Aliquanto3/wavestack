@@ -9,9 +9,16 @@
 //   full navigation).
 // - Its state: `GET /api/state` at load, and again each time a panel opens. Every page's own
 //   `/api/stream` reader (app.js, llm.js, rag.js, mcp.js, the diagnostic's) hands each
-//   envelope to `feedBar`, which keeps only `consumption_updated` and `security_event`, in
-//   O(1), never a walk of the journal (a structure that only grows during a session). `seq`
-//   orders the two sources: a snapshot older than the last event fed is ignored.
+//   envelope to `feedBar`, which keeps `consumption_updated`, `security_event` and
+//   `model_call_ended`, in O(1), never a walk of the journal (a structure that only grows
+//   during a session). `seq` orders the sources: a snapshot older than the last event fed is
+//   ignored.
+// - Story 1 (CAP-2, 2026-10-27): the Journal also lists every model call, of every onglet
+//   (contrat figé, `story-1.md`): `feedBar(envelope, onglet, getModel)`, `onglet` the calling
+//   page's own label and `getModel` a thunk giving its current `ActiveModel` (the page knows
+//   both already, AD-12); `bar.js` never parses `component` off the enveloppe. These entries
+//   never carry a prompt nor an answer. Bounded in memory to 500, like `SecurityJournal`; a
+//   filter keeps only the security decisions.
 // - It replaces the main screen's former « Dépense estimée » gauge (ux/EXPERIENCE.md): the
 //   panel carries what the gauge said (the euros, the cap, the footprint, the reset).
 
@@ -20,13 +27,20 @@ import { dateTimeFormat, has, numberFormat, rangeText, ready, t } from "./i18n.j
 const $ = (id) => document.getElementById(id);
 
 let consumption = null; // the `consumption_updated` shape, or null before any paid/impactful call
-let preview = { denied_count: 0, entries: [] }; // newest first, 5 at most
+let deniedCount = 0; // the session's refusals and blocks (the red badge), security only
+let logEntries = []; // newest first, kind "security" or "model_call", bounded to LOG_KEPT
+let securityOnly = false; // the « Sécurité seulement » filter
+let logExpanded = false; // the dépliable history, past the 5-line preview
 let maxSessionUsd = null; // finition V1 (#27): `[finops] max_session_usd`, from `/api/state`
 let seq = 0; // the newest journal `seq` the figures above reflect
 
-export function feedBar(envelope) {
+const LOG_KEPT = 500; // the same order of magnitude as `SecurityJournal` (`_KEPT`)
+const LOG_PREVIEW = 5;
+const FED_KINDS = new Set(["consumption_updated", "security_event", "model_call_ended"]);
+
+export function feedBar(envelope, onglet, getModel) {
   const kind = envelope.kind;
-  if ((kind !== "consumption_updated" && kind !== "security_event") || envelope.seq <= seq) return;
+  if (!FED_KINDS.has(kind) || envelope.seq <= seq) return;
   seq = envelope.seq;
   const payload = envelope.payload;
   if (kind === "consumption_updated") {
@@ -34,20 +48,49 @@ export function feedBar(envelope) {
     renderSpend();
     return;
   }
-  preview = {
-    denied_count: payload.denied_count,
-    entries: [
-      {
-        ts: payload.ts,
-        source: payload.source,
-        name: payload.name,
-        label_text: payload.label_text,
-        decision: payload.decision,
-        reason_text: payload.reason_text,
-      },
-      ...preview.entries,
-    ].slice(0, 5),
+  if (kind === "model_call_ended") {
+    pushLogEntry(modelCallEntry(envelope, payload, onglet, getModel ? getModel() : null));
+    return;
+  }
+  deniedCount = payload.denied_count;
+  pushLogEntry({
+    kind: "security",
+    ts: payload.ts,
+    source: payload.source,
+    name: payload.name,
+    label_text: payload.label_text,
+    decision: payload.decision,
+    reason_text: payload.reason_text,
+  });
+}
+
+// Contrat figé (story 1, `story-1.md`) : jamais `text`, `raw_output`, `reasoning` ni
+// `tool_calls` — aucune entrée ne porte le prompt ni la réponse.
+function modelCallEntry(envelope, payload, onglet, modele) {
+  return {
+    kind: "model_call",
+    ts: envelope.ts,
+    onglet: onglet ?? "",
+    modele,
+    tokens_in: payload.prompt_tokens,
+    tokens_out: payload.output_tokens,
+    cout_usd: payload.cost_in_usd != null && payload.cost_out_usd != null ? payload.cost_in_usd + payload.cost_out_usd : null,
+    empreinte:
+      payload.impact_method != null
+        ? {
+            energy_wh_min: payload.energy_wh_min,
+            energy_wh_max: payload.energy_wh_max,
+            gco2e_min: payload.gco2e_min,
+            gco2e_max: payload.gco2e_max,
+            impact_method: payload.impact_method,
+          }
+        : null,
+    duree_ms: payload.duration_ms,
   };
+}
+
+function pushLogEntry(entry) {
+  logEntries = [entry, ...logEntries].slice(0, LOG_KEPT);
   renderLog();
 }
 
@@ -59,13 +102,23 @@ async function refresh() {
     if ((body.seq ?? 0) >= seq) {
       seq = body.seq ?? 0;
       consumption = body.consumption_updated ?? null;
-      preview = body.security_journal_preview ?? { denied_count: 0, entries: [] };
+      const preview = body.security_journal_preview ?? { denied_count: 0, entries: [] };
+      deniedCount = preview.denied_count;
+      mergeSecurityEntries(preview.entries);
     }
   } catch {
     // Kept as it was: a page briefly unreachable shows the last known state, not a blank one.
   }
   renderSpend();
   renderLog();
+}
+
+// The server only knows the security entries (bounded to the journal's own 500); the model
+// calls accumulated live, client-side (Décision Q1), are kept as they are.
+function mergeSecurityEntries(entries) {
+  const modelCalls = logEntries.filter((e) => e.kind === "model_call");
+  const security = entries.map((e) => ({ kind: "security", ...e }));
+  logEntries = [...security, ...modelCalls].sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, LOG_KEPT);
 }
 
 // ---------- formatting (figures are the session's; this only shapes them) ----------
@@ -96,13 +149,19 @@ function renderSpend() {
   toggle.hidden = !consumption;
   if (!consumption) return;
   const c = consumption;
+  const paid = c.calls > 0;
   const amount = $("bar-spend-amount");
-  amount.textContent = c.calls > 0 ? money(c.total_usd) : shortUsd(0);
+  // Story 1 (CAP-1): a montant toujours affiché, jamais `c.calls > 0` seul : un modèle sans
+  // `pricing` (Gemma) a `calls === 0` mais `unpriced_calls > 0`, 0 € + l'offre gratuite,
+  // jamais confondu avec un vrai 0 $.
+  amount.textContent = paid ? money(c.total_usd) : shortUsd(0);
   const saved = $("bar-spend-saved");
   const net = economy(c);
-  if (c.calls > 0 && net !== null) {
+  if (paid && net !== null) {
     saved.textContent =
       net >= 0 ? t("common.bar.spend.saved", { amount: money(net) }) : t("common.bar.spend.overcost", { amount: money(-net) });
+  } else if (!paid && c.unpriced_calls > 0) {
+    saved.textContent = t("common.bar.spend.free_tier");
   } else if (c.kv_time_saved_s > 0) {
     // A local session costs nothing: the time the KV-cache saved is its one economy.
     saved.textContent = t("common.bar.spend.time_saved", { seconds: kvSeconds(c.kv_time_saved_s) });
@@ -137,6 +196,8 @@ function detailSentence(c) {
     if (maxSessionUsd != null) {
       sentences.push(t("main.consumption.cap_sentence", { total: `${guess()}${usd(c.total_usd)}`, cap: usd(maxSessionUsd) }));
     }
+  } else if (c.unpriced_calls > 0) {
+    sentences.push(t("main.consumption.free_sentence", { calls: t("common.count.call", { count: c.unpriced_calls }) }));
   }
   if (green) {
     sentences.push(
@@ -420,7 +481,7 @@ function renderLog() {
   const toggle = $("bar-log-toggle");
   if (!toggle) return;
   const count = $("bar-log-count");
-  const n = preview.denied_count;
+  const n = deniedCount;
   count.textContent = t("common.bar.log.count", { count: n });
   count.hidden = n === 0;
   toggle.setAttribute(
@@ -430,18 +491,31 @@ function renderLog() {
   renderLogPanel();
 }
 
+// Story 1 (CAP-2): « Sécurité seulement » ne garde que les décisions de sécurité.
+function filteredLog() {
+  return securityOnly ? logEntries.filter((e) => e.kind === "security") : logEntries;
+}
+
 function renderLogPanel() {
   const list = $("bar-log-list");
   if (!list) return;
+  const filtered = filteredLog();
   list.replaceChildren();
-  if (preview.entries.length === 0) {
+  if (filtered.length === 0) {
     const empty = document.createElement("p");
     empty.className = "bar-flyout-empty";
     empty.textContent = t("common.bar.log.empty");
     list.append(empty);
-    return;
+  } else {
+    const shown = filtered.slice(0, logExpanded ? LOG_KEPT : LOG_PREVIEW);
+    for (const entry of shown) list.append(logRow(entry));
   }
-  for (const entry of preview.entries) list.append(logRow(entry));
+  // Décision Q2 : 5 lignes visibles, un historique dépliable pour les plus anciennes.
+  const more = $("bar-log-more");
+  if (!more) return;
+  more.hidden = filtered.length <= LOG_PREVIEW;
+  more.textContent = logExpanded ? t("common.bar.log.less") : t("common.bar.log.more");
+  more.setAttribute("aria-expanded", String(logExpanded));
 }
 
 const LEVEL_OF = {
@@ -459,6 +533,61 @@ const LEVEL_OF = {
 };
 
 function logRow(entry) {
+  return entry.kind === "model_call" ? modelCallRow(entry) : securityRow(entry);
+}
+
+const DASH = () => t("common.bar.spend.cache.none"); // "—", already a glyph the app uses
+
+function modelText(modele) {
+  return modele ? `${modele.label} (${t(`main.hosting.${modele.hosting}`)})` : DASH();
+}
+
+function footprintText(empreinte) {
+  if (!empreinte) return DASH(); // Décision Q4 : « — » seulement sans mesure
+  return `${rangeText(empreinte.energy_wh_min, empreinte.energy_wh_max, "Wh")} · ${rangeText(empreinte.gco2e_min, empreinte.gco2e_max, "g CO₂e")}`;
+}
+
+function costText(coutUsd) {
+  return coutUsd != null ? eur(coutUsd) : `${eur(0)} (${t("common.bar.log.free_tier")})`;
+}
+
+function modelCallRow(entry) {
+  const row = document.createElement("li");
+  row.className = "bar-log-row disclosure-row";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "bar-log-row-head disclosure-row-head";
+  const chevron = document.createElement("span");
+  chevron.className = "disclosure-row-chevron";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "▸";
+  const name = document.createElement("span");
+  name.className = "disclosure-row-label";
+  name.textContent = `${entry.onglet} · ${modelText(entry.modele)}`;
+  button.append(chevron, name);
+  const body = document.createElement("div");
+  body.className = "disclosure-row-body";
+  body.hidden = true;
+  const p = document.createElement("p");
+  p.textContent = t("common.bar.log.model_call_detail", {
+    tokens_in: numberFormat({}).format(entry.tokens_in),
+    tokens_out: numberFormat({}).format(entry.tokens_out),
+    cost: costText(entry.cout_usd),
+    footprint: footprintText(entry.empreinte),
+    duration: numberFormat({ maximumFractionDigits: 1 }).format(entry.duree_ms / 1000),
+  });
+  body.append(p);
+  button.addEventListener("click", () => {
+    body.hidden = !body.hidden;
+    button.setAttribute("aria-expanded", String(!body.hidden));
+    chevron.classList.toggle("is-open", !body.hidden);
+  });
+  button.setAttribute("aria-expanded", "false");
+  row.append(button, body);
+  return row;
+}
+
+function securityRow(entry) {
   const row = document.createElement("li");
   row.className = "bar-log-row disclosure-row";
   const button = document.createElement("button");
@@ -539,6 +668,17 @@ function bind() {
   logToggle.addEventListener("click", (event) => {
     event.stopPropagation();
     openPanel("bar-log-toggle", "bar-log-panel");
+  });
+  const securityFilter = $("bar-log-filter-security");
+  securityFilter?.addEventListener("change", () => {
+    securityOnly = securityFilter.checked;
+    logExpanded = false;
+    renderLogPanel();
+  });
+  const more = $("bar-log-more");
+  more?.addEventListener("click", () => {
+    logExpanded = !logExpanded;
+    renderLogPanel();
   });
   for (const link of document.querySelectorAll(".bar-flyout-link[data-href]")) {
     link.addEventListener("click", () => {

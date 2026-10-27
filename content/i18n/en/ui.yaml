@@ -115,6 +115,7 @@ common:
       summary_kv: "Locally, the model's cache saved {seconds} s of computing."
       summary_none: "No savings measured yet."
       summary_overcost: "The prompt cache cost {amount} more than it saved: its writes cost more than its reads brought back."
+      free_tier: "Free offer: no declared price for this model."
       cache:
         conversation: "This conversation"
         launch: "Since launch"
@@ -144,6 +145,15 @@ common:
       panel_title: "Latest events"
       all_link: "Whole log"
       empty: "No event yet."
+      filter_security: "Security only"
+      more: "Show more"
+      less: "Show less"
+      free_tier: "free offer"
+      model_call_detail: "{tokens_in} → {tokens_out} tokens · {cost} · {footprint} · {duration} s"
+      tab_conversation: "Conversation"
+      tab_llm: "LLM workshop"
+      tab_rag: "RAG workshop"
+      tab_mcp: "MCP workshop"
       count:
         one: "{count} refusal"
         other: "{count} refusals"
@@ -1028,6 +1038,7 @@ main:
     reset_total: "Only restarting WaveStack resets this total to zero."
     reset_totals: "Only restarting WaveStack resets these totals to zero."
     cap_sentence: "Session spending cap: {total} of {cap}; once the cap is reached, no paid call is sent."
+    free_sentence: "Session API spend: 0 €, free offer ({calls}, no declared price)."
   log:
     kinds:
       diagnostic_check: "Diagnostics check"
