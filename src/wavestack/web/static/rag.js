@@ -2428,7 +2428,14 @@ async function main() {
   // catalog came: never competing with it while the page starts. Neither is awaited.
   fetch("/api/state")
     .then((response) => response.json())
-    .then((state) => handleWindowState(state.context_window_state))
+    .then((state) => {
+      const p = state.context_window_state;
+      handleWindowState(p);
+      // Story 17.4: without this, the first live `context_window_state` (the user's own
+      // « Appliquer » soon after opening the tab) finds `windowSeen` still `undefined` and
+      // the catalog is never read again until a reload.
+      if (p) store.windowSeen = `${p.configured}/${p.window}/${p.model_label ?? ""}`;
+    })
     .catch(() => {}); // the button waits for the next `context_window_state`
   loadLocalModels().then(() => renderViews());
   const question = $("rag-question");

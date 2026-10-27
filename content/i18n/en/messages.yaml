@@ -576,7 +576,7 @@ session:
     compress_not_wanted: "The Compression card is not active: activate it for the option to compress the excerpts."
     # V1.2 story 10: the architectures without an index (long context, CAG).
     window_needed: "Unavailable: an effective window of at least {needed} tokens is needed, the session has {effective}. {where}"
-    window_set: "Raise the window to {needed} with the “Window” selector in the bar of the Conversation page."
+    window_set: "Raise the window to {needed} with the “Window” selector in the bar of the Conversation page or the RAG Workshop tab."
     window_bound: "The configured window is already {configured}{bound}: choose a model or a server that offers more."
     cag_local_only: "Unavailable with a cloud model: the CAG keeps the corpus in the memory (KV cache) of a local model, and the workshop does not drive a provider's cache. Choose a local model."
     cag_no_model: "Unavailable: the CAG keeps the corpus in the memory of a local model. Load a local model (a GGUF file or a local server)."

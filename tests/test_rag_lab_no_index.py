@@ -366,6 +366,8 @@ def test_a_small_window_greys_both_and_the_api_refuses_them(index, window):
         reason = shown["reason_text"]
         assert number(16384, "fr") in reason and number(window, "fr") in reason
         assert "sélecteur « Fenêtre »" in reason and "page Conversation" in reason
+        # Story 17.4 (CT-04b): the same selector lives in the RAG workshop tab too.
+        assert "Atelier RAG" in reason
     mark = get_journal().last_seq()
     with pytest.raises(SendRefused):
         session.run_rag_lab(QUESTION, preset(session, "long_context"))
