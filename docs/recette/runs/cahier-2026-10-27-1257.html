@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cahier de tests WaveStack</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1b1f24; --muted: #5b6470; --border: #d9dde3;
+    --accent: #4b2bd6; --ok: #1f7a3d; --ok-bg: #e3f4e8; --ko: #b42318; --ko-bg: #fde7e5;
+    --blocked: #8a5a00; --blocked-bg: #fdf1d8; --todo-bg: #eef0f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --surface: #1b1f26; --text: #e7eaee; --muted: #9aa3ae; --border: #2e343d;
+      --accent: #a594ff; --ok: #6fd28f; --ok-bg: #173323; --ko: #ff8a80; --ko-bg: #3a1c1a;
+      --blocked: #f2c25b; --blocked-bg: #3a2e12; --todo-bg: #262b33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a; --surface: #1b1f26; --text: #e7eaee; --muted: #9aa3ae; --border: #2e343d;
+    --accent: #a594ff; --ok: #6fd28f; --ok-bg: #173323; --ko: #ff8a80; --ko-bg: #3a1c1a;
+    --blocked: #f2c25b; --blocked-bg: #3a2e12; --todo-bg: #262b33;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .meta div > span:first-child { display: block; font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .summary { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    margin: 16px 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .summary strong { margin-right: auto; }
+  .pill { padding: 2px 10px; border-radius: 999px; font-size: .85rem; font-weight: 600; }
+  .pill.todo { background: var(--todo-bg); color: var(--muted); }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.ko { background: var(--ko-bg); color: var(--ko); }
+  .pill.blocked { background: var(--blocked-bg); color: var(--blocked); }
+  .case { background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin: 14px 0; }
+  .case[data-status="ok"] { border-left-color: var(--ok); }
+  .case[data-status="ko"] { border-left-color: var(--ko); }
+  .case[data-status="blocked"] { border-left-color: var(--blocked); }
+  .case header { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+  .case h2 { font-size: 1.1rem; margin: 0; }
+  .id { font-family: ui-monospace, Consolas, monospace; color: var(--accent); font-weight: 700; }
+  .tag { font-size: .75rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 0 6px; }
+  .case h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 12px 0 4px; }
+  .case p, .case ol { margin: 0; }
+  .case ol { padding-left: 22px; }
+  .beyond { margin-top: 12px; padding: 8px 12px; border-radius: 8px; background: var(--todo-bg); font-size: .92rem; }
+  .verdict { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .buttons button { font: inherit; font-weight: 600; padding: 4px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .buttons button[aria-pressed="true"][data-value="ok"] { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+  .buttons button[aria-pressed="true"][data-value="ko"] { background: var(--ko-bg); color: var(--ko); border-color: var(--ko); }
+  .buttons button[aria-pressed="true"][data-value="blocked"] { background: var(--blocked-bg); color: var(--blocked); border-color: var(--blocked); }
+  .buttons button[aria-pressed="true"][data-value="todo"] { background: var(--todo-bg); }
+  textarea { width: 100%; min-height: 64px; font: inherit; padding: 8px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); resize: vertical; }
+  label.obs { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 4px; }
+  footer { color: var(--muted); font-size: .85rem; margin-top: 24px; }
+  #reset { font: inherit; font-size: .85rem; background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 2px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cahier de tests fonctionnels : WaveStack</h1>
+  <p class="lead">Recette de la v1.7.0 (tests manuels du rapport du run du 27/10) exécutée par Claude in Chrome. Chaque cas cible ce qu'un test
+    unitaire, d'intégration ou E2E scripté vérifie mal : un jugement sur le sens, un recoupement entre
+    sources, un avis visuel ou une exploration.</p>
+
+  <section class="meta" aria-label="Contexte de la campagne">
+    <div><span>Application</span>WaveStack, http://127.0.0.1:8420</div>
+    <div><span>Version</span><span id="meta-version">main @ 3f643e78</span></div>
+    <div><span>Campagne</span><span id="meta-run">2026-10-27-1257</span></div>
+    <div><span>Environnement</span>Windows 11, Chrome, modèle local sur CPU</div>
+    <div><span>Testeur</span>Claude in Chrome (supervisé)</div>
+  </section>
+
+  <div class="summary" role="status" aria-live="polite">
+    <strong>Avancement</strong>
+    <span class="pill todo" id="count-todo">0 à exécuter</span>
+    <span class="pill ok" id="count-ok">0 OK</span>
+    <span class="pill ko" id="count-ko">0 KO</span>
+    <span class="pill blocked" id="count-blocked">0 bloqué</span>
+  </div>
+
+  <article class="case" id="CT-01">
+    <header><span class="id">CT-01</span><h2>Bilan et Journal de la barre (16.1)</h2><span class="tag">Exploratoire</span></header>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Sur chaque onglet (Harnais, LLM, RAG, MCP, Modèles, Sécurité), ouvrir le Bilan puis le Journal de la barre.</li>
+      <li>Dans le Journal, appliquer le filtre « Sécurité seulement », puis cliquer « Voir plus ».</li>
+      <li>Réduire la fenêtre à 360 px de large et rouvrir Bilan et Journal.</li>
+    </ol>
+    <h3>Résultat attendu</h3>
+    <p>Bilan et Journal s'ouvrent partout avec des montants en dollars, le filtre ne garde que les événements de sécurité, « Voir plus » ajoute des lignes, rien ne déborde à 360 px.</p>
+    <p class="beyond"><strong>Au-delà de l'E2E :</strong> le testeur juge la lisibilité à 360 px et la cohérence des montants d'un onglet à l'autre.</p>
+    <div class="verdict" data-case="CT-01"></div>
+  </article>
+
+  <article class="case" id="CT-02">
+    <header><span class="id">CT-02</span><h2>Atelier LLM, étape 6 en cloud puis en local (16.2)</h2><span class="tag">Recoupement</span></header>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Ouvrir l'Atelier LLM, étape 6, avec un modèle cloud ; envoyer un prompt.</li>
+      <li>Relever le prompt envoyé, la légende, le coût et l'empreinte.</li>
+      <li>Refaire avec un modèle local.</li>
+    </ol>
+    <h3>Résultat attendu</h3>
+    <p>Le prompt réellement envoyé est montré, la légende correspond à l'état, coût en $ pour le cloud, g CO₂e affichés aussi pour le local.</p>
+    <p class="beyond"><strong>Au-delà de l'E2E :</strong> recouper le prompt affiché avec la requête réseau réellement envoyée.</p>
+    <div class="verdict" data-case="CT-02"></div>
+  </article>
+
+  <article class="case" id="CT-03">
+    <header><span class="id">CT-03</span><h2>Atelier MCP : logos, réponse entière, schéma Avant/Avec (16.3)</h2><span class="tag">Revue visuelle</span></header>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Ouvrir l'Atelier MCP en thème clair, puis en thème sombre.</li>
+      <li>Lancer un appel et lire la réponse jusqu'au bout.</li>
+      <li>Comparer les schémas Avant et Avec.</li>
+    </ol>
+    <h3>Résultat attendu</h3>
+    <p>Logos lisibles dans les deux thèmes (GitHub Invertocat, pictogrammes neutres pour Microsoft Learn et data.gouv.fr), réponse non tronquée, schéma Avant/Avec cohérent.</p>
+    <p class="beyond"><strong>Au-delà de l'E2E :</strong> un avis visuel sur le contraste des logos, qu'aucun sélecteur ne capture.</p>
+    <div class="verdict" data-case="CT-03"></div>
+  </article>
+
+  <article class="case" id="CT-04">
+    <header><span class="id">CT-04</span><h2>Atelier RAG : modèle de génération et fenêtre de contexte (16.9)</h2><span class="tag">Oracle sémantique</span></header>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Dans l'étape Génération, choisir un modèle cloud puis un modèle local.</li>
+      <li>Régler la fenêtre de contexte depuis l'onglet RAG.</li>
+      <li>Lire les raisons affichées pour le CAG et Contexte long grisés.</li>
+    </ol>
+    <h3>Résultat attendu</h3>
+    <p>Les deux modèles génèrent, le réglage de fenêtre est pris en compte, les raisons expliquent correctement pourquoi CAG et Contexte long sont indisponibles.</p>
+    <p class="beyond"><strong>Au-delà de l'E2E :</strong> juger si les raisons sont vraies et désignent le bon réglage (écart connu : renvoi à la seule page Conversation).</p>
+    <div class="verdict" data-case="CT-04"></div>
+  </article>
+
+  <article class="case" id="CT-05">
+    <header><span class="id">CT-05</span><h2>Onglet Sécurité refondu (16.7)</h2><span class="tag">Exploratoire</span></header>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Parcourir les cartes et le chemin d'un message.</li>
+      <li>Appliquer les filtres.</li>
+      <li>Déplier la matrice au clavier seulement (Tab, Entrée/Espace), lire la légende.</li>
+    </ol>
+    <h3>Résultat attendu</h3>
+    <p>Cartes et chemin conformes à la maquette validée, filtres effectifs, matrice dépliable au clavier avec focus visible, légende juste.</p>
+    <p class="beyond"><strong>Au-delà de l'E2E :</strong> un parcours clavier et un jugement de conformité à la maquette.</p>
+    <div class="verdict" data-case="CT-05"></div>
+  </article>
+
+  <article class="case" id="CT-06">
+    <header><span class="id">CT-06</span><h2>Démo Caveman avec un vrai modèle local</h2><span class="tag">Oracle sémantique</span></header>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Lancer la démo Caveman avec un modèle local réel.</li>
+      <li>Observer si le modèle charge le skill au second prompt.</li>
+      <li>Lire la réponse produite.</li>
+    </ol>
+    <h3>Résultat attendu</h3>
+    <p>Le modèle charge le skill et répond en style Caveman ; sinon, l'écart est expliqué (limite connue des petits modèles).</p>
+    <p class="beyond"><strong>Au-delà de l'E2E :</strong> juger le style de la réponse, ce qu'un faux fournisseur d'E2E ne fait pas.</p>
+    <div class="verdict" data-case="CT-06"></div>
+  </article>
+
+  <footer>
+    Statuts et constats enregistrés dans ce navigateur. <button id="reset" type="button">Remettre la campagne à zéro</button>
+  </footer>
+</main>
+<!-- Results embedded by scripts/new_recette_run.py --seed (an archived campaign); {} for a blank copy. -->
+<script id="seed" type="application/json">{}</script>
+<script>
+  const STATUSES = [["todo", "À exécuter"], ["ok", "OK"], ["ko", "KO"], ["blocked", "Bloqué"]];
+  // One state per copy: each campaign file starts blank, whatever the other copies hold.
+  const KEY = "wavestack-cahier:" + location.pathname;
+  let state = null;
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
+  if (!state) { try { state = JSON.parse(document.getElementById("seed").textContent) || {}; } catch (e) { state = {}; } }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+  function refresh() {
+    const counts = { todo: 0, ok: 0, ko: 0, blocked: 0 };
+    document.querySelectorAll(".verdict").forEach((v) => {
+      const id = v.dataset.case;
+      const status = (state[id] && state[id].status) || "todo";
+      counts[status]++;
+      v.closest(".case").dataset.status = status;
+      v.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.value === status)));
+    });
+    document.getElementById("count-todo").textContent = counts.todo + " à exécuter";
+    document.getElementById("count-ok").textContent = counts.ok + " OK";
+    document.getElementById("count-ko").textContent = counts.ko + " KO";
+    document.getElementById("count-blocked").textContent = counts.blocked + (counts.blocked > 1 ? " bloqués" : " bloqué");
+  }
+
+  document.querySelectorAll(".verdict").forEach((v) => {
+    const id = v.dataset.case;
+    const group = document.createElement("div");
+    group.className = "buttons";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "Statut " + id);
+    STATUSES.forEach(([value, label]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.value = value;
+      b.textContent = label;
+      b.setAttribute("aria-label", id + " : " + label);
+      b.addEventListener("click", () => {
+        state[id] = { ...(state[id] || {}), status: value };
+        save(); refresh();
+      });
+      group.appendChild(b);
+    });
+    const label = document.createElement("label");
+    label.className = "obs";
+    label.htmlFor = "obs-" + id;
+    label.textContent = "Constat " + id;
+    const area = document.createElement("textarea");
+    area.id = "obs-" + id;
+    area.placeholder = "Ce qui a été observé, écarts, captures…";
+    area.value = (state[id] && state[id].note) || "";
+    area.addEventListener("input", () => { state[id] = { ...(state[id] || {}), note: area.value }; save(); });
+    v.append(group, label, area);
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    state = {}; save();
+    document.querySelectorAll("textarea").forEach((t) => (t.value = ""));
+    refresh();
+  });
+  refresh();
+</script>
+</body>
+</html>

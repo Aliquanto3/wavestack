@@ -55,3 +55,9 @@ development_status:
   16-7-onglet-securite-refondu: done
   16-8-retrait-des-actions-forcees: done
   16-9-atelier-rag-modele-et-fenetre: done
+  epic-17: in-progress
+  17-1-barre-dollars-et-largeur: in-progress
+  17-2-atelier-llm-cout-modele-gratuit: in-progress
+  17-3-atelier-mcp-pictogrammes-colonne-modele: in-progress
+  17-4-atelier-rag-contexte-long-apres-appliquer: ready-for-dev
+  17-5-securite-regle-en-pastille-filtre-vide: ready-for-dev
