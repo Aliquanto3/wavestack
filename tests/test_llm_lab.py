@@ -554,6 +554,40 @@ def test_cloud_screen_generation_traces_what_the_provider_takes():
     assert call["sampling"]["source"] == "provider" and call["sampling"]["temperature"] is None
 
 
+def test_cloud_screen_generation_carries_its_cost_next_to_the_debit():
+    """Story 16.2 (retours du 27/10, CAP-6): `llm_generation_ended` reads back the call's own
+    cost (FinOps) from `model_call_ended`, for a provider with declared prices (Groq)."""
+    provider = Provider(sse(delta(content="Salut"), delta("stop")))
+    session = _cloud_session("groq", provider)
+    events = _generate(session)
+    call = next(e.payload for e in events if e.kind == "model_call_ended")
+    ended = next(e.payload for e in events if e.kind == "llm_generation_ended")
+    assert ended["cost_in_usd"] == call["cost_in_usd"] > 0
+    assert ended["cost_out_usd"] == call["cost_out_usd"] > 0
+    assert ended["cost_source"] == call["cost_source"]
+    # GreenOps (EcoLogits for a cloud call): the footprint and its method copied as is too.
+    assert call["impact_method"] and call["impact_note_text"] and call["energy_wh_min"] > 0
+    for key in (
+        "energy_wh_min", "energy_wh_max", "gco2e_min", "gco2e_max", "impact_method",
+        "impact_note_text",
+    ):  # fmt: skip
+        assert ended[key] == call[key], key
+
+
+def test_local_screen_generation_has_no_cost(monkeypatch):
+    """A local call never costs anything: no `cost_*` field joins `llm_generation_ended`."""
+    engine = FakeEngine(output="Salut !")
+    monkeypatch.setattr(
+        "wavestack.greenops._find_spec", lambda name: None
+    )  # CodeCarbon absent: no footprint either, deterministic
+    session = booted_session(engine)
+    events = _generate(session)
+    ended = next(e.payload for e in events if e.kind == "llm_generation_ended")
+    assert ended["cost_in_usd"] is None and ended["cost_out_usd"] is None
+    assert ended["energy_wh_min"] is None  # CodeCarbon absent: no footprint either
+    assert "CodeCarbon" in ended["impact_note_text"]  # why there is none, said as is
+
+
 def test_cloud_without_declaration_sends_no_sampling(monkeypatch):
     provider = Provider(sse(delta(content="ok"), delta("stop")))
     session = _cloud_session("groq", provider)

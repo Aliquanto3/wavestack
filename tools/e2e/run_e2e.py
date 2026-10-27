@@ -12062,6 +12062,11 @@ def _llm_screen(r: Run) -> None:
         and page.locator("#generation-tokens .token-chip").count() >= 1,
         "cloud A : fragments reçus du fournisseur, dits comme tels",
     )
+    _generation_extras(r, ended["payload"], "Bonjour", "cloud A")
+    r.check(
+        page.locator('#generation-cloud .glossary-cite[data-term="fragment"]').count() == 1,
+        "cloud A : « fragments » cite le glossaire (CAP-6)",
+    )
     _candidates_unavailable(r, "Faux fournisseur (e2e)", "cloud A")
     _distribution_unavailable(r, "Faux fournisseur (e2e)", "cloud A")
     _lab_compare_stopped(r)
@@ -12180,6 +12185,7 @@ def _llm_screen(r: Run) -> None:
         and r.state()["session_state"]["state"] == "idle",
         "prompt rendu par le gabarit, session revenue en idle",
     )
+    _generation_extras(r, ended["payload"], "longuement", "llama-server")
     _lab_questions_and_window(r)
     light = _contrast_sweep(r, ["main"])
     r.check(not dark and not light, "/llm : contrastes AA dans les deux thèmes", str(dark + light))
@@ -12495,6 +12501,36 @@ def _set_lab_sampling(r: Run) -> None:
         if field.is_enabled():
             field.fill(str(value))
             field.dispatch_event("change")
+
+
+def _generation_extras(r: Run, payload: dict[str, Any], sent: str, label: str) -> None:
+    """Story 16.2 (retours du 27/10, CAP-6): under the step 6, the prompt sent (collapsed),
+    the colours' legend, and next to the debit the call's cost and footprint (energy and
+    g CO₂e, cloud or local) exactly when `llm_generation_ended` carries them."""
+    page = r.page
+    rendered = page.locator("#generation-sent-rendered").text_content() or ""
+    legend = page.inner_text("#generation-legend")
+    r.check(
+        page.locator("#generation-sent").is_visible()
+        and sent in rendered
+        and "violet" in legend
+        and page.locator("#generation-legend .legend-swatch").count() == 2,
+        f"{label} : prompt envoyé repliable et légende des couleurs à l'étape 6",
+        f"{rendered[:80]!r} · {legend[:80]!r}",
+    )
+    impact = page.locator("#generation-impact")
+    text = impact.inner_text() if impact.is_visible() else ""
+    priced = payload.get("cost_in_usd") is not None
+    energy = payload.get("energy_wh_min") is not None
+    carbon = payload.get("gco2e_min") is not None
+    r.check(
+        impact.is_visible() == (priced or energy)
+        and ("Coût" in text) == priced
+        and ("Wh" in text) == energy
+        and ("g CO₂e" in text) == carbon,
+        f"{label} : coût et empreinte à côté du débit, tels que l'événement les porte",
+        f"{text!r} · coût {priced} · énergie {energy} · CO₂e {carbon}",
+    )
 
 
 def _lab_generate(r: Run, prompt: str, watch: bool = False) -> dict[str, Any]:

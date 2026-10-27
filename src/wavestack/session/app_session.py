@@ -10854,6 +10854,17 @@ class AppSession:
                 prompt_ms = call.get("prompt_ms") if call else None
                 if evaluated and prompt_ms:
                     ended["read_tps"] = round(evaluated / (prompt_ms / 1000), 1)
+                # Story 16.2 (retours du 27/10, CAP-6): the call's own cost (FinOps) and
+                # footprint (GreenOps) were already computed by `run_call`/`_call_model_local`
+                # into `model_call_ended`; read back as is, never recomputed here.
+                if call:
+                    for key in (
+                        "cost_in_usd", "cost_out_usd", "cost_source", "energy_wh_min",
+                        "energy_wh_max", "gco2e_min", "gco2e_max", "impact_method",
+                        "impact_note_text",
+                    ):  # fmt: skip
+                        if call.get(key) is not None:
+                            ended[key] = call[key]
             except Exception as exc:  # noqa: BLE001 - AD-16: the screen's call never breaks
                 ended["status"] = "error"
                 ended["message_text"] = (

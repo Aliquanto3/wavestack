@@ -1452,7 +1452,10 @@ class LlmTokenPayload(BaseModel):
 
 class LlmGenerationEndedPayload(BaseModel):
     """How the screen's generation ended; `read_tps` the prompt's read rate (`evaluated_tokens
-    / prompt_ms`, `None` when the engine does not say), the tokens of each channel."""
+    / prompt_ms`, `None` when the engine does not say), the tokens of each channel.
+    Story 16.2 (retours du 27/10, CAP-6): the call's cost (a cloud call with declared prices)
+    and footprint (GreenOps, cloud or local), read back from `model_call_ended` as is;
+    `impact_note_text` is the method's limits, or why there is none."""
 
     request_id: str
     status: Literal["completed", "cancelled", "limit", "error"]
@@ -1465,6 +1468,15 @@ class LlmGenerationEndedPayload(BaseModel):
     # Correction E of 2026-10-05: a read of the next token's candidates, nothing drawn;
     # `completed`: they are kept as the token 0 (`/api/llm_lab/distribution`).
     candidates_only: bool = False
+    cost_in_usd: float | None = None
+    cost_out_usd: float | None = None
+    cost_source: str | None = None
+    energy_wh_min: float | None = None
+    energy_wh_max: float | None = None
+    gco2e_min: float | None = None
+    gco2e_max: float | None = None
+    impact_method: str | None = None
+    impact_note_text: str | None = None
 
 
 # ---------- story 30: the RAG workshop (AD-2, AD-22), context `rag_lab`, no turn ----------

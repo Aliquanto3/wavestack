@@ -153,6 +153,10 @@ class GenerationText(_Strict):
     cloud_text: str
     server_text: str
     more_text: str
+    # Story 16.2 (retours du 27/10, CAP-6): the colours' legend, the collapsible echo of the
+    # prompt sent (étape 5 already shows it; its own summary).
+    legend_text: str
+    sent_summary_text: str
     status: GenerationStatus
 
 

@@ -419,12 +419,17 @@ generation:
     other: "{tokens} Fragmente empfangen"
   rate_text: "Ausgabedurchsatz: {debit} Tokens/s"
   cloud_text: >-
-    Cloud-Modell: Das sind vom Anbieter empfangene Fragmente, keine einzelnen Tokens. Der
-    Anbieter bündelt die Tokens nach Belieben, bevor er sie sendet.
+    Cloud-Modell: Das sind vom Anbieter empfangene [[g:fragment|Fragmente]], keine einzelnen
+    Tokens. Der Anbieter bündelt die Tokens nach Belieben, bevor er sie sendet.
   server_text: >-
-    Bereitgestelltes Modell: Das sind die Stücke des Server-Streams, meist je ein Token,
-    aber nicht immer. Die exakte Token-Zahl ist die des Servers, im Ereignisprotokoll.
+    Bereitgestelltes Modell: Das sind die [[g:fragment|Fragmente]] des Server-Streams, meist
+    je ein Token, aber nicht immer. Die exakte Token-Zahl ist die des Servers, im
+    Ereignisprotokoll.
   more_text: "… und {reste} weitere, nicht angezeigt (höchstens 512 Chips)."
+  legend_text: >-
+    Die Farben (Violett, Grün) wechseln von Chip zu Chip ohne Bedeutung: Sie trennen nur ein
+    Token von seinem Nachbarn.
+  sent_summary_text: "Den an das Modell gesendeten Prompt ansehen"
   status:
     completed: "Antwort beendet."
     cancelled: "Generierung gestoppt."
