@@ -74,3 +74,31 @@ son empreinte en g CO₂e, affichage inchangé).
 - `uv run python .claude/cost-kit/controle_rapide.py`
 
 </frozen-after-approval>
+
+## Revue
+
+### Passe 1 (2026-10-27, SHA revu 98d68532)
+
+Rebasée sur origin/main (1b3e0c66). Branchement vérifié : `run_call` → `model_call_ended.unpriced`
+→ `app_session` → `llm_generation_ended.unpriced` → `renderImpact`. Même règle que la barre
+(`_add_cells` : sans prix et hors local).
+
+- **Important**, medium, second avis (1) affiné, corrigé : le faux cloud A de l'E2E (`fake`,
+  `tools/e2e/stack.py`, sans `pricing`) EST un modèle sans prix ; `_generation_extras`
+  (`llm_screen`) attendait `#generation-impact` masqué et sans « Coût » : il aurait échoué
+  avec le correctif. Le contrôle couvre désormais le cas gratuit (`unpriced` → visible,
+  « Coût » et « offre gratuite »), sans nouveau modèle factice.
+- **Nit**, low, reviewer, corrigé : `en` affichait « 0 $ » alors que `common.format.usd` en
+  anglais donne « $0 » (barre) : texte aligné « Estimated cost: $0, free offer… ».
+- **Nit**, low, second avis (2), reporté : l'Atelier RAG (`rag/lab.py`) a sa propre règle de
+  coût et ne dit pas « offre gratuite » pour un modèle sans prix ; hors périmètre, à traiter
+  dans une story de l'Atelier RAG.
+- **Pre-existing**, low, reviewer, noté : `main.consumption.free_sentence` dit « 0 € » alors
+  que le montant de la barre est en dollars (`shortUsd(0)` → « 0 $ ») ; non corrigé ici.
+- Second avis 3 à 8 confirmés : classification identique à la barre, schémas
+  (`unpriced: bool = False`) rétrocompatibles, clé présente en fr/en/de, pas de brouillon.
+  Lisibilité : « Coût estimé : 0 $, offre gratuite (aucun prix déclaré). » cohérent avec
+  « 0 $ » et « Offre gratuite » de la barre.
+- Complexité : 0 constat (un champ par appel, aucun parcours ajouté).
+
+E2E à jouer : `uv run --with playwright==1.56.0 python tools/e2e/run_e2e.py --channel msedge --only llm_screen`.
