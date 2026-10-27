@@ -86,3 +86,7 @@ Rebasée sur origin/main (16.2 fusionnée, sans conflit). E2E non lancés (règl
 - **Nit**, low, reviewer : le séparateur « ; » des sources est en dur, à la française, aussi en anglais et en allemand. Reporté (texte mineur, une clé i18n à ajouter).
 - **Important**, high, reviewer : `tests/test_harness_map.py::test_every_subsystem_and_role_has_a_label_in_each_language` (fr, en, de) cassé par la scission de `sources` (KeyError). Corrigé : il lit `source_arxiv` et `source_fowler`.
 - Complexité : 0 constat (aucune structure qui grossit touchée).
+
+### Passe 2 (2026-10-27, SHA revu 5f933f80)
+
+- **Rejeté**, high, orchestrateur : `content_language` échouait (POST /api/intentions/language en ReadTimeout de 10 s, au premier passage en `en`, avant tout code de la story dans le scénario). La story ne touche que des contenus côté serveur (ui, glossaire, guide_harnais.md), qu'aucun chargement de `set_language` ne valide de façon coûteuse. Branche rebasée sur origin/main 72832fb8 (16.3), puis scénario relancé seul, poste sans autre E2E : 27 réussies, 0 échec. Un essai lancé pendant un autre E2E a échoué de la même façon, diagnostic compris : timeout sous charge (reconnexion synchrone du serveur MCP local dans `set_language`), pas une régression. Captures `content-language-de-*` régénérées et commitées, 28 à 33 gardées, 01 et 01b restaurées.
