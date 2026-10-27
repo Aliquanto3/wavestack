@@ -32,6 +32,25 @@ function ruleText(rule) {
   return rule === "mixed" ? t("security.matrix.rule_mixed") : t(`mcp.policy.rule.${rule}`);
 }
 
+// Story 17.5: the matrix's own Règle column, a status-chip (maquette-securite.html,
+// ux-securite.md) rather than plain text, with the same levels as the legend below it.
+const RULE_LEVEL = { allow: "low", ask: "mid", deny: "high" };
+
+function ruleLevel(rule) {
+  return RULE_LEVEL[rule] ?? "off"; // "mixed"
+}
+
+function ruleChip(rule) {
+  return chip(ruleText(rule), ruleLevel(rule));
+}
+
+// Story 17.5: a filter that keeps nothing says so. The live region stays in the page and only
+// its text changes: a region shown from `hidden` is not reliably announced.
+function setFilterEmpty(id, key, show) {
+  const el = $(id);
+  if (el) el.textContent = show ? t(key) : "";
+}
+
 // Story 16.7 (CAP-10): a single affordance for everything clickable (cursor, hover and
 // focus by `pages.css`'s rules on `.sec-question-card`, `.call-step`, `.filter-chip` and
 // `.mx-toggle`); the focus follows a card's or a step's scroll, never only the scroll.
@@ -173,14 +192,14 @@ function setMatrixFilter(value) {
   if (filters) {
     filters.querySelectorAll("[data-mx]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mx === value)));
   }
-  $("sec-matrix-body")
-    ?.querySelectorAll("tr.mx-row")
-    .forEach((row) => {
-      row.hidden = value === "write" && row.dataset.write !== "true";
-      // Its detail row stays shut unless the row is both shown and unfolded.
-      const open = row.querySelector(".mx-toggle").getAttribute("aria-expanded") === "true";
-      row.nextElementSibling.hidden = row.hidden || !open;
-    });
+  const rows = $("sec-matrix-body")?.querySelectorAll("tr.mx-row") ?? [];
+  rows.forEach((row) => {
+    row.hidden = value === "write" && row.dataset.write !== "true";
+    // Its detail row stays shut unless the row is both shown and unfolded.
+    const open = row.querySelector(".mx-toggle").getAttribute("aria-expanded") === "true";
+    row.nextElementSibling.hidden = row.hidden || !open;
+  });
+  setFilterEmpty("sec-matrix-filter-empty", "security.matrix.filter_empty", rows.length > 0 && Array.from(rows).every((row) => row.hidden));
 }
 
 function matrixRow(row) {
@@ -212,7 +231,7 @@ function matrixRow(row) {
   const risk = document.createElement("td");
   risk.append(chip(t(`mcp.policy.risk.${row.risk}`), row.risk));
   const rule = document.createElement("td");
-  rule.textContent = ruleText(row.rule);
+  rule.append(ruleChip(row.rule));
   tr.append(tool, nature, risk, rule);
 
   const detailTr = document.createElement("tr");
@@ -228,7 +247,7 @@ function matrixRow(row) {
   strong.textContent = t("security.matrix.why_label");
   why.append(strong, ` ${t(`security.matrix.${row.id}.why`)}`);
   body.append(why);
-  if (row.tools.length) body.append(...kv(row.tools.map((tool2) => [tool2.label_text, ruleText(tool2.rule)])));
+  if (row.tools.length) body.append(...ruleKv(row.tools.map((tool2) => [tool2.label_text, tool2.rule])));
   detailTd.append(body);
   detailTr.append(detailTd);
 
@@ -306,6 +325,19 @@ function kv(pairs) {
     dt.textContent = key;
     const dd = document.createElement("dd");
     dd.textContent = value;
+    dl.append(dt, dd);
+  }
+  return [dl];
+}
+
+// Story 17.5: same shape as `kv`, but the matrix's own dépliés want the rule's chip, not plain text.
+function ruleKv(pairs) {
+  const dl = document.createElement("dl");
+  for (const [key, rule] of pairs) {
+    const dt = document.createElement("dt");
+    dt.textContent = key;
+    const dd = document.createElement("dd");
+    dd.append(ruleChip(rule));
     dl.append(dt, dd);
   }
   return [dl];
@@ -444,6 +476,7 @@ const LEVEL_OF = {
 // (`security_log._DENIED`), so the chip's own count never drifts from the badge's.
 const REFUSED = new Set(["deny", "blocked"]);
 let journalFilter = "all";
+let journalShown = 0; // rows the filter keeps, so a live event updates the empty message in O(1)
 
 function journalMatches(decision, filter) {
   if (filter === "all") return true;
@@ -454,11 +487,21 @@ function setJournalFilter(value) {
   journalFilter = value;
   const filters = $("sec-journal-filters");
   if (filters) filters.querySelectorAll("[data-f]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === value)));
+  journalShown = 0;
   $("sec-journal")
     ?.querySelectorAll("li[data-decision]")
     .forEach((li) => {
       li.hidden = !journalMatches(li.dataset.decision, value);
+      if (!li.hidden) journalShown += 1;
     });
+  showJournalEmpty();
+}
+
+// Story 17.5: the journal with no entry at all keeps its own « Aucun événement » li (no
+// `data-decision`), a different case from a filter that keeps nothing.
+function showJournalEmpty() {
+  const any = $("sec-journal")?.querySelector("li[data-decision]");
+  setFilterEmpty("sec-journal-filter-empty", "security.journal.filter_empty", Boolean(any) && journalShown === 0);
 }
 
 function renderJournalFilters(counts) {
@@ -494,17 +537,25 @@ function renderJournal(entries) {
     empty.className = "sec-empty";
     empty.textContent = t("security.journal.empty");
     list.replaceChildren(empty);
+    setJournalFilter(journalFilter);
     return;
   }
   list.replaceChildren(...entries.map(journalRow));
+  setJournalFilter(journalFilter);
 }
 
 function prependJournalRow(entry) {
   const list = $("sec-journal");
   if (!list) return;
   if (list.firstElementChild?.classList.contains("sec-empty")) list.replaceChildren();
-  list.prepend(journalRow(entry));
-  if (list.children.length > KEPT) list.lastElementChild.remove();
+  const li = journalRow(entry);
+  list.prepend(li);
+  if (!li.hidden) journalShown += 1;
+  if (list.children.length > KEPT) {
+    if (!list.lastElementChild.hidden) journalShown -= 1;
+    list.lastElementChild.remove();
+  }
+  showJournalEmpty();
 }
 
 // ---------- the limits ----------

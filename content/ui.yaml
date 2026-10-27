@@ -2033,6 +2033,7 @@ security:
     why_label: "Pourquoi ce risque."
     filter_all: "Tous les outils"
     filter_write: "Seulement ceux qui écrivent"
+    filter_empty: "Aucun outil pour ce filtre."
     legend_allow: "l'appel part seul."
     legend_ask: "vous décidez à chaque appel."
     legend_deny: "l'appel n'a jamais lieu."
@@ -2103,6 +2104,7 @@ security:
     download: "Télécharger (CSV)"
     empty: "Aucun événement pour l'instant."
     why: "Une décision qu'on ne peut pas relire ne se contrôle pas. Le journal montre qui a décidé quoi, et pourquoi."
+    filter_empty: "Aucun événement pour ce filtre."
     filters:
       all: "Tout ({count})"
       refused: "Refusés et bloqués ({count})"
