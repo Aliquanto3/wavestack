@@ -574,6 +574,23 @@ def test_cloud_screen_generation_carries_its_cost_next_to_the_debit():
         assert ended[key] == call[key], key
 
 
+def test_free_cloud_screen_generation_has_no_cost_but_is_marked_unpriced():
+    """Story 17.2 (recette v1.7.0): Gemma declares no `pricing` (its free offer): no
+    `cost_in_usd`/`cost_out_usd`, but `unpriced` is True, the bar's own classification, so
+    the screen can say « 0 $, offre gratuite » instead of nothing. Its footprint still shows
+    (EcoLogits, `impacts` declared)."""
+    provider = Provider(sse(delta(content="Salut"), delta("stop")))
+    session = _cloud_session("gemma", provider)
+    events = _generate(session)
+    call = next(e.payload for e in events if e.kind == "model_call_ended")
+    ended = next(e.payload for e in events if e.kind == "llm_generation_ended")
+    assert call.get("cost_in_usd") is None and call.get("cost_out_usd") is None
+    assert call["unpriced"] is True
+    assert ended["cost_in_usd"] is None and ended["cost_out_usd"] is None
+    assert ended["unpriced"] is True
+    assert ended["energy_wh_min"] > 0
+
+
 def test_local_screen_generation_has_no_cost(monkeypatch):
     """A local call never costs anything: no `cost_*` field joins `llm_generation_ended`."""
     engine = FakeEngine(output="Salut !")
@@ -584,6 +601,7 @@ def test_local_screen_generation_has_no_cost(monkeypatch):
     events = _generate(session)
     ended = next(e.payload for e in events if e.kind == "llm_generation_ended")
     assert ended["cost_in_usd"] is None and ended["cost_out_usd"] is None
+    assert ended["unpriced"] is False  # a local call is free, never « sans prix déclaré »
     assert ended["energy_wh_min"] is None  # CodeCarbon absent: no footprint either
     assert "CodeCarbon" in ended["impact_note_text"]  # why there is none, said as is
 

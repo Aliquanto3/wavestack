@@ -996,6 +996,7 @@ main:
     call_label: "Geschätzte Kosten: "
     text: "{label}Eingabe {input} · Ausgabe {output}"
     turn_label: "geschätzte Kosten "
+    free_text: "Geschätzte Kosten: 0 $, kostenloses Angebot (kein angegebener Preis)."
   footprint:
     call_label: "Geschätzter Fußabdruck: "
     unavailable: "Geschätzter Fußabdruck: nicht verfügbar"

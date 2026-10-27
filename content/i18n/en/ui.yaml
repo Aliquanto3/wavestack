@@ -996,6 +996,7 @@ main:
     call_label: "Estimated cost: "
     text: "{label}input {input} · output {output}"
     turn_label: "estimated cost "
+    free_text: "Estimated cost: 0 $, free offer (no declared price)."
   footprint:
     call_label: "Estimated footprint: "
     unavailable: "Estimated footprint: unavailable"

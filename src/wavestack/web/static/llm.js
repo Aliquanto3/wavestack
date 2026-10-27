@@ -2027,6 +2027,9 @@ function renderGenerationEnded(p) {
 // (GreenOps/FinOps, already computed by `model_call_ended`, carried as is on this event); a
 // local call's energy and g CO₂e (CodeCarbon, Anaël's decision of 27/10). Nothing shown
 // without a footprint nor a cost.
+// Story 17.2 (recette v1.7.0): a cloud call with no declared price (Gemma's free offer) is
+// `unpriced`, the bar's own rule (`unpriced_calls`), never recomputed here: « 0 $, offre
+// gratuite » instead of silence. A local call is never `unpriced` (it keeps its footprint).
 function renderImpact(p) {
   const node = $("generation-impact");
   const parts = [];
@@ -2039,6 +2042,8 @@ function renderImpact(p) {
         output: `${guess}${usd(p.cost_out_usd)}`,
       })
     );
+  } else if (p.unpriced) {
+    parts.push(t("main.cost.free_text"));
   }
   if (p.energy_wh_min != null) {
     const energy = rangeText(p.energy_wh_min, p.energy_wh_max, "Wh");

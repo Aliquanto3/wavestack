@@ -1306,6 +1306,11 @@ def run_call(
             )
             if cache is not None:
                 payload |= cache
+        elif isinstance(entry, CloudModel) and produced:
+            # Story 17.2 (recette v1.7.0): a cloud call with no declared price (Gemma's free
+            # offer), same classification the bar's `unpriced_calls` uses (`_add_cells`), read
+            # by the Atelier LLM to show « 0 $, offre gratuite » instead of nothing.
+            payload["unpriced"] = True
         # GreenOps: nor has it a footprint; EcoLogits' latency is `duration_ms`.
         if withhold and not out.calls:  # story 5: the final answer, before its check
             payload["text"] = payload["raw_output"] = ""
