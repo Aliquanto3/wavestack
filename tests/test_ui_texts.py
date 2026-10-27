@@ -30,10 +30,19 @@ PAGES = {
     # Lot 2 (2026-10-04): diagram.js; lot 4 (AD-28): panes.js, shared with mcp.html.
     "index.html": (
         "main",
-        ("app.js", "agent-case-form.js", "agent-eval.js", "diagram.js", "panes.js", "site-nav.js"),
+        # Story 16.9: window-picker.js, shared with rag.html.
+        (
+            "app.js",
+            "agent-case-form.js",
+            "agent-eval.js",
+            "diagram.js",
+            "panes.js",
+            "site-nav.js",
+            "window-picker.js",
+        ),
     ),
     "llm.html": ("llm", ("llm.js", "site-nav.js")),
-    "rag.html": ("rag", ("rag.js", "site-nav.js")),
+    "rag.html": ("rag", ("rag.js", "site-nav.js", "window-picker.js")),
     "mcp.html": ("mcp", ("mcp.js", "diagram.js", "panes.js", "site-nav.js")),  # story 6, lot 4
     # Lot 3 of 2026-10-04: « Diagnostic et modèles », story 25's table merged into it.
     "diagnostic.html": ("diagnostic", ("site-nav.js",)),

@@ -1356,6 +1356,8 @@ rag:
   rank_absent: "absent"
   param_range: "From {min} to {max} {unit}"
   option_label: "Option for the {stage} step"
+  generation_local: "{model} (changes the model of the whole application)"
+  generation_models_note: "A local model chosen here changes the model of the whole application. A cloud model generates in the workshop only: the session's model does not change, and Long context still follows the session's window."
   move_before: "Move before"
   move_after: "Move after"
   remove: "Remove"

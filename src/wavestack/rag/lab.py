@@ -1272,6 +1272,10 @@ def check_pipeline(
             if not low <= stage.params[name] <= high:
                 bounds = _bounds_fr(name, low, high, catalog, lang)
                 return text("out_of_bounds", stage=label, bounds=bounds), stage.id
+    # Story 16.9 (CAP-7): the CAG keeps the corpus in a local model's memory, never a cloud's.
+    generation = pipeline.find("generation")
+    if context_option == "cached_corpus" and generation and generation.option.startswith("model:"):
+        return render(Message("session.rag_lab.cag_local_only"), lang), generation.id
     context = pipeline.find("context")
     top_k = param(context, "top_k", catalog) if context else 0
     for stage in searches:
@@ -1987,6 +1991,9 @@ class GenerationAsk:
     # it (the « Préfixe en cache » line then runs).
     cached_prefix: bool = False
     on_prefix: Callable[[], None] | None = None
+    # Story 16.9 (CAP-7): the Generation stage's `model:<id>` option, a declared cloud model
+    # that answers instead of the active one; `None`: the active model.
+    model: str | None = None
 
 
 @dataclass
@@ -5514,6 +5521,7 @@ class LabRun:
                 prefix.skip(self._text("cache.no_model"))
             raise StageSkipped(Message("rag_lab.generation.no_model"), result=would)
         self._check()
+        generation = chain.pipeline.find("generation")
         ask = GenerationAsk(
             context_text=chain.context_text if chain.status == "ok" else "",
             question=self.question,
@@ -5522,6 +5530,7 @@ class LabRun:
             cancelled=self.deps.cancelled,
             cached_prefix=cached,
             on_prefix=prefix.start if prefix is not None else None,
+            model=generation.option if generation and generation.option != "active" else None,
         )
         try:
             got = self.deps.generator(ask)

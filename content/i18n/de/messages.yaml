@@ -575,6 +575,7 @@ session:
     lab_reranker_effect: "Die anderen Reranking-Modelle der Werkstatt bleiben verfügbar."
     # Lot 5c-3: the Generation stage run by the workshop's active model.
     generation_active: "Aktives Modell der Werkstatt: {model}"
+    generation_cloud: "Cloud-Modell: {provider} · {model} (das Modell der Sitzung bleibt unverändert)"
     generation_no_model: "Kein Modell in der Werkstatt geladen: Der Schritt Generation wird übersprungen. Laden Sie ein Modell und starten Sie die Kette erneut."
     generation_stops: "Die Generierung der RAG-Werkstatt bricht ab; WaveStack bleibt nutzbar."
     query_no_model: "In der Werkstatt ist kein Modell geladen: Das Verstehen der Anfrage wird übersprungen und die Frage unverändert gesucht. Laden Sie ein Modell und starten Sie die Kette erneut."
@@ -613,7 +614,8 @@ session:
     window_needed: "Nicht verfügbar: Es braucht ein effektives Fenster von mindestens {needed} Tokens, die Sitzung hat {effective}. {where}"
     window_set: "Stellen Sie das Fenster mit der Auswahl „Fenster“ in der Leiste der Seite Konversation auf {needed}."
     window_bound: "Das konfigurierte Fenster beträgt bereits {configured}{bound}: Wählen Sie ein Modell oder einen Server, der mehr bietet."
-    cag_local_only: "Nicht verfügbar: CAG hält den Korpus im Speicher eines lokalen Modells. Laden Sie ein lokales Modell (GGUF-Datei oder lokaler Server); die Werkstatt steuert den Cache eines Cloud-Anbieters nicht."
+    cag_local_only: "Mit einem Cloud-Modell nicht verfügbar: CAG hält den Korpus im Speicher (KV-Cache) eines lokalen Modells, und die Werkstatt steuert den Cache eines Anbieters nicht. Wählen Sie ein lokales Modell."
+    cag_no_model: "Nicht verfügbar: CAG hält den Korpus im Speicher eines lokalen Modells. Laden Sie ein lokales Modell (GGUF-Datei oder lokaler Server)."
     cag_label: "den CAG-Cache der Werkstatt"
     cag_memory: "CAG-Cache nicht behalten. {reason} Für die nächsten Fragen wird kein Zustand behalten."
     cag_snapshot_failed: "Das Kopieren des Modellzustands ist fehlgeschlagen ({error})."

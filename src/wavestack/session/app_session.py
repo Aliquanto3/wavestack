@@ -53,7 +53,7 @@ from wavestack.bricks.contract import (
     load_default_system_prompt,
 )
 from wavestack.bricks.registry import BRICKS, check_panel_groups, check_unique_ids
-from wavestack.cloud import active_model, chat_fields, load_cloud_content
+from wavestack.cloud import active_model, chat_fields, fill, load_cloud_content
 from wavestack.compression import headroom_adapter
 from wavestack.compression.port import (
     CompressionContent,
@@ -10918,14 +10918,17 @@ class AppSession:
         ended: dict[str, Any],
         request_id: str,
         effect: Message | None = None,
+        engine: Any = None,
     ) -> str:
         """The screen's cloud call: `run_call` directly (neither `context_reconciled` nor the
         estimate's ratio: the workshop's gauge learns nothing from it), each fragment the
         provider sends one `llm_token`. Returns the generation's status. `effect`: what a
         provider's refusal stops (the screen's generation by default; lot 5c-3: the RAG
-        workshop's)."""
+        workshop's). `engine`: the adapter called, the session's by default (story 16.9: a
+        cloud model chosen in the RAG workshop's Generation stage)."""
         engine = _TokenTap(
-            self._engine, lambda channel, text: token(text, None, channel, None, [(channel, text)])
+            engine or self._engine,
+            lambda channel, text: token(text, None, channel, None, [(channel, text)]),
         )
         try:
             call = run_call(
@@ -11059,6 +11062,24 @@ class AppSession:
             options[("context", "wiki_pages")].note_text = Message(
                 "session.rag_lab.searchless_no_model"
             )
+        # Story 16.9 (CAP-7): each declared cloud model generates too (`model:<id>`), without
+        # changing the session's model; greyed without its key, the model bar's reason.
+        cloud_content = self._cloud_content or self._localized(load_cloud_content)
+        for entry in self.cfg.cloud_models[0]:
+            reason: Any = config.cloud_unavailable_fr(entry)
+            if config.cloud_key(entry) is None:
+                reason = (
+                    cloud_content.host_changed_text
+                    if config.api_key_host_changed(entry)
+                    else fill(cloud_content.no_key_text, entry, cloud_content)
+                )
+            options[("generation", f"model:{entry.id}")] = rag_lab.OptionState(
+                self._t(
+                    "session.rag_lab.generation_cloud", provider=entry.provider, model=entry.model
+                ),
+                available=reason is None,
+                reason_text=reason,
+            )
         # V1.2 story 7: `compress` borrows the Compression card's compressor; without one it can
         # still be chosen, the step builds the context as `order` does (the note says why).
         compressor, why = self._rag_lab_compressor()
@@ -11139,7 +11160,12 @@ class AppSession:
         if engine is None or cloud is not None:
             state = options[("context", "cached_corpus")]
             state.available = False
-            state.reason_text = Message("session.rag_lab.cag_local_only")
+            # Story 16.9 (CAP-7): a cloud model says why; no model at all, to load one.
+            state.reason_text = Message(
+                "session.rag_lab.cag_local_only"
+                if cloud is not None
+                else "session.rag_lab.cag_no_model"
+            )
 
     def _rag_lab_absent(self, model: config.EmbeddingModel | RerankerModel) -> Message | None:
         """Lot 5c-1: why a declared embedding model (lot 5c-2: or reranking model) of the
@@ -12570,17 +12596,27 @@ class AppSession:
         is not the RAG brick's). Raises `StageSkipped` without a model."""
         with self._lock:
             engine, caps, cloud, window = self._engine, self._caps, self._cloud, self._window
-        if engine is None or caps is None:
-            raise rag_lab.StageSkipped(Message("rag_lab.generation.no_model"))
         state = self.build_turn_state()
         reasons, reserve = self._reasoning_on(state), self._reserve_of(state)
+        # Story 16.9 (CAP-7): a declared cloud model chosen in the stage answers, its own
+        # adapter opened for this call only; the session's model does not change.
+        chosen = next((e for e in self.cfg.cloud_models[0] if f"model:{e.id}" == ask.model), None)
+        key = config.cloud_key(chosen) if chosen is not None else None
+        if ask.model is not None:
+            if chosen is None or key is None:  # gone or its key removed since the catalog
+                raise rag_lab.StageSkipped(Message("session.load.no_key"))
+            cloud = chosen
+            reasons = "reasoning" in state.effective or cloud_capabilities(chosen).reasoning_always
+            reserve = output_reserve(reasons)
+        elif engine is None or caps is None:
+            raise rag_lab.StageSkipped(Message("rag_lab.generation.no_model"))
         instructed = ask.instruction is not None
         if instructed:  # V1.2 story 5: a short task, its own instruction, no reasoning
             reasons, reserve = False, min(reserve, ask.reserve or reserve)
         messages, system = self._rag_lab_messages(
             state, ask.context_text, ask.question, ask.instruction
         )
-        model = self.active_model()
+        model = {"label": chosen.model} if chosen is not None else self.active_model()
         produced = 0
 
         def token(*_: Any) -> None:
@@ -12595,6 +12631,7 @@ class AppSession:
         with scoped(**scope, origin="model"):
             rendered: RenderedContext | RenderedChat
             if cloud is None:
+                assert engine is not None and caps is not None  # checked above
                 rendered = self._rag_lab_render(engine, caps, messages, step_id, reasons)
                 text, tokens, exact = rendered.prompt, len(rendered.ids), True
             else:
@@ -12661,17 +12698,23 @@ class AppSession:
             else:
                 failed: dict[str, Any] = {}
                 trace = self._sampling_trace(None, reasons)
-                got.status = self._lab_cloud_call(
-                    rendered,
-                    cancel,
-                    cloud,
-                    tokens,
-                    trace,
-                    token,
-                    failed,
-                    step_id,
-                    effect=Message("session.rag_lab.generation_stops"),
-                )
+                own = self._cloud_factory(chosen, key) if chosen is not None else None
+                try:
+                    got.status = self._lab_cloud_call(
+                        rendered,
+                        cancel,
+                        cloud,
+                        tokens,
+                        trace,
+                        token,
+                        failed,
+                        step_id,
+                        effect=Message("session.rag_lab.generation_stops"),
+                        engine=own,
+                    )
+                finally:
+                    if own is not None:
+                        own.close()
                 got.error_text = failed.get("message_text")
             call = next(
                 (

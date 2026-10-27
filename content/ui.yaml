@@ -1369,6 +1369,8 @@ rag:
   rank_absent: "absent"
   param_range: "De {min} à {max} {unit}"
   option_label: "Option de l'étape {stage}"
+  generation_local: "{model} (change le modèle de toute l'application)"
+  generation_models_note: "Un modèle local choisi ici change le modèle de toute l'application. Un modèle nuage ne génère que dans l'atelier : le modèle de la séance ne change pas, et Contexte long suit toujours la fenêtre de la séance."
   move_before: "Déplacer avant"
   move_after: "Déplacer après"
   remove: "Retirer"

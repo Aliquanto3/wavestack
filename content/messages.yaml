@@ -580,6 +580,7 @@ session:
     lab_reranker_effect: "Les autres modèles de reranking de l'atelier restent proposés."
     # Lot 5c-3: the Generation stage run by the workshop's active model.
     generation_active: "Modèle actif de l'atelier : {model}"
+    generation_cloud: "Modèle nuage : {provider} · {model} (le modèle de la séance ne change pas)"
     generation_no_model: "Aucun modèle chargé dans l'atelier : l'étape Generation sera sautée. Chargez un modèle, puis relancez la chaîne."
     generation_stops: "La génération de l'Atelier RAG s'arrête ; WaveStack reste utilisable."
     query_no_model: "Aucun modèle chargé dans l'atelier : la compréhension de la requête sera sautée et la question cherchée telle quelle. Chargez un modèle, puis relancez la chaîne."
@@ -618,7 +619,8 @@ session:
     window_needed: "Indisponible : il faut une fenêtre effective de {needed} tokens au moins, la session en a {effective}. {where}"
     window_set: "Portez la fenêtre à {needed} avec le sélecteur « Fenêtre » de la barre de la page Conversation."
     window_bound: "La fenêtre configurée est déjà de {configured}{bound} : choisissez un modèle ou un serveur qui en offre davantage."
-    cag_local_only: "Indisponible : le CAG garde le corpus dans la mémoire d'un modèle local. Chargez un modèle local (fichier GGUF ou serveur local) ; l'atelier ne pilote pas le cache d'un fournisseur nuage."
+    cag_local_only: "Indisponible avec un modèle cloud : le CAG garde le corpus dans la mémoire (cache KV) d'un modèle local, et l'atelier ne pilote pas le cache d'un fournisseur. Choisissez un modèle local."
+    cag_no_model: "Indisponible : le CAG garde le corpus dans la mémoire d'un modèle local. Chargez un modèle local (fichier GGUF ou serveur local)."
     cag_label: "le cache CAG de l'atelier"
     cag_memory: "Cache CAG non gardé. {reason} Aucun état n'est conservé pour les questions suivantes."
     cag_snapshot_failed: "La copie de l'état du modèle a échoué ({error})."

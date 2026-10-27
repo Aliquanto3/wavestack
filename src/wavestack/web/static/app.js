@@ -14,6 +14,7 @@ import { renderMarkdown } from "./markdown.js";
 import { block as diagramBlock, light, marker, svgEl, wire, wireLayer } from "./diagram.js";
 // Lot 4 (2026-10-04, AD-28): the panes' mechanics and the projection mode, shared with /mcp.
 import { createPanes, initProjection } from "./panes.js";
+import { closeWindowPanel, createWindowPicker, handleWindowState, renderWindowPicker, windowPanelOpen } from "./window-picker.js";
 // V1.5 story 3: « En faire un cas » on a finished turn.
 import { canMakeCase, openCaseForm } from "./agent-case-form.js";
 import { caseBadge, sessionStateChanged } from "./agent-eval.js"; // V1.5 story 4
@@ -39,9 +40,6 @@ const store = {
   // Story 26: the last `context_window_state` (the window and its choices, as the session
   // computed them, AD-1); the panel's choice waiting for « Appliquer » and its last refusal
   // (UI state only).
-  windowState: null,
-  windowPick: null,
-  windowError: null,
   // The journal's tip when `/api/state` answered: an older `model_load_ended`, replayed by
   // the stream after a reload, does not come back in the top bar.
   liveFrom: 0,
@@ -358,7 +356,7 @@ function applyEnvelope(envelope) {
       if (isLive(envelope)) store.gauge = { payload: p, preview: true, callId: null };
       break;
     case "context_window_state":
-      if (isLive(envelope)) store.windowState = p; // story 26: the « Fenêtre » panel
+      if (isLive(envelope)) handleWindowState(p); // story 26: the « Fenêtre » panel
       break;
     case "bricks_changed":
       if (isLive(envelope)) {
@@ -2939,218 +2937,6 @@ function renderModelPicker() {
             ? t("main.model.choose")
             : t("main.model.load")
   );
-}
-
-// ---------- story 26: the context window (DESIGN.md > window-picker, AD-9) ----------
-
-// Every figure and text of the panel comes from `context_window_state` (AD-1): the browser
-// only lays them out, marks the choice noted and says why « Appliquer » is disabled.
-const windowPanel = () => document.getElementById("window-panel");
-let renderedWindowKey = null;
-let windowApplying = false; // a POST in flight: a second click sends nothing
-let claudeCacheApplying = false; // V1.3 story 5: the cache setting's own POST
-let claudeCachePick = null; // ... and the choice it carries, shown until the session answers
-
-function bindWindowPicker() {
-  document.getElementById("window-toggle").addEventListener("click", () => {
-    if (windowPanel().hidden) openWindowPanel();
-    else closeWindowPanel(true);
-  });
-  document.getElementById("window-close").addEventListener("click", () => closeWindowPanel(true));
-  document.getElementById("window-apply").addEventListener("click", applyWindow);
-  document.getElementById("claude-cache").addEventListener("change", (event) => {
-    if (event.target.name === "claude-cache") applyClaudeCache(event.target.value);
-  });
-  document.getElementById("window-choices").addEventListener("change", (event) => {
-    if (event.target.name !== "window-choice") return;
-    store.windowPick = Number(event.target.value);
-    store.windowError = null;
-    renderWindowPicker();
-  });
-  window.addEventListener("resize", () => {
-    if (!windowPanel().hidden) placeWindowPanel();
-  });
-}
-
-// Lot K (K8): the panel drops under its button, left-aligned; when that would take it past
-// the window's right edge (853 px at a 150 % zoom, no pane hidden), it moves left by the
-// overflow, never past the window's left edge. Its width already fits the window (CSS).
-function placeWindowPanel() {
-  const panel = windowPanel();
-  panel.style.left = "";
-  const margin = 16; // --spacing-4, the gutter the CSS width keeps on each side
-  const rect = panel.getBoundingClientRect();
-  const overflow = rect.right - (document.documentElement.clientWidth - margin);
-  if (overflow > 0) panel.style.left = `${-Math.min(overflow, Math.max(0, rect.left - margin))}px`;
-}
-
-function openWindowPanel() {
-  store.windowPick = store.windowState?.configured ?? null;
-  store.windowError = null;
-  windowPanel().hidden = false;
-  document.getElementById("window-toggle").setAttribute("aria-expanded", "true");
-  placeWindowPanel();
-  renderWindowPicker();
-  const checked = windowPanel().querySelector('input[name="window-choice"]:checked');
-  (checked ?? windowPanel().querySelector('input[name="window-choice"]'))?.focus();
-}
-
-function closeWindowPanel(returnFocus = false) {
-  if (windowPanel().hidden) return;
-  windowPanel().hidden = true;
-  store.windowError = null;
-  const toggle = document.getElementById("window-toggle");
-  toggle.setAttribute("aria-expanded", "false");
-  if (returnFocus) toggle.focus();
-}
-
-// Why « Appliquer » cannot act on the choice noted, else `null`.
-function windowApplyReason(ws, pick) {
-  const state = store.sessionState;
-  if (state?.state !== "idle") return state?.reason_text || t("main.window.between_turns");
-  if (ws.locked_text) return ws.locked_text;
-  if (pick === ws.configured) return t("main.window.already", { window: pick });
-  const choice = ws.choices.find((c) => c.window === pick);
-  if (!choice) return t("main.window.choose");
-  return choice.fits ? null : choice.refusal_text;
-}
-
-function renderWindowPicker() {
-  const ws = store.windowState;
-  const toggle = document.getElementById("window-toggle");
-  setText(document.getElementById("window-toggle-value"), ws ? fmt(ws.window) : "…");
-  toggle.disabled = !ws;
-  // Lot K (A3): the button shows the effective window; the one chosen, when it differs
-  // (llama-server's `-c`, the native context…), is in its tooltip.
-  const chosen = ws && ws.configured !== ws.window ? t("main.window.chosen", { window: ws.configured }) : "";
-  const title = !ws
-    ? t("main.window.waiting")
-    : t("main.window.toggle_title", { window: ws.window, bound: ws.bound_text ? `, ${ws.bound_text}` : "", chosen });
-  if (toggle.title !== title) toggle.title = title;
-  toggle.setAttribute("aria-label", ws ? t("main.window.toggle_label", { window: ws.window }) : t("main.window.panel_title"));
-  if (!ws || windowPanel().hidden) return;
-  const pick = store.windowPick ?? ws.configured;
-  const list = document.getElementById("window-choices");
-  setText(
-    document.getElementById("window-help"),
-    t("main.window.help", { window: ws.default })
-  );
-  // A value set by hand outside the choices: said, no choice marked « (actuelle) ».
-  const offList = !ws.choices.some((c) => c.current);
-  const currentLine = document.getElementById("window-current");
-  currentLine.hidden = !offList;
-  setText(currentLine, offList ? t("main.window.current_off_list", { window: ws.configured }) : "");
-  // Rebuilt only when the session's figures change: an arrow key moving the choice keeps
-  // its focus (the choice noted is set in place below); a rebuild gives it back.
-  const key = JSON.stringify(ws);
-  if (key !== renderedWindowKey) {
-    renderedWindowKey = key;
-    const focused = list.contains(document.activeElement) ? document.activeElement.value : null;
-    list.replaceChildren(...ws.choices.map(windowChoiceNode));
-    if (focused !== null) list.querySelector(`input[name="window-choice"][value="${focused}"]`)?.focus();
-  }
-  for (const input of list.querySelectorAll('input[name="window-choice"]')) {
-    const checked = Number(input.value) === pick;
-    if (input.checked !== checked) input.checked = checked;
-    input.closest(".window-choice").classList.toggle("is-picked", checked);
-  }
-  setText(document.getElementById("window-note"), ws.read_note_text);
-  // V1.3 story 5: Claude's prompt cache; the state (and the reason it is greyed) is the
-  // session's, the browser only lays it out.
-  const cacheReason = claudeCacheApplying
-    ? t("main.window.claude_cache_pending")
-    : ws.claude_cache_locked_text ||
-      (store.sessionState?.state !== "idle" ? store.sessionState?.reason_text || t("main.window.between_turns") : null);
-  for (const input of document.querySelectorAll('input[name="claude-cache"]')) {
-    input.checked = input.value === (claudeCacheApplying ? claudeCachePick : ws.claude_cache);
-    input.disabled = Boolean(cacheReason);
-  }
-  setText(document.getElementById("claude-cache-note"), cacheReason ?? ws.claude_cache_note_text ?? "");
-  const apply = document.getElementById("window-apply");
-  const reason = windowApplying ? t("main.window.request_pending") : windowApplyReason(ws, pick);
-  apply.disabled = Boolean(reason);
-  const applyTitle = reason ?? t("main.window.apply_title", { window: pick });
-  if (apply.title !== applyTitle) apply.title = applyTitle;
-  const alert = document.getElementById("window-alert");
-  alert.hidden = !store.windowError;
-  setText(alert, store.windowError ?? "");
-}
-
-function windowChoiceNode(choice) {
-  const row = el("div", "window-choice");
-  row.dataset.window = String(choice.window);
-  row.classList.toggle("is-refused", !choice.fits);
-  const label = el("label", "window-choice-label");
-  const input = el("input");
-  input.type = "radio";
-  input.name = "window-choice";
-  input.value = String(choice.window);
-  input.disabled = !choice.fits; // AD-9: a refused choice is only disabled, its reason shown
-  const details = el("div", "window-choice-details");
-  const figures = el("span", "window-choice-figures");
-  figures.id = `window-choice-${choice.window}`;
-  label.append(input, el("strong", "", t("main.window.choice", { window: choice.window })));
-  if (choice.current) label.append(el("span", "window-choice-current", ` ${t("main.window.current")}`));
-  figures.append(el("span", "window-choice-line", choice.kv_text), el("span", "window-choice-line", choice.read_text));
-  if (choice.bound_text) figures.append(el("span", "window-choice-line window-choice-bound", choice.bound_text));
-  const verdict = choice.fits
-    ? el("span", "window-choice-verdict is-fits", `✓ ${t("main.window.fits")}`)
-    : el("span", "window-choice-verdict is-refused", `⚠ ${choice.refusal_text}`);
-  verdict.id = `window-choice-${choice.window}-verdict`;
-  details.append(figures, verdict);
-  // The figures and the verdict (a refused choice's reason) describe the radio.
-  input.setAttribute("aria-describedby", `${figures.id} ${verdict.id}`);
-  row.append(label, details);
-  return row;
-}
-
-// V1.3 story 5: the cache setting applies at once (no « Appliquer »); a refusal is shown in
-// the panel's alert, the radios go back to the session's state.
-async function applyClaudeCache(value) {
-  if (claudeCacheApplying) return;
-  store.windowError = null;
-  claudeCacheApplying = true;
-  claudeCachePick = value;
-  renderWindowPicker();
-  try {
-    const response = await postIntention("/api/intentions/claude_cache", { value });
-    const answer = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      store.windowError = typeof answer.detail === "string" ? answer.detail : t("main.window.claude_cache_refused");
-    }
-  } catch (error) {
-    store.windowError = t("main.request_failed", { error: error.message });
-  } finally {
-    claudeCacheApplying = false;
-  }
-  render();
-}
-
-async function applyWindow() {
-  const ws = store.windowState;
-  if (!ws || windowApplying) return;
-  const pick = store.windowPick ?? ws.configured;
-  store.windowError = null;
-  windowApplying = true;
-  renderWindowPicker(); // « Appliquer » disabled during the request
-  try {
-    const response = await postIntention("/api/intentions/context_window", { window: pick });
-    const answer = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = typeof answer.detail === "string" ? answer.detail : t("main.window.refused");
-      store.windowError = detail; // in the panel and in the top bar
-      store.topStatus = detail;
-    } else {
-      closeWindowPanel(true);
-      // A reload is followed as a model load (`model_load_*`); otherwise the answer says it.
-      store.topStatus = answer.switching ? null : answer.message_text ?? null;
-    }
-  } catch (error) {
-    store.windowError = t("main.request_failed", { error: error.message });
-  } finally {
-    windowApplying = false;
-  }
-  render();
 }
 
 // Story 25: the groups the session built (`/api/diagnostic.models`: hosting, then publisher,
@@ -8012,9 +7798,16 @@ async function boot() {
 
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".pane-menu")) closePaneMenu();
-    if (!event.target.closest(".window-picker")) closeWindowPanel();
   });
-  bindWindowPicker();
+  // Story 16.9 (CAP-7): the « Fenêtre » picker, shared with the RAG workshop.
+  createWindowPicker({
+    mount: document.getElementById("window-picker"),
+    getSessionState: () => store.sessionState,
+    onStatus: (text) => {
+      store.topStatus = text;
+      render();
+    },
+  });
 
   document.getElementById("composer").addEventListener("submit", sendMessage);
   document.getElementById("composer-stop").addEventListener("click", stopTurn);
@@ -8090,7 +7883,7 @@ async function boot() {
       closeMemoryDrawer();
     } else if (!document.getElementById("pane-menu-list").hidden) {
       closePaneMenu();
-    } else if (!windowPanel().hidden) {
+    } else if (windowPanelOpen()) {
       closeWindowPanel(true); // story 26: the focus back on « Fenêtre ▾ »
     } else if (store.selection !== null && selectionShown()) {
       clearSelection(); // story 34: before leaving focus mode
@@ -8119,7 +7912,7 @@ async function boot() {
     store.armed = body.armed_actions_changed?.actions ?? [];
     store.scenarios = body.scenario_changed;
     store.memory = body.memory_changed ?? null;
-    store.windowState = body.context_window_state ?? null;
+    handleWindowState(body.context_window_state);
     if (body.language) {
       store.language = {
         language: body.language,

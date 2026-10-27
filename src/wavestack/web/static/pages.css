@@ -1717,6 +1717,232 @@ body.is-resizing-y * {
   padding: var(--spacing-pane-padding);
 }
 
+/* ---------- story 26: the context window (DESIGN.md > window-picker) ----------
+   A button on the ink top bar, like « Mode projection »; its panel drops under it like the
+   « Volets ▾ » list, on surface-raised, not modal (the demo stays visible). Story 16.9 (CAP-7):
+   here since window-picker.js serves the RAG workshop too (its own place there: rag.css). */
+
+.window-picker {
+  position: relative;
+}
+
+.window-toggle {
+  min-height: var(--spacing-hit-target-min);
+  padding: 0 var(--spacing-3);
+  background: transparent;
+  color: var(--color-on-ink);
+  border: 1px solid var(--color-on-ink-soft);
+  border-radius: var(--rounded-md);
+  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
+    var(--typography-label-line-height) var(--typography-label-font-family);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.window-toggle[aria-expanded="true"] {
+  background: var(--color-on-ink);
+  color: var(--color-ink-fill); /* story 31: the bar's colours, inverted */
+}
+
+.window-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.window-panel {
+  position: absolute;
+  left: 0;
+  /* Story 2: over the bar, under the panes; its button is centred in the bar, so from its half
+     up to the bar's top edge, then a gap. */
+  bottom: calc(50% + var(--spacing-top-bar-height) / 2 + var(--spacing-2));
+  z-index: 30; /* over the bar's status message */
+  width: min(30rem, calc(100vw - 2 * var(--spacing-4)));
+  /* Story 2: clear of the shared bar at the head (pages.css) too. */
+  max-height: calc(100vh - var(--spacing-top-bar-height) - var(--site-nav-height) - 5 * var(--spacing-gutter));
+  /* Lot K (A8): a column, its texts scroll, « Appliquer » and « Fermer » pinned at its foot
+     (as the memory drawer's), always in view even at 1280 × 650. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-md);
+  box-shadow: 0 var(--spacing-relief-offset-overlay) 0 var(--color-relief);
+  white-space: normal; /* the top bar's pieces never wrap; the panel's texts do */
+  font-size: var(--typography-body-sm-font-size);
+  line-height: var(--typography-body-sm-line-height);
+}
+
+.window-panel[hidden] {
+  display: none;
+}
+
+.window-panel-title {
+  margin: 0 0 var(--spacing-1);
+  font-family: var(--typography-heading-font-family);
+  font-size: var(--typography-heading-font-size);
+  font-weight: var(--typography-heading-font-weight);
+  line-height: var(--typography-heading-line-height);
+}
+
+.window-help,
+.window-note {
+  margin: 0 0 var(--spacing-2);
+  color: var(--color-ink-soft);
+}
+
+.window-choices {
+  margin: 0 0 var(--spacing-2);
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.window-choices-legend {
+  padding: 0;
+  margin-bottom: var(--spacing-1);
+  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
+    var(--typography-label-line-height) var(--typography-label-font-family);
+  color: var(--color-ink-soft);
+}
+
+#window-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.window-choice {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--rounded-sm);
+}
+
+.window-choice.is-picked {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.window-choice-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+  font-family: var(--typography-number-font-family);
+  font-size: var(--typography-number-font-size);
+}
+
+.window-choice-label input {
+  accent-color: var(--color-primary);
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0;
+}
+
+.window-choice-current {
+  color: var(--color-ink-soft);
+  font-weight: normal;
+}
+
+.window-choice-figures {
+  display: flex;
+  flex-direction: column;
+}
+
+.window-choice-details {
+  display: flex;
+  flex-direction: column;
+  margin-left: calc(1.1em + var(--spacing-2));
+  color: var(--color-ink-soft);
+}
+
+/* A refused choice is only disabled (AD-9): dashed, its radio not clickable. */
+.window-choice.is-refused {
+  border-style: dashed;
+}
+
+.window-choice.is-refused .window-choice-label {
+  cursor: not-allowed;
+}
+
+.window-current {
+  margin: 0 0 var(--spacing-2);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* A refusal in the danger style of DESIGN.md > button-danger: ink text beside a danger rule
+   (the danger red as text would not reach 4.5:1 on white). */
+.window-choice-verdict.is-refused {
+  color: var(--color-ink);
+  border-left: var(--spacing-stroke-min) solid var(--color-danger);
+  padding-left: var(--spacing-2);
+  margin-top: var(--spacing-1);
+}
+
+.window-choice-verdict.is-fits {
+  color: var(--color-ink);
+}
+
+.window-alert {
+  margin: 0 0 var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--color-ink);
+  border: var(--spacing-stroke-min) solid var(--color-danger);
+  border-radius: var(--rounded-sm);
+}
+
+.window-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.window-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--spacing-2);
+  padding-top: var(--spacing-2);
+  border-top: 1px solid var(--color-line);
+}
+
+.window-apply,
+.window-close {
+  min-height: var(--spacing-hit-target-min);
+  padding: 0 var(--spacing-3);
+  border-radius: var(--rounded-md);
+  font: var(--typography-label-font-weight) var(--typography-label-font-size) /
+    var(--typography-label-line-height) var(--typography-label-font-family);
+  cursor: pointer;
+}
+
+.window-apply {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.window-close {
+  background: var(--color-surface-raised);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.window-apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Story 26: the window panel lies on surface-raised, its focus ring the primary one. */
+.window-panel :focus-visible {
+  outline: var(--spacing-stroke-min) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* ---------- focus mode: collapse every pane but the focused one ---------- */
 
 body.focus-mode .layout,

@@ -443,3 +443,103 @@ def test_a_provider_error_errs_the_stage_with_its_message(index):
     (error,) = [e.payload for e in events if e.kind == "harness_error"]
     assert error["effect_text"].startswith("La génération de l'Atelier RAG s'arrête")
     assert run_status(events) == "error" and session.state == "idle"
+
+
+# ---------- story 16.9 (CAP-7): a cloud model chosen in the Generation stage ----------
+
+
+def local_with_clouds(index: Path, provider: Provider, *, window: int = 4096) -> AppSession:
+    """A local session (`fake.gguf`) whose configuration declares the shipped cloud models,
+    only Groq's key saved."""
+    place_model()
+    place_reranker()
+    values = rerank_config(index)
+    values["context"] = {"window": window, "near_limit_ratio": 0.8}
+    cfg = config.Config(values=config._deep_merge(config.load_config().values, values))
+    groq = cfg.cloud_model("groq")
+    config.write_api_key(groq.id, groq.host, SecretStr(SENTINEL))
+    session = AppSession(
+        cfg,
+        engine_factory=lambda path, n_ctx: FakeEngine(output=ANSWER),
+        cloud_factory=provider.factory,
+        embedder_factory=Embedders(),
+        reranker_factory=Rerankers(),
+    )
+    session.boot("fake.gguf").result()
+    session.join()
+    return session
+
+
+def test_each_declared_cloud_model_is_an_option_greyed_without_its_key(index):
+    session = local_with_clouds(index, Provider(GROQ_TEXT))
+    options = generation_options(session)
+    entries = session.cfg.cloud_models[0]
+    assert len(entries) > 1
+    assert list(options) == ["active", "not_run", *(f"model:{e.id}" for e in entries)]
+    for entry in entries:
+        option = options[f"model:{entry.id}"]
+        assert option["label_text"] == (
+            f"Modèle nuage : {entry.provider} · {entry.model} "
+            "(le modèle de la séance ne change pas)"
+        )
+        if entry.id == "groq":
+            assert option["available"] and option["reason_text"] is None
+        else:
+            assert option["available"] is False
+            assert option["reason_text"] == (
+                f"Désactivé : saisissez d'abord la clé API de {entry.provider}."
+            )
+    session.close()
+
+
+def test_a_chosen_cloud_model_answers_without_changing_the_sessions_model(index):
+    provider = Provider(GROQ_TEXT)
+    session = local_with_clouds(index, provider)
+    before = session.active_model()
+    local_calls = len(session._engine.calls)
+    chain = own_chain(session)
+    stage(chain, "generation").option = "model:groq"
+    events = run(session, QUESTION, chain)
+
+    generation = ended(events, "generation")
+    assert generation["status"] == "ok", generation["error_text"]
+    assert generation["output_text"] == "Il est 9 h."
+    assert generation["option"] == "model:groq"
+    groq = session.cfg.cloud_model("groq")
+    facts = {f["label_text"]: f["value_text"] for f in generation["facts"]}
+    assert facts["Modèle"] == groq.model
+    assert facts["Tokens du prompt"].startswith("≈ ")
+    (request,) = provider.requests
+    assert f'"model":"{groq.model}"' in request.content.decode("utf-8").replace(" ", "")
+    assert QUESTION in request.content.decode("utf-8")
+    # The session's model and engine are untouched: no local call, the same model shown.
+    assert session.active_model() == before and session._cloud is None
+    assert len(session._engine.calls) == local_calls
+    assert run_status(events) == "ok" and session.state == "idle"
+    session.close()
+
+
+def test_the_active_option_still_runs_the_local_model(index):
+    provider = Provider(GROQ_TEXT)
+    session = local_with_clouds(index, provider)
+    generation = ended(run(session, QUESTION, own_chain(session)), "generation")
+    assert generation["status"] == "ok" and generation["output_text"] == ANSWER
+    assert not provider.requests
+    session.close()
+
+
+def test_the_cag_with_a_cloud_generation_is_refused_with_its_reason(index):
+    session = local_with_clouds(index, Provider(GROQ_TEXT), window=16384)
+    catalog = session._rag_lab_catalog(rag_lab.load_lab_content())
+    chain = catalog.preset_pipeline("cag")
+    assert rag_lab.check_pipeline(chain, catalog) is None  # the active local model: it runs
+    stage(chain, "generation").option = "model:groq"
+    reason, stage_id = rag_lab.check_pipeline(chain, catalog)
+    assert reason == (
+        "Indisponible avec un modèle cloud : le CAG garde le corpus dans la mémoire (cache KV) "
+        "d'un modèle local, et l'atelier ne pilote pas le cache d'un fournisseur. "
+        "Choisissez un modèle local."
+    )
+    assert stage_id == stage(chain, "generation").id
+    assert session.validate_rag_lab(chain)["valid"] is False
+    session.close()

@@ -23,6 +23,7 @@
 import { createStepper, light, svgEl, wire, wireLayer } from "./diagram.js";
 import { numberFormat, ready as textsReady, t } from "./i18n.js";
 import { feedBar } from "./bar.js";
+import { closeWindowPanel, createWindowPicker, handleWindowState, renderWindowPicker, windowPanelOpen } from "./window-picker.js";
 
 const $ = (id) => document.getElementById(id);
 const quote = (value) => t("common.format.quote", { text: value });
@@ -241,6 +242,31 @@ function paramInput(stage, param) {
   return label;
 }
 
+// Story 16.9 (CAP-7): the other local models in the Generation stage, as the model bar lists
+// them (`/api/diagnostic`, its groups); choosing one loads it for the whole application by
+// the bar's own intention (`select_model`). The cloud models are the catalog's options.
+const LOCAL_PREFIX = "local:";
+let localModels = [];
+
+async function loadLocalModels() {
+  try {
+    const body = await (await fetch("/api/diagnostic")).json();
+    const loaded = body.loaded ? `${body.loaded.kind}:${body.loaded.ref}` : null;
+    localModels = (body.models?.groups ?? [])
+      .filter((g) => g.hosting !== "network")
+      .flatMap((g) => g.models)
+      .filter((m) => m.usable && m.kind !== "cloud" && `${m.kind}:${m.ref}` !== loaded);
+  } catch {
+    localModels = []; // the stage keeps its own options
+  }
+}
+
+async function loadLocalModel(kind, ref) {
+  const answer = await post("/api/intentions/select_model", { kind, ref });
+  const said = answer.ok ? answer.body.message_text : refusalText(answer);
+  if (said) $("rag-status").textContent = said;
+}
+
 function optionSelect(stage, info) {
   const select = el("select", "rag-option");
   select.setAttribute("aria-label", t("rag.option_label", { stage: info.label_text }));
@@ -252,8 +278,24 @@ function optionSelect(stage, info) {
     if (option.reason_text) item.title = option.reason_text;
     select.append(item);
   }
+  if (stage.kind === "generation") {
+    for (const m of localModels) {
+      const item = el("option", null, t("rag.generation_local", { model: m.label_text }));
+      item.value = `${LOCAL_PREFIX}${m.kind}:${m.ref}`;
+      select.append(item);
+    }
+  }
   select.value = stage.option;
   select.addEventListener("change", () => {
+    if (select.value.startsWith(LOCAL_PREFIX)) {
+      // Story 16.9 (CAP-7): the model bar's path; the stage keeps the active model, this one.
+      const [kind, ...ref] = select.value.slice(LOCAL_PREFIX.length).split(":");
+      stage.option = "active";
+      stage.params = {};
+      changed();
+      loadLocalModel(kind, ref.join(":"));
+      return;
+    }
     const option = info.options.find((o) => o.id === select.value);
     stage.option = select.value;
     // The option's own settings, at their shipped values.
@@ -276,6 +318,9 @@ function stageControls(stage, index) {
   // V1.2 story 8: a check (after the generation) is removed the same way, never moved.
   if (info?.movable || info?.check) box.append(moveButtons(index));
   if (option?.note_text) box.append(el("p", "rag-chain-note", option.note_text));
+  if (stage.kind === "generation" && (localModels.length || info?.options.some((o) => o.id.startsWith("model:")))) {
+    box.append(el("p", "rag-chain-note", t("rag.generation_models_note")));
+  }
   for (const other of info?.options ?? []) {
     if (!other.available && other.reason_text) {
       box.append(el("p", "rag-chain-unavailable", labelled(other.label_text, other.reason_text)));
@@ -677,6 +722,13 @@ function renderPresets() {
     button.setAttribute("aria-pressed", String(preset.id === current?.id));
     button.addEventListener("click", () => applyPreset(preset));
     target.append(button, described);
+  }
+  // Story 16.9 (CAP-7): why a preset is greyed (the CAG under a cloud model, a window too
+  // small), in visible text under its family's buttons: the tooltip alone hid it.
+  for (const preset of ordered.filter((p) => !p.available && p.reason_text)) {
+    const reason = el("p", "rag-chain-unavailable rag-preset-reason", labelled(preset.label_text, preset.reason_text));
+    reason.dataset.preset = preset.id;
+    (sections.get(preset.family) ?? box).append(reason);
   }
 }
 
@@ -1403,13 +1455,14 @@ function applyEnvelope(envelope) {
       store.session = { state: p.state, reason_text: p.reason_text };
       if (p.state === "idle" && closeStaleRun()) renderRun();
       renderBusy();
+      renderWindowPicker(); // story 16.9: « Appliquer » between two runs only
       // Lot 5c-4: a download ended (this page's or another's): the catalog read again.
       // V1.2 story 10: a model (re)loaded, its window changed: the options' reasons too.
       if (was === "download" && p.state !== "download") {
         store.download = null;
         reloadCatalog();
       } else if (was === "model_load" && p.state !== "model_load") {
-        reloadCatalog();
+        loadLocalModels().then(reloadCatalog); // story 16.9: the model loaded leaves the list
       } else {
         renderDownloads();
       }
@@ -1420,6 +1473,7 @@ function applyEnvelope(envelope) {
       downloadOutcome(envelope);
       return;
     case "context_window_state": {
+      handleWindowState(p); // story 16.9 (CAP-7): the « Fenêtre » picker of the workshop
       // V1.2 story 10: the long context and the CAG need a window: read again on a change.
       const key = `${p.configured}/${p.window}/${p.model_label ?? ""}`;
       if (store.windowSeen !== undefined && store.windowSeen !== key) reloadCatalog();
@@ -2357,11 +2411,25 @@ async function main() {
   // The stepper before the legend, in « Dérouler »'s bar (its labels read now: after `ready`).
   stepper = createStepper($("rag-stepper"), { onShow: showFrame });
   $("rag-stepper").prepend(stepper.element);
+  // Story 16.9 (CAP-7): the « Fenêtre » picker beside « Lancer », its state the session's.
+  createWindowPicker({
+    mount: $("window-picker"),
+    getSessionState: () => store.session,
+    onStatus: (said) => {
+      if (said) $("rag-status").textContent = said;
+    },
+  });
+  fetch("/api/state")
+    .then((response) => response.json())
+    .then((state) => handleWindowState(state.context_window_state))
+    .catch(() => {}); // the button waits for the next `context_window_state`
+  const locals = loadLocalModels(); // `/api/diagnostic` can take a while: never awaited first
   let body = await refresh();
   while (!body) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     body = await refresh();
   }
+  locals.then(() => renderViews());
   const question = $("rag-question");
   question.value = stored(QUESTION_KEY) ?? (text("default_question_text") || "");
   question.addEventListener("input", () => keep(QUESTION_KEY, question.value));
@@ -2383,6 +2451,11 @@ async function main() {
   $("rag-seq-expand").addEventListener("click", () => setSeqExpanded(!$("rag-seq").classList.contains("is-expanded")));
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || event.defaultPrevented) return;
+    if (windowPanelOpen()) {
+      event.preventDefault();
+      closeWindowPanel(true); // story 16.9: the focus back on « Fenêtre ▾ »
+      return;
+    }
     if (!$("rag-seq").classList.contains("is-expanded")) return;
     event.preventDefault();
     setSeqExpanded(false);

@@ -18870,8 +18870,10 @@ def _no_index_presets(r: Run) -> dict[str, Any]:
 def s_rag_lab_no_index(r: Run) -> None:
     """V1.2 story 10, after `rag` and `rag_rerank` (no real model): (1) the fake llama-server at
     4 096: « Contexte long » and « CAG » of the « Sans index » family greyed, the reason says
-    16 384 and the « Fenêtre » selector; (2) 16 384 by the Conversation page's selector: still
-    greyed, the reason says the server's bound of 8 192 (`-c`), the effective window; (3) the
+    16 384 and the « Fenêtre » selector, in visible text; (2) 16 384 by the workshop's own
+    « Fenêtre » picker (story 16.9): still greyed, the reason says the server's bound of 8 192
+    (`-c`), the effective window; the fake cloud A chosen in the Generation stage answers, the
+    session's model unchanged; (3) the
     fake cloud A (declared at 32 768) at 16 384: « CAG » greyed (a local model only), « Contexte
     long » applied and run (the head « non utilisée », the whole corpus in the Context's
     focus, its gauge on the window), then « Ajouter » gives U = 0 with its note; (4) the
@@ -18910,11 +18912,23 @@ def s_rag_lab_no_index(r: Run) -> None:
             "sélecteur « Fenêtre »",
             " | ".join(reasons),
         )
+        visible = [
+            page.locator(f'#rag-presets .rag-preset-reason[data-preset="{k}"]').inner_text()
+            for k in ("long_context", "cag")
+        ]
+        r.check(
+            all("16 384" in t for t in visible),
+            "story 16.9 : la raison des deux grisés se lit sous leurs boutons, pas en infobulle",
+            " | ".join(visible),
+        )
         r.shot("77-atelier-rag-sans-index", full_page=True)
 
-        # (2) 16 384 by the Conversation page's selector: bounded to 8 192 by the server.
-        r.goto_app()
+        # (2) Story 16.9 (CAP-7): 16 384 from the workshop's own « Fenêtre » picker (the
+        # Conversation page's), bounded to 8 192 by the server; the reason follows, no reload.
         state = _apply_window(r, 16384)
+        expect(
+            page.locator('#rag-presets .rag-preset-reason[data-preset="long_context"]')
+        ).to_contain_text("8 192", timeout=10_000)
         seen = _no_index_presets(r)
         reasons = [seen["served"][k]["reason_text"] or "" for k in ("long_context", "cag")]
         r.check(
@@ -18925,6 +18939,27 @@ def s_rag_lab_no_index(r: Run) -> None:
             "16 384 borné à 8 192 par llama-server : toujours grisés, la raison dit la borne",
             " | ".join(reasons),
         )
+
+        # Story 16.9 (CAP-7): the fake cloud A generates in the workshop, chosen in the
+        # Generation stage; the session keeps the fake llama-server.
+        before = r.state().get("active_model")
+        generation_select = _seq_row(r, "generation").locator("select.rag-option")
+        generation_select.select_option(f"model:{MODEL_ENTRY_ID}")
+        time.sleep(0.8)  # the session's verdict
+        ended, seq = _rag_lab_run(r, compose=True)
+        generation = _stage_ended(r, seq, "generation")
+        facts = {f["label_text"]: f["value_text"] for f in generation.get("facts", [])}
+        r.check(
+            ended["payload"]["status"] == "ok"
+            and generation.get("status") == "ok"
+            and facts.get("Modèle") == "wavestack-fake"
+            and "wavestack-fake" in _option_label(r, "generation")
+            and r.state().get("active_model") == before,
+            "génération par le cloud A choisi dans l'étape : le modèle de la séance ne change pas",
+            f"{generation.get('status')} · {facts.get('Modèle')} · "
+            f"{_option_label(r, 'generation')}",
+        )
+        _seq_row(r, "generation").locator("select.rag-option").select_option("active")
 
         # (3) The fake cloud A, declared at 32 768: the long context runs, the CAG is local only.
         r.goto_app()
@@ -18942,6 +18977,13 @@ def s_rag_lab_no_index(r: Run) -> None:
             and "modèle local" in (served["cag"]["reason_text"] or ""),
             "cloud A à 16 384 : « Contexte long » disponible, « CAG » grisé (modèle local)",
             str(served["cag"]["reason_text"]),
+        )
+        cag_reason = page.locator('#rag-presets .rag-preset-reason[data-preset="cag"]')
+        r.check(
+            cag_reason.count() == 1
+            and "Indisponible avec un modèle cloud" in cag_reason.inner_text(),
+            "story 16.9 : sous un modèle cloud, la raison du CAG grisé se lit sous son bouton",
+            cag_reason.inner_text() if cag_reason.count() else "",
         )
         page.locator('#rag-presets .rag-preset[data-preset="long_context"]').click()
         time.sleep(0.8)  # the session's verdict
