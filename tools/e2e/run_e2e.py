@@ -17655,6 +17655,66 @@ def s_security_page(r: Run) -> None:
             "Sécurité : la ligne dépliée de la fusion refusée dit « Envoyé à GitHub : non »",
             body_text,
         )
+
+        # Story 16.7 (CAP-10): the matrix rows are shut at load and unfold by the keyboard.
+        details = page.locator("#sec-matrix-body tr.mx-detail")
+        r.check(
+            details.count() > 0
+            and page.locator("#sec-matrix-body tr.mx-detail:visible").count() == 0,
+            "Sécurité : les détails de la matrice sont repliés au chargement",
+        )
+        toggle = page.locator("#sec-matrix-body .mx-toggle").first
+        toggle.focus()
+        page.keyboard.press("Enter")
+        r.check(
+            toggle.get_attribute("aria-expanded") == "true" and details.first.is_visible(),
+            "Sécurité : une ligne de la matrice se déplie au clavier",
+        )
+        # The « écriture » card filters the matrix and gives the focus to its title.
+        cards = page.locator("#sec-questions .sec-question-card")
+        cards.first.click()
+        expect(page.locator("#h-sec-matrix")).to_be_focused()
+        r.check(
+            page.locator('#sec-matrix-filters [data-mx="write"]').get_attribute("aria-pressed")
+            == "true"
+            and page.locator('#sec-matrix-body tr.mx-row[data-write="false"]:visible').count() == 0,
+            "Sécurité : la carte « écriture » filtre la matrice",
+        )
+        # The « bloqué » card filters the journal on the refusals.
+        cards.nth(2).click()
+        expect(page.locator("#h-sec-journal")).to_be_focused()
+        allowed = page.locator("#sec-journal .sec-row", has_text="alertes de sécurité exposées")
+        r.check(
+            row.is_visible() and not allowed.is_visible(),
+            "Sécurité : la carte « bloqué » filtre le journal sur les refus",
+        )
+        page.locator('#sec-journal-filters [data-f="all"]').click()
+        r.check(allowed.is_visible(), "Sécurité : le filtre « Tout » rend tout le journal")
+        # Every kind of clickable: the hand cursor, and a style of its own on hover.
+        for selector in (
+            "#sec-questions .sec-question-card",
+            "#sec-path button.call-step",
+            '#sec-journal-filters [data-f="refused"]',
+            "#sec-matrix-body tr.mx-row",
+            "#sec-controls .sec-row",
+        ):
+            target = page.locator(selector).first
+            target.scroll_into_view_if_needed()
+            page.mouse.move(0, 0)
+            style = (
+                "e => { const k = e.querySelector('.mx-toggle, .sec-row-head') || e;"
+                " const s = getComputedStyle(e.tagName === 'TR' ? e.cells[0] : e);"
+                " return [getComputedStyle(k).cursor, s.borderColor, s.backgroundColor]"
+                ".join('|'); }"
+            )
+            at_rest = target.evaluate(style)
+            target.hover()
+            hovered = target.evaluate(style)
+            r.check(
+                "pointer" in hovered and hovered != at_rest,
+                f"Sécurité : « {selector} » a la main et un état au survol",
+                f"{at_rest} / {hovered}",
+            )
     finally:
         page.unroute("**/api/security_journal", fake_journal)
 

@@ -2093,6 +2093,10 @@ security:
   legend:
     label: "What is clickable on this page"
     sub: "Cues for the facilitator and the learner."
+    states:
+      rest: "at rest"
+      hover: "on hover"
+      focus: "on focus"
     disclosure: "A row to unfold: the ▸ chevron turns a quarter turn when open."
     card: "Question card: relief and a → arrow; it leads to the answer."
     filter: "Toggle chip: checked, it turns solid with a ✓."

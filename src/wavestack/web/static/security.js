@@ -174,15 +174,19 @@ function setMatrixFilter(value) {
     filters.querySelectorAll("[data-mx]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mx === value)));
   }
   $("sec-matrix-body")
-    ?.querySelectorAll("tr")
+    ?.querySelectorAll("tr.mx-row")
     .forEach((row) => {
       row.hidden = value === "write" && row.dataset.write !== "true";
+      // Its detail row stays shut unless the row is both shown and unfolded.
+      const open = row.querySelector(".mx-toggle").getAttribute("aria-expanded") === "true";
+      row.nextElementSibling.hidden = row.hidden || !open;
     });
 }
 
 function matrixRow(row) {
   const id = `sec-mx-${row.id}`;
   const tr = document.createElement("tr");
+  tr.className = "mx-row";
   tr.dataset.write = String(row.write);
   const tool = document.createElement("td");
   const toggle = document.createElement("button");
@@ -520,17 +524,65 @@ function renderLimits(limits) {
 
 // ---------- the affordance legend (repliée par défaut) ----------
 
+// Each affordance shown at rest, on hover and on focus (states forced by `.is-hover` /
+// `.is-focus`, as in the validated maquette); the samples are inert, out of the tab order.
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+const LEGEND_SAMPLES = {
+  disclosure: (s) => {
+    const ul = el("ul", "sec-rows");
+    const li = el("li", `sec-row disclosure-row${s === "hover" ? " is-hover" : ""}`);
+    const head = el("button", `sec-row-head disclosure-row-head${s === "focus" ? " is-focus" : ""}`);
+    head.append(el("span", "disclosure-row-chevron", "▸"), el("span", "disclosure-row-label", t("security.controls.title")));
+    li.append(head);
+    ul.append(li);
+    return ul;
+  },
+  card: (s) => {
+    const card = el("button", `sec-question-card is-${s}`);
+    card.append(
+      el("span", "sec-question-ask", t("security.questions.authorized_by_you")),
+      el("span", "sec-question-figure", "1"),
+      el("span", "sec-question-go", t("security.questions.go_journal")),
+    );
+    return card;
+  },
+  filter: (s) => el("button", `filter-chip is-${s}`, t("security.journal.filters.refused", { count: 1 })),
+  action: (s) => el("a", `button-secondary is-${s}`, t("security.matrix.settle_link")),
+};
+
+function legendItem(key) {
+  const item = el("div", "legend-item");
+  item.append(el("p", "", t(`security.legend.${key}`)));
+  const demo = el("div", "legend-states");
+  demo.setAttribute("aria-hidden", "true");
+  if (LEGEND_SAMPLES[key]) {
+    for (const state of ["rest", "hover", "focus"]) {
+      const sample = LEGEND_SAMPLES[key](state);
+      sample.querySelectorAll("button").forEach((b) => (b.tabIndex = -1));
+      sample.tabIndex = -1;
+      const line = el("div");
+      line.append(el("span", "", t(`security.legend.states.${state}`)), sample);
+      demo.append(line);
+    }
+  } else {
+    demo.append(chip(t("mcp.policy.risk.high"), "high"), " ", chip(t("mcp.policy.rule.ask"), "mid"));
+  }
+  item.append(demo);
+  return item;
+}
+
 function renderLegend() {
   const list = $("sec-legend");
   if (!list) return;
-  const ul = document.createElement("ul");
-  ul.className = "legend-list";
-  for (const key of ["disclosure", "card", "filter", "action", "static"]) {
-    const li = document.createElement("li");
-    li.textContent = t(`security.legend.${key}`);
-    ul.append(li);
-  }
-  list.replaceChildren(discRow(t("security.legend.label"), null, [ul], t("security.legend.sub")));
+  const grid = el("div", "legend");
+  grid.append(...["disclosure", "card", "filter", "action", "static"].map(legendItem));
+  list.replaceChildren(discRow(t("security.legend.label"), null, [grid], t("security.legend.sub")));
 }
 
 // ---------- filter chips (matrice et journal), wired once, both widgets static in the HTML ----------

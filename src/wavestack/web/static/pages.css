@@ -434,16 +434,19 @@
 }
 
 .bar-log-row:hover,
-.sec-row:hover {
+.sec-row:hover,
+.sec-row.is-hover {
   border-color: var(--color-primary);
 }
 
 .bar-log-row:hover .disclosure-row-chevron,
-.sec-row:hover .disclosure-row-chevron {
+.sec-row:hover .disclosure-row-chevron,
+.sec-row.is-hover .disclosure-row-chevron {
   color: var(--color-primary);
 }
 
-.disclosure-row-head:focus-visible {
+.disclosure-row-head:focus-visible,
+.disclosure-row-head.is-focus {
   outline: var(--spacing-stroke-min) solid var(--color-primary);
   outline-offset: 2px;
 }

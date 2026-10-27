@@ -2116,6 +2116,10 @@ security:
   legend:
     label: "Ce qui se clique sur cette page"
     sub: "Repères pour l'animateur et l'apprenant."
+    states:
+      rest: "au repos"
+      hover: "au survol"
+      focus: "au focus"
     disclosure: "Ligne à déplier : le chevron ▸ tourne d'un quart de tour quand c'est ouvert."
     card: "Carte-question : relief et flèche → ; elle mène à la réponse."
     filter: "Filtre en pastille : coché, il passe sur fond plein avec un ✓."

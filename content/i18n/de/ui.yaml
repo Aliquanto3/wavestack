@@ -2093,6 +2093,10 @@ security:
   legend:
     label: "Was auf dieser Seite klickbar ist"
     sub: "Anhaltspunkte für die Moderation und die Lernenden."
+    states:
+      rest: "Ruhe"
+      hover: "Hover"
+      focus: "Fokus"
     disclosure: "Eine auszufaltende Zeile: der Chevron ▸ dreht sich um eine Vierteldrehung, wenn sie offen ist."
     card: "Fragekarte: Relief und ein Pfeil →; sie führt zur Antwort."
     filter: "Umschaltbare Pastille: angehakt, wird sie voll gefüllt mit einem ✓."
