@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Maquette Sécurité</title>
+<!--
+  Story 16.4 (CAP-10, première moitié) : maquette de l'onglet Sécurité refondu.
+  Fichier autonome : CSS et JS inline, aucune ressource internet. Couleurs = jetons de
+  tokens.css (DESIGN.md principal + delta vague 2), clair et sombre. Polices de la charte
+  (Fredoka, Atkinson Hyperlegible) en repli system-ui ici, faute de fichiers locaux.
+  Données d'exemple = sortie plausible de AppSession.security_state() avec la politique par
+  défaut (policy.py) et une séance où il s'est passé 6 événements. Textes security.* actuels
+  repris tels quels ; les nouveaux textes sont marqués « nouveau » dans la correspondance.
+  Spines gagnent sur la maquette en cas de conflit (DESIGN.md vague 2, ux-securite.md).
+-->
+<style>
+:root {
+  color-scheme: light;
+  --color-primary: #451DC7; --color-primary-deep: #250F6B; --color-primary-soft: #EDE7FE;
+  --color-accent: #04F06A; --color-accent-soft: #CAFEE0;
+  --color-ink: #0A0A14; --color-ink-soft: #4A4A5E; --color-muted: #8A8A9E; --color-line: #E6E6EC;
+  --color-surface: #F6F5FA; --color-surface-raised: #FFFFFF;
+  --color-warning: #FFCA4A; --color-warning-soft: #FFF4D6;
+  --color-danger: #FF2A49; --color-danger-soft: #FDE8EB;
+  --color-on-primary: #FFFFFF; --color-relief: #D9D0F6; --color-relief-active: #C9BCF5;
+  --font-label: Fredoka, system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-code: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --r-sm: 12px; --r-md: 18px; --r-full: 9999px;
+  --stroke: 2px; --relief: 4px; --relief-pressed: 1px; --hit: 32px;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-primary: #9C86FF; --color-primary-deep: #C9BDFF; --color-primary-soft: #2A2350;
+  --color-accent-soft: #0F3A24;
+  --color-ink: #ECEBF5; --color-ink-soft: #B4B3C7; --color-line: #3A394F;
+  --color-surface: #12121C; --color-surface-raised: #1E1D2C;
+  --color-danger: #FF6B7F; --color-warning-soft: #3A3010; --color-danger-soft: #3A1820;
+  --color-on-primary: #0E0B1E; --color-relief: #2A2156; --color-relief-active: #3A2E78;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-surface-raised); color: var(--color-ink);
+  font: 14px/1.5 var(--font-body); }
+h1, h2, h3 { font-family: var(--font-label); font-weight: 600; margin: 0; }
+h1 { font-size: 24px; } h2 { font-size: 18px; line-height: 1.3; } h3 { font-size: 15px; }
+p { margin: 0; }
+code { font: 13px var(--font-code); }
+
+/* ---------- habillage de la maquette (hors produit) ---------- */
+.mock-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: var(--s2);
+  align-items: center; padding: var(--s2) var(--s4); background: var(--color-primary-deep); color: #fff;
+  font: 500 13px var(--font-label); }
+.mock-bar button { font: inherit; color: inherit; background: transparent; border: 1px solid #fff8;
+  border-radius: var(--r-full); padding: 2px var(--s3); cursor: pointer; }
+.mock-bar button[aria-pressed="true"] { background: #fff; color: var(--color-primary-deep); }
+.mock-bar button:focus-visible { outline: var(--stroke) solid #fff; outline-offset: 2px; }
+.mock-notes { max-width: 1180px; margin: var(--s4) auto 0; padding: 0 var(--s4); display: grid; gap: var(--s3); }
+.mock-box { border: var(--stroke) dashed var(--color-primary); border-radius: var(--r-md); padding: var(--s3) var(--s4);
+  background: var(--color-primary-soft); }
+.mock-box ol, .mock-box ul { margin: var(--s2) 0 0; padding-left: 20px; }
+.mock-box li + li { margin-top: var(--s1); }
+.mock-box table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: var(--s2); }
+.mock-box td, .mock-box th { text-align: left; padding: var(--s1) var(--s2); border-bottom: 1px solid var(--color-line); vertical-align: top; }
+.mock-box summary { cursor: pointer; font: 600 15px var(--font-label); }
+.new { font: 500 11px var(--font-label); color: var(--color-primary); border: 1px solid var(--color-primary);
+  border-radius: var(--r-full); padding: 0 6px; white-space: nowrap; }
+.frame { margin: var(--s4) auto var(--s6); max-width: 1180px; container-type: inline-size;
+  border: 1px solid var(--color-line); border-radius: var(--r-md); overflow: hidden; background: var(--color-surface-raised); }
+body.w360 .frame { max-width: 360px; }
+
+/* ---------- barre commune (abrégée, inchangée par la story) ---------- */
+.site-nav { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: center; padding: var(--s2) var(--s4);
+  border-bottom: 1px solid var(--color-line); font: 500 14px var(--font-label); }
+.site-nav a { color: var(--color-ink-soft); text-decoration: none; }
+.site-nav a[aria-current] { color: var(--color-primary); text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+.site-nav .brand { color: var(--color-ink); font-weight: 600; }
+
+/* ---------- page ---------- */
+.sec-main { padding: var(--s5) var(--s4) var(--s6); display: grid; gap: var(--s6); }
+.sec-subtitle, .sec-sub { color: var(--color-ink-soft); }
+.sec-sub { margin-top: var(--s1); }
+.sec-head { display: flex; flex-wrap: wrap; gap: var(--s3); justify-content: space-between; align-items: flex-start; margin-bottom: var(--s3); }
+.sec-why { margin-top: var(--s2); padding: var(--s2) var(--s3); border-left: var(--stroke) solid var(--color-primary);
+  background: var(--color-surface); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13px; }
+.sec-why strong { font-family: var(--font-label); font-weight: 600; }
+.sec-grid2 { display: grid; gap: var(--s6); grid-template-columns: 1fr; }
+@container (min-width: 900px) { .sec-grid2 { grid-template-columns: 3fr 2fr; } }
+
+/* ===== Affordance commune : TOUT ce qui se clique (cursor, survol, focus) ===== */
+.clickable { cursor: pointer; transition: background .12s, box-shadow .12s, transform .12s; }
+.clickable:focus-visible, .clickable.is-focus { outline: var(--stroke) solid var(--color-primary); outline-offset: 2px; }
+
+/* status-chip (pages.css:438), inchangé ; + la règle en pastille (choix 4) */
+.status-chip { display: inline-block; padding: 0 var(--s2); border-radius: var(--r-full); background: var(--color-accent-soft);
+  color: var(--color-ink); font: 500 12px/1.6 var(--font-label); white-space: nowrap; }
+.status-chip-mid { background: var(--color-warning-soft); box-shadow: inset 0 0 0 var(--stroke) var(--color-warning); }
+.status-chip-high { background: var(--color-danger-soft); color: var(--color-danger); }
+.status-chip-off { background: var(--color-surface); color: var(--color-ink-soft); box-shadow: inset 0 0 0 1px var(--color-line); }
+
+/* security-question-card, devenue un bouton (nouveau : question-card-button) */
+.sec-questions { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.sec-question-card { display: grid; gap: var(--s1); align-content: start; text-align: left; padding: var(--s3) var(--s3) var(--s2);
+  background: var(--color-surface); color: var(--color-ink); border: 1px solid var(--color-line); border-radius: var(--r-md);
+  font: inherit; box-shadow: 0 var(--relief) 0 var(--color-relief); }
+.sec-question-ask { color: var(--color-ink-soft); font: 500 12px/1.2 var(--font-label); }
+.sec-question-figure { font: 600 20px/1.1 var(--font-label); }
+.sec-question-figure.alert { color: var(--color-danger); }
+.sec-question-detail { color: var(--color-ink-soft); font-size: 13px; }
+.sec-question-go { justify-self: end; margin-top: var(--s1); color: var(--color-primary); font: 500 12px var(--font-label); }
+.sec-question-go::after { content: " →"; display: inline-block; transition: transform .12s; }
+.sec-question-card:hover, .sec-question-card.is-hover { background: var(--color-surface-raised); border-color: var(--color-primary); transform: translateY(-1px);
+  box-shadow: 0 calc(var(--relief) + 1px) 0 var(--color-relief-active); }
+.sec-question-card:hover .sec-question-go::after, .sec-question-card.is-hover .sec-question-go::after { transform: translateX(3px); }
+.sec-question-card:active { transform: translateY(calc(var(--relief) - var(--relief-pressed))); box-shadow: 0 var(--relief-pressed) 0 var(--color-relief-active); }
+.sec-question-card[aria-pressed="true"] { border: var(--stroke) solid var(--color-primary); }
+
+/* chemin d'un appel (nouveau : call-path) */
+.call-path { display: grid; gap: var(--s2); grid-template-columns: 1fr; counter-reset: step; list-style: none; margin: 0; padding: 0; }
+@container (min-width: 720px) { .call-path { grid-template-columns: repeat(5, 1fr); } }
+.call-step { display: grid; gap: var(--s1); width: 100%; height: 100%; text-align: left; padding: var(--s2) var(--s3); font: inherit; color: var(--color-ink);
+  background: var(--color-surface-raised); border: 1px solid var(--color-line); border-radius: var(--r-sm); position: relative; }
+.call-step-title { font: 600 14px var(--font-label); display: flex; gap: var(--s2); align-items: baseline; }
+.call-step-title::before { counter-increment: step; content: counter(step); display: inline-grid; place-items: center; width: 20px; height: 20px;
+  border-radius: var(--r-full); background: var(--color-primary); color: var(--color-on-primary); font-size: 12px; flex: none; }
+.call-step-text { font-size: 13px; color: var(--color-ink-soft); }
+.call-step-state { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.call-step-go { color: var(--color-primary); font: 500 12px var(--font-label); }
+.call-step-go::after { content: " ↓"; }
+.call-step:hover, .call-step.is-hover { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.call-step.static { cursor: default; }
+.call-step.static:hover { border-color: var(--color-line); background: var(--color-surface-raised); }
+
+/* sec-matrix (security.html), ligne dépliable ; en dessous de 560 px : une carte par ligne */
+.sec-matrix { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sec-matrix th { text-align: left; padding: var(--s1) var(--s2); color: var(--color-ink-soft); border-bottom: 1px solid var(--color-line); font: 500 12px var(--font-label); }
+.sec-matrix td { padding: var(--s2); border-bottom: 1px solid var(--color-line); vertical-align: middle; }
+.sec-matrix tr.mx-row { cursor: pointer; }
+.sec-matrix tr.mx-row:hover td, .sec-matrix tr.mx-row.is-hover td { background: var(--color-primary-soft); }
+.mx-toggle { display: flex; align-items: center; gap: var(--s1); padding: 0; background: none; border: 0; color: var(--color-ink); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.mx-toggle:focus-visible, .mx-toggle.is-focus { outline: var(--stroke) solid var(--color-primary); outline-offset: 2px; border-radius: 4px; }
+.mx-write { font: 500 11px var(--font-label); color: var(--color-ink-soft); }
+tr.mx-detail td { background: var(--color-surface); padding: 0; }
+tr.mx-detail[hidden], .sec-matrix tr[hidden] { display: none !important; }
+.mx-detail-body { margin: 0 var(--s2) var(--s2) 34px; padding: var(--s2) var(--s3); background: var(--color-surface-raised); border-left: var(--stroke) solid var(--color-primary); }
+.rules-legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-top: var(--s3); font-size: 13px; color: var(--color-ink-soft); }
+.rules-legend span.status-chip { margin-right: var(--s1); }
+@container (max-width: 560px) {
+  .sec-matrix thead { display: none; }
+  .sec-matrix, .sec-matrix tbody, .sec-matrix tr, .sec-matrix td { display: block; width: 100%; }
+  .sec-matrix tr.mx-row { display: grid; grid-template-columns: 1fr auto; gap: var(--s1) var(--s2); padding: var(--s2); border-bottom: 1px solid var(--color-line); }
+  .sec-matrix tr.mx-row td { padding: 0; border: 0; background: none !important; }
+  .sec-matrix tr.mx-row:hover, .sec-matrix tr.mx-row.is-hover { background: var(--color-primary-soft); }
+  .sec-matrix td.mx-nature { grid-column: 1; color: var(--color-ink-soft); }
+  .sec-matrix td.mx-risk, .sec-matrix td.mx-rule { grid-column: 2; justify-self: end; }
+  .sec-matrix td.mx-risk { grid-row: 1; }
+  .sec-matrix td[data-label]::before { content: attr(data-label) " : "; color: var(--color-ink-soft); font: 500 11px var(--font-label); }
+  .mx-detail-body { margin-left: var(--s2); }
+}
+
+/* disclosure-row (pages.css:387-434), + survol et focus visibles (choix 6) */
+.sec-rows { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.disclosure-row { background: var(--color-surface); border-radius: var(--r-sm); border: 1px solid transparent; }
+.disclosure-row-head { display: flex; align-items: center; gap: var(--s2); width: 100%; min-height: var(--hit); padding: var(--s2); background: transparent;
+  color: var(--color-ink); border: 0; border-radius: var(--r-sm); text-align: left; font: inherit; cursor: pointer; }
+.disclosure-row:hover, .disclosure-row.is-hover { border-color: var(--color-primary); }
+.disclosure-row:hover .disclosure-row-chevron, .disclosure-row.is-hover .disclosure-row-chevron { color: var(--color-primary); }
+.disclosure-row-head:focus-visible, .disclosure-row-head.is-focus { outline: var(--stroke) solid var(--color-primary); outline-offset: 2px; }
+.disclosure-row-chevron { display: inline-block; width: 26px; flex: none; text-align: center; transition: transform .15s; }
+.disclosure-row-chevron.is-open { transform: rotate(90deg); }
+.disclosure-row-head { flex-wrap: wrap; }
+.disclosure-row-label { flex: 1; min-width: 55%; overflow-wrap: anywhere; }
+.disclosure-row-label small { display: block; color: var(--color-ink-soft); font-size: 13px; }
+.disclosure-row-body { margin: 0 var(--s2) var(--s2) calc(26px + var(--s2)); padding: var(--s2) var(--s3); background: var(--color-surface-raised);
+  border-left: var(--stroke) solid var(--color-primary); font-size: 13px; display: grid; gap: var(--s2); }
+.disclosure-row-body[hidden] { display: none; }
+.sec-row-sub { color: var(--color-ink-soft); font-size: 13px; }
+dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: var(--s1) var(--s3); }
+dt { color: var(--color-muted); } dd { margin: 0; }
+@container (max-width: 420px) { dl { grid-template-columns: 1fr; gap: 0; } dd + dt { margin-top: var(--s1); } }
+
+/* boutons (pages.css:535) */
+.button-primary, .button-secondary { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--s4); border-radius: var(--r-md);
+  font: 500 14px var(--font-label); white-space: nowrap; text-decoration: none; cursor: pointer; }
+.button-primary { background: var(--color-primary); color: var(--color-on-primary); border: 1px solid var(--color-primary); box-shadow: 0 var(--relief) 0 var(--color-primary-deep); }
+.button-secondary { background: var(--color-surface-raised); color: var(--color-primary); border: 1px solid var(--color-primary); box-shadow: 0 var(--relief) 0 var(--color-relief-active); }
+.button-primary:hover, .button-secondary:hover, .button-secondary.is-hover { transform: translateY(-1px); }
+.button-secondary:hover, .button-secondary.is-hover { background: var(--color-primary-soft); }
+.button-primary:focus-visible, .button-secondary:focus-visible, .button-secondary.is-focus { outline: var(--stroke) solid var(--color-primary); outline-offset: 2px; }
+.text-link { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.text-link::after { content: " →"; }
+
+/* filtres du journal (nouveau : filter-chip, même rôle que le filtre « Sécurité seulement » de CAP-1) */
+.filters { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s3); }
+.filter-chip { min-height: var(--hit); padding: 0 var(--s3); border-radius: var(--r-full); border: 1px solid var(--color-line); background: var(--color-surface-raised);
+  color: var(--color-ink); font: 500 13px var(--font-label); }
+.filter-chip:hover, .filter-chip.is-hover { border-color: var(--color-primary); color: var(--color-primary); }
+.filter-chip[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary); }
+.filter-chip[aria-pressed="true"]::before { content: "✓ "; }
+.sec-empty { color: var(--color-ink-soft); }
+
+/* légende « ce qui se clique » (nouveau : affordance-legend) */
+.legend { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+.legend-item { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--color-line); border-radius: var(--r-sm); }
+.legend-item p { font-size: 13px; color: var(--color-ink-soft); }
+.legend-states { display: grid; gap: var(--s2); }
+.legend-states > div { display: grid; grid-template-columns: 64px 1fr; gap: var(--s2); align-items: center; font: 500 11px var(--font-label); color: var(--color-muted); }
+</style>
+</head>
+<body>
+
+<div class="mock-bar" role="toolbar" aria-label="Réglages de la maquette">
+  <span>Maquette 16.4 · Sécurité</span>
+  <button type="button" id="mock-360" aria-pressed="false">Largeur 360 px</button>
+  <button type="button" id="mock-dark" aria-pressed="false">Thème sombre</button>
+  <button type="button" id="mock-notes" aria-pressed="true">Notes</button>
+</div>
+
+<div class="mock-notes" id="notes">
+  <div class="mock-box">
+    <h2>Choix à valider par Anaël</h2>
+    <ol>
+      <li><strong>Un schéma « Le chemin d'un appel »</strong> en 5 étapes (message → garde-fous → modèle → règle de l'outil → journal), sous les cartes. Chaque étape montre son état réel et mène à sa section. Ses textes sont nouveaux (<code>security.path.*</code>).</li>
+      <li><strong>Les 4 cartes-questions deviennent des boutons</strong> qui mènent à la réponse : la matrice filtrée sur l'écriture, le journal filtré (« Autorisés par vous », « Refusés et bloqués ») ou les limites.</li>
+      <li><strong>Chaque section ouvre sur « Pourquoi c'est là »</strong>, une phrase pour l'apprenant (nouveaux textes <code>security.*.why</code>). Les limites restent en bas : c'est ce qu'on dit au client en fin de démo.</li>
+      <li><strong>Matrice :</strong> la règle passe en pastille colorée, comme le rule-switch du MCP (Autoriser en vert, Demander en jaune, Refuser en rouge, Mixte en neutre). Une légende explique les trois règles. Chaque ligne se déplie sur ses outils et la phrase « Pourquoi ce risque ». À 360 px, une carte par ligne.</li>
+      <li><strong>Journal de la page :</strong> trois filtres en pastilles. La page ne montre que les décisions de sécurité, les appels de modèle restent dans le Journal de la barre (story 16.1).</li>
+      <li><strong>Une seule affordance pour tout ce qui se clique</strong> : curseur main, contour violet au survol, anneau violet au focus clavier, et un indice visible au repos (chevron ▸, flèche → ou ↓, relief des boutons). La légende « Ce qui se clique » reste dans la page, repliée par défaut.</li>
+    </ol>
+  </div>
+  <details class="mock-box">
+    <summary>Correspondance éléments → données (<code>GET /api/security</code> = <code>security_state()</code>)</summary>
+    <table>
+      <thead><tr><th>Élément</th><th>Donnée</th><th>Textes</th></tr></thead>
+      <tbody>
+        <tr><td>Carte « Quels outils peuvent écrire ? »</td><td><code>questions.can_write.count</code>, <code>.detail_text</code></td><td><code>security.questions.can_write</code></td></tr>
+        <tr><td>Carte « Qui a autorisé quoi ? »</td><td><code>questions.authorized_by_you</code> (= <code>counts.allow_once_count</code>) ; mis à jour par <code>security_event.questions</code></td><td>idem</td></tr>
+        <tr><td>Carte « Qu'est-ce qui a été bloqué ? »</td><td><code>questions.blocked</code> (tool_denied + guardrail_blocked) ; chiffre rouge si &gt; 0</td><td>idem</td></tr>
+        <tr><td>Carte « Qu'est-ce qui n'est pas couvert ? »</td><td><code>questions.not_covered</code> (= <code>len(limits)</code>)</td><td>idem ; « en bas de page » devient « à dire au client » <span class="new">nouveau</span></td></tr>
+        <tr><td>Chemin, étape 2 (garde-fous)</td><td><code>controls.guardrails[].mode / status</code></td><td><code>security.path.*</code> <span class="new">nouveau</span></td></tr>
+        <tr><td>Chemin, étape 4 (règle)</td><td><code>controls.tool_rules.allow_count / ask_count / deny_count</code></td><td>idem</td></tr>
+        <tr><td>Chemin, étape 5 (journal)</td><td><code>counts.total</code></td><td>idem</td></tr>
+        <tr><td>Ligne de matrice</td><td><code>risk_matrix[].label_text, nature_text, risk, rule, write</code></td><td><code>security.matrix.*</code></td></tr>
+        <tr><td>Détail de ligne : outils</td><td><code>controls.tool_rules.tools[]</code> rattachés à la ligne : <strong>à ajouter</strong> côté serveur (<code>tools</code> par ligne, tiré de <code>row["rules"]</code>)</td><td><code>security.tools.*</code></td></tr>
+        <tr><td>Détail de ligne : pourquoi ce risque</td><td>id de la ligne</td><td><code>security.matrix.{id}.why</code> <span class="new">nouveau</span></td></tr>
+        <tr><td>Contrôles actifs</td><td><code>controls.tool_rules</code>, <code>.guardrails[]</code>, <code>.hooks[]</code>, <code>.network_whitelist</code>, <code>.github</code></td><td><code>security.controls.*</code> + <code>.what</code> <span class="new">nouveau</span></td></tr>
+        <tr><td>Journal</td><td>hors <code>security_state()</code> : <code>GET /api/security_journal</code> (<code>ts, label_text, decision, reason_text, n</code>), filtre local sur <code>decision</code></td><td><code>security.journal.*</code>, <code>common.bar.log.decisions.*</code></td></tr>
+        <tr><td>Limites</td><td><code>limits[].statement_text, reason_text, production_text</code></td><td><code>security.limits.*</code></td></tr>
+      </tbody>
+    </table>
+  </details>
+</div>
+
+<div class="frame">
+  <nav class="site-nav" aria-label="Pages de WaveStack">
+    <a class="brand" href="#">WaveStack</a><a href="#">Harnais</a><a href="#">LLM</a><a href="#">RAG</a><a href="#">MCP</a>
+    <a href="#" aria-current="page">Sécurité</a><a href="#">🛠️ Modèles</a>
+  </nav>
+
+  <main class="sec-main">
+    <header>
+      <h1>Sécurité du harnais</h1>
+      <p class="sec-subtitle">Ce que le harnais contrôle, refuse et journalise pendant cette séance. Les réglages se font là où ils agissent.</p>
+    </header>
+
+    <!-- 1. Quatre questions, quatre boutons -->
+    <section aria-labelledby="h-q">
+      <h2 id="h-q" class="sr" style="position:absolute;left:-9999px">Quatre questions</h2>
+      <div class="sec-questions">
+        <button type="button" class="sec-question-card clickable" data-go="sec-matrix" data-matrix="write">
+          <span class="sec-question-ask">Quels outils peuvent écrire ?</span>
+          <span class="sec-question-figure">3</span>
+          <span class="sec-question-detail">1 sur demande et 2 refusés ; toute autre écriture GitHub est refusée par défaut.</span>
+          <span class="sec-question-go">Voir dans la matrice</span>
+        </button>
+        <button type="button" class="sec-question-card clickable" data-go="sec-journal" data-filter="allow_once">
+          <span class="sec-question-ask">Qui a autorisé quoi ?</span>
+          <span class="sec-question-figure">1</span>
+          <span class="sec-question-detail">1 autorisation donnée par vous, une fois</span>
+          <span class="sec-question-go">Voir dans le journal</span>
+        </button>
+        <button type="button" class="sec-question-card clickable" data-go="sec-journal" data-filter="refused">
+          <span class="sec-question-ask">Qu'est-ce qui a été bloqué ?</span>
+          <span class="sec-question-figure alert">2</span>
+          <span class="sec-question-detail">1 appel d'outil refusé, 1 message bloqué</span>
+          <span class="sec-question-go">Voir dans le journal</span>
+        </button>
+        <button type="button" class="sec-question-card clickable" data-go="sec-limits">
+          <span class="sec-question-ask">Qu'est-ce qui n'est pas couvert ?</span>
+          <span class="sec-question-figure">12</span>
+          <span class="sec-question-detail">12 limites connues, à dire au client</span>
+          <span class="sec-question-go">Voir les limites</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. Le chemin d'un appel (nouveau) -->
+    <section aria-labelledby="h-path">
+      <div class="sec-head"><div>
+        <h2 id="h-path">Le chemin d'un message</h2>
+        <p class="sec-sub">Les contrôles s'appliquent dans cet ordre. Cliquez une étape pour voir son réglage.</p>
+      </div></div>
+      <ol class="call-path">
+        <li><div class="call-step static" tabindex="-1">
+          <span class="call-step-title">Votre message</span>
+          <span class="call-step-text">Ce que vous tapez dans la conversation.</span>
+        </div></li>
+        <li><button type="button" class="call-step clickable" data-go="ctl-guardrails">
+          <span class="call-step-title">Garde-fous</span>
+          <span class="call-step-text">Ils lisent le message et la réponse : ils bloquent, masquent ou signalent.</span>
+          <span class="call-step-state"><span class="status-chip status-chip-high">Bloquer</span><span class="status-chip status-chip-mid">Masquer</span><span class="status-chip status-chip-off">Non chargé</span></span>
+          <span class="call-step-go">Contrôles actifs</span>
+        </button></li>
+        <li><div class="call-step static" tabindex="-1">
+          <span class="call-step-title">Le modèle</span>
+          <span class="call-step-text">Il répond, ou il demande un outil. Il ne décide pas seul de l'appeler.</span>
+        </div></li>
+        <li><button type="button" class="call-step clickable" data-go="sec-matrix">
+          <span class="call-step-title">Règle de l'outil</span>
+          <span class="call-step-text">Le harnais applique la règle de l'outil : autoriser, vous demander, refuser.</span>
+          <span class="call-step-state"><span class="sec-row-sub">7 autorisés · 2 sur demande · 2 refusés</span></span>
+          <span class="call-step-go">Matrice des risques</span>
+        </button></li>
+        <li><button type="button" class="call-step clickable" data-go="sec-journal">
+          <span class="call-step-title">Journal</span>
+          <span class="call-step-text">Chaque décision y est notée, sans aucun secret.</span>
+          <span class="call-step-state"><span class="sec-row-sub">6 événements</span></span>
+          <span class="call-step-go">Journal de sécurité</span>
+        </button></li>
+      </ol>
+    </section>
+
+    <div class="sec-grid2">
+      <!-- 3. Matrice -->
+      <section id="sec-matrix" aria-labelledby="h-mx" tabindex="-1">
+        <div class="sec-head">
+          <div>
+            <h2 id="h-mx">Matrice des risques</h2>
+            <p class="sec-sub">Règle appliquée à chaque appel d'outil.</p>
+          </div>
+          <a class="button-secondary clickable" href="#">Régler dans MCP</a>
+        </div>
+        <p class="sec-why"><strong>Pourquoi c'est là.</strong> Un outil agit hors de la conversation : il lit vos fichiers, écrit sur le disque, touche GitHub. Plus l'action est grave, plus la règle est stricte.</p>
+        <div class="filters" id="mx-filters" style="margin-top:var(--s3)">
+          <button type="button" class="filter-chip clickable" data-mx="all" aria-pressed="true">Tous les outils</button>
+          <button type="button" class="filter-chip clickable" data-mx="write" aria-pressed="false">Seulement ceux qui écrivent</button>
+        </div>
+        <table class="sec-matrix">
+          <thead><tr><th>Outil</th><th>Nature</th><th>Risque</th><th>Règle</th></tr></thead>
+          <tbody id="mx-body"></tbody>
+        </table>
+        <div class="rules-legend">
+          <span><span class="status-chip">Autoriser</span>l'appel part seul.</span>
+          <span><span class="status-chip status-chip-mid">Demander</span>vous décidez à chaque appel.</span>
+          <span><span class="status-chip status-chip-high">Refuser</span>l'appel n'a jamais lieu.</span>
+        </div>
+      </section>
+
+      <!-- 4. Contrôles actifs -->
+      <section id="sec-controls" aria-labelledby="h-ctl" tabindex="-1">
+        <h2 id="h-ctl">Contrôles actifs</h2>
+        <p class="sec-sub">Dépliez pour voir le réglage exact.</p>
+        <p class="sec-why"><strong>Pourquoi c'est là.</strong> Chaque contrôle couvre un risque différent. Aucun ne suffit seul.</p>
+        <ul class="sec-rows" id="ctl" style="margin-top:var(--s3)"></ul>
+      </section>
+    </div>
+
+    <!-- 5. Journal -->
+    <section id="sec-journal" aria-labelledby="h-j" tabindex="-1">
+      <div class="sec-head">
+        <div>
+          <h2 id="h-j">Journal de sécurité</h2>
+          <p class="sec-sub">Tous les événements de la séance, le plus récent en haut. Aucun secret n'y figure.</p>
+        </div>
+        <a class="button-primary clickable" href="#">Télécharger (CSV)</a>
+      </div>
+      <p class="sec-why" style="margin-bottom:var(--s3)"><strong>Pourquoi c'est là.</strong> Une décision qu'on ne peut pas relire ne se contrôle pas. Le journal montre qui a décidé quoi, et pourquoi.</p>
+      <div class="filters" id="j-filters" role="group" aria-label="Filtrer le journal">
+        <button type="button" class="filter-chip clickable" data-f="all" aria-pressed="true">Tout (6)</button>
+        <button type="button" class="filter-chip clickable" data-f="refused" aria-pressed="false">Refusés et bloqués (2)</button>
+        <button type="button" class="filter-chip clickable" data-f="allow_once" aria-pressed="false">Autorisés par vous (1)</button>
+      </div>
+      <ul class="sec-rows" id="journal"></ul>
+    </section>
+
+    <!-- 6. Limites -->
+    <section id="sec-limits" aria-labelledby="h-l" tabindex="-1">
+      <h2 id="h-l">Ce que le harnais ne protège pas</h2>
+      <p class="sec-sub">À dire au client. Dépliez pour la raison et ce qu'il faudrait en production.</p>
+      <ul class="sec-rows" id="limits" style="margin-top:var(--s3)"></ul>
+    </section>
+
+    <!-- 7. Légende des affordances (nouveau, repliée) -->
+    <section aria-labelledby="h-leg">
+      <ul class="sec-rows"><li class="disclosure-row" id="legend-row"></li></ul>
+    </section>
+  </main>
+</div>
+
+<script>
+// Données d'exemple : sortie plausible de security_state() + /api/security_journal.
+const RISK = { low: ["faible", ""], mid: ["moyen", "status-chip-mid"], high: ["élevé", "status-chip-high"] };
+const RULE = { allow: ["Autoriser", ""], ask: ["Demander", "status-chip-mid"], deny: ["Refuser", "status-chip-high"], mixed: ["Mixte (selon l'outil)", "status-chip-off"] };
+const chip = (pair) => `<span class="status-chip ${pair[1]}">${pair[0]}</span>`;
+const MATRIX = [
+  ["glossary", "Glossaire", "lecture", "low", "allow", false, [["Glossaire : liste des termes", "allow"], ["Glossaire : définition", "allow"]], "Il lit un fichier livré avec WaveStack, rien de vous."],
+  ["system", "RAM et système", "lecture", "low", "allow", false, [["RAM et système", "allow"]], "Il lit la mémoire libre et le modèle du processeur, rien de personnel."],
+  ["create_path", "Créer fichier ou dossier", "écriture, bac à sable", "mid", "ask", true, [["Créer fichier ou dossier", "ask"]], "Il écrit sur le disque, mais seulement dans le bac à sable."],
+  ["screenshot", "Capture d'écran", "lecture sensible", "high", "ask", false, [["Capture d'écran", "ask"]], "Il voit tout l'écran, autres fenêtres comprises."],
+  ["network", "data.gouv.fr, Microsoft Learn", "lecture, réseau", "low", "allow", false, [["data.gouv.fr, Microsoft Learn", "allow"]], "Il interroge des sites publics : la requête sort du poste."],
+  ["github_read", "GitHub : alertes, fichiers, tickets", "lecture, OAuth", "mid", "allow", false, [["GitHub : alertes de sécurité exposées", "allow"], ["GitHub : alertes Dependabot", "allow"], ["GitHub : contenu d'un fichier", "allow"], ["GitHub : tickets", "allow"]], "Il lit des dépôts avec votre compte : il peut voir du code privé."],
+  ["github_write", "GitHub : fusion et création de PR", "écriture, OAuth", "high", "deny", true, [["GitHub : fusion de PR", "deny"], ["GitHub : création de PR", "deny"], ["Toute autre écriture", "deny"]], "Il modifie un dépôt partagé : l'action est visible de tous et difficile à défaire."],
+];
+const CONTROLS = [
+  ["Autorisations des outils", "Une règle par outil, appliquée avant chaque appel.", `<span class="sec-row-sub">11 · 7 autorisés · 2 sur demande · 2 refusés</span>`,
+    `<p><strong>Sur ce poste</strong></p><dl><dt>Glossaire : liste des termes</dt><dd>Autoriser</dd><dt>Glossaire : définition</dt><dd>Autoriser</dd><dt>RAM et système</dt><dd>Autoriser</dd><dt>Créer fichier ou dossier</dt><dd>Demander</dd><dt>Capture d'écran</dt><dd>Demander</dd></dl>
+     <p><strong>GitHub</strong></p><dl><dt>4 outils de lecture</dt><dd>Autoriser</dd><dt>Fusion et création de PR</dt><dd>Refuser</dd><dt>Toute autre écriture</dt><dd>Refuser</dd></dl>
+     <p><a class="text-link clickable" href="#">Régler dans MCP</a></p>`],
+  ["Toxicité", "Garde-fou : bloque un message ou une réponse injurieuse.", chip(["Bloquer", "status-chip-high"]), `<dl><dt>Mode</dt><dd>Bloquer</dd></dl><p><a class="text-link clickable" href="#">Modifier dans la brique Garde-fous, page d'accueil.</a></p>`],
+  ["Données personnelles", "Garde-fou : masque téléphones, e-mails et noms avant l'envoi.", chip(["Masquer", "status-chip-mid"]), `<dl><dt>Mode</dt><dd>Masquer</dd></dl><p><a class="text-link clickable" href="#">Modifier dans la brique Garde-fous, page d'accueil.</a></p>`],
+  ["Injection de prompt", "Garde-fou : repère les consignes cachées dans un message.", chip(["Non chargé", "status-chip-off"]), `<dl><dt>Pourquoi</dt><dd>Prompt Guard 2 demande un jeton Hugging Face, puis un téléchargement.</dd></dl><p><a class="text-link clickable" href="#">Modifier dans la brique Garde-fous, page d'accueil.</a></p>`],
+  ["Hooks", "Du code du harnais qui s'exécute à un moment précis, sans le modèle.", `<span class="sec-row-sub">2</span>`, `<dl><dt>Garde-fou fichier sensible</dt><dd>inactif</dd><dt>Journalisation</dt><dd>actif</dd><dt>Injection de contexte</dt><dd>inactif</dd><dt>Validation humaine</dt><dd>actif</dd></dl>`],
+  ["Liste blanche réseau", "Les seuls sites que l'application peut joindre.", `<span class="sec-row-sub">0 domaine</span>`, `<dl><dt>Liste blanche réseau</dt><dd>Aucun hôte autorisé pour l'instant : aucun modèle cloud actif.</dd></dl>`],
+  ["Connexion GitHub", "Le jeton qui permet les outils GitHub, à droits limités.", chip(["non connecté", "status-chip-off"]), `<dl><dt>Droits</dt><dd><code>read:user</code></dd><dt>Serveur</dt><dd><code>https://api.githubcopilot.com/mcp/</code></dd></dl>`],
+];
+const JOURNAL = [
+  ["14:32:10", "Garde-fou Toxicité", "blocked", "Bloqué", "status-chip-high", "Bloqué par le garde-fou Toxicité. Le modèle ne l'a pas reçu."],
+  ["14:29:47", "GitHub : fusion de PR", "deny", "Refusé", "status-chip-high", "Règle : Refuser. L'appel n'a pas eu lieu. [texte d'exemple]"],
+  ["14:27:03", "Capture d'écran", "allow_once", "Autorisé une fois", "", "Règle : Demander. Vous avez autorisé cet appel, une fois. [texte d'exemple]"],
+  ["14:25:31", "Garde-fou Données personnelles", "masked", "Masqué", "status-chip-mid", "Masqué par le garde-fou Données personnelles avant l'envoi au modèle."],
+  ["14:22:15", "Glossaire : définition", "allow", "Autorisé", "", "Règle : Autoriser. [texte d'exemple]"],
+  ["14:20:02", "Garde-fou Injection de prompt", "not_installed", "Non chargé", "status-chip-mid", "Le détecteur n'est pas chargé : rien n'a été vérifié. [texte d'exemple]"],
+];
+const LIMITS = [
+  ["Les garde-fous se trompent.", "Ce sont des classifieurs : faux positifs et faux négatifs. Ils sont plus faibles hors de l'anglais (Llama Guard : 38 % de violations évitées en français contre 75 % en anglais, selon Meta).", "Plusieurs couches, des seuils calibrés sur ses propres données, une revue humaine des cas limites."],
+  ["Les garde-fous ne voient que la conversation principale.", "Ils contrôlent le message envoyé et la réponse finale. Les résultats d'outils, le raisonnement, les étapes intermédiaires, le sous-agent et les ateliers ne passent pas par eux.", "Un contrôle sur chaque entrée et chaque sortie du modèle, sous-agents et outils compris."],
+  ["L'injection indirecte passe si le détecteur est absent.", "Un document du RAG ou un résultat d'outil peut contenir des consignes. Sans Prompt Guard (optionnel), rien ne les détecte.", "Détection sur tout contenu entrant, pas seulement sur le message de l'utilisateur."],
+  ["L'autorisation porte sur le nom de l'outil, pas sur ce qu'il fait.", "Un serveur MCP peut décrire un outil de façon trompeuse ou changer son comportement côté serveur.", "Serveurs MCP approuvés et épinglés, revue de leurs descriptions, journal côté serveur."],
+  ["Le jeton GitHub donne tous les droits accordés.", "Les droits d'une OAuth App sont larges ; WaveStack filtre les outils, mais le jeton reste valable 8 h pour tout ce qu'il couvre.", "GitHub App à permissions fines, jetons courts, révocation centralisée."],
+  ["Le jeton GitHub est stocké en clair sur le poste.", "Il est écrit dans le profil utilisateur, protégé seulement par les droits du compte Windows.", "Coffre de secrets du système (DPAPI) ou jeton gardé en mémoire seulement."],
+  ["Le bac à sable n'isole pas le processus.", "C'est un contrôle de chemin dans l'application, pas un conteneur ni un compte système dédié.", "Exécution des outils dans un conteneur ou une VM, sous un compte sans privilège."],
+  ["La capture d'écran voit tout l'écran.", "Les autres fenêtres ouvertes y figurent. Elle reste sur le poste, mais elle existe.", "Interdire l'outil, ou le limiter à une fenêtre précise."],
+  ["Le journal n'a pas de valeur d'audit.", "Il est local, non signé, et modifiable par l'utilisateur du poste.", "Envoi vers un SIEM, horodatage et intégrité garantis."],
+  ["Le harnais ne contrôle pas ce que fait le fournisseur cloud.", "Les messages envoyés à un modèle cloud sont soumis à ses conditions de conservation et d'usage.", "Contrat et région d'hébergement maîtrisés, ou modèle local pour les données sensibles."],
+  ["L'appli n'a pas d'authentification.", "Elle écoute seulement sur la machine (127.0.0.1) : quiconque utilise le poste y a accès.", "Authentification et cloisonnement par utilisateur, hors du périmètre de la démo."],
+  ["Les coûts sont des estimations.", "Prix déclarés dans la configuration ; « ≈ » quand l'usage n'est pas mesuré par le fournisseur.", "Rapprochement avec la facture du fournisseur."],
+];
+
+let ids = 0;
+function disc(label, badge, body, extra = "") {
+  const id = `d${++ids}`;
+  return `<li class="disclosure-row" ${extra}><button type="button" class="disclosure-row-head" aria-expanded="false" aria-controls="${id}">
+    <span class="disclosure-row-chevron" aria-hidden="true">▸</span><span class="disclosure-row-label">${label}</span>${badge || ""}</button>
+    <div class="disclosure-row-body" id="${id}" hidden>${body}</div></li>`;
+}
+const $ = (id) => document.getElementById(id);
+
+$("mx-body").innerHTML = MATRIX.map(([id, label, nature, risk, rule, write, tools, why]) => `
+  <tr class="mx-row" data-write="${write}" data-id="${id}">
+    <td><button type="button" class="mx-toggle" aria-expanded="false" aria-controls="mx-${id}"><span class="disclosure-row-chevron" aria-hidden="true">▸</span>${label}</button>
+      ${write ? '<span class="mx-write">✎ écrit</span>' : ""}</td>
+    <td class="mx-nature">${nature}</td><td class="mx-risk" data-label="Risque">${chip(RISK[risk])}</td><td class="mx-rule" data-label="Règle">${chip(RULE[rule])}</td>
+  </tr>
+  <tr class="mx-detail" id="mx-${id}" data-write="${write}" hidden><td colspan="4"><div class="mx-detail-body">
+    <p><strong>Pourquoi ce risque.</strong> ${why}</p>
+    <dl style="margin-top:var(--s2)">${tools.map(([t, r]) => `<dt>${t}</dt><dd>${RULE[r][0]}</dd>`).join("")}</dl>
+  </div></td></tr>`).join("");
+
+$("ctl").innerHTML = CONTROLS.map(([label, what, badge, body], i) =>
+  disc(`${label}<small>${what}</small>`, badge, body, i === 1 ? 'id="ctl-guardrails"' : "")).join("");
+
+$("journal").innerHTML = JOURNAL.map(([when, label, dec, txt, cls, reason]) =>
+  disc(`${when} — ${label}`, `<span class="status-chip ${cls}">${txt}</span>`, `<p>${reason}</p>`, `data-dec="${dec}"`)).join("");
+
+$("limits").innerHTML = LIMITS.map(([s, r, p], i) =>
+  disc(`${i + 1}. ${s}`, "", `<dl><dt>Pourquoi</dt><dd>${r}</dd><dt>En production</dt><dd>${p}</dd></dl>`)).join("");
+
+// Légende : chaque affordance au repos, au survol et au focus (états forcés par .is-hover / .is-focus).
+const states = (make) => ["repos", "survol", "focus"].map((s) =>
+  `<div><span>${s}</span>${make(s === "survol" ? " is-hover" : s === "focus" ? " is-focus" : "")}</div>`).join("");
+$("legend-row").outerHTML = disc("Ce qui se clique sur cette page<small>Repères pour l'animateur et l'apprenant.</small>", "", `
+  <div class="legend">
+    <div class="legend-item"><strong>Ligne à déplier ▸</strong><p>Le chevron tourne d'un quart de tour quand c'est ouvert.</p><div class="legend-states">${states((c) =>
+      `<ul class="sec-rows"><li class="disclosure-row${c.includes("hover") ? " is-hover" : ""}"><button type="button" class="disclosure-row-head${c.includes("focus") ? " is-focus" : ""}" tabindex="-1"><span class="disclosure-row-chevron">▸</span><span class="disclosure-row-label">Hooks</span><span class="sec-row-sub">2</span></button></li></ul>`)}</div></div>
+    <div class="legend-item"><strong>Carte-question →</strong><p>Relief, flèche ; elle mène à la réponse.</p><div class="legend-states">${states((c) =>
+      `<button type="button" class="sec-question-card clickable${c}" tabindex="-1"><span class="sec-question-ask">Qui a autorisé quoi ?</span><span class="sec-question-figure">1</span><span class="sec-question-go">Voir</span></button>`)}</div></div>
+    <div class="legend-item"><strong>Filtre en pastille</strong><p>Coché : fond violet et ✓.</p><div class="legend-states">${states((c) =>
+      `<button type="button" class="filter-chip clickable${c}" tabindex="-1" aria-pressed="false">Refusés et bloqués</button>`)}</div></div>
+    <div class="legend-item"><strong>Bouton et lien d'action</strong><p>Relief pour un bouton, souligné et → pour un lien.</p><div class="legend-states">${states((c) =>
+      `<a class="button-secondary clickable${c}" tabindex="-1">Régler dans MCP</a>`)}</div></div>
+    <div class="legend-item"><strong>Ce qui ne se clique pas</strong><p>Pastilles d'état, chiffres, étapes « Votre message » et « Le modèle » : ni curseur main, ni contour au survol.</p>
+      <div>${chip(RISK.high)} ${chip(RULE.ask)}</div></div>
+  </div>`);
+
+// Interactions de la maquette (comportement attendu, pas le code de la story 16.7).
+document.addEventListener("click", (e) => {
+  const head = e.target.closest(".disclosure-row-head, .mx-toggle, tr.mx-row");
+  if (head && !e.target.closest("a")) {
+    const btn = head.matches("tr") ? head.querySelector(".mx-toggle") : head;
+    const body = $(btn.getAttribute("aria-controls"));
+    if (body) {
+      body.hidden = !body.hidden;
+      btn.setAttribute("aria-expanded", String(!body.hidden));
+      btn.querySelector(".disclosure-row-chevron").classList.toggle("is-open", !body.hidden);
+    }
+    return;
+  }
+  const go = e.target.closest("[data-go]");
+  if (go) {
+    if (go.dataset.filter) setJournal(go.dataset.filter);
+    if (go.dataset.matrix) setMatrix(go.dataset.matrix);
+    const target = $(go.dataset.go);
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    (target.matches("li") ? target.querySelector(".disclosure-row-head") : target).focus({ preventScroll: true });
+    return;
+  }
+  const f = e.target.closest("[data-f]"); if (f) setJournal(f.dataset.f);
+  const m = e.target.closest("[data-mx]"); if (m) setMatrix(m.dataset.mx);
+});
+function setJournal(f) {
+  document.querySelectorAll("#j-filters [data-f]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === f)));
+  document.querySelectorAll("#journal > li").forEach((li) => {
+    const d = li.dataset.dec;
+    li.hidden = !(f === "all" || (f === "refused" ? ["deny", "blocked", "timeout"].includes(d) : d === f));
+  });
+}
+function setMatrix(v) {
+  document.querySelectorAll("#mx-filters [data-mx]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mx === v)));
+  document.querySelectorAll("#mx-body > tr.mx-row").forEach((tr) => {
+    tr.hidden = v === "write" && tr.dataset.write !== "true";
+    if (tr.hidden) tr.nextElementSibling.hidden = true;
+  });
+}
+document.querySelectorAll("[tabindex='-1'] a, a[href='#']").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
+const toggle = (btn, fn) => btn.addEventListener("click", () => { const on = btn.getAttribute("aria-pressed") !== "true"; btn.setAttribute("aria-pressed", String(on)); fn(on); });
+toggle($("mock-360"), (on) => document.body.classList.toggle("w360", on));
+toggle($("mock-dark"), (on) => document.documentElement.setAttribute("data-theme", on ? "dark" : "light"));
+toggle($("mock-notes"), (on) => { $("notes").hidden = !on; });
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 # Statuts des runs autonomes, dérivés du journal de run-autonome.md (lu par avancement-run).
-# Correspondance : epic 15 = V1.5 (spec-wavestack-evaluer-l-agent), 13 = V1.3, 14 = V1.4,
+# Correspondance : epic 16 = retours du 27/10 (spec-wavestack-retours-2026-10-27), 15 = V1.5 (spec-wavestack-evaluer-l-agent), 13 = V1.3, 14 = V1.4,
 # 12 = V1.2 ; story N = id de son stories.yaml.
-last_updated: 2026-10-26 04:57
+last_updated: 2026-10-27 06:15
 development_status:
   epic-12: done
   12-1-corpus-exemplia-enrichi: done
@@ -45,3 +45,13 @@ development_status:
   15-4-vue-evaluer-l-agent: done
   15-5-module-9-et-contenus: done
   15-6-glossaire-du-harnais: done
+  epic-16: in-progress
+  16-1-bilan-et-journal-de-la-barre: backlog
+  16-2-atelier-llm-saisie-et-impact: backlog
+  16-3-atelier-mcp-logos-et-schema: backlog
+  16-4-maquette-securite: done
+  16-5-carte-du-harnais-et-briques: backlog
+  16-6-serveur-mcp-ressource-et-prompt: backlog  # annulée par Anaël le 2026-10-27
+  16-7-onglet-securite-refondu: backlog
+  16-8-retrait-des-actions-forcees: backlog
+  16-9-atelier-rag-modele-et-fenetre: backlog

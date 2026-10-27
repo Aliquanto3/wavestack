@@ -1,0 +1,91 @@
+- id: "1"
+  title: Bilan et Journal de la barre
+  description: >-
+    CAP-1 et CAP-2 : montant toujours affiché (0 € offre gratuite, non tarifé), texte de
+    l'empreinte qui retourne à la ligne ; Journal de tous les appels de modèle avec filtre
+    « Sécurité seulement ».
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Vague V0. Contrat à annoncer dans le rapport : nom et champs de l'enveloppe d'appel de
+    modèle (trace/catalog.py), émise pour les appels cloud (cloud_base.py) et locaux. Repérer
+    le chemin des appels locaux. Sans prompt ni réponse dans l'entrée. E2E de la barre à
+    réaligner.
+- id: "2"
+  title: Atelier LLM, saisie, prompt envoyé, légende et impact
+  description: >-
+    CAP-6 : texte saisi utilisé partout, prompt envoyé visible à l'étape 6, légende des
+    couleurs, définition de « fragment », coût et empreinte à côté du débit.
+  invoke_dev_with: >-
+    Vague V0. Commencer par reproduire le retour de l'étape 1 dans l'app (Playwright) ; s'il ne
+    se reproduit pas, le dire et ne rien changer sur ce point. Réutiliser greenops.py et le
+    calcul de coût de cloud_base.py, sans dupliquer. « fragment » : entrée du glossaire
+    ([[g:fragment]]).
+- id: "3"
+  title: Atelier MCP, logos, réponse dépliable et schéma Avant/Avec
+  description: >-
+    CAP-8 : logo par serveur, réponse finale dépliable dans Séquence et lisible sous « Envoyer
+    au modèle », schéma Avant/Avec cohérent, avec GitHub déclaré et l'élément « serveur MCP »
+    visible.
+  invoke_dev_with: >-
+    Vague V0. Cause commune du schéma : BEFORE (mcp/lab.py:85), BEFORE_SHAPES (mcp.js:1375)
+    et before.integrations (mcp_lab.yaml) écrits pour 3 serveurs ; les dériver de la liste des
+    serveurs pour qu'un serveur ajouté (story 6) y entre seul. Logos en SVG locaux ; consigner
+    leurs conditions d'usage dans docs/.
+- id: "4"
+  title: Maquette de l'onglet Sécurité
+  description: >-
+    CAP-10, première moitié : maquette HTML de l'onglet refondu, validée par Anaël avant la
+    story 7. Pas de code applicatif.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    À faire avec bmad-ux (DESIGN.md existant), pendant V0. Partir des données réelles de
+    security_state() et des composants déjà là (sec-question-card, sec-matrix, status-chip,
+    disclosure-row) ; montrer l'affordance de chaque élément cliquable.
+- id: "5"
+  title: Carte du harnais et panneau des briques
+  description: >-
+    CAP-3 et CAP-4 : boutons au style commun, sources en hyperliens, définitions de guide et
+    capteurs, « marketplace » ; panneau sans « Éteinte » ni étiquettes engineering,
+    explications repliées avec aperçu.
+  invoke_dev_with: >-
+    Vague V1. Remplacer l'info-bulle « ? » (app.js:1368-1390) par le motif <details> existant.
+    Vérifier les URL des sources avant de les écrire. Ne pas toucher au code des actions
+    forcées (story 8).
+- id: "6"
+  title: Serveur MCP avec ressource et prompt
+  description: >-
+    CAP-9 : un serveur MCP distant qui expose au moins une ressource et un prompt, choisi à la
+    relecture de la spec de story.
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Vague V1, après la story 3. Proposer dans la spec de story les deux options de SPEC.md
+    (serveur public à ressources seulement, ou serveur maison en Streamable HTTP local) avec
+    une vérification par resources/list et prompts/list. Test sur faux serveur.
+- id: "7"
+  title: Onglet Sécurité refondu
+  description: >-
+    CAP-10, seconde moitié : implémenter la maquette validée de la story 4.
+  invoke_dev_with: >-
+    Vague V1, après les stories 1 (pages.css, Journal) et 4 (validée). Suivre la maquette ; E2E
+    de la page Sécurité à réaligner.
+- id: "8"
+  title: Retrait des actions forcées
+  description: >-
+    CAP-5 : suppression complète (interface, routes arm/disarm, séance, champ force des
+    briques, contenus fr/en/de, tests et E2E).
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Vague V2, après la story 5. Inventaire de départ dans brownfield.md ; le compléter par grep
+    (force, arm, forced) avant de supprimer et le lister dans la spec de story. Opus. Suite
+    complète par la CI.
+- id: "9"
+  title: Atelier RAG, modèle de génération et fenêtre de contexte
+  description: >-
+    CAP-7 : sélecteur du modèle de génération propre au RAG, réglage de la fenêtre depuis
+    l'onglet, raison explicite du CAG local seulement.
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Vague V2, en parallèle de la story 8 (toutes deux touchent app.js : rebaser). Réutiliser
+    optionSelect et kind_options pour le sélecteur. Extraire le réglage de fenêtre de app.js
+    dans un module partagé chargé par index.html et rag.html, sans dupliquer le code.
