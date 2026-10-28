@@ -1263,7 +1263,10 @@ function renderBricks() {
     // badge, in the title row, when an enabled option leaves the workstation.
     const networkOptions = (brick.options || []).filter((o) => o.enabled && o.network);
     if (!parentOff && networkOptions.length) {
-      head.appendChild(el("span", "hosting-tag-network brick-network", t("main.hosting.network")));
+      // Hidden from the switch's accessible name; the « Sort du poste » line below says it.
+      const badge = el("span", "hosting-tag-network brick-network", t("main.hosting.network"));
+      badge.setAttribute("aria-hidden", "true");
+      head.appendChild(badge);
     }
     // Story 33: what the brick weighs or does now, refreshed in place (`updateBrickStatuses`).
     // CAP-4: off and available says nothing (the switch already shows it); no status text.
@@ -1303,21 +1306,20 @@ function renderBricks() {
     }
     if (brick.pending) card.appendChild(el("p", "brick-pending", t("main.bricks.pending")));
 
-    if (brick.options?.length) {
-      const options = brickOptions(brick, offReason);
-      if (brick.id === "mcp") {
-        // CAP-4 (panneau allégé): the Atelier MCP link joins the servers summary row instead
-        // of a line of its own; a sibling of `<details>`, never inside its `<summary>`, so a
-        // click on it never toggles the list (`BRICK_CONTROLS` still treats it as a control).
-        const row = el("div", "brick-options-row");
-        const workshop = el("a", "brick-workshop-link", t("main.bricks.mcp_workshop_short"));
-        workshop.href = "/mcp";
-        workshop.title = t("common.links.mcp_title");
-        row.append(options, workshop);
-        card.appendChild(row);
-      } else {
-        card.appendChild(options);
-      }
+    const options = brick.options?.length ? brickOptions(brick, offReason) : null;
+    if (brick.id === "mcp") {
+      // CAP-4 (panneau allégé): the Atelier MCP link joins the servers summary row instead
+      // of a line of its own; a sibling of `<details>`, never inside its `<summary>`, so a
+      // click on it never toggles the list (`BRICK_CONTROLS` still treats it as a control).
+      const row = el("div", "brick-options-row");
+      const workshop = el("a", "brick-workshop-link", t("main.bricks.mcp_workshop"));
+      workshop.href = "/mcp";
+      workshop.title = t("common.links.mcp_title");
+      if (options) row.appendChild(options);
+      row.appendChild(workshop);
+      card.appendChild(row);
+    } else if (options) {
+      card.appendChild(options);
     }
     if (brick.limits_text) card.appendChild(el("p", "brick-limits", brick.limits_text));
 
@@ -1507,7 +1509,8 @@ function rerankParts(brick, offReason = null) {
   toggle.dataset.focusKey = "option:rag:rerank";
   toggle.addEventListener("change", () => setOption("rag_rerank", null, toggle.checked));
   markParentOff(row, toggle, offReason);
-  row.append(toggle, el("span", "brick-option-name", option.label_text), el("span", "hosting-tag-local", option.hosting_text));
+  // CAP-4 (panneau allégé): no « Local » tag on sub-options; reranking never leaves the workstation.
+  row.append(toggle, el("span", "brick-option-name", option.label_text));
   box.appendChild(row);
   if (!option.available && option.reason_text) {
     const why = el("p", "brick-reason", option.reason_text);

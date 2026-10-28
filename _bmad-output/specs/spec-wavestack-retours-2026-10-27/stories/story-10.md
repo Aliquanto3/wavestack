@@ -33,7 +33,7 @@ du poste (« 🌐 Sort du poste : {noms des options activées} ») ; le texte co
 class="brick-explain">`. Réduire l'aperçu replié de l'explication à une ligne
 (`-webkit-line-clamp: 1`). Déplacer le lien « Atelier MCP » de sa propre ligne à côté du résumé
 des serveurs MCP (`<details class="brick-options">`), dans une rangée flexible, texte raccourci
-« Atelier ↗ » : un sibling du `<details>`, jamais dans son `<summary>`, pour qu'un clic dessus
+« Atelier MCP » (revue) : un sibling du `<details>`, jamais dans son `<summary>`, pour qu'un clic dessus
 n'ouvre/ne ferme pas la liste.
 
 ## Boundaries & Constraints
@@ -46,8 +46,8 @@ n'ouvre/ne ferme pas la liste.
   l'explication de la brique — jamais perdu, seulement replié par défaut.
 - Le lien « Atelier MCP » reste un `<a>` natif, accessible au clavier (focus, Entrée), avec le
   même `href="/mcp"` et le même `title`.
-- Les nouvelles clés i18n existent en fr, en, de, mêmes clés (`main.bricks.outbound_summary`,
-  `main.bricks.mcp_workshop_short`), `{names}` dans les trois langues.
+- Les nouvelles clés i18n existent en fr, en, de, mêmes clés (`main.bricks.outbound_summary` ;
+  `main.bricks.mcp_workshop` raccourci, revue), `{names}` dans les trois langues.
 
 **Never:**
 - Ne pas retirer `category_text`/`hosting_text` du schéma JSON ni des fichiers `content/
@@ -74,8 +74,8 @@ n'ouvre/ne ferme pas la liste.
   `.brick-options-row` (flex, `<details>` + lien Atelier) ; `.brick-workshop-link` ajuste
   `flex: 0 0 auto`.
 - `content/ui.yaml` (+ `content/i18n/{en,de}/ui.yaml`), section `main.bricks` — deux nouvelles
-  clés : `outbound_summary` (« 🌐 Sort du poste : {names} »), `mcp_workshop_short`
-  (« Atelier ↗ »).
+  clés : `outbound_summary` (« 🌐 Sort du poste : {names} »), `mcp_workshop` raccourci
+  (« Atelier MCP », revue ; plus de `mcp_workshop_short`).
 - `docs/guide.md:51-55` — description du panneau des briques réalignée (plus de catégorie
   affichée, badge réseau conditionnel, aperçu d'une ligne).
 
@@ -112,3 +112,19 @@ n'ouvre/ne ferme pas la liste.
 autres scénarios E2E (hors périmètre de la story).
 
 </frozen-after-approval>
+
+## Revue
+
+### Passe 1 (2026-10-28, SHA revu 1e686639)
+
+Base à jour (origin/main 3e4a3de4), pas de rebase.
+
+- Important · medium · second avis · corrigé : la sous-option Reranking (carte RAG, `rerankParts`) gardait la puce « Local », contraire à l'intention (2) ; puce retirée.
+- Important · medium · second avis · corrigé : le badge « 🌐 RÉSEAU » dans le `<label class="brick-head">` entrait dans le nom accessible de l'interrupteur (« Outils RÉSEAU ») ; `aria-hidden="true"` comme le cadenas voisin, l'information reste lue par la ligne « 🌐 Sort du poste : … », toujours présente dans le même cas. Le clic sur le badge bascule la brique comme un clic sur son nom : comportement du titre, gardé.
+- Important · low · second avis · corrigé : le lien Atelier MCP n'était rendu qu'avec au moins un serveur ; de nouveau inconditionnel.
+- Nit · low · second avis · corrigé : « Atelier ↗ » sans « MCP » dans le nom accessible, flèche de lien externe pour une page interne, clé `mcp_workshop` morte ; texte « Atelier MCP » (« MCP workshop », « MCP-Werkstatt ») porté par `mcp_workshop`, `mcp_workshop_short` supprimée.
+- Nit · low · second avis · corrigé : E2E des nouvelles règles ajoutés (disciplines : aucune puce « Local », aucun « RÉSEAU » sur brique éteinte ; mcp_lab : texte du lien « Atelier MCP »).
+- Rejeté · Pyright `ok: bool` dans run_e2e.py : aucune de ces lignes n'est introduite par ce commit.
+- Complexité : 0 constat (rendu par carte, aucune structure qui grossit).
+
+Tests : contrôle rapide OK ; `tests/test_bricks.py tests/test_i18n.py` 245 passés ; E2E disciplines, native_tools, network_tools, mcp_full, mcp_lab (185 OK) puis rag, rag_rerank (75 OK), captures de ces scénarios regénérées.

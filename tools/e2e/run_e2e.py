@@ -2913,6 +2913,12 @@ def s_disciplines(r: Run) -> None:
         r.card("Outils").locator(".brick-network").inner_text().strip() == "RÉSEAU",
         "carte Outils : puce « 🌐 RÉSEAU »",
     )
+    bricks_pane = r.page.locator('.pane[data-pane="bricks"]')
+    r.check(
+        bricks_pane.locator(".hosting-tag-local").count() == 0
+        and bricks_pane.locator(".brick-card:not(.is-active) .brick-network").count() == 0,
+        "panneau allégé : aucune puce « Local », aucun « RÉSEAU » sur une brique éteinte",
+    )
     r.shot_element("29-disciplines-briques", '.pane[data-pane="bricks"]')
 
     # CAP-4: on load, no explanation is unfolded; each one unfolds from its summary by the
@@ -6980,8 +6986,9 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
     ok, detail = _bar_fits(r)
     r.check(ok, "barre commune entière avec six onglets, sur une ligne, à 1600 × 1000", detail)
     r.check(
-        page.locator('a.brick-workshop-link[href="/mcp"]').count() == 1,
-        "la carte de la brique MCP renvoie à l'atelier MCP",
+        page.locator('a.brick-workshop-link[href="/mcp"]').count() == 1
+        and page.locator("a.brick-workshop-link").inner_text().strip() == "Atelier MCP",
+        "la carte de la brique MCP renvoie à l'atelier MCP (« Atelier MCP »)",
     )
     link.click()
     page.wait_for_url("**/mcp")
