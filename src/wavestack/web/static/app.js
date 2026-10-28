@@ -1259,17 +1259,15 @@ function renderBricks() {
       head.appendChild(lock);
     }
     head.appendChild(el("span", "brick-name", brick.label_text));
-
-    const tags = el("div", "brick-tags");
-    tags.appendChild(el("span", "category-chip", brick.category_text));
-    if (brick.hosting_text) tags.appendChild(el("span", "hosting-tag-local", brick.hosting_text));
-    // Story 33: an enabled option leaves the workstation: « 🌐 RÉSEAU » on the card itself.
-    if (!parentOff && (brick.options || []).some((o) => o.enabled && o.network)) {
-      tags.appendChild(el("span", "hosting-tag-network brick-network", t("main.hosting.network")));
+    // CAP-4 (panneau allégé): no more category/hosting chips on the card; only the network
+    // badge, in the title row, when an enabled option leaves the workstation.
+    const networkOptions = (brick.options || []).filter((o) => o.enabled && o.network);
+    if (!parentOff && networkOptions.length) {
+      head.appendChild(el("span", "hosting-tag-network brick-network", t("main.hosting.network")));
     }
     // Story 33: what the brick weighs or does now, refreshed in place (`updateBrickStatuses`).
     // CAP-4: off and available says nothing (the switch already shows it); no status text.
-    card.append(head, tags);
+    card.append(head);
     const statusText = brickStatus(brick);
     if (statusText) {
       const status = el("p", "brick-status", statusText);
@@ -1296,24 +1294,38 @@ function renderBricks() {
       warning.dataset.server = option.id;
       card.appendChild(warning);
     }
-    // Story 23: what leaves the workstation and where to read it, outside the folded options.
-    if (brick.outbound_text) card.appendChild(el("p", "brick-outbound", brick.outbound_text));
-    // Story 6 (2026-09-30): the MCP card leads to the MCP workshop, the protocol laid bare.
-    if (brick.id === "mcp") {
-      const workshop = el("a", "brick-workshop-link", t("main.bricks.mcp_workshop"));
-      workshop.href = "/mcp";
-      workshop.title = t("common.links.mcp_title");
-      card.appendChild(workshop);
+    // CAP-4 (panneau allégé): the full `outbound_text` moves into the explanation `<details>`
+    // (last paragraph); outside it, one line only, named options, and only when enabled ones
+    // actually leave the workstation.
+    if (!parentOff && networkOptions.length) {
+      const names = networkOptions.map((o) => o.label_text).join(", ");
+      card.appendChild(el("p", "brick-outbound", t("main.bricks.outbound_summary", { names })));
     }
     if (brick.pending) card.appendChild(el("p", "brick-pending", t("main.bricks.pending")));
 
-    if (brick.options?.length) card.appendChild(brickOptions(brick, offReason));
+    if (brick.options?.length) {
+      const options = brickOptions(brick, offReason);
+      if (brick.id === "mcp") {
+        // CAP-4 (panneau allégé): the Atelier MCP link joins the servers summary row instead
+        // of a line of its own; a sibling of `<details>`, never inside its `<summary>`, so a
+        // click on it never toggles the list (`BRICK_CONTROLS` still treats it as a control).
+        const row = el("div", "brick-options-row");
+        const workshop = el("a", "brick-workshop-link", t("main.bricks.mcp_workshop_short"));
+        workshop.href = "/mcp";
+        workshop.title = t("common.links.mcp_title");
+        row.append(options, workshop);
+        card.appendChild(row);
+      } else {
+        card.appendChild(options);
+      }
+    }
     if (brick.limits_text) card.appendChild(el("p", "brick-limits", brick.limits_text));
 
-    if (brick.explanation_text?.length) {
+    if (brick.explanation_text?.length || brick.outbound_text) {
       // CAP-4 (2026-10-27): a <details> replaces the « ? » popover, folded by default; its
-      // summary shows the first block, clamped to two lines by CSS until it is opened.
-      const [first, ...rest] = brick.explanation_text;
+      // summary shows the first block, clamped to one line by CSS until it is opened.
+      // CAP-4 (panneau allégé): the full outbound text (story 23) is its last paragraph.
+      const [first, ...rest] = brick.explanation_text?.length ? brick.explanation_text : [brick.outbound_text];
       const details = el("details", "brick-explain");
       details.id = `explain-${brick.id}`;
       details.open = store.openBrickHelp.has(brick.id);
@@ -1331,6 +1343,9 @@ function renderBricks() {
         } else {
           details.appendChild(el("p", "", block));
         }
+      }
+      if (brick.explanation_text?.length && brick.outbound_text) {
+        details.appendChild(el("p", "brick-outbound", brick.outbound_text));
       }
       card.appendChild(details);
     }
@@ -1685,11 +1700,9 @@ function brickOptions(brick, offReason = null) {
     toggle.dataset.focusKey = `option:${brick.id}:${option.id}`;
     toggle.addEventListener("change", () => setOption(brick.id, option.id, toggle.checked));
     markParentOff(row, toggle, offReason);
-    row.append(
-      toggle,
-      el("span", "brick-option-name", option.label_text),
-      el("span", option.network ? "hosting-tag-network" : "hosting-tag-local", option.hosting_text)
-    );
+    row.append(toggle, el("span", "brick-option-name", option.label_text));
+    // CAP-4 (panneau allégé): no more « Local » tag per row; only the network one matters.
+    if (option.network) row.appendChild(el("span", "hosting-tag-network", option.hosting_text));
     const li = el("li", "brick-option-item");
     li.appendChild(row);
     list.appendChild(li);

@@ -222,6 +222,8 @@ main:
     locked_by_model: "Locked: imposed by this model"
     pending: "Takes effect on the next turn"
     mcp_workshop: "See the protocol in the MCP workshop →"
+    mcp_workshop_short: "Workshop ↗"
+    outbound_summary: "🌐 Leaves the workstation: {names}"
     edit_prompt: "Edit the prompt"
     guardrails_install: Install
     guardrails_token_placeholder: "Paste your Hugging Face token…"

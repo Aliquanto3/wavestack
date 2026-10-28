@@ -2524,19 +2524,29 @@ def _unfold_step(r: Run, title: str) -> None:
 
 
 def _outbound_card(r: Run) -> None:
-    """The Outils card says what leaves the workstation, its options folded."""
+    """CAP-4 (panneau allégé): the Outils card shows one line (only the enabled network
+    options) folded, and the full text (every declared one) in its explanation, folded."""
     card = r.card("Outils")
-    folded = card.locator("details.brick-options").get_attribute("open") is None
-    text = card.locator(".brick-outbound").inner_text() if folded else ""
+    summary = card.locator(".brick-outbound").first.inner_text()
+    r.check(
+        summary.strip() == "🌐 Sort du poste : Jours fériés, Résumé Wikipédia, Lecture de page web",
+        "carte Outils, repliée : une ligne, seules les options activées qui sortent du poste",
+        summary,
+    )
+    details = card.locator("details.brick-explain")
+    folded_before = details.get_attribute("open") is None
+    details.locator("summary").click()
+    text = details.locator(".brick-outbound").last.inner_text()
     names = ["Jours fériés", "Résumé Wikipédia", "Lecture de page web"]
     names += ["data.gouv.fr", "Microsoft Learn", "Données sortantes"]
     names.insert(0, "Peuvent sortir du poste")  # declared, enabled or not
     missing = [n for n in names if n not in text]
     r.check(
-        folded and card.locator(".brick-outbound").is_visible() and not missing,
-        "carte Outils, options repliées : ce qui sort du poste et où le lire",
+        folded_before and not missing,
+        "carte Outils, explication dépliée : le texte complet de ce qui sort du poste, où le lire",
         f"manque {missing} dans « {text[:200]} »" if missing else "",
     )
+    details.locator("summary").click()  # re-fold: state as found
 
 
 def _holidays_outbound(r: Run, seq: int) -> None:

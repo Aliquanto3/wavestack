@@ -222,6 +222,8 @@ main:
     locked_by_model: "Gesperrt: von diesem Modell vorgegeben"
     pending: "Wirkt ab der nächsten Runde"
     mcp_workshop: "Das Protokoll in der MCP-Werkstatt ansehen →"
+    mcp_workshop_short: "Werkstatt ↗"
+    outbound_summary: "🌐 Verlässt den Arbeitsplatz: {names}"
     edit_prompt: "Prompt bearbeiten"
     guardrails_install: Installieren
     guardrails_token_placeholder: "Fügen Sie Ihr Hugging-Face-Token ein…"
