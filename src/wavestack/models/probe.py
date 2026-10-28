@@ -86,21 +86,25 @@ def _key_value_lengths(meta: dict[str, Any], arch: str) -> tuple[int | None, int
 
 
 def _kv_per_layer(meta: dict[str, Any], arch: str) -> list[int] | None:
-    """Story 2: `head_count_kv`'s per-layer list, or `head_count` once per layer when
-    `head_count_kv` is absent; `None` when `head_count_kv` is a single value shared with
-    `full_attention_interval` (that case never combines with a sliding-window pattern) or
-    the layer count is unknown."""
+    """Story 2: `head_count_kv`'s per-layer list, or its single value (`head_count` when
+    absent) once per layer; `None` when that single value goes with a
+    `full_attention_interval` above 1 (that case never combines with a sliding-window
+    pattern), or is unreadable, or the layer count is unknown."""
     raw = meta.get(f"{arch}.attention.head_count_kv")
-    if raw is None:
-        heads = _int_meta(meta, f"{arch}.attention.head_count")
-        layers = _int_meta(meta, f"{arch}.block_count")
-        return [heads] * layers if layers and heads else None
     if isinstance(raw, list | tuple):
         try:
             return [int(n) for n in raw]
         except (TypeError, ValueError):
             return None
-    return None
+    interval = _int_meta(meta, f"{arch}.full_attention_interval")
+    if raw is not None and interval and interval > 1:
+        return None
+    heads = _int_meta(
+        meta,
+        f"{arch}.attention.head_count_kv" if raw is not None else f"{arch}.attention.head_count",
+    )
+    layers = _int_meta(meta, f"{arch}.block_count")
+    return [heads] * layers if layers and heads else None
 
 
 def _sliding_layers(meta: dict[str, Any]) -> list[bool] | None:
@@ -181,17 +185,18 @@ def kv_bytes_per_token(meta: dict[str, Any], *, sliding: bool = False) -> int | 
         return None
     key_length, value_length = _key_value_lengths(meta, arch)
     kv_key = f"{arch}.attention.head_count_kv"
-    raw = meta.get(kv_key)
-    if raw is None or isinstance(raw, list | tuple):
-        kv_per_layer = _kv_per_layer(meta, arch)
-        if sliding and kv_per_layer is not None:
+    kv_per_layer = _kv_per_layer(meta, arch)
+    masked = False
+    if kv_per_layer is not None:
+        if sliding:
             mask = _sliding_layers(meta)
             window = _int_meta(meta, f"{arch}.attention.sliding_window")
             if mask is not None and window and len(mask) == len(kv_per_layer):
                 kv_per_layer = [
                     kv for kv, is_sliding in zip(kv_per_layer, mask, strict=True) if not is_sliding
                 ]
-        kv_heads_total = sum(kv_per_layer) if kv_per_layer is not None else None
+                masked = True
+        kv_heads_total = sum(kv_per_layer)
     else:
         layers = _int_meta(meta, f"{arch}.block_count")
         per_layer = _int_meta(meta, kv_key)
@@ -199,7 +204,13 @@ def kv_bytes_per_token(meta: dict[str, Any], *, sliding: bool = False) -> int | 
         if layers and interval and interval > 1:
             layers = layers // interval
         kv_heads_total = layers * per_layer if layers and per_layer else None
-    if kv_heads_total is None or not key_length or not value_length:
+    # 0 only when the pattern left every KV layer out; a header without any KV head stays None.
+    if (
+        kv_heads_total is None
+        or not (kv_heads_total or masked)
+        or not key_length
+        or not value_length
+    ):
         return None
     return 2 * kv_heads_total * (key_length + value_length)
 
@@ -455,7 +466,7 @@ def probed_entry(path: str) -> dict[str, Any] | None:
     entry = config.read_settings().get("probed_models", {}).get(path)
     if not entry or not _same_file(entry, path):
         return None
-    header = _header_kv(str(path), entry["size_bytes"], entry["mtime"])
+    header = _header_kv(str(path), entry["size_bytes"], entry["mtime"], False)
     if header is not None and "kv_bytes_per_token" in entry:
         entry = {**entry, "kv_bytes_per_token": header}
     return entry

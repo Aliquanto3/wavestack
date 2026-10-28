@@ -645,3 +645,25 @@ def test_gguf_kv_bytes_per_token_sliding_reads_the_header(tmp_path):
     path = write_gguf(tmp_path / "LFM3-1.7B-QAD-Q4_0.gguf", LFM3_1_7B)
     assert probe.gguf_kv_bytes_per_token(str(path), sliding=True) == 12_288
     assert probe.gguf_kv_bytes_per_token(str(path)) == 22_528
+
+
+def test_no_kv_head_at_all_stays_none_unless_the_pattern_left_them_out():
+    """Review: a header whose per-layer list is only zeros (no KV cache read) stays `None`,
+    as before the story, with or without `sliding` when no pattern applies."""
+    zeros = {**LFM3_1_7B, "lfm3.attention.head_count_kv": [0] * 24}
+    del zeros["lfm3.attention.sliding_window_pattern"]
+    assert probe.kv_bytes_per_token(zeros) is None
+    assert probe.kv_bytes_per_token(zeros, sliding=True) is None
+
+
+def test_single_kv_head_count_with_a_pattern_repeats_it_per_layer():
+    """Review: one integer `head_count_kv` (no `full_attention_interval`) is repeated
+    `block_count` times, the pattern then applies (spec, Execution)."""
+    meta = {**LFM3_1_7B, "lfm3.attention.head_count_kv": 4}
+    assert probe.kv_bytes_per_token(meta) == 2 * 24 * 4 * 256
+    assert probe.kv_bytes_per_token(meta, sliding=True) == 2 * 19 * 4 * 256
+    assert probe.sliding_kv(meta) == (2 * 5 * 4 * 256, 256)
+
+
+def test_qwen35_4b_unchanged_with_sliding():
+    assert probe.kv_bytes_per_token(QWEN35_4B, sliding=True) == 32_768
