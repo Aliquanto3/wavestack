@@ -16,7 +16,7 @@ from pathlib import Path
 import httpx
 import pytest
 from fake_engine import FakeEngine
-from gguf_writer import make_sparse
+from gguf_writer import make_sparse, write_gguf
 from starlette.testclient import TestClient
 
 from wavestack import config
@@ -1722,6 +1722,33 @@ def test_llama_server_with_several_slots_counts_the_whole_context(fake):
     fake.n_ctx = 4096  # `-np 4 -c 16384`: each slot fits the window, nothing to advise
     fake.n_ctx_total = 16_384
     assert _llama_candidate(fake).warning_text is None
+
+
+def test_llama_server_lfm3_counts_only_the_global_attention_layers(fake, tmp_path):
+    """Story 2: a sliding-window layer's reduced cache (llama-server's default, no
+    `--swa-full`) is left out of `served_bytes`: 12 288 bytes a token, not 22 528."""
+    sliding_window_pattern = [i in (4, 8, 12, 16, 20) for i in range(24)]
+    head_count_kv = [0, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0]
+    path = write_gguf(
+        tmp_path / "LFM3-1.7B-QAD-Q4_0.gguf",
+        {
+            "general.architecture": "lfm3",
+            "lfm3.block_count": 24,
+            "lfm3.embedding_length": 2048,
+            "lfm3.attention.head_count": 16,
+            "lfm3.attention.head_count_kv": head_count_kv,
+            "lfm3.attention.key_length": 128,
+            "lfm3.attention.value_length": 128,
+            "lfm3.attention.sliding_window": 256,
+            "lfm3.attention.sliding_window_pattern": sliding_window_pattern,
+        },
+    )
+    fake.model_path, fake.n_ctx = str(path), 16_384
+
+    candidate = _llama_candidate(fake)
+
+    assert candidate.served_bytes == path.stat().st_size + 12_288 * 16_384
+    assert candidate.context_counted
 
 
 def test_hot_switch_to_llama_server_carries_its_warning(monkeypatch, tmp_path, fake):

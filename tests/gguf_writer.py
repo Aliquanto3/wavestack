@@ -77,7 +77,8 @@ def _typed(value: Any) -> tuple[int, bytes]:
     if isinstance(value, str):
         return 8, _string(value)
     if isinstance(value, list):
-        inner = 8 if value and isinstance(value[0], str) else 4
+        first = value[0] if value else None
+        inner = 8 if isinstance(first, str) else 7 if isinstance(first, bool) else 4
         items = b"".join(_typed(v)[1] for v in value)
         return 9, struct.pack("<IQ", inner, len(value)) + items
     raise TypeError(value)
