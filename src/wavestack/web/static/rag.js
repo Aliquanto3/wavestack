@@ -1476,7 +1476,8 @@ function applyEnvelope(envelope) {
       handleWindowState(p); // story 16.9 (CAP-7): the « Fenêtre » picker of the workshop
       // V1.2 story 10: the long context and the CAG need a window: read again on a change.
       const key = `${p.configured}/${p.window}/${p.model_label ?? ""}`;
-      if (store.windowSeen !== undefined && store.windowSeen !== key) reloadCatalog();
+      // Story 17.4: `undefined` (live before `/api/state`) reads again too: the catalog may predate it.
+      if (store.windowSeen !== key) reloadCatalog();
       store.windowSeen = key;
       return;
     }
@@ -2428,7 +2429,15 @@ async function main() {
   // catalog came: never competing with it while the page starts. Neither is awaited.
   fetch("/api/state")
     .then((response) => response.json())
-    .then((state) => handleWindowState(state.context_window_state))
+    .then((state) => {
+      const p = state.context_window_state;
+      if (!p || store.windowSeen !== undefined) return; // a live state came first: fresher
+      handleWindowState(p);
+      // Story 17.4: without this, the first live `context_window_state` (the user's own
+      // « Appliquer » soon after opening the tab) finds `windowSeen` still `undefined` and
+      // the catalog is never read again until a reload.
+      store.windowSeen = `${p.configured}/${p.window}/${p.model_label ?? ""}`;
+    })
     .catch(() => {}); // the button waits for the next `context_window_state`
   loadLocalModels().then(() => renderViews());
   const question = $("rag-question");

@@ -579,7 +579,7 @@ session:
     compress_not_wanted: "Die Karte Kompression ist nicht aktiv: Aktivieren Sie sie, damit die Option die Auszüge komprimiert."
     # V1.2 story 10: the architectures without an index (long context, CAG).
     window_needed: "Nicht verfügbar: Es braucht ein effektives Fenster von mindestens {needed} Tokens, die Sitzung hat {effective}. {where}"
-    window_set: "Stellen Sie das Fenster mit der Auswahl „Fenster“ in der Leiste der Seite Konversation auf {needed}."
+    window_set: "Stellen Sie das Fenster in der Leiste der Seite Konversation oder im Reiter RAG-Werkstatt mit der Auswahl „Fenster“ auf {needed}."
     window_bound: "Das konfigurierte Fenster beträgt bereits {configured}{bound}: Wählen Sie ein Modell oder einen Server, der mehr bietet."
     cag_local_only: "Mit einem Cloud-Modell nicht verfügbar: CAG hält den Korpus im Speicher (KV-Cache) eines lokalen Modells, und die Werkstatt steuert den Cache eines Anbieters nicht. Wählen Sie ein lokales Modell."
     cag_no_model: "Nicht verfügbar: CAG hält den Korpus im Speicher eines lokalen Modells. Laden Sie ein lokales Modell (GGUF-Datei oder lokaler Server)."
