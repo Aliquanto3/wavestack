@@ -75,46 +75,131 @@ def _int_meta(meta: dict[str, Any], key: str) -> int | None:
     return value if value > 0 else None
 
 
-def kv_bytes_per_token(meta: dict[str, Any]) -> int | None:
-    """AD-8: the KV cache's bytes per token of context, f16 (2 bytes), K and V:
-    `2 × Σ over layers (KV heads × (key size + value size))`, from the GGUF metadata.
-
-    `head_count_kv` may be one integer or one value per layer (hybrid models such as
-    Qwen3.5, whose linear-attention layers have 0 KV head); a value that is neither (e.g.
-    an array llama-cpp-python only shows as text) gives `None`, never the attention heads
-    instead. Sliding-window attention is not taken into account: an overestimate.
-
-    Lot K (A2): a hybrid model may give one integer and `{arch}.full_attention_interval` = n
-    instead (Qwen3.5 GGUF: one layer in n has full attention, hence a KV cache; the others
-    are linear-attention layers without one): only `block_count // n` layers count. A
-    per-layer list stays the reference when present (the interval is then ignored).
-    """
-    arch = meta.get("general.architecture")
-    if not arch:
-        return None
-    layers = _int_meta(meta, f"{arch}.block_count")
+def _key_value_lengths(meta: dict[str, Any], arch: str) -> tuple[int | None, int | None]:
     heads = _int_meta(meta, f"{arch}.attention.head_count")
     key_length = _int_meta(meta, f"{arch}.attention.key_length")
     if key_length is None:
         embedding = _int_meta(meta, f"{arch}.embedding_length")
         key_length = embedding // heads if embedding and heads else None
     value_length = _int_meta(meta, f"{arch}.attention.value_length") or key_length
+    return key_length, value_length
+
+
+def _kv_per_layer(meta: dict[str, Any], arch: str) -> list[int] | None:
+    """Story 2: `head_count_kv`'s per-layer list, or `head_count` once per layer when
+    `head_count_kv` is absent; `None` when `head_count_kv` is a single value shared with
+    `full_attention_interval` (that case never combines with a sliding-window pattern) or
+    the layer count is unknown."""
+    raw = meta.get(f"{arch}.attention.head_count_kv")
+    if raw is None:
+        heads = _int_meta(meta, f"{arch}.attention.head_count")
+        layers = _int_meta(meta, f"{arch}.block_count")
+        return [heads] * layers if layers and heads else None
+    if isinstance(raw, list | tuple):
+        try:
+            return [int(n) for n in raw]
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _sliding_layers(meta: dict[str, Any]) -> list[bool] | None:
+    """Story 2: `{arch}.attention.sliding_window_pattern`, one boolean per layer (true =
+    sliding-window layer), as `get_key_or_arr` of llama.cpp reads it: a list as long as
+    `block_count` or the `head_count_kv` list, or a single value broadcast to every layer
+    (needs `block_count` then). Anything else (absent, wrong length, wrong type) is `None`:
+    the pattern is ignored, never an exception."""
+    arch = meta.get("general.architecture")
+    if not arch:
+        return None
+    raw = meta.get(f"{arch}.attention.sliding_window_pattern")
+    if raw is None:
+        return None
+    layers = _int_meta(meta, f"{arch}.block_count")
+    if isinstance(raw, bool):
+        return [raw] * layers if layers else None
+    if isinstance(raw, list | tuple):
+        kv_raw = meta.get(f"{arch}.attention.head_count_kv")
+        kv_len = len(kv_raw) if isinstance(kv_raw, list | tuple) else None
+        if len(raw) not in {n for n in (layers, kv_len) if n}:
+            return None
+        try:
+            return [bool(v) for v in raw]
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def sliding_kv(meta: dict[str, Any]) -> tuple[int, int] | None:
+    """Story 3: the fixed part llama.cpp keeps per sliding-window layer (bytes per token of
+    those layers alone, f16 K and V, `2 × Σ over sliding layers (KV heads × (key + value
+    size))`) and the window's length (`{arch}.attention.sliding_window`); `None` without a
+    readable window, pattern, or per-layer KV head count."""
+    arch = meta.get("general.architecture")
+    if not arch:
+        return None
+    window = _int_meta(meta, f"{arch}.attention.sliding_window")
+    mask = _sliding_layers(meta)
+    kv_per_layer = _kv_per_layer(meta, arch)
+    if not window or mask is None or kv_per_layer is None or len(mask) != len(kv_per_layer):
+        return None
+    kv_heads_total = sum(
+        kv for kv, is_sliding in zip(kv_per_layer, mask, strict=True) if is_sliding
+    )
+    if not kv_heads_total:
+        return None
+    key_length, value_length = _key_value_lengths(meta, arch)
+    if not key_length or not value_length:
+        return None
+    return 2 * kv_heads_total * (key_length + value_length), window
+
+
+def kv_bytes_per_token(meta: dict[str, Any], *, sliding: bool = False) -> int | None:
+    """AD-8: the KV cache's bytes per token of context, f16 (2 bytes), K and V:
+    `2 × Σ over layers (KV heads × (key size + value size))`, from the GGUF metadata.
+
+    `head_count_kv` may be one integer or one value per layer (hybrid models such as
+    Qwen3.5, whose linear-attention layers have 0 KV head); a value that is neither (e.g.
+    an array llama-cpp-python only shows as text) gives `None`, never the attention heads
+    instead.
+
+    Story 2: with `sliding=True` and a valid `{arch}.attention.sliding_window_pattern`
+    (`_sliding_layers`) plus a positive `{arch}.attention.sliding_window`, the layers the
+    pattern marks as sliding-window are left out: the caller says its engine allocates a
+    reduced cache for them (llama-server's default). Without `sliding`, or with an absent,
+    invalid, or unusable pattern, every layer counts, as before (an overestimate for a
+    sliding-window layer, by design: `sliding_kv` gives its fixed part instead).
+
+    Lot K (A2): a hybrid model may give one integer and `{arch}.full_attention_interval` = n
+    instead (Qwen3.5 GGUF: one layer in n has full attention, hence a KV cache; the others
+    are linear-attention layers without one): only `block_count // n` layers count. A
+    per-layer list stays the reference when present (the interval is then ignored, and
+    never combined with a sliding-window pattern either).
+    """
+    arch = meta.get("general.architecture")
+    if not arch:
+        return None
+    key_length, value_length = _key_value_lengths(meta, arch)
     kv_key = f"{arch}.attention.head_count_kv"
     raw = meta.get(kv_key)
-    if raw is None:
-        kv_heads_total = layers * heads if layers and heads else None
-    elif isinstance(raw, list | tuple):
-        try:
-            kv_heads_total = sum(int(n) for n in raw)
-        except (TypeError, ValueError):
-            kv_heads_total = None
+    if raw is None or isinstance(raw, list | tuple):
+        kv_per_layer = _kv_per_layer(meta, arch)
+        if sliding and kv_per_layer is not None:
+            mask = _sliding_layers(meta)
+            window = _int_meta(meta, f"{arch}.attention.sliding_window")
+            if mask is not None and window and len(mask) == len(kv_per_layer):
+                kv_per_layer = [
+                    kv for kv, is_sliding in zip(kv_per_layer, mask, strict=True) if not is_sliding
+                ]
+        kv_heads_total = sum(kv_per_layer) if kv_per_layer is not None else None
     else:
+        layers = _int_meta(meta, f"{arch}.block_count")
         per_layer = _int_meta(meta, kv_key)
         interval = _int_meta(meta, f"{arch}.full_attention_interval")
         if layers and interval and interval > 1:
             layers = layers // interval
         kv_heads_total = layers * per_layer if layers and per_layer else None
-    if not (kv_heads_total and key_length and value_length):
+    if kv_heads_total is None or not key_length or not value_length:
         return None
     return 2 * kv_heads_total * (key_length + value_length)
 
@@ -376,29 +461,32 @@ def probed_entry(path: str) -> dict[str, Any] | None:
     return entry
 
 
-def gguf_kv_bytes_per_token(path: str | None) -> int | None:
+def gguf_kv_bytes_per_token(path: str | None, *, sliding: bool = False) -> int | None:
     """Lot E (E1): the KV cache's bytes per token of a GGUF on this disk (a file llama-server
     loaded), from its header read in pure Python: no weight, never llama.cpp in WaveStack's
-    process (AD-16). `None` when unreadable."""
+    process (AD-16). `None` when unreadable. Story 2: `sliding`, passed to
+    `kv_bytes_per_token` -- only `servers.served_kv` passes `True` (llama-server's default
+    cache is reduced for sliding-window layers; Ollama's and the direct path's are not)."""
     if not path:
         return None
     try:
         stat = Path(path).stat()
     except OSError:
         return None
-    return _header_kv(str(path), stat.st_size, stat.st_mtime)
+    return _header_kv(str(path), stat.st_size, stat.st_mtime, sliding)
 
 
 @functools.lru_cache(maxsize=32)
-def _header_kv(path: str, size: int, mtime: float) -> int | None:
-    """Read once per file version (`size`, `mtime`): the diagnostic lists servers often.
-    Finition V1 (#19): through `catalog.header_metadata`, which the diagnostic warms for
-    the model table anyway (82 % of `discovery.discover()` on the target PC was this read,
-    done twice); imported here, `catalog` imports `discovery`, which imports this module."""
+def _header_kv(path: str, size: int, mtime: float, sliding: bool = False) -> int | None:
+    """Read once per file version (`size`, `mtime`, `sliding`): the diagnostic lists servers
+    often. Finition V1 (#19): through `catalog.header_metadata`, which the diagnostic warms
+    for the model table anyway (82 % of `discovery.discover()` on the target PC was this
+    read, done twice); imported here, `catalog` imports `discovery`, which imports this
+    module."""
     from wavestack.models import catalog
 
     header = catalog.header_metadata(path)
-    return kv_bytes_per_token(header[1]) if header else None
+    return kv_bytes_per_token(header[1], sliding=sliding) if header else None
 
 
 def _args(argv: list[str]) -> tuple[str, int] | None:

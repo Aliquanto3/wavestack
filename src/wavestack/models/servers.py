@@ -1022,10 +1022,12 @@ def ollama_load_bytes(path: str | None, window: int) -> int | None:
 def served_kv(model: ServedModel, path: str | None) -> int | None:
     """Lot E (E1): the KV cache's bytes per token of llama-server's model, read in its GGUF
     header when `path` is a file of this disk (an absolute path: a relative one was the
-    server's, not WaveStack's); `None` otherwise, the memory then leaving the cache out."""
+    server's, not WaveStack's); `None` otherwise, the memory then leaving the cache out.
+    Story 2 (sliding-window attention): `sliding=True` -- llama-server allocates a reduced
+    cache for sliding-window layers by default (no `--swa-full`)."""
     if model.engine != "llama_server" or not model.n_ctx:
         return None
-    return probe.gguf_kv_bytes_per_token(_local(path))
+    return probe.gguf_kv_bytes_per_token(_local(path), sliding=True)
 
 
 def _local(path: str | None) -> str | None:

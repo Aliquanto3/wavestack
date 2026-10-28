@@ -18,6 +18,7 @@ from gguf_writer import write_gguf
 from starlette.testclient import TestClient
 from test_cloud import Provider, _cloud_session, delta, sse
 from test_model_servers import GIB, LLAMA_URL, FakeServer, _booted
+from test_probe import LFM3_1_7B
 
 from wavestack import config
 from wavestack.cloud import chat_fields
@@ -1377,6 +1378,9 @@ def test_a_hybrid_header_says_its_full_attention_interval():
         own = key.replace("rwkv7.", "rwkv7x.")
         family = llm_lab.classify_header({"general.architecture": "rwkv7x", own: 64})["family"]
         assert family == "hybrid", own
+    # Story 2 (LFM3): hybrid from its per-layer `head_count_kv` zeros, `lfm3` need not join
+    # `HYBRID_ARCHITECTURES`.
+    assert llm_lab.classify_header(LFM3_1_7B)["family"] == "hybrid"
 
 
 def test_a_mixture_of_experts_and_a_hybrid_with_experts():

@@ -538,3 +538,110 @@ def test_an_older_probe_entry_is_recomputed_from_the_header_without_rewriting(
     broken.write_bytes(b"pas un en-tete GGUF")
     _old_entry(broken, 49_152)
     assert probe.probed_entry(str(broken))["kv_bytes_per_token"] == 49_152
+
+
+# ---------- story 2 (LFM3): sliding-window attention, counted only with `sliding=True` ----------
+
+# The header of `LFM3-1.7B-QAD-Q4_0.gguf`, read on the dev workstation on 2026-10-28:
+# 24 layers, 11 of them attention (4 KV heads each, at even indices from 2 to 22), the rest
+# recurrent (0 KV head); `sliding_window_pattern` marks 5 of those 11 as sliding-window
+# (indices 4, 8, 12, 16, 20), leaving 6 global attention layers.
+LFM3_1_7B = {
+    "general.architecture": "lfm3",
+    "lfm3.block_count": 24,
+    "lfm3.embedding_length": 2048,
+    "lfm3.attention.head_count": 16,
+    "lfm3.attention.head_count_kv": [
+        0,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+    ],
+    "lfm3.attention.key_length": 128,
+    "lfm3.attention.value_length": 128,
+    "lfm3.attention.sliding_window": 256,
+    "lfm3.attention.sliding_window_pattern": [i in (4, 8, 12, 16, 20) for i in range(24)],
+    "lfm3.shortconv.l_cache": 7,
+    "lfm3.context_length": 262144,
+}
+
+
+def test_lfm3_sliding_window_counts_only_the_global_layers():
+    # 6 global layers (indices 2, 6, 10, 14, 18, 22) × 4 heads × (128 + 128) × 2 bytes.
+    assert probe.kv_bytes_per_token(LFM3_1_7B, sliding=True) == 12_288
+    # Without `sliding`, every attention layer counts (unchanged, the old overestimate).
+    assert probe.kv_bytes_per_token(LFM3_1_7B) == 22_528
+    assert probe.kv_bytes_per_token(LFM3_1_7B, sliding=False) == 22_528
+
+
+def test_sliding_window_pattern_single_value_applies_to_every_layer():
+    meta = {**LFM3_1_7B, "lfm3.attention.sliding_window_pattern": True}
+    assert probe.kv_bytes_per_token(meta, sliding=True) == 0  # every layer is sliding-window
+    assert probe.sliding_kv(meta) == (22_528, 256)  # part of every layer, not only five
+
+
+def test_sliding_window_without_a_pattern_is_ignored():
+    """Gemma 2 and 3: `sliding_window` without a pattern, nothing changes."""
+    meta = {k: v for k, v in LFM3_1_7B.items() if k != "lfm3.attention.sliding_window_pattern"}
+    assert probe.kv_bytes_per_token(meta, sliding=True) == 22_528
+    assert probe.sliding_kv(meta) is None
+
+
+def test_pattern_without_a_window_or_a_null_window_is_ignored():
+    for window in (0, None):
+        meta = {**LFM3_1_7B, "lfm3.attention.sliding_window": window}
+        if window is None:
+            del meta["lfm3.attention.sliding_window"]
+        assert probe.kv_bytes_per_token(meta, sliding=True) == 22_528
+        assert probe.sliding_kv(meta) is None
+
+
+def test_pattern_of_the_wrong_length_is_ignored_never_raises():
+    meta = {**LFM3_1_7B, "lfm3.attention.sliding_window_pattern": [True, False, True]}
+    assert probe.kv_bytes_per_token(meta, sliding=True) == 22_528
+    assert probe.sliding_kv(meta) is None
+
+
+def test_sliding_kv_lfm3():
+    # 5 sliding layers (indices 4, 8, 12, 16, 20) × 4 heads × (128 + 128) × 2 bytes.
+    assert probe.sliding_kv(LFM3_1_7B) == (10_240, 256)
+
+
+def test_sliding_kv_none_without_window_or_pattern():
+    assert probe.sliding_kv(QWEN35_2B) is None
+
+
+def test_qwen35_full_attention_interval_never_combines_with_a_sliding_pattern():
+    meta = {
+        **QWEN35_2B,
+        "qwen35.attention.sliding_window": 256,
+        "qwen35.attention.sliding_window_pattern": True,
+    }
+    assert probe.kv_bytes_per_token(meta, sliding=True) == probe.kv_bytes_per_token(meta)
+    assert probe.kv_bytes_per_token(meta) == 12_288
+
+
+def test_gguf_kv_bytes_per_token_sliding_reads_the_header(tmp_path):
+    path = write_gguf(tmp_path / "LFM3-1.7B-QAD-Q4_0.gguf", LFM3_1_7B)
+    assert probe.gguf_kv_bytes_per_token(str(path), sliding=True) == 12_288
+    assert probe.gguf_kv_bytes_per_token(str(path)) == 22_528

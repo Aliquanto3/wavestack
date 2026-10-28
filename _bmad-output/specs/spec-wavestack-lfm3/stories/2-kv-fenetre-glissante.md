@@ -2,7 +2,7 @@
 title: 'Story 2 : KV par token avec attention à fenêtre glissante'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'in-progress'
+status: 'review'
 baseline_commit: 'f92da5bab715c90fc9ceee771f132a3836832af2'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -99,6 +99,8 @@ En-tête réel de `LFM3-1.7B-QAD-Q4_0.gguf`, relu le 2026-10-28 sur le poste de 
 - Given un modèle chargé en direct ou par Ollama, when sa mémoire est estimée, then le résultat est identique à celui d'avant la story.
 
 ## Spec Change Log
+
+- 2026-10-28 : implémentée telle quelle, aucun écart avec l'intent-contract. `classify_header(LFM3_1_7B)` donne déjà `hybrid` sans ajouter `lfm3` à `HYBRID_ARCHITECTURES` (confirmé par un test dédié), comme prévu par la tâche conditionnelle.
 
 ## Review Triage Log
 
