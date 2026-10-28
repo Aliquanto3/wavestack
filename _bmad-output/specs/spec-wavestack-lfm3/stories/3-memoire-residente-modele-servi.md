@@ -2,8 +2,8 @@
 title: 'Story 3 : mémoire résidente d''un modèle servi par llama-server, lue dans son processus'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'in-review'
-baseline_commit: 'bf69e43a2646633fb2e79dadbff3e24e857f513f'
+status: 'done'
+baseline_commit: 'ca32917e6acaa9562f5d6df9ca6086fae6072796'
 route: 'dispatch'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -11,7 +11,15 @@ context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/SPEC.md'
   - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/rapport-mesures-2026-10-28.md'
 warnings: []
-deferred: []
+deferred:
+  - summary: 'context_counted ignore la lecture du RSS : « sans son cache de contexte » peut s''afficher alors que le résident l''inclut'
+    evidence: 'discovery.py:234 calcule context_counted par served_kv seul ; avec un -m relatif hors models_dir() et un RSS lu, la carte dit le cache exclu'
+    location: 'src/wavestack/models/discovery.py:234'
+    severity: 'low'
+  - summary: 'guard.is_loopback recopie la règle de config.is_loopback'
+    evidence: 'src/wavestack/net/guard.py:88 (_LOOPBACK_HOSTS) et src/wavestack/config.py:190, deux règles proches ; préexistant à la story'
+    location: 'src/wavestack/net/guard.py:88'
+    severity: 'low'
 ---
 
 <intent-contract>
@@ -105,6 +113,17 @@ Vérification préalable faite le 2026-10-28 sur le poste de dev, session non é
 
 ## Review Triage Log
 
+### 2026-10-28 — Review pass
+- verdicts: 7 findings — high 0, medium 2, low 3, false 2, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` (second avis 1) le premier `pid` à l'écoute peut être un relais (wslrelay, Docker, proxy) : petit RSS, repli sauté — `served_bytes` calcule la taille d'abord et n'accepte le RSS que s'il atteint la taille des poids (`model.size` ou fichier) ; test `test_server_memory_ignores_a_relay_under_the_weights_size`.
+  - `[medium]` `[patch]` (orchestrateur 6) `SERVER_BUFFERS_BYTES` ajouté seulement si un chemin local est résolu, contre la ligne « Repli, KV illisible » de la matrice ; un `-m` relatif hors `models_dir()` (cas courant) ou un fichier distant perdait la provision — provision sur tout repli llama-server de taille connue ; `test_llama_server_relative_model_path_is_not_read_here` (rien lu, `context_counted` faux, objet inchangé) et `test_llama_server_turn_chosen_at_the_diagnostic` réalignés.
+  - `[low]` `[defer]` (second avis 2) `context_counted` ignore le RSS lu — conforme à la spec (`diagnostic.served.no_cache` couvre le chemin non résolu) ; différé.
+  - `[low]` `[patch]` (orchestrateur 7) commentaire `shortcut:` de `SERVER_BUFFERS_BYTES` disait le repack compté — corrigé (tampons seuls, repack non compté).
+  - `[low]` `[defer]` (second avis 5) `guard.is_loopback` recopie la règle — préexistant, hors story ; différé.
+  - `[false]` `[reject]` (second avis 3) un relatif avec `..` sort de `models_dir()` — un chemin absolu du serveur est déjà lu tel quel (règle d'origine) : `..` n'ouvre rien de plus ; lecture d'en-tête GGUF et `stat` seulement.
+  - `[false]` `[reject]` (second avis 4) « en-tête non lu » faux — vrai pour `served_bytes` (seul un `stat`) ; la découverte lit l'en-tête pour `context_counted`, hors du chiffre de mémoire.
+
 ## Design Notes
 
 Le `pid` trouvé est celui du processus qui écoute réellement (vérifié : avec le lanceur
@@ -122,3 +141,17 @@ qui l'héberge. Si un scénario vérifie une valeur exacte, le dire dans le rapp
 **Commands:**
 - `uv run python -m pytest -q --tb=short tests/test_model_servers.py tests/test_model_catalog.py tests/test_discovery.py tests/test_memory_budget.py tests/test_global_memory.py tests/test_config_paths.py` -- expected: tout vert
 - `uv run python .claude/cost-kit/controle_rapide.py` -- expected: OK
+
+## Auto Run Result
+
+**Résumé :** llama-server servi sur la boucle locale compte la mémoire résidente de son processus (`psutil`), sauf si elle est sous la taille des poids (relais sur le port) ; repli = taille + KV × `n_ctx` + `SERVER_BUFFERS_BYTES` (256 Mo) pour tout llama-server ; `-m` relatif résolu sous `models_dir()` seulement, règle unique `servers.local_path`.
+
+**Fichiers :** `src/wavestack/config.py`, `src/wavestack/models/servers.py`, `src/wavestack/models/catalog.py`, `src/wavestack/models/discovery.py`, `tests/conftest.py`, `tests/test_model_servers.py`.
+
+**Constats :** 7 (medium 2 corrigés, low 1 corrigé, 2 différés, 2 rejetés) ; voir Review Triage Log.
+
+**Vérification :** `uv run python -m pytest -q --tb=short tests/test_model_servers.py tests/test_model_catalog.py tests/test_discovery.py tests/test_memory_budget.py tests/test_global_memory.py tests/test_config_paths.py` : 293 verts avant le dernier réalignement, puis `tests/test_model_servers.py tests/test_context_window_setting.py` : 149 verts ; contrôle rapide OK.
+
+**E2E à rejouer :** scénarios du diagnostic et du budget avec le faux llama-server de `tools/e2e/stack.py` (`_pick_served`, l.11634 et 11808 de `tools/e2e/run_e2e.py`, budget mémoire l.9671) : le faux serveur est un processus Python d'environ 30 à 60 Mo, sous la taille annoncée (1,5 Go) : le repli s'applique, le chiffre affiché gagne 256 Mo. Aucun scénario ne vérifie une valeur exacte de mémoire servie (seul le budget l.9673 est recalculé depuis l'API).
+
+**Risques résiduels :** sous Windows, un working set réduit par le système sous la taille du fichier (poids en `mmap`) fait prendre le repli (estimation basse du repack) ; macOS refuse `net_connections` sans droits : repli. Pas de vrai llama-server lancé pendant la revue.

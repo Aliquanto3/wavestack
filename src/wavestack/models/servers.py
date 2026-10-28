@@ -994,8 +994,8 @@ def served_bytes(model: ServedModel, path: str | None, window: int | None = None
     its weights and its compute buffers included; else (both engines' fallback) its file's
     size plus its KV cache for its whole context `n_ctx` (lot E, E1: llama-server reserves it
     at launch), the KV read in the file's metadata, without the weights (the file's size
-    alone when unreadable), plus `SERVER_BUFFERS_BYTES` for llama-server; not loaded yet (Ollama): its
-    blob's size, plus (story 24) its KV cache at `window` when given and readable
+    alone when unreadable), plus `SERVER_BUFFERS_BYTES` for llama-server; not loaded yet
+    (Ollama): its blob's size, plus (story 24) its KV cache at `window` when given and readable
     (`ollama_load_bytes`). `None` when nothing says it."""
     if model.resident and model.resident_size:
         return model.resident_size
