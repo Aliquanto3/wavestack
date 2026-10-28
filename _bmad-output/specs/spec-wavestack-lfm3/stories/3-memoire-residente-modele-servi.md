@@ -6,7 +6,7 @@ status: 'done'
 baseline_commit: 'ca32917e6acaa9562f5d6df9ca6086fae6072796'
 route: 'dispatch'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/SPEC.md'
   - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/rapport-mesures-2026-10-28.md'
