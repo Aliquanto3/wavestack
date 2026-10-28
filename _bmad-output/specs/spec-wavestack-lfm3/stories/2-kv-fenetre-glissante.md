@@ -2,7 +2,8 @@
 title: 'Story 2 : KV par token avec attention à fenêtre glissante'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: 'f92da5bab715c90fc9ceee771f132a3836832af2'
 route: 'dispatch'
 review_loop_iteration: 0
 followup_review_recommended: false
