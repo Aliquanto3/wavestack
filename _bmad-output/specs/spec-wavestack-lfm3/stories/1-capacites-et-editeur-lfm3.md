@@ -2,7 +2,7 @@
 title: 'Story 1 : capacités et éditeur d''un modèle LFM3, en direct comme servi'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '049458152381352eef44259890f57c461e70b29c'
 review_loop_iteration: 0
