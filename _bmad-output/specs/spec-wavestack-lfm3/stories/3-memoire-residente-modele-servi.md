@@ -1,135 +1,157 @@
 ---
 title: 'Story 3 : mémoire résidente d''un modèle servi par llama-server, lue dans son processus'
-type: 'fix'
+type: 'bugfix'
 created: '2026-10-28'
-status: 'draft'
+status: 'done'
+baseline_commit: 'ca32917e6acaa9562f5d6df9ca6086fae6072796'
 route: 'dispatch'
 review_loop_iteration: 0
+followup_review_recommended: true
 context:
-  - '{project-root}/src/wavestack/models/servers.py'
-  - '{project-root}/src/wavestack/models/discovery.py'
-  - '{project-root}/src/wavestack/models/catalog.py'
+  - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/SPEC.md'
   - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/rapport-mesures-2026-10-28.md'
+warnings: []
+deferred:
+  - summary: 'context_counted ignore la lecture du RSS : « sans son cache de contexte » peut s''afficher alors que le résident l''inclut'
+    evidence: 'discovery.py:234 calcule context_counted par served_kv seul ; avec un -m relatif hors models_dir() et un RSS lu, la carte dit le cache exclu'
+    location: 'src/wavestack/models/discovery.py:234'
+    severity: 'low'
+  - summary: 'guard.is_loopback recopie la règle de config.is_loopback'
+    evidence: 'src/wavestack/net/guard.py:88 (_LOOPBACK_HOSTS) et src/wavestack/config.py:190, deux règles proches ; préexistant à la story'
+    location: 'src/wavestack/net/guard.py:88'
+    severity: 'low'
 ---
+
+<intent-contract>
 
 ## Intent
 
-`servers.served_bytes` (`models/servers.py:983-1004`) estime la mémoire d'un modèle servi par
-llama-server : taille du fichier + `served_kv × n_ctx`. Mesure du 2026-10-28 sur le PC cible
-(LFM3-1.7B QAD-Q4_0, `-c 16384`) : 2 112 Mo résidents, 1 218 Mo privés, pour une estimation de
-1 353 Mo. L'écart vient du réarrangement des poids Q4_0 pour le CPU (repack, ≈ 800 Mo) et des
-tampons de calcul (≈ 200 Mo), que l'estimation ignore ; il dépend de la quantification, du CPU
-et des options de lancement (`--no-repack` : 1 308 Mo résidents).
+**Problem:** `servers.served_bytes` (`src/wavestack/models/servers.py:983`) estime un modèle
+servi par llama-server à taille du fichier + KV × `n_ctx` : 1 353 Mo pour LFM3-1.7B à
+`-c 16384`, contre 2 112 Mo résidents mesurés sur le PC cible le 2026-10-28 (repack des poids
+Q4_0 ≈ 800 Mo et tampons de calcul ≈ 200 Mo non comptés). Servi avec un `-m` relatif, il ne
+compte que la taille du fichier.
 
-**Décision d'Anaël (2026-10-28)** : le budget compte la **mémoire résidente** du processus
-llama-server, **lue** avec psutil, plutôt qu'estimée. Un modèle servi est toujours déjà chargé :
-sa mémoire se lit, elle ne se devine pas.
+**Approach:** décision d'Anaël du 2026-10-28 : quand llama-server tourne sur ce poste, lire la
+mémoire résidente (`psutil`, `memory_info().rss`) du processus à l'écoute de son port. Repli
+quand le processus est introuvable ou illisible : l'estimation actuelle plus une provision de
+tampons de calcul `SERVER_BUFFERS_BYTES`, et un `-m` relatif résolu sous `config.models_dir()`
+seulement.
 
-Repli, quand le processus est introuvable ou illisible (serveur sur un autre poste, processus
-d'un autre utilisateur, accès refusé) : l'estimation actuelle, avec deux corrections bornées :
+## Boundaries & Constraints
 
-1. une provision de tampons de calcul (`SERVER_BUFFERS_BYTES`) ;
-2. un chemin `-m` relatif résolu sous `config.models_dir()` seulement. Aujourd'hui `_local`
-   (l.1031) le rejette, à juste titre puisqu'il est relatif au dossier de llama-server (test
-   `test_llama_server_relative_model_path_is_not_read_here`, `tests/test_model_servers.py:1701`),
-   et l'estimation se réduit à la taille du fichier. Le diagnostic le dit déjà
-   (`candidate.context_counted`, `discovery.py:234`, texte `diagnostic.served.no_cache`).
+**Always:**
+- Lecture seulement pour une URL de serveur sur la boucle locale (`localhost`, `127.0.0.0/8`,
+  `::1`), règle unique de `config._is_loopback` (rendue publique si besoin, jamais recopiée).
+- Toute erreur de lecture (`psutil.Error`, `OSError`, aucun `pid`) donne le repli, jamais
+  d'exception.
+- Un chemin relatif n'est résolu que sous `config.models_dir()`, et seulement s'il y désigne un
+  fichier ; jamais sous le dossier courant de WaveStack ni par recherche de nom.
+- Une seule règle de chemin local (`servers.local_path`) pour `served_bytes`, `served_kv`,
+  `ollama_load_bytes`, `_header_dimensions`, `catalog.header_path` et la découverte.
+- Les tests ne voient jamais un vrai llama-server ni la mémoire d'un vrai processus.
 
-Hors périmètre : le repack dans le repli (il dépend du CPU et de la quantification) ; la part
-par emplacement du cache à fenêtre glissante (cache unifié, ≈ 2,5 Mo par emplacement pour
-LFM3) ; Ollama (il donne déjà sa mémoire dans `/api/ps`).
+**Never:**
+- Ne pas modifier Ollama (`resident_size` de `/api/ps`, `ollama_load_bytes`) ni lui chercher
+  de processus.
+- Ne pas estimer le repack dans le repli (dépend du CPU et de la quantification), ni la part
+  par emplacement du cache à fenêtre glissante.
+- Pas de clé de `wavestack.toml`, pas de nouveau texte d'interface (`diagnostic.served.no_cache`
+  couvre le chemin non résolu), pas de cache de la lecture.
 
-## Given/When/Then
+## I/O & Edge-Case Matrix
 
-- Given un modèle servi par llama-server sur `http://127.0.0.1:8080` et un processus à l'écoute
-  de ce port dont `memory_info().rss` vaut 2 112 Mo, When `served_bytes`, Then 2 112 Mo, sans
-  lire l'en-tête du fichier.
-- Given un serveur sur une adresse qui n'est pas la boucle locale (`http://192.168.1.20:8080`),
-  When `served_bytes`, Then aucun processus n'est cherché et le repli s'applique.
-- Given un serveur sur la boucle locale dont le processus est introuvable (`pid` absent) ou
-  illisible (`psutil.AccessDenied`, `psutil.NoSuchProcess`), When `served_bytes`, Then le repli
-  s'applique, sans exception.
-- Given le repli et un modèle dont le KV est lisible, When `served_bytes`, Then taille + KV ×
-  `n_ctx` + `SERVER_BUFFERS_BYTES`.
-- Given le repli et un KV illisible, When `served_bytes`, Then taille du fichier +
-  `SERVER_BUFFERS_BYTES`, et `context_counted` reste faux.
-- Given un `model_path` relatif (`LFM3-1.7B-QAD-Q4_0.gguf`) présent sous `config.models_dir()`,
-  When la découverte construit le candidat, Then `gguf_path` est le chemin absolu sous
-  `models_dir()`, `context_counted` est vrai et le repli compte le KV.
-- Given un `model_path` relatif absent de `models_dir()` (même s'il existe dans le dossier
-  courant de WaveStack), When la découverte construit le candidat, Then rien n'est lu,
-  `context_counted` est faux (comportement actuel, test l.1701 inchangé).
-- Given un modèle Ollama, When `served_bytes`, Then rien ne change (`resident_size` ou
-  `ollama_load_bytes`), et aucun processus n'est cherché.
+| Scenario | Input / State | Expected Output / Behavior | Error Handling |
+|----------|--------------|---------------------------|----------------|
+| Lu | llama-server sur `http://127.0.0.1:8080`, processus à l'écoute de 8080 avec `rss` = 2 112 Mo | `served_bytes` = 2 112 Mo, en-tête non lu | — |
+| Hôte distant | `http://192.168.1.20:8080` | `net_connections` jamais appelé ; repli | — |
+| Pas de processus | boucle locale, aucun `CONN_LISTEN` sur le port (ou `pid` None) | repli | sans exception |
+| Illisible | `psutil.AccessDenied` ou `NoSuchProcess` | repli | sans exception |
+| Repli, KV lisible | fichier absolu lisible | taille + KV × `n_ctx` + `SERVER_BUFFERS_BYTES` | — |
+| Repli, KV illisible | KV ou fichier illisible | taille (de `/v1/models` ou du fichier) + `SERVER_BUFFERS_BYTES` ; `context_counted` faux | — |
+| Relatif présent | `model_path` = `LFM3-1.7B-QAD-Q4_0.gguf`, fichier sous `models_dir()` | `gguf_path` absolu sous `models_dir()`, `context_counted` vrai, le repli compte le KV | — |
+| Relatif absent | `model_path` relatif absent de `models_dir()` (même présent dans le dossier courant) | rien n'est lu, `context_counted` faux (test l.1701 inchangé) | — |
+| Ollama | modèle Ollama, chargé ou non | inchangé, aucun processus cherché | — |
 
-## Tâches
+</intent-contract>
 
-1. `src/wavestack/models/servers.py` : `_server_rss(url) -> int | None`. Hôte de `url` sur la
-   boucle locale (réutiliser la règle de `config._is_loopback`, l.190, en la rendant publique
-   si besoin, sans la recopier), sinon `None`. Puis `psutil.net_connections(kind="tcp")` :
-   premier `pid` d'une connexion `CONN_LISTEN` sur ce port, puis
-   `psutil.Process(pid).memory_info().rss`. Tout `psutil.Error` (et `OSError`) → `None`.
-   Commentaire d'une ligne : `rss` est le working set sous Windows, le « résident » mesuré.
-2. `servers.served_bytes`, branche llama-server (Ollama inchangé, placé avant) : renvoyer
-   `_server_rss(model.server_url)` quand il n'est pas `None` ; sinon le repli. Repli : l'actuel
-   + `SERVER_BUFFERS_BYTES`, constante du module avec un commentaire `shortcut:` (tampons de
-   calcul seulement, repack non compté ; valeur mesurée sur LFM3, à revoir si le repli devient
-   courant). Valeur : 256 Mio (tampons mesurés ≈ 200 Mo). Mettre à jour la docstring.
-3. `servers.py`, `_local` devient `local_path(path)` (public, un seul endroit pour la règle) :
-   chemin absolu → tel quel ; chemin relatif → `config.models_dir() / path` s'il désigne un
-   fichier, sinon `None`. Commentaire d'une ligne : un chemin relatif est celui de
-   llama-server, seul le dossier des modèles de WaveStack est un ancrage sûr. Remplacer les
-   copies de la règle : `_header_dimensions` (l.293) et `catalog.header_path`
-   (`catalog.py:420-421` ; import circulaire `catalog` → `discovery` → `servers` à vérifier,
-   sinon import local comme `_header_kv`).
-4. `src/wavestack/models/discovery.py` (l.226) : `candidate.gguf_path =
-   servers.local_path(model.model_path) or model.model_path`, pour que la carte, le budget et
-   le tableau lisent le même fichier.
-5. `src/wavestack/session/app_session.py`, `_cost` (l.1946-1948) : inchangé (il lit
-   `served_bytes`). Vérifier seulement que `_reload_cost` (l.1968) ne touche pas llama-server.
-6. Pas de nouveau texte : `diagnostic.served.no_cache` couvre le chemin non résolu ; le chiffre
-   affiché reste `served_bytes`.
+## Code Map
 
-## Tests
+- `src/wavestack/models/servers.py:983-1002` -- `served_bytes(model, path, window)` : branche Ollama d'abord (`resident_size`, `ollama_load_bytes`), puis taille + `served_kv × n_ctx`. Ajouter la lecture pour `engine == "llama_server"` avant le repli, et `SERVER_BUFFERS_BYTES` au repli llama-server.
+- `src/wavestack/models/servers.py:1022-1030` -- `served_kv` : appelle `_local(path)` ; passer à `local_path`.
+- `src/wavestack/models/servers.py:1033-1034` -- `_local(path)` (absolu seulement) : devient `local_path(path)` publique (absolu tel quel ; relatif → `config.models_dir() / path` si `is_file()`, sinon `None`). Appelants : `served_bytes` (l.993), `ollama_load_bytes` (l.1011), `served_kv` (l.1030).
+- `src/wavestack/models/servers.py:290-297` -- `_header_dimensions` recopie la règle (`path if path and Path(path).is_absolute()`) : utiliser `local_path`.
+- `src/wavestack/models/servers.py:846` -- `ServedModel.server_url` : URL dont on prend l'hôte et le port (`urllib.parse.urlsplit`, port par défaut 80 / 443 si absent).
+- `src/wavestack/config.py:190-196` -- `_is_loopback(host)` : la règle de boucle locale ; utilisée aussi l.275 et 358.
+- `src/wavestack/config.py:1449` -- `models_dir()`.
+- `src/wavestack/models/catalog.py:414-422` -- `header_path` : pour llama-server, `path if Path(path).is_absolute() else None` ; utiliser `servers.local_path` (import local dans la fonction si l'import en tête crée un cycle `catalog` → `discovery` → `servers`).
+- `src/wavestack/models/discovery.py:226` -- `candidate.gguf_path = model.model_path` : `servers.local_path(model.model_path) or model.model_path`.
+- `src/wavestack/models/discovery.py:234` -- `context_counted = servers.served_kv(model, model.model_path) is not None` : passer `candidate.gguf_path` (même fichier que la carte et le budget).
+- `src/wavestack/session/app_session.py:1946-1958, 1968` -- lecture seule : `_cost` lit `served.served_bytes` ; `_reload_cost` ne concerne qu'Ollama.
+- `pyproject.toml:15` -- `psutil>=7.2,<8` déjà en dépendance.
+- `tests/conftest.py` -- fixtures `autouse` (l.25-189) : y ajouter celle qui neutralise la lecture.
+- `tests/test_model_servers.py:1653-1750` -- tests llama-server de la mémoire (l.1662, 1696, 1708, 1719, 1750), l.1793, 1913, 1942 : attentes à réaligner sur `+ servers.SERVER_BUFFERS_BYTES` quand elles portent sur le repli llama-server ; l.1701 `test_llama_server_relative_model_path_is_not_read_here` inchangé.
 
-- `tests/test_model_servers.py` (jamais un vrai llama-server ni un vrai port : monkeypatch de
-  `psutil.net_connections` et `psutil.Process`, ou de `servers._server_rss`) :
-  - nouveau : processus trouvé sur la boucle locale → `served_bytes` = son `rss` ;
-  - nouveau : hôte distant → `net_connections` n'est pas appelé, repli ;
-  - nouveau : `pid` absent, puis `psutil.AccessDenied` → repli, sans exception ;
-  - nouveau : `model_path` relatif présent sous `models_dir()` (le `conftest` pose
-    `WAVESTACK_DATA_DIR` sur `tmp_path`, copier `TINY` dans `models/`) → lu, `context_counted`
-    vrai ;
-  - `test_llama_server_relative_model_path_is_not_read_here` (l.1701) : inchangé, vert ;
-  - `test_llama_server_memory_counts_its_whole_context` (l.1653),
-    `test_llama_server_kv_unreadable_counts_the_file_and_keeps_the_warning` (l.1691),
-    `test_llama_server_with_several_slots_counts_the_whole_context` (l.1710) : attentes
-    réalignées sur `+ SERVER_BUFFERS_BYTES` (constante importée, jamais recopiée), avec
-    `_server_rss` neutralisé (`None`) pour qu'un llama-server réel du poste ne fausse pas le
-    test. Neutraliser de même dans tout autre test existant qui appelle `served_bytes` sur
-    llama-server (chercher `served_bytes` et `list_served` dans `tests/`).
-- `tests/test_model_catalog.py::test_llama_server_capabilities_from_props` (l.166),
-  `tests/test_discovery.py`, `tests/test_memory_budget.py`, `tests/test_global_memory.py` :
-  verts.
-- `uv run pytest -q --tb=short tests/test_model_servers.py tests/test_model_catalog.py tests/test_discovery.py tests/test_memory_budget.py tests/test_global_memory.py`
-- `uv run python .claude/cost-kit/controle_rapide.py`
+Vérification préalable faite le 2026-10-28 sur le poste de dev, session non élevée : `psutil.net_connections(kind="tcp")` trouve en 5 ms le `pid` d'un processus enfant à l'écoute, et `memory_info().rss` est lisible. Sous Windows, `rss` est le working set, le « Plage de travail » du Gestionnaire des tâches.
 
-## E2E à rejouer (non lancé par cette story)
+## Tasks & Acceptance
 
-Scénarios du diagnostic qui affichent la mémoire d'un modèle servi (chercher `served` dans
-`tools/e2e/`), avec le faux llama-server de `tools/e2e/stack.py` : ce faux serveur tourne sur
-la boucle locale, le chiffre affiché devient le résident du processus Python qui l'héberge.
-Si un scénario vérifie une valeur exacte, le réaligner ou neutraliser la lecture dans la pile
-E2E, et le dire dans le rapport. Recette par Anaël : LFM3 servi depuis le dossier des modèles,
-chiffre du diagnostic comparé au « Plage de travail » du Gestionnaire des tâches.
+**Execution:**
+- `src/wavestack/config.py` -- rendre `_is_loopback` publique (`is_loopback`, appelants l.275 et 358 mis à jour) -- une seule règle.
+- `src/wavestack/models/servers.py` -- `_server_rss(url) -> int | None` (boucle locale sinon `None` ; premier `pid` d'une connexion `CONN_LISTEN` sur le port ; `Process(pid).memory_info().rss` ; `psutil.Error`/`OSError` → `None` ; commentaire d'une ligne sur le working set) ; `served_bytes` lit `_server_rss(model.server_url)` pour llama-server et le renvoie s'il n'est pas `None` ; repli + `SERVER_BUFFERS_BYTES = 256 * 1024**2` avec un commentaire `shortcut:` (tampons mesurés ≈ 200 Mo sur LFM3, repack non compté, à revoir si le repli devient courant) ; `local_path` remplace `_local` et la copie de `_header_dimensions` ; docstrings à jour -- cœur du correctif.
+- `src/wavestack/models/catalog.py` -- `header_path` passe par `servers.local_path` -- un seul ancrage.
+- `src/wavestack/models/discovery.py` -- `gguf_path` résolu et `context_counted` sur `candidate.gguf_path` -- carte, budget et tableau lisent le même fichier.
+- `tests/conftest.py` -- fixture `autouse` qui remplace `servers._server_rss` par `lambda url: None` -- aucun test existant ne lit la mémoire d'un vrai processus (un llama-server réel du poste fausserait les attentes).
+- `tests/test_model_servers.py` -- nouveaux tests couvrant chaque ligne de la matrice (monkeypatch de `psutil.net_connections` et `psutil.Process`, dans le module `servers`, la fixture d'en haut levée par `monkeypatch.setattr` du vrai `_server_rss` sauvegardé ou testé directement ; relatif présent : copier `TINY` sous `config.models_dir()`, le `conftest` pose `WAVESTACK_DATA_DIR` sur `tmp_path`) ; attentes existantes du repli llama-server réalignées sur `servers.SERVER_BUFFERS_BYTES` (importée, jamais recopiée) -- garde-fous.
 
-## Choix faits à la place d'Anaël
+**Acceptance Criteria:**
+- Given LFM3 servi par llama-server sur ce poste, when le diagnostic s'affiche, then le chiffre de mémoire du modèle servi est la mémoire résidente de son processus.
+- Given le budget mémoire avec un modèle llama-server actif sur ce poste, when `_cost` est calculé à la fenêtre courante, then il part de cette mémoire résidente (plus la marge).
+- Given la suite `tests/test_model_servers.py` sur un poste où un vrai llama-server écoute, when elle tourne, then ses résultats ne dépendent pas de ce processus.
 
-- Repli sans repack : un réarrangement qui dépend du CPU et de la quantification ne se devine
-  pas sans mesure ; la lecture couvre le cas courant (llama-server sur ce poste).
-- `SERVER_BUFFERS_BYTES` en constante plutôt qu'une clé de `wavestack.toml` : une valeur
-  mesurée, pas un réglage pour l'utilisateur.
-- Ancrage du chemin relatif sur `models_dir()` seulement, jamais sur le dossier courant de
-  WaveStack ni sur une recherche par nom : pas de faux fichier lu.
-- Lecture à chaque découverte, sans cache : un appel de `net_connections` par modèle servi,
-  quelques millisecondes.
+## Spec Change Log
+
+## Review Triage Log
+
+### 2026-10-28 — Review pass
+- verdicts: 7 findings — high 0, medium 2, low 3, false 2, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` (second avis 1) le premier `pid` à l'écoute peut être un relais (wslrelay, Docker, proxy) : petit RSS, repli sauté — `served_bytes` calcule la taille d'abord et n'accepte le RSS que s'il atteint la taille des poids (`model.size` ou fichier) ; test `test_server_memory_ignores_a_relay_under_the_weights_size`.
+  - `[medium]` `[patch]` (orchestrateur 6) `SERVER_BUFFERS_BYTES` ajouté seulement si un chemin local est résolu, contre la ligne « Repli, KV illisible » de la matrice ; un `-m` relatif hors `models_dir()` (cas courant) ou un fichier distant perdait la provision — provision sur tout repli llama-server de taille connue ; `test_llama_server_relative_model_path_is_not_read_here` (rien lu, `context_counted` faux, objet inchangé) et `test_llama_server_turn_chosen_at_the_diagnostic` réalignés.
+  - `[low]` `[defer]` (second avis 2) `context_counted` ignore le RSS lu — conforme à la spec (`diagnostic.served.no_cache` couvre le chemin non résolu) ; différé.
+  - `[low]` `[patch]` (orchestrateur 7) commentaire `shortcut:` de `SERVER_BUFFERS_BYTES` disait le repack compté — corrigé (tampons seuls, repack non compté).
+  - `[low]` `[defer]` (second avis 5) `guard.is_loopback` recopie la règle — préexistant, hors story ; différé.
+  - `[false]` `[reject]` (second avis 3) un relatif avec `..` sort de `models_dir()` — un chemin absolu du serveur est déjà lu tel quel (règle d'origine) : `..` n'ouvre rien de plus ; lecture d'en-tête GGUF et `stat` seulement.
+  - `[false]` `[reject]` (second avis 4) « en-tête non lu » faux — vrai pour `served_bytes` (seul un `stat`) ; la découverte lit l'en-tête pour `context_counted`, hors du chiffre de mémoire.
+
+## Design Notes
+
+Le `pid` trouvé est celui du processus qui écoute réellement (vérifié : avec le lanceur
+`python.exe` d'un venv, c'est l'interpréteur enfant, pas le lanceur) : pour llama-server, le
+binaire lui-même. Un appel de `net_connections` par modèle servi et par découverte coûte
+quelques millisecondes : pas de cache.
+
+E2E à nommer dans le rapport, pas à lancer : les scénarios du diagnostic qui affichent la
+mémoire d'un modèle servi (`grep -rn served tools/e2e/`), avec le faux llama-server de
+`tools/e2e/stack.py` sur la boucle locale : le chiffre affiché devient le résident du processus
+qui l'héberge. Si un scénario vérifie une valeur exacte, le dire dans le rapport.
+
+## Verification
+
+**Commands:**
+- `uv run python -m pytest -q --tb=short tests/test_model_servers.py tests/test_model_catalog.py tests/test_discovery.py tests/test_memory_budget.py tests/test_global_memory.py tests/test_config_paths.py` -- expected: tout vert
+- `uv run python .claude/cost-kit/controle_rapide.py` -- expected: OK
+
+## Auto Run Result
+
+**Résumé :** llama-server servi sur la boucle locale compte la mémoire résidente de son processus (`psutil`), sauf si elle est sous la taille des poids (relais sur le port) ; repli = taille + KV × `n_ctx` + `SERVER_BUFFERS_BYTES` (256 Mo) pour tout llama-server ; `-m` relatif résolu sous `models_dir()` seulement, règle unique `servers.local_path`.
+
+**Fichiers :** `src/wavestack/config.py`, `src/wavestack/models/servers.py`, `src/wavestack/models/catalog.py`, `src/wavestack/models/discovery.py`, `tests/conftest.py`, `tests/test_model_servers.py`.
+
+**Constats :** 7 (medium 2 corrigés, low 1 corrigé, 2 différés, 2 rejetés) ; voir Review Triage Log.
+
+**Vérification :** `uv run python -m pytest -q --tb=short tests/test_model_servers.py tests/test_model_catalog.py tests/test_discovery.py tests/test_memory_budget.py tests/test_global_memory.py tests/test_config_paths.py` : 293 verts avant le dernier réalignement, puis `tests/test_model_servers.py tests/test_context_window_setting.py` : 149 verts ; contrôle rapide OK.
+
+**E2E à rejouer :** scénarios du diagnostic et du budget avec le faux llama-server de `tools/e2e/stack.py` (`_pick_served`, l.11634 et 11808 de `tools/e2e/run_e2e.py`, budget mémoire l.9671) : le faux serveur est un processus Python d'environ 30 à 60 Mo, sous la taille annoncée (1,5 Go) : le repli s'applique, le chiffre affiché gagne 256 Mo. Aucun scénario ne vérifie une valeur exacte de mémoire servie (seul le budget l.9673 est recalculé depuis l'API).
+
+**Risques résiduels :** sous Windows, un working set réduit par le système sous la taille du fichier (poids en `mmap`) fait prendre le repli (estimation basse du repack) ; macOS refuse `net_connections` sans droits : repli. Pas de vrai llama-server lancé pendant la revue.

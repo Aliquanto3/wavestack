@@ -223,7 +223,7 @@ def _server_candidates(
             else:
                 candidate.gguf_path = blob.path
         else:  # llama-server: the file it loaded, for its size and KV cache (AD-8)
-            candidate.gguf_path = model.model_path
+            candidate.gguf_path = servers.local_path(model.model_path) or model.model_path
             candidate.n_ctx = model.n_ctx
             candidate.server_template = model.chat_template
             candidate.native_context = model.n_ctx_train
@@ -231,7 +231,7 @@ def _server_candidates(
             candidate.warning_text = servers.context_warning_fr(
                 model.n_ctx, cfg.context_window, model.slot_ctx
             )
-            candidate.context_counted = servers.served_kv(model, model.model_path) is not None
+            candidate.context_counted = servers.served_kv(model, candidate.gguf_path) is not None
         # Story 24: an Ollama model not loaded yet counts its KV at the window, as `_cost`.
         candidate.served_bytes = servers.served_bytes(
             model, candidate.gguf_path, cfg.context_window

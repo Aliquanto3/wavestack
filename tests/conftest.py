@@ -183,6 +183,15 @@ def _no_local_model_server(monkeypatch):
     monkeypatch.setattr(servers, "default_transport", httpx.MockTransport(refuse))
 
 
+@pytest.fixture(autouse=True)
+def _no_server_rss(monkeypatch):
+    """Story 3 (LFM3): no test reads a real process's memory, a real llama-server of the
+    machine running the suite would otherwise fake the fallback's numbers."""
+    from wavestack.models import servers
+
+    monkeypatch.setattr(servers, "_server_rss", lambda url: None)
+
+
 GIB = 1024**3
 
 
