@@ -18779,10 +18779,27 @@ def s_rag_lab_no_index(r: Run) -> None:
         _seq_row(r, "generation").locator("select.rag-option").select_option("active")
 
         # (3) The fake cloud A, declared at 32 768: the long context runs, the CAG is local only.
+        # Story 17.4 (CT-04a): from 4 096, 16 384 applied by the workshop's own picker frees
+        # « Contexte long » on the page as it stands, without a reload (the first live
+        # `context_window_state` of the page).
         r.goto_app()
         _pick_model(r, A_LABEL)
-        if (r.state().get("context_window_state") or {}).get("configured") != 16384:
-            _apply_window(r, 16384)
+        if (r.state().get("context_window_state") or {}).get("configured") != 4096:
+            _apply_window(r, 4096)
+        _goto_rag_lab(r)
+        _rag_mode(r, "compose")
+        page.evaluate("window.__noReload = true")
+        greyed = _rag_presets(r)["long_context"]["unavailable"]
+        _apply_window(r, 16384, page_idle=False)
+        freed, _ = r.poll(lambda: not _rag_presets(r)["long_context"]["unavailable"], 10)
+        r.check(
+            greyed and freed and page.evaluate("window.__noReload === true"),
+            "story 17.4 : 16 384 appliqué depuis l'onglet RAG libère « Contexte long » sans "
+            "recharger",
+            str(_rag_presets(r).get("long_context")),
+        )
+        r.goto_app()
+        r.wait_idle()
         r.send("Bonjour")
         gauge_before = page.locator("#cache-gauge").inner_text()
         seen = _no_index_presets(r)

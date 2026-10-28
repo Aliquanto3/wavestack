@@ -2,7 +2,7 @@
 title: 'Story 17.4 : Atelier RAG, Contexte long après Appliquer et renvoi au bon réglage'
 type: 'fix'
 created: '2026-10-27'
-status: 'review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -95,3 +95,15 @@ dans l'onglet RAG — déjà noté en fin de revue de 16.9 et reporté ici. Nomm
 - L'E2E demandé par la story n'est pas réécrit ici (RAM limitée, pas de lancement local) : son
   adaptation exacte (bloc (3) de `s_rag_lab_no_index`) est proposée ci-dessus pour
   l'orchestrateur ou une story suivante.
+
+## Revue
+
+### Passe 1 (2026-10-28, SHA revu 4b13f620)
+
+Branche rebasée sur origin/main (ea21ac7a) sans conflit.
+
+- Nit, low (second avis : medium), corrigé : course à l'amorçage. Le flux part avant la réponse de `/api/state` ; un `context_window_state` en direct arrivé avant elle ne relisait pas le catalogue (garde `!== undefined`), et la réponse de `/api/state`, plus ancienne, écrasait ensuite le sélecteur et `windowSeen`. Rétrogradé en low : « Appliquer » de l'onglet attend l'état de `/api/state`, seul un réglage fait depuis un autre onglet dans cet intervalle déclenche la course. Correctif : la garde `undefined` est retirée (au pire une relecture du catalogue en plus), et `/api/state` ne s'applique que si aucun état en direct n'est arrivé.
+- Rejeté (second avis, low) : « onglet Atelier RAG » serait un libellé absent. Il existe bien : `tab_rag` vaut « Atelier RAG » (fr), « RAG workshop » (en), « RAG-Werkstatt » (de), et les textes reprennent ces noms.
+- Nit, low (second avis), corrigé : aucun test du cas (a). Le cas (a) relève du navigateur seul (pas de test JS dans le dépôt). Le bloc (3) de `s_rag_lab_no_index` passe désormais le cloud A à 4 096, va sur `/rag`, applique 16 384 depuis le sélecteur de l'onglet et vérifie que « Contexte long » se libère sans recharger (marqueur `window.__noReload`). Sans le correctif, ce premier événement en direct ne relisait pas le catalogue. E2E non lancé ici, c'est à l'orchestrateur de le faire (`rag rag_rerank rag_lab_no_index`).
+- Rejeté : les deux autres low du second avis n'ont pas été transmis en détail. En relisant le diff, je n'ai trouvé aucun autre défaut : la sous-chaîne « sélecteur « Fenêtre » » vérifiée par l'E2E reste présente, et les textes en et de sont alignés.
+- Complexité : 0 constat.
