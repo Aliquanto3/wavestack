@@ -58,6 +58,7 @@ from wavestack.models.capabilities import (
 )
 from wavestack.models.discovery import ModelCandidate, reason_message
 from wavestack.models.engine import EngineMetadata, pooling_of
+from wavestack.models.servers import local_path
 
 log = logging.getLogger(__name__)
 
@@ -418,7 +419,7 @@ def header_path(candidate: ModelCandidate) -> str | None:
     served = candidate.source == "server"
     path = candidate.gguf_path if served else candidate.path
     if served and candidate.engine == "llama_server":
-        return path if path and Path(path).is_absolute() else None
+        return local_path(path)
     return os.path.abspath(path) if path else None
 
 

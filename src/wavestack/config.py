@@ -187,7 +187,7 @@ class CloudImpacts(_Strict):
     note_text: str | None = Field(default=None, validation_alias=_text_alias("note"))
 
 
-def _is_loopback(host: str) -> bool:
+def is_loopback(host: str) -> bool:
     if host == "localhost":
         return True
     try:
@@ -272,7 +272,7 @@ class CloudModel(_Strict):
     def _https_without_query(cls, value: str) -> str:
         parts = urlsplit(value)
         host = parts.hostname or ""
-        if parts.scheme != "https" and not (parts.scheme == "http" and _is_loopback(host)):
+        if parts.scheme != "https" and not (parts.scheme == "http" and is_loopback(host)):
             raise ValueError("base_url must be https (http for the loopback only)")
         if not host or parts.query or parts.fragment:
             raise ValueError("base_url needs a host and no query nor fragment")
@@ -355,7 +355,7 @@ class ModelFile(_Strict):
     def _https(cls, value: str) -> str:
         parts = urlsplit(value)
         host = parts.hostname or ""
-        if parts.scheme != "https" and not (parts.scheme == "http" and _is_loopback(host)):
+        if parts.scheme != "https" and not (parts.scheme == "http" and is_loopback(host)):
             raise ValueError("url must be https (http for the loopback only)")
         if not host:
             raise ValueError("url needs a host")

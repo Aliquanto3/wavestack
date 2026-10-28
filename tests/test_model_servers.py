@@ -14,6 +14,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
+import psutil
 import pytest
 from fake_engine import FakeEngine
 from gguf_writer import make_sparse, write_gguf
@@ -36,6 +37,27 @@ ORIGIN = {"Origin": "http://127.0.0.1:8420"}
 LLAMA_URL, OLLAMA_URL = "http://127.0.0.1:8080", "http://127.0.0.1:11434"
 OLLAMA_NAME = "qwen3.5:2b"
 GIB = 1024**3
+# Story 3 (LFM3): the real function, saved before `tests/conftest.py`'s autouse fixture
+# replaces `servers._server_rss` with a stub for every other test.
+_REAL_SERVER_RSS = servers._server_rss
+
+
+class _Addr:
+    def __init__(self, port: int) -> None:
+        self.port = port
+
+
+class _Conn:
+    def __init__(self, port: int, pid: int | None, status: str = psutil.CONN_LISTEN) -> None:
+        self.laddr, self.pid, self.status = _Addr(port), pid, status
+
+
+class _Process:
+    def __init__(self, rss: int) -> None:
+        self._rss = rss
+
+    def memory_info(self):  # noqa: ANN202
+        return type("Mem", (), {"rss": self._rss})()
 
 
 def call(name: str) -> str:
@@ -1659,7 +1681,10 @@ def test_llama_server_memory_counts_its_whole_context(fake, n_ctx, warned):
     candidate = _llama_candidate(fake)
 
     assert candidate.n_ctx == n_ctx and candidate.gguf_path == TINY
-    assert candidate.served_bytes == size + 128 * n_ctx and candidate.context_counted
+    assert (
+        candidate.served_bytes == size + 128 * n_ctx + servers.SERVER_BUFFERS_BYTES
+        and candidate.context_counted
+    )
     if warned:
         assert f"lancé avec un contexte de {n_ctx:,} tokens".replace(",", "\u202f") in (
             candidate.warning_text
@@ -1689,11 +1714,13 @@ def test_llama_server_under_the_window_chosen_is_advised_to_relaunch(fake, n_ctx
 
 
 def test_llama_server_kv_unreadable_counts_the_file_and_keeps_the_warning(fake):
-    fake.n_ctx = 262_144  # `model_path` is not on this disk: no KV readable
+    fake.n_ctx = 262_144
+    # an absolute path (OS-correct on every platform) that names no file: no KV readable
+    fake.model_path = str(Path(TINY).with_name("missing.gguf"))
 
     candidate = _llama_candidate(fake)
 
-    assert candidate.served_bytes == 2 * GIB  # the size `/v1/models` gives
+    assert candidate.served_bytes == 2 * GIB + servers.SERVER_BUFFERS_BYTES  # `/v1/models`
     assert candidate.context_counted is False  # the page says the cache is left out
     assert "262\u202f144 tokens" in candidate.warning_text
 
@@ -1716,7 +1743,10 @@ def test_llama_server_with_several_slots_counts_the_whole_context(fake):
     candidate = _llama_candidate(fake)
 
     assert candidate.n_ctx == 262_144
-    assert candidate.served_bytes == Path(TINY).stat().st_size + 128 * 262_144
+    assert (
+        candidate.served_bytes
+        == Path(TINY).stat().st_size + 128 * 262_144 + servers.SERVER_BUFFERS_BYTES
+    )
     assert "65\u202f536 par emplacement, 4 emplacements" in candidate.warning_text
     assert candidate.warning_text.endswith("relancez-le avec `-np 1 -c 4096`.")
     fake.n_ctx = 4096  # `-np 4 -c 16384`: each slot fits the window, nothing to advise
@@ -1747,8 +1777,73 @@ def test_llama_server_lfm3_counts_only_the_global_attention_layers(fake, tmp_pat
 
     candidate = _llama_candidate(fake)
 
-    assert candidate.served_bytes == path.stat().st_size + 12_288 * 16_384
+    assert (
+        candidate.served_bytes
+        == path.stat().st_size + 12_288 * 16_384 + servers.SERVER_BUFFERS_BYTES
+    )
     assert candidate.context_counted
+
+
+def test_llama_server_relative_model_path_under_models_dir_is_read(fake):
+    """Relatif présent: resolved under `config.models_dir()`, the repli counts its KV."""
+    models_dir = config.models_dir()
+    models_dir.mkdir(parents=True, exist_ok=True)
+    target = models_dir / "tiny-llama.gguf"
+    target.write_bytes(Path(TINY).read_bytes())
+    fake.n_ctx, fake.model_path = 4096, "tiny-llama.gguf"
+
+    candidate = _llama_candidate(fake)
+
+    assert candidate.gguf_path == str(target)
+    assert candidate.context_counted
+    assert (
+        candidate.served_bytes == target.stat().st_size + 128 * 4096 + servers.SERVER_BUFFERS_BYTES
+    )
+
+
+def test_server_memory_reads_the_listening_process_rss(fake, monkeypatch):
+    """Lu: `served_bytes` is the listening process's `rss`; the GGUF header is never read."""
+    monkeypatch.setattr(servers, "_server_rss", _REAL_SERVER_RSS)
+    monkeypatch.setattr(psutil, "net_connections", lambda kind="tcp": [_Conn(8080, 4242)])
+    monkeypatch.setattr(psutil, "Process", lambda pid: _Process(2112 * (1024**2)))
+    fake.model_path = "n'existe pas"  # never read: `_server_rss` short-circuits first
+
+    candidate = _llama_candidate(fake)
+
+    assert candidate.served_bytes == 2112 * (1024**2)
+
+
+def test_server_rss_never_calls_net_connections_for_a_remote_host(monkeypatch):
+    """Hôte distant : jamais de `net_connections`, repli immédiat."""
+    called = []
+    monkeypatch.setattr(
+        psutil, "net_connections", lambda kind="tcp": called.append(1) or [_Conn(8080, 4242)]
+    )
+    assert _REAL_SERVER_RSS("http://192.168.1.20:8080") is None
+    assert called == []
+
+
+@pytest.mark.parametrize(
+    "connections",
+    [[], [_Conn(9999, 4242)], [_Conn(8080, None)]],
+    ids=["no_connection", "wrong_port", "no_pid"],
+)
+def test_server_rss_without_a_usable_listener_falls_back(monkeypatch, connections):
+    """Pas de processus : pas de `CONN_LISTEN` sur le port, ou `pid` `None`."""
+    monkeypatch.setattr(psutil, "net_connections", lambda kind="tcp": connections)
+    assert _REAL_SERVER_RSS("http://127.0.0.1:8080") is None
+
+
+@pytest.mark.parametrize("error", [psutil.AccessDenied, psutil.NoSuchProcess])
+def test_server_rss_unreadable_process_falls_back(monkeypatch, error):
+    """Illisible : `AccessDenied` ou `NoSuchProcess`, sans exception."""
+    monkeypatch.setattr(psutil, "net_connections", lambda kind="tcp": [_Conn(8080, 4242)])
+
+    def raise_error(pid):  # noqa: ANN001, ANN202
+        raise error(pid)
+
+    monkeypatch.setattr(psutil, "Process", raise_error)
+    assert _REAL_SERVER_RSS("http://127.0.0.1:8080") is None
 
 
 def test_hot_switch_to_llama_server_carries_its_warning(monkeypatch, tmp_path, fake):

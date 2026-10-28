@@ -32,8 +32,10 @@ from functools import partial
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, Protocol
+from urllib.parse import urlsplit
 
 import httpx
+import psutil
 
 from wavestack import config
 from wavestack.messages import KeyedError, Lazy, Message, msg, number, render
@@ -290,7 +292,7 @@ def _lines(
 def _header_dimensions(path: str | None) -> dict[str, int | None]:
     """Story 29: a GGUF header's sizes (`gguf_meta.dimensions_from_header`), when `path` is
     a readable file of this disk; nothing otherwise."""
-    local = path if path and Path(path).is_absolute() else None
+    local = local_path(path)
     meta = gguf_meta.try_read_metadata(local)
     sizes = gguf_meta.dimensions_from_header(meta) if meta else {}
     return {name: value for name, value in sizes.items() if value is not None}
@@ -980,17 +982,30 @@ def list_served(
     return served
 
 
+# shortcut: a provision for llama-server's compute buffers and weight repack when the
+# process's own RSS cannot be read (≈ 200 Mo measured on LFM3-1.7B); not the repack's exact
+# cost (depends on the CPU and the quantization) -- revisit if this fallback becomes common.
+SERVER_BUFFERS_BYTES = 256 * 1024**2
+
+
 def served_bytes(model: ServedModel, path: str | None, window: int | None = None) -> int | None:
-    """AD-8: the served model's memory. Resident: what Ollama reports in `/api/ps`; else
-    (llama-server) its file's size plus its KV cache for its whole context `n_ctx` (lot E,
-    E1: llama-server reserves it at launch), the KV read in the file's metadata, without the
-    weights (the file's size alone when unreadable); not loaded yet (Ollama): its blob's
-    size, plus (story 24) its KV cache at `window` when given and readable
+    """AD-8: the served model's memory. Resident: what Ollama reports in `/api/ps`; llama-
+    server on this workstation: its process's resident memory (`_server_rss`), the repack of
+    its weights and its compute buffers included; else (both engines' fallback) its file's
+    size plus its KV cache for its whole context `n_ctx` (lot E, E1: llama-server reserves it
+    at launch), the KV read in the file's metadata, without the weights (the file's size
+    alone when unreadable), plus `SERVER_BUFFERS_BYTES` for llama-server once a local path was
+    found (never a model_path WaveStack cannot resolve at all); not loaded yet (Ollama): its
+    blob's size, plus (story 24) its KV cache at `window` when given and readable
     (`ollama_load_bytes`). `None` when nothing says it."""
     if model.resident and model.resident_size:
         return model.resident_size
+    if model.engine == "llama_server":
+        rss = _server_rss(model.server_url)
+        if rss is not None:
+            return rss
     size = model.size
-    local = _local(path)
+    local = local_path(path)
     if local:
         try:
             size = Path(local).stat().st_size
@@ -999,7 +1014,31 @@ def served_bytes(model: ServedModel, path: str | None, window: int | None = None
     if model.engine == "ollama" and not model.resident and window and local:
         return ollama_load_bytes(local, window) or size
     kv = served_kv(model, path)
-    return size + kv * (model.n_ctx or 0) if size is not None and kv else size
+    total = size + kv * (model.n_ctx or 0) if size is not None and kv else size
+    if model.engine == "llama_server" and local and total is not None:
+        return total + SERVER_BUFFERS_BYTES
+    return total
+
+
+def _server_rss(url: str) -> int | None:
+    """Lot 3 LFM3: the resident memory of the process at the listening end of `url`, on the
+    loopback only (never a remote host); `None` without a readable process (no listener, no
+    `pid`, or `psutil.Error`/`OSError`). Under Windows, `rss` is the working set shown as
+    « Plage de travail » in Task Manager."""
+    parts = urlsplit(url)
+    host = parts.hostname or ""
+    if not host or not config.is_loopback(host):
+        return None
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    try:
+        for conn in psutil.net_connections(kind="tcp"):
+            if conn.status == psutil.CONN_LISTEN and conn.laddr and conn.laddr.port == port:
+                if conn.pid is None:
+                    return None
+                return psutil.Process(conn.pid).memory_info().rss
+    except (psutil.Error, OSError):
+        return None
+    return None
 
 
 def ollama_load_bytes(path: str | None, window: int) -> int | None:
@@ -1008,7 +1047,7 @@ def ollama_load_bytes(path: str | None, window: int) -> int | None:
     Python; the size alone when the KV is unreadable; `None` without a readable file.
     Never the probe's RSS of the blob: that measured llama-cpp-python in WaveStack's own
     child (compute buffers, KV at `probe_window`), not Ollama's engine."""
-    local = _local(path)
+    local = local_path(path)
     if not local:
         return None
     try:
@@ -1021,17 +1060,26 @@ def ollama_load_bytes(path: str | None, window: int) -> int | None:
 
 def served_kv(model: ServedModel, path: str | None) -> int | None:
     """Lot E (E1): the KV cache's bytes per token of llama-server's model, read in its GGUF
-    header when `path` is a file of this disk (an absolute path: a relative one was the
-    server's, not WaveStack's); `None` otherwise, the memory then leaving the cache out.
-    Story 2 (sliding-window attention): `sliding=True` -- llama-server allocates a reduced
-    cache for sliding-window layers by default (no `--swa-full`)."""
+    header when `path` is a file of this disk (`local_path`); `None` otherwise, the memory
+    then leaving the cache out. Story 2 (sliding-window attention): `sliding=True` --
+    llama-server allocates a reduced cache for sliding-window layers by default (no
+    `--swa-full`)."""
     if model.engine != "llama_server" or not model.n_ctx:
         return None
-    return probe.gguf_kv_bytes_per_token(_local(path), sliding=True)
+    return probe.gguf_kv_bytes_per_token(local_path(path), sliding=True)
 
 
-def _local(path: str | None) -> str | None:
-    return path if path and Path(path).is_absolute() else None
+def local_path(path: str | None) -> str | None:
+    """A path that this disk's WaveStack can read: an absolute path, as given (a server's
+    own working directory may differ from WaveStack's); a relative one only when it names a
+    file under `config.models_dir()` (never WaveStack's current directory, never a search by
+    name). `None` otherwise."""
+    if not path:
+        return None
+    if Path(path).is_absolute():
+        return path
+    candidate = config.models_dir() / path
+    return str(candidate) if candidate.is_file() else None
 
 
 # Lot E (E1): llama-server's context counts as « much larger » than the window past this.

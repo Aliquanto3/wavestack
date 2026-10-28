@@ -2,7 +2,7 @@
 title: 'Story 3 : mémoire résidente d''un modèle servi par llama-server, lue dans son processus'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: 'bf69e43a2646633fb2e79dadbff3e24e857f513f'
 route: 'dispatch'
 review_loop_iteration: 0
