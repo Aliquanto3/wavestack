@@ -199,7 +199,7 @@ def probe_file(path: str, window: int = DEFAULT_WINDOW) -> ProbeResult:
         llm = Llama(model_path=str(file_path), n_ctx=n_ctx, verbose=False)
     except Exception as exc:  # noqa: BLE001 - the file itself, or its context's memory
         if _load_refused(exc):
-            header = gguf_meta.try_read_metadata(file_path) or {}
+            header = gguf_meta.try_read_metadata(file_path, stop_at="tokenizer.") or {}
             architecture = header.get("general.architecture")
             architecture = architecture if isinstance(architecture, str) and architecture else None
             return ProbeResult(

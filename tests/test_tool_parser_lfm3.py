@@ -1,6 +1,7 @@
 """LFM3-1.7B: ChatML with Qwen3's `<function=` call format, whatever the architecture.
 
-Fixture: `LiquidAI/LFM3-1.7B`'s `chat_template.jinja` (Hugging Face), licence `lfm1.0`.
+Fixture: `tokenizer.chat_template` read from the GGUF header of
+`LiquidAI/LFM3-1.7B-GGUF`'s `LFM3-1.7B-QAD-Q4_0.gguf` (Hugging Face), licence `lfm1.0`.
 """
 
 from __future__ import annotations

@@ -168,7 +168,7 @@ def capabilities_for(meta: EngineMetadata) -> Capabilities:
             reasoning=reasoning_variable is not None,
         )
     if (arch.startswith("qwen3") or by_template) and "<|im_start|>" in template:
-        family = "qwen3" if meta.architecture is None or arch.startswith("qwen3") else arch
+        family = "qwen3" if not arch or arch.startswith("qwen3") else arch
         return Capabilities(
             family=family,
             chat_template=template,

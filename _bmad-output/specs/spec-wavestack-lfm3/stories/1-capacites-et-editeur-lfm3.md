@@ -2,7 +2,7 @@
 title: 'Story 1 : capacités et éditeur d''un modèle LFM3, en direct comme servi'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'review'
+status: 'in-review'
 route: 'dispatch'
 baseline_commit: '049458152381352eef44259890f57c461e70b29c'
 review_loop_iteration: 0
@@ -95,6 +95,27 @@ indiquée dans l'énoncé).
 ## Spec Change Log
 
 ## Review Triage Log
+
+Passe 1 (2026-10-28) : Blind Hunter, Edge Case Hunter, Verification Gap, second avis.
+
+| # | Constat | Verdict | Preuve | Suite |
+|---|---|---|---|---|
+| 1 | `reason_message` ne reconnaît pas `incompatible_architecture` après le passage par le processus fils ou settings.json : texte français en en/de (Verification Gap, Blind Hunter) | medium | `discovery.py:312` compare par égalité avec `incompatible_fr()` seul ; `catalog.py:703` rend ce résultat | patch |
+| 2 | Architecture vide `""` → famille `""` (Edge Case) | low | `capabilities.py:171` teste `meta.architecture is None` ; correction directe | patch |
+| 3 | Motif `lfm` sans borne, désormais `names_first` : « Wolfmind », « SelfMerge » rangés chez LFM (Blind Hunter, second avis) | low | `matches_name` = `re.search` ; correction directe du motif | patch |
+| 4 | Lecture complète de l'en-tête au refus pour lire `general.architecture` (Edge Case) | low | `probe.py:202` sans `stop_at` ; correction directe | patch |
+| 5 | Docstring du test : fixture dite « Hugging Face » alors qu'extraite du GGUF (second avis, Blind Hunter) | low | rapport du dev | patch |
+| 6 | `by_template` élargi touche d'autres architectures ChatML avec `<function=` (Nemotron…) (tous) | false | voulu par l'Approach figée ; `<\|im_start\|>` reste exigé ; ce format est celui de `qwen3_coder`, l'analyseur est donc juste, au lieu d'aucun | rejeté |
+| 7 | Chargement direct (`app_session.py:2547`) garde le texte générique (Blind Hunter) | low | la sonde refuse le fichier avant tout chargement ; corriger ajoute une lecture d'en-tête sur un chemin rare | rejeté |
+| 8 | « Sans doute trop récente » trompeur pour un fichier tronqué d'architecture connue (Edge Case, Blind Hunter, second avis) | low | le texte, donné par la spec, dit déjà « ou fichier incomplet ou abîmé » | rejeté |
+| 9 | `try_read_metadata` pourrait laisser passer `ValueError`/`OverflowError` (Edge Case) | false | même aide déjà appelée sans garde l.215 de la même fonction ; elle attrape `OSError, GGUFError, UnicodeDecodeError, struct.error` ; aucun cas montré | rejeté |
+| 10 | Nom d'architecture non assaini dans le message (Blind Hunter) | low | l'architecture de l'en-tête est déjà affichée ailleurs (tableau) ; rendu échappé par les gabarits | rejeté |
+| 11 | Guillemets « » dans en/de (Blind Hunter) | false | convention du dépôt : 25 et 23 occurrences dans `content/i18n/{en,de}/messages.yaml` | rejeté |
+| 12 | Test de la sonde avec sous-chaîne française codée en dur (Blind Hunter) | low | compare aussi à `incompatible_fr()` ; cosmétique | rejeté |
+| 13 | Pas de test du rendu en/de de la nouvelle clé (Blind Hunter) | low | couvert par le test du constat 1 | rejeté |
+| 14 | Docstring et commentaire de `capabilities_for` longs (Blind Hunter) | low | cosmétique | rejeté |
+| 15 | `publisher_for` jamais testé avec `lfm3` issu de `caps.family` (second avis) | false | l'architecture `lfm` couvre `lfm3` par préfixe (cas `["lfm2"]` existant) | rejeté |
+| 16 | Ligne de journal `probe.incompatible` du diagnostic en français pour en/de (Verification Gap) | low | `diagnostic.py:367`, déjà vrai du texte générique avant la story | reporté |
 
 ## Design Notes
 

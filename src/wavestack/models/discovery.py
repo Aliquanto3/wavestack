@@ -326,4 +326,15 @@ def reason_message(reason: str | None) -> str | None:
         Message("models.capabilities.pooling"),
         _blob_missing(),
     )
-    return next((message for message in known if message == reason), reason)
+    exact = next((message for message in known if message == reason), None)
+    if exact is not None:
+        return exact
+    # `incompatible_fr(architecture)` is parametric: find it back by its fixed prefix/suffix
+    # around the architecture it names (lot LFM3), rather than listing every architecture.
+    placeholder = "\x00"
+    prefix, _, suffix = probe.incompatible_fr(placeholder).partition(placeholder)
+    if prefix and reason.startswith(prefix) and reason.endswith(suffix):
+        architecture = reason[len(prefix) : len(reason) - len(suffix)]
+        if architecture:
+            return probe.incompatible_fr(architecture)
+    return reason
