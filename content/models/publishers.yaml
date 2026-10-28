@@ -75,6 +75,7 @@ publishers:
     label_text: LFM (Liquid AI)
     architectures: [lfm]
     names: ['lfm']
+    names_first: true
   - id: nemotron
     label_text: Nemotron (NVIDIA)
     logo: nvidia.png

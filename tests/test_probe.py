@@ -180,6 +180,53 @@ def test_incompatible_file_reason_is_french_with_the_raw_detail(tmp_path):
     assert "Failed" not in result.reason and result.transient is False
 
 
+def test_incompatible_file_reason_names_the_architecture_when_the_header_reads(
+    monkeypatch, tmp_path
+):
+    """Story LFM3: a refused file whose header is readable (`general.architecture`) names
+    the architecture and points to llama-server, instead of the generic text."""
+    import sys
+    import types
+
+    model_file = tmp_path / "lfm3.gguf"
+    write_gguf(model_file, {"general.architecture": "lfm3"})
+
+    class _Llama:
+        def __init__(self, **kwargs) -> None:  # noqa: ANN003
+            raise ValueError("Failed to load model from file: lfm3.gguf")
+
+    monkeypatch.setitem(sys.modules, "llama_cpp", types.SimpleNamespace(Llama=_Llama))
+
+    result = probe.probe_file(str(model_file))
+
+    assert result.ok is False
+    assert result.reason == probe.incompatible_fr("lfm3")
+    assert "lfm3" in result.reason
+    assert "llama-server" in result.reason
+    assert "Failed to load model" in (result.detail or "")
+
+
+def test_incompatible_file_reason_is_generic_when_the_header_is_unreadable(monkeypatch, tmp_path):
+    """Story LFM3: an unreadable header (no metadata) keeps the current, generic reason."""
+    import sys
+    import types
+
+    model_file = tmp_path / "abime.gguf"
+    model_file.write_bytes(b"GGUF" + b"\0" * 32)
+
+    class _Llama:
+        def __init__(self, **kwargs) -> None:  # noqa: ANN003
+            raise ValueError("Failed to load model from file: abime.gguf")
+
+    monkeypatch.setitem(sys.modules, "llama_cpp", types.SimpleNamespace(Llama=_Llama))
+
+    result = probe.probe_file(str(model_file))
+
+    assert result.ok is False
+    assert result.reason == probe.incompatible_fr()
+    assert "ne sait pas charger ce fichier (architecture non prise en charge" in result.reason
+
+
 @pytest.mark.parametrize(
     ("step", "error"),
     [

@@ -104,11 +104,15 @@ def capabilities_for(meta: EngineMetadata) -> Capabilities:
     """AD-6: the capabilities of a local model, from its architecture and chat template.
 
     MiniCPM5 (`<function name="`) and Qwen3 (ChatML, by architecture or, without one, by
-    `<tool_call>` and Qwen3's reasoning) keep their reader. Any other template that announces
-    `<tool_call>` without `<function=` (Granite 4.0, Qwen2.5, Hermes, EXAONE 4.0) gets the
-    `hermes` reader only when it passes the round-trip probe (`hermes_round_trip`), and the
-    end-of-turn marker it writes as stop sequence. SmolLM3, Falcon-H1 and Hunyuan fail the
-    probe: no reader. Reasoning follows the generic rules."""
+    `<tool_call>` and Qwen3's reasoning) keep their reader. LFM3's template is Qwen3's
+    `<function=` call format: it joins Qwen3 by its template, whatever the architecture
+    (`<function=` is unambiguous); the family is then the architecture (`lfm3`) rather than
+    `qwen3`, which stays reserved to an absent architecture or one that starts with `qwen3`.
+    Any other template that announces `<tool_call>` without `<function=` (Granite 4.0,
+    Qwen2.5, Hermes, EXAONE 4.0) gets the `hermes` reader only when it passes the round-trip
+    probe (`hermes_round_trip`), and the end-of-turn marker it writes as stop sequence.
+    SmolLM3, Falcon-H1 and Hunyuan fail the probe: no reader. Reasoning follows the generic
+    rules."""
     arch = meta.architecture or ""
     template = meta.chat_template
     if is_pooled(meta.pooling_type):
@@ -138,11 +142,13 @@ def capabilities_for(meta: EngineMetadata) -> Capabilities:
     reasoning_variable = "enable_thinking" if "enable_thinking" in template else None
     # AD-6: llama-server exposes no architecture; its template says the family then: ChatML
     # with `<tool_call>` and Qwen3's reasoning (`enable_thinking` or `<think>`). A ChatML
-    # template with tool calls only (Qwen2.5, Hermes) is not Qwen3.
+    # template with tool calls only (Qwen2.5, Hermes) is not Qwen3. With an architecture
+    # (a file, or a future llama-cpp-python for LFM3), the call format itself (`<function=`)
+    # is unambiguous: LFM3 joins Qwen3 by its template even with an architecture of its own.
     by_template = (
-        meta.architecture is None
-        and "<tool_call>" in template
+        "<tool_call>" in template
         and ("enable_thinking" in template or "<think>" in template)
+        and (meta.architecture is None or "<function=" in template)
     )
     # MiniCPM5 declares `llama` and has no `<tool_call>`: its template says it (`<function
     # name="`), for a file as for a server, whatever the architecture.
@@ -162,8 +168,9 @@ def capabilities_for(meta: EngineMetadata) -> Capabilities:
             reasoning=reasoning_variable is not None,
         )
     if (arch.startswith("qwen3") or by_template) and "<|im_start|>" in template:
+        family = "qwen3" if meta.architecture is None or arch.startswith("qwen3") else arch
         return Capabilities(
-            family="qwen3",
+            family=family,
             chat_template=template,
             tool_call_parser="qwen3_coder" if "<function=" in template else "hermes",
             stop_sequences=("<|im_end|>",),

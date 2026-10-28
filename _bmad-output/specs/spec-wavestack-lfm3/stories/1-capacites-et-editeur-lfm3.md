@@ -2,8 +2,9 @@
 title: 'Story 1 : capacités et éditeur d''un modèle LFM3, en direct comme servi'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'in-progress'
+status: 'review'
 route: 'dispatch'
+baseline_commit: '049458152381352eef44259890f57c461e70b29c'
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/SPEC.md'
@@ -66,20 +67,30 @@ de llama.cpp dans les textes ; ne pas toucher `_load_refused` ni `transient_fr`.
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `tests/fixtures/lfm3_chat_template.jinja` -- copie exacte de `https://huggingface.co/LiquidAI/LFM3-1.7B/resolve/main/chat_template.jinja` (12 129 octets, licence `lfm1.0`) ; si le réseau manque, `tokenizer.chat_template` du GGUF `LFM3-1.7B-QAD-Q4_0.gguf` (scratchpad de la session ac4fd306, `lfm3/`), identique à un saut de ligne final près (vérifié le 2026-10-28) -- fixture du template réel.
-- [ ] `src/wavestack/models/capabilities.py` -- `by_template` = `"<tool_call>" in template and ("enable_thinking" in template or "<think>" in template) and (meta.architecture is None or "<function=" in template)` ; famille de cette branche : `"qwen3"` sans architecture ou pour `qwen3*`, sinon l'architecture ; docstring mise à jour (LFM3 rejoint Qwen3 par son template) -- le format `qwen3_coder` est sans ambiguïté, la famille sert aussi à l'éditeur.
-- [ ] `content/models/publishers.yaml` + `content/i18n/{en,de}/models/publishers.yaml` -- `names_first: true` sur `lfm` -- aucun autre nom de modèle ne contient « lfm ».
-- [ ] `src/wavestack/models/probe.py` -- `incompatible_fr(architecture: str | None = None)` : avec une architecture, `Message("models.probe.incompatible_architecture", lib=…, architecture=…)`, sinon le message actuel ; à l'échec de la sonde quand `_load_refused(exc)`, lire `gguf_meta.try_read_metadata(file_path)` et passer `general.architecture` si c'est une chaîne non vide -- nommer la cause probable.
-- [ ] `content/messages.yaml` + `content/i18n/{en,de}/messages.yaml` -- clé `models.probe.incompatible_architecture`, par exemple « {lib} ne sait pas charger ce fichier d'architecture « {architecture} » : sans doute trop récente pour lui (ou fichier incomplet ou abîmé). Servez-le avec llama-server, dans une version récente de llama.cpp, ou choisissez un autre modèle. » -- texte de la nouvelle raison.
-- [ ] `tests/test_tool_parser_lfm3.py` (nouveau) -- capacités avec `lfm3` et avec `None` ; aller-retour d'un appel rendu par le template et relu par `qwen3_coder` ; rendu avec `enable_thinking=False` qui ouvre `<think></think>` -- couvre la matrice.
-- [ ] `tests/test_model_catalog.py` -- éditeur `lfm` pour un modèle servi au nom LFM3 sans en-tête, en fr, en et de.
-- [ ] `tests/test_probe.py` -- en-tête lisible avec `general.architecture="lfm3"` et chargement refusé : la raison nomme l'architecture ; en-tête illisible : raison actuelle.
+- [x] `tests/fixtures/lfm3_chat_template.jinja` -- copie exacte de `https://huggingface.co/LiquidAI/LFM3-1.7B/resolve/main/chat_template.jinja` (12 129 octets, licence `lfm1.0`) ; si le réseau manque, `tokenizer.chat_template` du GGUF `LFM3-1.7B-QAD-Q4_0.gguf` (scratchpad de la session ac4fd306, `lfm3/`), identique à un saut de ligne final près (vérifié le 2026-10-28) -- fixture du template réel.
+- [x] `src/wavestack/models/capabilities.py` -- `by_template` = `"<tool_call>" in template and ("enable_thinking" in template or "<think>" in template) and (meta.architecture is None or "<function=" in template)` ; famille de cette branche : `"qwen3"` sans architecture ou pour `qwen3*`, sinon l'architecture ; docstring mise à jour (LFM3 rejoint Qwen3 par son template) -- le format `qwen3_coder` est sans ambiguïté, la famille sert aussi à l'éditeur.
+- [x] `content/models/publishers.yaml` + `content/i18n/{en,de}/models/publishers.yaml` -- `names_first: true` sur `lfm` -- aucun autre nom de modèle ne contient « lfm ».
+- [x] `src/wavestack/models/probe.py` -- `incompatible_fr(architecture: str | None = None)` : avec une architecture, `Message("models.probe.incompatible_architecture", lib=…, architecture=…)`, sinon le message actuel ; à l'échec de la sonde quand `_load_refused(exc)`, lire `gguf_meta.try_read_metadata(file_path)` et passer `general.architecture` si c'est une chaîne non vide -- nommer la cause probable.
+- [x] `content/messages.yaml` + `content/i18n/{en,de}/messages.yaml` -- clé `models.probe.incompatible_architecture`, par exemple « {lib} ne sait pas charger ce fichier d'architecture « {architecture} » : sans doute trop récente pour lui (ou fichier incomplet ou abîmé). Servez-le avec llama-server, dans une version récente de llama.cpp, ou choisissez un autre modèle. » -- texte de la nouvelle raison.
+- [x] `tests/test_tool_parser_lfm3.py` (nouveau) -- capacités avec `lfm3` et avec `None` ; aller-retour d'un appel rendu par le template et relu par `qwen3_coder` ; rendu avec `enable_thinking=False` qui ouvre `<think></think>` -- couvre la matrice.
+- [x] `tests/test_model_catalog.py` -- éditeur `lfm` pour un modèle servi au nom LFM3 sans en-tête, en fr, en et de.
+- [x] `tests/test_probe.py` -- en-tête lisible avec `general.architecture="lfm3"` et chargement refusé : la raison nomme l'architecture ; en-tête illisible : raison actuelle.
 
 **Acceptance Criteria:**
 - Given les tests existants des parseurs, du catalogue, des serveurs et de la sonde, when la story est fusionnée, then ils passent sans modification de leurs attentes.
 - Given `tests/test_i18n.py`, when il s'exécute, then la nouvelle clé existe en fr, en et de.
 
 ## Implementation Notes
+
+Implémenté le 2026-10-28. `by_template` accepte désormais une architecture tant que le
+template porte `<function=` ; la famille de la branche Qwen3/LFM3 devient l'architecture dès
+qu'elle est connue et ne commence pas par `qwen3`. `publisher_for` n'a pas changé : seul
+`names_first` sur `lfm` suffit (le nom de fichier l'emporte sur l'architecture `qwen` lue du
+template). `incompatible_fr` prend une architecture optionnelle ; `probe_file` la lit du
+même en-tête Python déjà lu pour le KV. La fixture `tests/fixtures/lfm3_chat_template.jinja`
+vient du GGUF `LFM3-1.7B-QAD-Q4_0.gguf` (scratchpad de la session ac4fd306), le réseau n'étant
+pas nécessaire pour l'obtenir (12 129 octets, identiques au fichier Hugging Face à la date
+indiquée dans l'énoncé).
 
 ## Spec Change Log
 

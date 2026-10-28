@@ -119,12 +119,15 @@ def kv_bytes_per_token(meta: dict[str, Any]) -> int | None:
     return 2 * kv_heads_total * (key_length + value_length)
 
 
-def incompatible_fr() -> str:
+def incompatible_fr(architecture: str | None = None) -> str:
     """Lot E (E6): why llama-cpp-python refuses a file, a `Message` (French as a text,
     rendered by the session in its language); its own message is kept apart, as a technical
-    detail."""
+    detail. Story LFM3: with `architecture` (the header read in Python), names the probable
+    cause instead of the generic text."""
     version = _llama_cpp_version()
     lib = f"llama-cpp-python {version}" if version else "llama-cpp-python"
+    if architecture:
+        return Message("models.probe.incompatible_architecture", lib=lib, architecture=architecture)
     return Message("models.probe.incompatible", lib=lib)
 
 
@@ -196,7 +199,12 @@ def probe_file(path: str, window: int = DEFAULT_WINDOW) -> ProbeResult:
         llm = Llama(model_path=str(file_path), n_ctx=n_ctx, verbose=False)
     except Exception as exc:  # noqa: BLE001 - the file itself, or its context's memory
         if _load_refused(exc):
-            return ProbeResult(ok=False, path=path, reason=incompatible_fr(), detail=str(exc))
+            header = gguf_meta.try_read_metadata(file_path) or {}
+            architecture = header.get("general.architecture")
+            architecture = architecture if isinstance(architecture, str) and architecture else None
+            return ProbeResult(
+                ok=False, path=path, reason=incompatible_fr(architecture), detail=str(exc)
+            )
         return _transient(path, exc)
 
     try:

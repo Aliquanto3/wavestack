@@ -463,6 +463,9 @@ def test_size_text():
         ([], ["devstral-small"], "mistral"),
         ([], ["codestral-latest"], "mistral"),
         ([], ["LFM2-1.2B"], "lfm"),
+        # Story LFM3: served with an unreadable header (`-m` relative), the architecture is
+        # read as `qwen` (its template's family); the file's name still says LFM (`names_first`).
+        (["qwen"], ["LFM3-1.7B-QAD-Q4_0.gguf"], "lfm"),
         ([], ["NVIDIA-Nemotron-Nano-9B-v2"], "nemotron"),
         ([], ["openai/gpt-oss-120b"], "gpt_oss"),
         ([], ["MiniCPM4-0.5B"], "minicpm"),
