@@ -2,15 +2,19 @@
 title: 'Story 2 : KV par token avec attention à fenêtre glissante'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'review'
-baseline_commit: 'f92da5bab715c90fc9ceee771f132a3836832af2'
+status: 'done'
+baseline_commit: '6bb822698dfb50cf5a7074932de24400b25db84d'
 route: 'dispatch'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '{project-root}/_bmad-output/specs/spec-wavestack-lfm3/SPEC.md'
 warnings: []
-deferred: []
+deferred:
+  - summary: 'n_ctx inférieur à la fenêtre : couches glissantes sorties du KV par token sans part fixe'
+    evidence: 'sliding=True retire les 5 couches glissantes de LFM3 ; llama.cpp leur garde environ min(n_ctx, fenêtre × emplacements + ubatch) tokens, soit au plus ce nombre × 10 240 octets non comptés'
+    location: 'src/wavestack/models/servers.py served_kv / served_bytes'
+    severity: 'low'
 ---
 
 <intent-contract>
@@ -104,6 +108,19 @@ En-tête réel de `LFM3-1.7B-QAD-Q4_0.gguf`, relu le 2026-10-28 sur le poste de 
 
 ## Review Triage Log
 
+### 2026-10-28 — Review pass
+- verdicts: 9 findings — high 0, medium 2, low 3, false 4, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` Liste `head_count_kv` de somme 0 hors motif : 0 au lieu de None (second avis 1, orchestrateur 7) — l'invariant « aucun appelant non modifié ne voit de différence » cassé (`probed_entry` remplaçait la valeur stockée par 0 ; `served_kv` donnait 0 donc `context_counted` vrai pour un en-tête sans tête KV). Corrigé : 0 seulement quand le motif a retiré des couches (`masked`), test `test_no_kv_head_at_all_stays_none_unless_the_pattern_left_them_out`.
+  - `[medium]` `[patch]` (reviewer) `head_count_kv` entier sans `full_attention_interval` + motif valide : motif ignoré, alors que la tâche demande « l'entier répété `block_count` fois hors `full_attention_interval` ». Corrigé dans `_kv_per_layer` (le chemin `kv_bytes_per_token` et `sliding_kv` en profitent), test `test_single_kv_head_count_with_a_pattern_repeats_it_per_layer`.
+  - `[low]` `[defer]` n_ctx inférieur à la fenêtre (second avis 3) — part fixe des couches glissantes non comptée : périmètre de la story 3 (`sliding_kv`), voir `deferred`.
+  - `[low]` `[patch]` `_header_kv` appelé à 3 puis 4 arguments : deux entrées `lru_cache` par fichier (second avis 4) — `probed_entry` passe `False` explicitement.
+  - `[low]` `[patch]` QWEN35_4B jamais testé avec `sliding` (second avis 5, première moitié) — assertion ajoutée (`test_qwen35_4b_unchanged_with_sliding`).
+  - `[false]` `[reject]` Motif `True` seul : 0, `served_kv` = 0, `context_counted` vrai (second avis 2) — conforme à la matrice ; la part proportionnelle au contexte est bien nulle, la part fixe relève de la story 3.
+  - `[false]` `[reject]` Rien ne vérifie `ollama_load_bytes` ni `app_session` (second avis 5, seconde moitié) — code non modifié, appel par défaut `sliding=False` ; leurs tests existants passent (294 verts).
+  - `[false]` `[reject]` `test_llm_lab.py` importe `LFM3_1_7B` depuis `test_probe` (second avis 6) — même motif que les imports voisins (`test_model_servers`, `test_cloud`), voulu par la tâche.
+  - `[false]` `[reject]` `_sliding_layers` accepte la longueur de `block_count` ou de la liste `head_count_kv` (orchestrateur 8) — dans un GGUF valide les deux sont égales (llama.cpp exige `n_layer` entrées) ; si elles diffèrent, `kv_bytes_per_token` et `sliding_kv` exigent `len(mask) == len(kv_per_layer)` et ignorent le motif : même valeur que sans `sliding`, sans exception, comme le veut la matrice.
+
 ## Design Notes
 
 Part fixe des couches à fenêtre : llama.cpp leur garde environ `fenêtre × emplacements + ubatch`
@@ -115,3 +132,11 @@ token de ces couches, fenêtre)` ; la story 3 décide comment l'ajouter.
 **Commands:**
 - `uv run pytest -q --tb=short tests/test_probe.py tests/test_model_servers.py tests/test_llm_lab.py tests/test_memory_budget.py` -- expected: tout vert
 - `uv run python .claude/cost-kit/controle_rapide.py` -- expected: OK
+
+## Auto Run Result
+
+- **Résumé :** `kv_bytes_per_token(meta, *, sliding=False)` ne compte plus, avec `sliding=True` et un motif valide, les couches à fenêtre glissante ; `sliding_kv(meta)` expose leur part (story 3) ; seul `servers.served_kv` passe `sliding=True`. LFM3-1.7B servi : 12 288 octets par token au lieu de 22 528. Revue : deux correctifs medium (0 hors motif, entier `head_count_kv` avec motif).
+- **Fichiers :** `src/wavestack/models/probe.py`, `src/wavestack/models/servers.py`, `tests/gguf_writer.py`, `tests/test_probe.py`, `tests/test_model_servers.py`, `tests/test_llm_lab.py`.
+- **Constats :** 9 (medium 2 corrigés, low 3 dont 2 corrigés et 1 différé à la story 3, 4 rejetés) ; voir Review Triage Log.
+- **Vérification :** `uv run python -m pytest -q --tb=short tests/test_probe.py tests/test_model_servers.py tests/test_llm_lab.py tests/test_memory_budget.py` : 294 passés ; `controle_rapide.py` : OK.
+- **Risques résiduels :** part fixe des couches glissantes non comptée tant que la story 3 n'est pas faite (sous-estimation d'au plus quelques Mo pour LFM3) ; un motif dont les éléments ne sont pas booléens (liste de chaînes) est converti par `bool()` au lieu d'être rejeté, cas non vu dans un GGUF réel.
