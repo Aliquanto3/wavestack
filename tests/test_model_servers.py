@@ -382,7 +382,8 @@ def test_llama_server_turn_chosen_at_the_diagnostic(monkeypatch, tmp_path, fake)
         "llama-server",
         LLAMA_URL,
     )
-    assert row["served_bytes"] == 2 * GIB  # `meta.size`: the file is not on this disk
+    # `meta.size` (the file is not on this disk) and the compute buffers
+    assert row["served_bytes"] == 2 * GIB + servers.SERVER_BUFFERS_BYTES
 
     answer = client.post(
         "/api/intentions/select_model",
@@ -1732,7 +1733,8 @@ def test_llama_server_relative_model_path_is_not_read_here(fake, monkeypatch):
 
     candidate = _llama_candidate(fake)
 
-    assert candidate.served_bytes == 2 * GIB and candidate.context_counted is False
+    assert candidate.served_bytes == 2 * GIB + servers.SERVER_BUFFERS_BYTES
+    assert candidate.context_counted is False
 
 
 def test_llama_server_with_several_slots_counts_the_whole_context(fake):
@@ -1811,6 +1813,17 @@ def test_server_memory_reads_the_listening_process_rss(fake, monkeypatch):
     candidate = _llama_candidate(fake)
 
     assert candidate.served_bytes == 2112 * (1024**2)
+
+
+def test_server_memory_ignores_a_relay_under_the_weights_size(fake, monkeypatch):
+    """A relay on the port (wslrelay, Docker): a resident memory under the weights' 2 GiB is
+    not the server's; the fallback counts the size and the buffers."""
+    monkeypatch.setattr(servers, "_server_rss", lambda url: 30 * 1024**2)
+    fake.model_path = str(Path(TINY).with_name("missing.gguf"))
+
+    candidate = _llama_candidate(fake)
+
+    assert candidate.served_bytes == 2 * GIB + servers.SERVER_BUFFERS_BYTES
 
 
 def test_server_rss_never_calls_net_connections_for_a_remote_host(monkeypatch):

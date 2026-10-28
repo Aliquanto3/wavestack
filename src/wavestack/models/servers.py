@@ -982,9 +982,9 @@ def list_served(
     return served
 
 
-# shortcut: a provision for llama-server's compute buffers and weight repack when the
-# process's own RSS cannot be read (≈ 200 Mo measured on LFM3-1.7B); not the repack's exact
-# cost (depends on the CPU and the quantization) -- revisit if this fallback becomes common.
+# shortcut: a provision for llama-server's compute buffers when the process's own RSS cannot
+# be read (≈ 200 Mo measured on LFM3-1.7B); the weights' repack is not counted (depends on the
+# CPU and the quantization) -- revisit if this fallback becomes common.
 SERVER_BUFFERS_BYTES = 256 * 1024**2
 
 
@@ -994,16 +994,11 @@ def served_bytes(model: ServedModel, path: str | None, window: int | None = None
     its weights and its compute buffers included; else (both engines' fallback) its file's
     size plus its KV cache for its whole context `n_ctx` (lot E, E1: llama-server reserves it
     at launch), the KV read in the file's metadata, without the weights (the file's size
-    alone when unreadable), plus `SERVER_BUFFERS_BYTES` for llama-server once a local path was
-    found (never a model_path WaveStack cannot resolve at all); not loaded yet (Ollama): its
+    alone when unreadable), plus `SERVER_BUFFERS_BYTES` for llama-server; not loaded yet (Ollama): its
     blob's size, plus (story 24) its KV cache at `window` when given and readable
     (`ollama_load_bytes`). `None` when nothing says it."""
     if model.resident and model.resident_size:
         return model.resident_size
-    if model.engine == "llama_server":
-        rss = _server_rss(model.server_url)
-        if rss is not None:
-            return rss
     size = model.size
     local = local_path(path)
     if local:
@@ -1011,11 +1006,17 @@ def served_bytes(model: ServedModel, path: str | None, window: int | None = None
             size = Path(local).stat().st_size
         except OSError:
             pass
+    if model.engine == "llama_server":
+        rss = _server_rss(model.server_url)
+        # under the weights' size, the listener is a relay (wslrelay, Docker, a proxy), not
+        # the server holding the model: the fallback instead
+        if rss is not None and (size is None or rss >= size):
+            return rss
     if model.engine == "ollama" and not model.resident and window and local:
         return ollama_load_bytes(local, window) or size
     kv = served_kv(model, path)
     total = size + kv * (model.n_ctx or 0) if size is not None and kv else size
-    if model.engine == "llama_server" and local and total is not None:
+    if model.engine == "llama_server" and total is not None:
         return total + SERVER_BUFFERS_BYTES
     return total
 
