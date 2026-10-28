@@ -232,7 +232,8 @@ main:
     card_name: "Brique {brick}"
     locked_by_model: "Verrouillé : imposé par ce modèle"
     pending: "Prend effet au prochain tour"
-    mcp_workshop: "Voir le protocole dans l'atelier MCP →"
+    mcp_workshop: "Atelier MCP"
+    outbound_summary: "🌐 Sort du poste : {names}"
     edit_prompt: "Modifier le prompt"
     # Story 13, `guardrails` brick only: the extra's and Prompt Guard's « Installer ».
     guardrails_install: Installer

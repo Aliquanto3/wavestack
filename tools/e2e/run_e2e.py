@@ -2524,19 +2524,29 @@ def _unfold_step(r: Run, title: str) -> None:
 
 
 def _outbound_card(r: Run) -> None:
-    """The Outils card says what leaves the workstation, its options folded."""
+    """CAP-4 (panneau allégé): the Outils card shows one line (only the enabled network
+    options) folded, and the full text (every declared one) in its explanation, folded."""
     card = r.card("Outils")
-    folded = card.locator("details.brick-options").get_attribute("open") is None
-    text = card.locator(".brick-outbound").inner_text() if folded else ""
+    summary = card.locator(".brick-outbound").first.inner_text()
+    r.check(
+        summary.strip() == "🌐 Sort du poste : Jours fériés, Résumé Wikipédia, Lecture de page web",
+        "carte Outils, repliée : une ligne, seules les options activées qui sortent du poste",
+        summary,
+    )
+    details = card.locator("details.brick-explain")
+    folded_before = details.get_attribute("open") is None
+    details.locator("summary").click()
+    text = details.locator(".brick-outbound").last.inner_text()
     names = ["Jours fériés", "Résumé Wikipédia", "Lecture de page web"]
     names += ["data.gouv.fr", "Microsoft Learn", "Données sortantes"]
     names.insert(0, "Peuvent sortir du poste")  # declared, enabled or not
     missing = [n for n in names if n not in text]
     r.check(
-        folded and card.locator(".brick-outbound").is_visible() and not missing,
-        "carte Outils, options repliées : ce qui sort du poste et où le lire",
+        folded_before and not missing,
+        "carte Outils, explication dépliée : le texte complet de ce qui sort du poste, où le lire",
         f"manque {missing} dans « {text[:200]} »" if missing else "",
     )
+    details.locator("summary").click()  # re-fold: state as found
 
 
 def _holidays_outbound(r: Run, seq: int) -> None:
@@ -2902,6 +2912,12 @@ def s_disciplines(r: Run) -> None:
     r.check(
         r.card("Outils").locator(".brick-network").inner_text().strip() == "RÉSEAU",
         "carte Outils : puce « 🌐 RÉSEAU »",
+    )
+    bricks_pane = r.page.locator('.pane[data-pane="bricks"]')
+    r.check(
+        bricks_pane.locator(".hosting-tag-local").count() == 0
+        and bricks_pane.locator(".brick-card:not(.is-active) .brick-network").count() == 0,
+        "panneau allégé : aucune puce « Local », aucun « RÉSEAU » sur une brique éteinte",
     )
     r.shot_element("29-disciplines-briques", '.pane[data-pane="bricks"]')
 
@@ -6970,8 +6986,9 @@ def _mcp_lab(r: Run, errors: list[str]) -> None:
     ok, detail = _bar_fits(r)
     r.check(ok, "barre commune entière avec six onglets, sur une ligne, à 1600 × 1000", detail)
     r.check(
-        page.locator('a.brick-workshop-link[href="/mcp"]').count() == 1,
-        "la carte de la brique MCP renvoie à l'atelier MCP",
+        page.locator('a.brick-workshop-link[href="/mcp"]').count() == 1
+        and page.locator("a.brick-workshop-link").inner_text().strip() == "Atelier MCP",
+        "la carte de la brique MCP renvoie à l'atelier MCP (« Atelier MCP »)",
     )
     link.click()
     page.wait_for_url("**/mcp")

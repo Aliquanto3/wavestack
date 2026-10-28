@@ -2123,8 +2123,8 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   overflow: hidden;
 }
 
-/* ---------- bricks panel (DESIGN.md > brick-card, brick-toggle, category-chip,
-   hosting-tag-local, edit-drawer) ---------- */
+/* ---------- bricks panel (DESIGN.md > brick-card, brick-toggle, hosting-tag-network,
+   edit-drawer) ---------- */
 
 .pane[data-pane="bricks"] {
   position: relative; /* the edit drawer slides over this pane only */
@@ -2143,7 +2143,7 @@ body.focus-mode .pane.is-focused .pane-body-orch {
 }
 
 /* CAP-4 (2026-10-27): the per-brick explanation, inline and folded by default (replaces the
-   former « ? » popover). The summary clamps to two lines until opened. */
+   former « ? » popover). The summary clamps to one line until opened (panneau allégé). */
 .brick-explain {
   font-size: var(--typography-body-sm-font-size);
   color: var(--color-ink-soft);
@@ -2155,7 +2155,7 @@ body.focus-mode .pane.is-focused .pane-body-orch {
 
 .brick-explain:not([open]) > .brick-explain-summary {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2304,13 +2304,6 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   color: var(--color-ink-soft);
 }
 
-.brick-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-1);
-}
-
-.category-chip,
 .hosting-tag-local,
 .hosting-tag-network {
   font: var(--typography-label-font-weight) var(--typography-label-font-size) /
@@ -2319,24 +2312,8 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   padding: 2px var(--spacing-2);
 }
 
-.category-chip {
-  background: var(--discipline-soft, var(--color-primary-soft));
-  color: var(--color-ink);
-  border: 1px solid var(--discipline, var(--color-primary));
-}
-
-.brick-card.is-active .category-chip {
-  background: var(--color-surface-raised);
-}
-
-/* Story 33: an off card is greyed, its category chip too. */
-.brick-card:not(.is-active) .category-chip {
-  background: var(--color-surface-raised);
-  border-color: var(--color-discipline-neutral);
-  color: var(--color-ink-soft);
-}
-
-/* Story 33: the local hosting is no longer violet (the violet says prompt engineering). */
+/* Story 33: the local hosting is no longer violet (the violet says prompt engineering).
+   Still used outside the bricks panel (model indicator, annex page). */
 .hosting-tag-local {
   background: var(--color-surface-raised);
   color: var(--color-ink);
@@ -2394,8 +2371,22 @@ body.focus-mode .pane.is-focused .pane-body-orch {
   color: var(--color-ink);
 }
 
+/* CAP-4 (panneau allégé): the servers `<details>` and the Atelier MCP link share a row. */
+.brick-options-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.brick-options-row > .brick-options {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* Story 6 (2026-09-30): the MCP card's link to the MCP workshop (`/mcp`). */
 .brick-workshop-link {
+  flex: 0 0 auto;
   align-self: flex-start;
   font-size: var(--typography-body-sm-font-size);
   color: var(--color-primary);

@@ -49,9 +49,10 @@ Le menu **Affichage ▾**, à droite, règle le thème, la [langue](#langue) et 
 **L'atelier** se lit de gauche à droite :
 
 - **Panneau des briques** : chaque brique (raisonnement, prompt système, mémoires, outils, RAG,
-  MCP, skills, hooks, garde-fous, sous-agent, compression) s'allume par son interrupteur, avec sa catégorie
-  (prompt, contexte ou harnais : le raisonnement et les garde-fous relèvent du harnais),
-  son hébergement (local ou réseau) et son explication, repliée sous un aperçu de deux lignes qui se déplie au clic. Le document `guide_harnais.md` (section 10)
+  MCP, skills, hooks, garde-fous, sous-agent, compression) s'allume par son interrupteur ; une
+  puce « 🌐 RÉSEAU » n'apparaît sur sa carte que si une option activée sort du poste, et son
+  explication, repliée sous un aperçu d'une ligne qui se déplie au clic, dit alors en détail ce
+  qui en sort et où le lire. Le document `guide_harnais.md` (section 10)
   explique l'emboîtement prompt ⊂ contexte ⊂ harnais, les guides et les capteurs.
 - **① Vue humain** : la conversation, telle que la voit l'utilisateur, avec les prompts
   suggérés du scénario et « Rejouer le dernier prompt ».
