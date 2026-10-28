@@ -2147,6 +2147,7 @@ models:
   # `models/probe.py` (lot E): why a GGUF file could not be probed.
   probe:
     incompatible: "{lib} cannot load this file (unsupported architecture, incomplete or damaged file). Choose another model, or serve it with Ollama or llama-server."
+    incompatible_architecture: "{lib} cannot load this file of architecture « {architecture} »: probably too recent for it (or an incomplete or damaged file). Serve it with llama-server, in a recent version of llama.cpp, or choose another model."
     transient: "The probe could not measure this file, for lack of memory or time (creating the context or reading a first prompt). Close some applications, then choose it again: nothing is remembered."
     not_found: File not found.
     not_installed: llama-cpp-python not installed.

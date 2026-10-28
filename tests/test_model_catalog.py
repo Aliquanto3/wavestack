@@ -463,6 +463,12 @@ def test_size_text():
         ([], ["devstral-small"], "mistral"),
         ([], ["codestral-latest"], "mistral"),
         ([], ["LFM2-1.2B"], "lfm"),
+        # Story LFM3: served with an unreadable header (`-m` relative), the architecture is
+        # read as `qwen3` (its template's family); the file's name still says LFM (`names_first`).
+        (["qwen3"], ["LFM3-1.7B-QAD-Q4_0.gguf"], "lfm"),
+        # `names_first` on LFM must not catch a name that merely contains "lfm" (`architectures:
+        # []` on `llama`, too generic a tag to say Llama on its own: `other`, as today).
+        (["llama"], ["SelfMerge-7B"], "other"),
         ([], ["NVIDIA-Nemotron-Nano-9B-v2"], "nemotron"),
         ([], ["openai/gpt-oss-120b"], "gpt_oss"),
         ([], ["MiniCPM4-0.5B"], "minicpm"),
@@ -484,6 +490,12 @@ def test_size_text():
 )
 def test_publisher_for(architectures, names, expected):
     assert catalog.publisher_for(architectures, names).id == expected
+
+
+@pytest.mark.parametrize("lang", ["fr", "en", "de"])
+def test_lfm3_served_without_header_is_lfm_in_every_language(lang):
+    """Story LFM3: `names_first` on LFM holds in the en and de overlays too."""
+    assert catalog.publisher_for(["qwen3"], ["LFM3-1.7B-QAD-Q4_0.gguf"], lang).id == "lfm"
 
 
 def test_unknown_publisher_is_last_of_its_hosting():

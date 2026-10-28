@@ -1,0 +1,49 @@
+- id: "1"
+  title: Capacités et éditeur d'un modèle LFM3, en direct comme servi
+  description: >-
+    capabilities_for (models/capabilities.py:103) ne reconnaît le template façon Qwen3
+    (ChatML, <tool_call>, <function=, enable_thinking) que sans architecture : avec
+    architecture="lfm3", LFM3 tombe au cas générique, sans analyseur ni arrêt. Reconnaître ce
+    template quelle que soit l'architecture quand il porte <function= (format qwen3_coder),
+    famille lfm3 en direct, qwen3 sans architecture. Servi avec un -m relatif, LFM3 est rangé
+    chez Qwen : names_first sur l'éditeur lfm (publishers.yaml + en/de). La sonde nomme
+    l'architecture refusée par llama-cpp-python et renvoie vers llama-server (nouvelle clé
+    models.probe.incompatible_architecture, fr/en/de).
+  invoke_dev_with: >-
+    Vague V0. Fichiers : capabilities.py, probe.py (incompatible_fr et échec de la sonde),
+    content/models/publishers.yaml et content/messages.yaml (+ i18n en/de), nouvelle fixture
+    tests/fixtures/lfm3_chat_template.jinja (template de LiquidAI/LFM3-1.7B). Tests à garder
+    verts sans modification : test_tool_parser_granite4.py (SmolLM3, Falcon-H1, Hunyuan,
+    Qwen3.5, MiniCPM5), test_model_servers.py l.1019, 1254, 1261, test_model_catalog.py l.166.
+- id: "2"
+  title: KV par token avec attention à fenêtre glissante
+  description: >-
+    probe.kv_bytes_per_token (models/probe.py:78) compte les couches à fenêtre glissante sur
+    tout le contexte : 22 528 octets par token pour LFM3 au lieu de 12 288. Drapeau
+    sliding=False par défaut ; avec sliding=True et les clés {arch}.attention.sliding_window
+    et {arch}.attention.sliding_window_pattern (liste par couche ou valeur seule), seules les
+    couches globales comptent. Aide sliding_kv(meta) pour la part fixe (utilisée par la
+    story 3). served_kv passe sliding=True ; Ollama garde le calcul complet ; le direct selon
+    la valeur par défaut de swa_full dans llama-cpp-python, à lire dans .venv.
+  invoke_dev_with: >-
+    Vague V0. Fichiers : probe.py, servers.py (served_kv seulement), app_session.py si la
+    tâche 2 le décide. En-tête réel relevé le 2026-10-28 (rapport de mesures, écart 2), à
+    recopier dans une constante LFM3_1_7B de tests/test_probe.py. Tests à garder verts :
+    QWEN35_2B/4B (test_probe.py l.418+), test_model_servers.py l.1653 et l.1710.
+- id: "3"
+  title: Mémoire résidente d'un modèle servi par llama-server, lue dans son processus
+  description: >-
+    servers.served_bytes (models/servers.py:983) estime un modèle servi par llama-server à
+    fichier + KV × n_ctx : 1 353 Mo pour LFM3 contre 2 112 Mo résidents mesurés (repack des
+    poids Q4_0 et tampons de calcul non comptés). Décision d'Anaël du 2026-10-28 : lire la
+    mémoire résidente (psutil, memory_info().rss) du processus à l'écoute du port du serveur
+    quand il tourne sur ce poste. Repli quand le processus est introuvable ou illisible :
+    l'estimation actuelle, plus une provision de tampons de calcul, et un -m relatif résolu
+    sous config.models_dir() seulement.
+  invoke_dev_with: >-
+    Vague V1, après fusion de la story 2 (même fichier servers.py). Fichiers : servers.py,
+    discovery.py, catalog.py (header_path). Tests : test_model_servers.py (nouveaux tests de
+    la lecture, faux processus par monkeypatch, jamais un vrai llama-server) ; à réaligner
+    sur SERVER_BUFFERS_BYTES : l.1653, l.1691, l.1710 ; à garder inchangé :
+    test_llama_server_relative_model_path_is_not_read_here (l.1701). E2E du diagnostic à
+    nommer dans le rapport, pas à lancer.

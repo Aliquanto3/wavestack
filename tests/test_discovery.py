@@ -6,7 +6,18 @@ from pathlib import Path
 import pytest
 
 from wavestack import config
-from wavestack.models import discovery
+from wavestack.models import discovery, probe
+
+
+def test_reason_message_recognises_the_architecture_named_after_a_round_trip_as_a_plain_str():
+    """Story LFM3: `reason` crosses the probe's child process and settings.json as plain
+    French text (`str(...)`, as after JSON); `reason_message` must still find the
+    parametric `incompatible_architecture` back and render it in the session's language."""
+    reason = str(probe.incompatible_fr("lfm3"))  # a plain str, not a `Message`
+    message = discovery.reason_message(reason)
+    rendered = message.render("en")
+    assert "lfm3" in rendered
+    assert "cannot load this file of architecture" in rendered
 
 
 def test_explicit_missing_path_is_incompatible(tmp_path):
