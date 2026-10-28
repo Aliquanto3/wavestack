@@ -36,7 +36,7 @@ Au plus 3 stories en développement à la fois (3,6 Go de RAM libre au départ ;
 ## Reprise après /clear
 
 - Lire ce fichier, puis `sprint-status.yaml` ; l'état réel prime : `gh pr list --state open`, `git -C ../wavestack-r171-s<N> log -3 --oneline`.
-- En pause depuis le 2026-10-27 (démo d’Anaël). Reste : 17.4 (worktree `../wavestack-r171-s4`, commit befab6d7) → `reviewer` (Opus) avec la liste du second avis du journal, rebasé sur `origin/main`, puis E2E `rag rag_rerank rag_lab_no_index`, PR, CI, fusion ; puis version 1.7.1. Reprendre seulement sur demande d’Anaël.
+- Run terminé le 2026-10-28 : 17.1 à 17.5 fusionnées, version 1.7.1.
 - Fin de run : rapport `rapport-run-recette-v1-7-0.md`, version 1.7.1, mémoire du projet, suppression des worktrees.
 
 ## Journal
@@ -68,3 +68,10 @@ Au plus 3 stories en développement à la fois (3,6 Go de RAM libre au départ ;
 - 2026-10-27 17:02 · 17.4 · dev · fini · befab6d7
 - 2026-10-27 17:02 · 17.4 · second-avis · 1 medium (course amorçage /api/state vs /api/rag_lab), 4 low (libellé « onglet Atelier RAG » absent de la page, pas de test de (a)) · befab6d7
 - 2026-10-27 17:02 · run · décision · pause demandée par Anaël (démo) : fusion de ce qui était prêt, 17.4 en attente de revue · —
+- 2026-10-28 07:26 · run · décision · reprise demandée par Anaël : revue 17.4 puis version 1.7.1 · —
+- 2026-10-28 07:26 · 17.4 · décision · à revoir : revue par `reviewer` (protocole du run) plutôt que les trois couches de `bmad-build` step-04 · —
+- 2026-10-28 07:41 · 17.4 · review · course d'amorçage corrigée (rétrogradée en low), libellé « onglet Atelier RAG » rejeté (tab_rag existe), E2E cas (a) ajouté · 12e91186
+- 2026-10-28 07:41 · 17.4 · E2E · rag rag_rerank rag_lab_no_index 90 OK · 12e91186
+- 2026-10-28 07:41 · 17.4 · PR · #164 ouverte, CI en cours · 12e91186
+- 2026-10-28 08:00 · 17.4 · fusion · PR #164 MERGED, CI 8/8 · a9b14f1f
+- 2026-10-28 08:00 · run · version · 1.7.1 (manifeste, rapport rapport-run-recette-v1-7-0.md) · —
